@@ -213,7 +213,7 @@ class Login extends React.Component {
                                         <img className="text-center row mx-auto justify-content-center align-items-center flex-column" src="designs/bus_logo.png" style={{ "marginTop": "5vh" }} width="30%"></img>
 
                                         <div className="kt-login-v2__title">
-                                            <h3>Sign to your account</h3>
+                                            <h3>Login to your account</h3>
                                         </div>
 
                                         {/*begin::Form*/}
