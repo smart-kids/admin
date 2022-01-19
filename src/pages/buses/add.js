@@ -82,7 +82,7 @@ class Modal extends React.Component {
                 className="kt-form kt-form--label-right"
               >
                 <div className="modal-header">
-                  <h5 className="modal-title">Create bus</h5>
+                  <h5 className="modal-title">Create Bus</h5>
                   <button
                     type="button"
                     className="close"
@@ -151,7 +151,7 @@ class Modal extends React.Component {
                             driver: e.target.value
                           })}
                         >
-                          <option value="">Select driver</option>
+                          <option value="">Select Driver</option>
                           {this.props.drivers.map(
                             driver => (
                               <option key={driver.id} value={driver.id}>{driver.username}</option>
