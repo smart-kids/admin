@@ -3,8 +3,15 @@ body {
 }
 
 .kt-login-v2 {
-    /* background-color: #fff; */
+    background-color: #fff;
 }
+.g-signin{
+    position: relative;
+    top: 8%;
+    left: 35%; 
+
+    margin-top: -50px;
+    margin-left: -50px;}
 
 .kt-login-v2 .kt-login-v2__head {
     display: -webkit-box;

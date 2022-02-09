@@ -3,12 +3,14 @@ import './login.css'
 import { Link } from "react-router-dom";
 import axios from "axios"
 import { API } from "../../utils/requests"
-import Data from "../../utils/data"
+import Data from "../../utils/data";
+import GoogleLogin from 'react-google-login';
+import {onLoginSuccess, onLoginFailure, clientId}from "./googlelogin";
+
 
 import { FacebookLoginButton, MicrosoftLoginButton, GoogleLoginButton, TwitterLoginButton } from "react-social-login-buttons";
 // import $ from 'jquery'
 const toastr = window.toastr;
-
 toastr.options = {
     closeButton: true,
     debug: false,
@@ -115,6 +117,7 @@ class Login extends React.Component {
         alert("TwitterLoginButton")
     }
     componentDidMount() {
+ 
         var _this = this
         // window.fbAsyncInit = function () {
         //     console.log("env", process.env)
@@ -143,7 +146,7 @@ class Login extends React.Component {
             highlight: function (element) {
                 window.$(element).addClass("is-invalid");
             },
-
+            
             unhighlight: function (element) {
                 window.$(element).removeClass("is-invalid");
             },
@@ -177,6 +180,7 @@ class Login extends React.Component {
             }
         });
     }
+  
     render() {
         return (
             <div>
@@ -213,9 +217,21 @@ class Login extends React.Component {
                                         <img className="text-center row mx-auto justify-content-center align-items-center flex-column" src="designs/bus_logo.png" style={{ "marginTop": "5vh" }} width="30%"></img>
 
                                         <div className="kt-login-v2__title">
-                                            <h3>Sign to your account</h3>
+                                            <h3>Login to your account.</h3>
                                         </div>
-
+                            
+                                        <div className="g-signin">
+                                        <GoogleLogin
+                                                    clientId={clientId}
+                                                    buttonText="Login With Google"
+                                                    onSuccess={onLoginSuccess}
+                                                    onFailure={onLoginFailure}
+                                                    cookiePolicy={'single_host_origin'}
+                     />
+                                        </div>
+                                        <div className="kt-login-v2__title">
+                                            <h3>or use your email to sign in:</h3>
+                                        </div>
                                         {/*begin::Form*/}
                                         <form id="login" className="kt-login-v2__form kt-form" action="true" autoComplete="off">
                                             {this.state.error ? <div className="alert alert-danger">
@@ -269,13 +285,14 @@ class Login extends React.Component {
                                                 <Link to="/recover" className="kt-link kt-link--brand">
                                                     <span className="kt-menu__link-text">Forgot Password ?</span>
                                                 </Link>
+                                                                                               
                                                 {
                                                     !this.state.otp
                                                         ? <button type="submit" className="btn btn-brand btn-elevate btn-pill btn-sm" >Sign In</button>
                                                         : <button type="button" onClick={() => this.validateOtpCode()} className="btn btn-brand btn-elevate btn-pill btn-sm" >Confirm Code</button>
                                                 }
 
-                                            </div>
+                                            </div>                                
 
                                             {/*end::Action*/}
                                         </form>
