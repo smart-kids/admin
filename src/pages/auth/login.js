@@ -5,7 +5,8 @@ import axios from "axios"
 import { API } from "../../utils/requests"
 import Data from "../../utils/data";
 import GoogleLogin from 'react-google-login';
-import {onLoginSuccess, onLoginFailure, clientId}from "./googlelogin";
+import FacebookLogin from 'react-facebook-login';
+import {onLoginSuccess, onLoginFailure, clientId, componentClicked, responseFacebook}from "./googleFBLogin";
 
 
 import { FacebookLoginButton, MicrosoftLoginButton, GoogleLoginButton, TwitterLoginButton } from "react-social-login-buttons";
@@ -226,8 +227,17 @@ class Login extends React.Component {
                                                     buttonText="Login With Google"
                                                     onSuccess={onLoginSuccess}
                                                     onFailure={onLoginFailure}
-                                                    cookiePolicy={'single_host_origin'}
-                     />
+                                                    cookiePolicy={'single_host_origin'}/>
+                                        
+                                        </div>
+                                        <div className="f-signin" id="fb-root">
+                                            <span><FacebookLogin
+                                                            appId="1088597931155576"
+                                                            autoLoad={true}                                                            
+                                                            callback={responseFacebook}
+                                                            cssClass="my-facebook-button-class"
+                                                            icon="fa-facebook" />
+                                        </span>
                                         </div>
                                         <div className="kt-login-v2__title">
                                             <h3>or use your email to sign in:</h3>

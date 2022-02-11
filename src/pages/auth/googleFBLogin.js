@@ -1,5 +1,6 @@
 import React from 'react';
 import GoogleLogin from 'react-google-login';
+import FacebookLogin from 'react-facebook-login';
 import axios from 'axios'
 import './login.css'
 import { API } from "../../utils/requests"
@@ -18,5 +19,14 @@ import { API } from "../../utils/requests"
         console.log('Login Failed:', res);
     };
 
-
+    export const responseFacebook = (response) => {
+        console.log(response)
+        axios({            
+            method:'POST',
+            url:`${API}/facebookLogin`,
+            data:{acesstoken: response.acesstoken,
+            userID: response.userID}
+        }).then(res => console.log("Here is the response", res));
+      }
+    export const componentClicked= () => console.log('Button Clicked')
 
