@@ -1,5 +1,5 @@
 import React from "react";
-import { Route, HashRouter, useHistory, Redirect } from "react-router-dom";
+import { Route, BrowserRouter, Redirect } from "react-router-dom";
 
 import home from "./pages/home";
 import students from "./pages/students";
@@ -45,7 +45,7 @@ const PrivateRoute = ({ component: Component, ...rest }) => (
 class App extends React.Component {
   render() {
 
-    return (<HashRouter>
+    return (<BrowserRouter>
       {/* overal stuff */}
       <Route exact path="/" component={login} />
       <Route exact path="/register" component={register} />
@@ -88,7 +88,7 @@ class App extends React.Component {
 
 
       {/* 3rd party admin routes */}
-    </HashRouter>)
+    </BrowserRouter>)
 
   }
 }
