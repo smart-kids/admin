@@ -1,6 +1,3 @@
-import React from 'react';
-import GoogleLogin from 'react-google-login';
-import FacebookLogin from 'react-facebook-login';
 import axios from 'axios'
 import './login.css'
 import { API } from "../../utils/requests"
