@@ -486,9 +486,6 @@ class FeesManagement extends Component {
 
                 // 1. Previous Class Fees
                 const prevFees = group.students.reduce((sum, s) => {
-                    // This is a simplification: assuming same fee for previous terms if not recorded otherwise.
-                    // But usually, we just sum them if we have term-specific fee records.
-                    // Here we'll sum class fees for all previous terms.
                     const fee = getFees(s.class?.id || s.class);
                     return sum + (fee * previousTerms.length);
                 }, 0);

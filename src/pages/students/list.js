@@ -116,7 +116,7 @@ export default function StudentDataTableV8() {
       { key: 'registration', label: 'Registration', sortable: true },
       { key: 'class_name', label: 'Current Class', sortable: true },
       { key: 'yearOfEntry', label: 'Year of Entry', sortable: true },
-      { key: 'parent_name', label: 'Parent Name', sortable: true },
+      { key: 'parent_name', label: 'Parent', sortable: true },
   ], []);
 
   // --- DERIVED STATE ---

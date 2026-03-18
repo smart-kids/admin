@@ -720,7 +720,7 @@ const ResultsGrid = ({ students, subjects, assessments, allAssessments, allTerms
                                                         })()}
                                                     </div>
                                                 </td>
-                                             );
+                                            );
                                         })}
                                         <td className="text-center align-middle" style={{ position: 'sticky', right: '120px', zIndex: 50, backgroundColor: isExpanded ? '#f1faff' : '#fff', borderLeft: '1px solid #ebedf3', boxShadow: '-2px 0 5px rgba(0,0,0,0.05)' }}>
                                             <span className="text-dark-75 font-weight-bolder font-size-h6">
