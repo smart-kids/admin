@@ -8,14 +8,18 @@ const ReportCard = ({ student, term, assessments, subjects, rubrics, assessmentT
     const school = propSchool || Data.schools.getSelected();
     const themeColor = school?.themeColor || '#1a1a1a';
     
-    // Helper to find score for a specific subject and assessment type
-    const getScore = (subjectId, typeId) => {
-        const a = assessments.find(a => 
+    // Helper to find the full assessment for a specific subject and assessment type
+    const getAssessment = (subjectId, typeId) => {
+        return assessments.find(a => 
             (a.student === student.id || a.student?.id === student.id) &&
             (a.subject === subjectId || a.subject?.id === subjectId) &&
             (a.term === term.id || a.term?.id === term.id) &&
             (a.assessmentType === typeId || a.assessmentType?.id === typeId)
         );
+    };
+
+    const getScore = (subjectId, typeId) => {
+        const a = getAssessment(subjectId, typeId);
         return a ? parseFloat(a.score) : null;
     };
 
@@ -29,43 +33,30 @@ const ReportCard = ({ student, term, assessments, subjects, rubrics, assessmentT
     const sortedAssessmentTypes = [...(assessmentTypes || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
 
     const subjectRows = subjects.map(subject => {
-        let subjectPoints = 0;
+        let overallScore = 0;
+        let hasAnyScore = false;
+
         const typeScores = sortedAssessmentTypes.map(type => {
-            const score = getScore(subject.id, type.id);
-            const rubric = getRubric(score);
-            if (rubric && rubric.points) {
-                subjectPoints += parseFloat(rubric.points);
-            }
-            return { type, score, rubric };
+            const assessment = getAssessment(subject.id, type.id);
+            const score = assessment ? parseFloat(assessment.score) : null;
+            const outOf = assessment ? (parseFloat(assessment.outOf) || 100) : 100;
+            const pct = type.percentage || 0;
+            const contribution = (score !== null && !isNaN(score) && outOf > 0) ? (score / outOf) * pct : null;
+            if (contribution !== null) { overallScore += contribution; hasAnyScore = true; }
+            return { type, score, outOf, contribution, pct };
         });
 
-        // Collect rubric comments from all assessment types for this subject
-        const rubricComments = typeScores
-            .filter(ts => ts.rubric?.teachersComment)
-            .map(ts => ts.rubric.teachersComment);
-            
-        // Also collect personalized teacher comments for this subject in this term
-        const personalizedComments = assessments
-            .filter(a => 
-                (a.student === student.id || a.student?.id === student.id) &&
-                (a.subject === subject.id || a.subject?.id === subject.id) &&
-                (a.term === term.id || a.term?.id === term.id) &&
-                a.teachersComment
-            )
-            .map(a => a.teachersComment);
-
-        // Deduplicate and combine
-        const allComments = [...new Set([...personalizedComments, ...rubricComments])];
+        const overallRubric = hasAnyScore ? getRubric(overallScore) : null;
 
         return {
             subject,
             typeScores,
-            totalPoints: subjectPoints,
-            teachersComment: allComments.length > 0 ? allComments.join(' ') : '-'
+            overallScore: hasAnyScore ? overallScore : null,
+            overallRubric
         };
     });
 
-    const totalOverallPoints = subjectRows.reduce((sum, row) => sum + row.totalPoints, 0);
+    const totalOverallPoints = subjectRows.reduce((sum, row) => sum + (row.overallScore || 0), 0);
 
     return (
         <div className="report-card-container" style={{ 
@@ -125,9 +116,11 @@ const ReportCard = ({ student, term, assessments, subjects, rubrics, assessmentT
                         <tr style={{ backgroundColor: themeColor }}>
                             <th style={{ padding: '12px 18px', textAlign: 'left', color: 'white', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase' }}>Learning Area / Subject</th>
                             {sortedAssessmentTypes?.map(type => (
-                                <th key={type.id} style={{ padding: '12px 10px', textAlign: 'center', color: 'white', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase' }}>{type.name}</th>
+                                <th key={type.id} style={{ padding: '12px 10px', textAlign: 'center', color: 'white', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                                    {type.name} {type.percentage ? `(${type.percentage}%)` : ''}
+                                </th>
                             ))}
-                            <th style={{ padding: '12px 10px', textAlign: 'center', color: 'white', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase' }}>Subj. Points</th>
+                            <th style={{ padding: '12px 10px', textAlign: 'center', color: 'white', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase' }}>Overall</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -139,25 +132,42 @@ const ReportCard = ({ student, term, assessments, subjects, rubrics, assessmentT
                                 </td>
                                 {row.typeScores.map((ts, tIdx) => (
                                     <td key={tIdx} style={{ padding: '10px 10px', borderBottom: '1px solid #f3f4f6', textAlign: 'center' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                                            <span style={{ fontWeight: 800, fontSize: '1.1rem', color: '#111827' }}>{ts.score !== null ? ts.score : '-'}</span>
-                                            {ts.rubric && (
-                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
-                                                    <div style={{ fontSize: '0.7rem', color: themeColor, fontWeight: 900, textTransform: 'uppercase', lineHeight: '1.2' }}>
-                                                        {ts.rubric.label} {ts.rubric.points ? `(${ts.rubric.points} pts)` : ''}
-                                                    </div>
-                                                    {ts.rubric.teachersComment && (
-                                                        <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#3f4254', lineHeight: '1.3', textAlign: 'center', wordBreak: 'break-word', maxWidth: '90px' }}>
-                                                            {ts.rubric.teachersComment}
-                                                        </div>
-                                                    )}
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                                            <span style={{ fontWeight: 800, fontSize: '1.1rem', color: '#111827' }}>
+                                                {ts.score !== null ? ts.score : '-'}
+                                            </span>
+                                            <span style={{ fontSize: '0.65rem', color: '#9ca3af', fontWeight: 500 }}>
+                                                / {ts.outOf}
+                                            </span>
+                                            {ts.contribution !== null && (
+                                                <div style={{ fontSize: '0.7rem', color: '#3699ff', fontWeight: 800 }}>
+                                                    {ts.contribution.toFixed(1)}<span style={{ fontWeight: 500, color: '#9ca3af' }}>/{ts.pct}%</span>
                                                 </div>
                                             )}
                                         </div>
                                     </td>
                                 ))}
-                                <td style={{ padding: '10px 10px', borderBottom: '1px solid #f3f4f6', textAlign: 'center', fontWeight: 900, fontSize: '1.1rem', color: themeColor }}>
-                                    {row.totalPoints}
+                                {/* Overall rubric column */}
+                                <td style={{ padding: '10px 10px', borderBottom: '1px solid #f3f4f6', textAlign: 'center' }}>
+                                    {row.overallScore !== null ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
+                                            <span style={{ fontWeight: 900, fontSize: '1.1rem', color: themeColor }}>
+                                                {row.overallScore.toFixed(1)}%
+                                            </span>
+                                            {row.overallRubric && (
+                                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                                                    <div style={{ fontSize: '0.7rem', color: themeColor, fontWeight: 900, textTransform: 'uppercase', lineHeight: '1.2', border: `1px solid ${themeColor}`, borderRadius: '4px', padding: '1px 6px', backgroundColor: `${themeColor}12` }}>
+                                                        {row.overallRubric.label}
+                                                    </div>
+                                                    {row.overallRubric.teachersComment && (
+                                                        <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#3f4254', lineHeight: '1.3', textAlign: 'center', wordBreak: 'break-word', maxWidth: '90px' }}>
+                                                            {row.overallRubric.teachersComment}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : '-'}
                                 </td>
                             </tr>
                             </React.Fragment>
@@ -169,7 +179,7 @@ const ReportCard = ({ student, term, assessments, subjects, rubrics, assessmentT
                                 AGGREGATE SUMMARY
                             </td>
                             <td style={{ padding: '14px 10px', textAlign: 'center', fontWeight: 900, fontSize: '1.3rem', color: themeColor }}>
-                                {totalOverallPoints}
+                                {totalOverallPoints.toFixed(1)}%
                             </td>
                         </tr>
                     </tfoot>

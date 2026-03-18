@@ -405,7 +405,7 @@ const SkeletonRow = ({ subjectsCount }) => (
     </tr>
 );
 
-const ResultsGrid = ({ students, subjects, assessments, allAssessments, allTerms, assessmentTypes, rubrics, updates, onScoreChange, onRemarkChange, onCommentChange, onBlur, onPrintSingle, onSendSms, loading, lessonAttempts = [], attemptEvents = [] }) => {
+const ResultsGrid = ({ students, subjects, assessments, allAssessments, allTerms, assessmentTypes, rubrics, updates, onScoreChange, onRemarkChange, onCommentChange, onOutOfChange, onBlur, onPrintSingle, onSendSms, loading, lessonAttempts = [], attemptEvents = [] }) => {
     const [expandedStudents, setExpandedStudents] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
@@ -461,6 +461,19 @@ const ResultsGrid = ({ students, subjects, assessments, allAssessments, allTerms
             (a.assessmentType === typeId || a.assessmentType?.id === typeId || a.type === typeId || a.type?.id === typeId)
         );
         return assessment ? (assessment.teachersComment || "") : "";
+    };
+
+    const getOutOf = (studentId, subjectId, typeId) => {
+        const updateKey = `${studentId}-${subjectId}-${typeId}-outOf`;
+        if (updates && updates.hasOwnProperty(updateKey)) {
+            return updates[updateKey];
+        }
+        const assessment = assessments.find(a =>
+            (a.student === studentId || a.student?.id === studentId) &&
+            (a.subject === subjectId || a.subject?.id === subjectId) &&
+            (a.assessmentType === typeId || a.assessmentType?.id === typeId || a.type === typeId || a.type?.id === typeId)
+        );
+        return assessment ? (assessment.outOf ?? "100") : "100";
     };
 
     const getRubric = (score) => {
@@ -601,81 +614,112 @@ const ResultsGrid = ({ students, subjects, assessments, allAssessments, allTerms
                                             </div>
                                         </td>
                                         {subjects?.map(subj => {
+                                            // Compute overall weighted score for this subject
+                                            let overallScore = 0;
+                                            let hasAnyScore = false;
+
                                             return (
-                                                <td key={subj.id} className="text-center py-4" style={{ backgroundColor: isExpanded ? '#f1faff' : '#fff' }}>
-                                                    <div className="d-flex flex-row justify-content-center align-items-start" style={{ gap: '10px' }}>
+                                                <td key={subj.id} className="text-center py-4" style={{ backgroundColor: isExpanded ? '#f1faff' : '#fff', borderRight: '2px solid #ebedf3' }}>
+                                                    <div className="d-flex flex-row justify-content-center align-items-start" style={{ gap: '12px' }}>
                                                         {sortedAssessmentTypes?.map(type => {
                                                             const val = getScore(student.id, subj.id, type.id);
-                                                            const rubric = getRubric(val);
-                                                            if (rubric?.points) totalPoints += parseFloat(rubric.points);
-                                                            const isUpdated = updates?.hasOwnProperty(`${student.id}-${subj.id}-${type.id}-score`);
-                                                            const color = getRubricColor(rubric);
+                                                            const outOfVal = getOutOf(student.id, subj.id, type.id);
+                                                            const isScoreUpdated = updates?.hasOwnProperty(`${student.id}-${subj.id}-${type.id}-score`);
+                                                            const isOutOfUpdated = updates?.hasOwnProperty(`${student.id}-${subj.id}-${type.id}-outOf`);
+
+                                                            const score = parseFloat(val);
+                                                            const outOf = parseFloat(outOfVal) || 100;
+                                                            const pct = type.percentage || 0;
+                                                            const contribution = (!isNaN(score) && outOf > 0) ? (score / outOf) * pct : null;
+                                                            if (contribution !== null) { overallScore += contribution; hasAnyScore = true; }
 
                                                             return (
-                                                                <div key={type.id} className="d-flex flex-column align-items-center">
-                                                                    <div className="text-muted font-weight-bold font-size-xs mb-1" style={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', maxWidth: '60px' }} title={type.name}>{type.name}</div>
+                                                                <div key={type.id} className="d-flex flex-column align-items-center" style={{ minWidth: '70px' }}>
+                                                                    {/* Assessment type name */}
+                                                                    <div className="text-muted font-weight-bold font-size-xs mb-1" style={{ whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', maxWidth: '70px' }} title={type.name}>
+                                                                        {type.name} {pct > 0 ? `(${pct}%)` : ''}
+                                                                    </div>
+
+                                                                    {/* Score input */}
                                                                     <input
                                                                         type="number"
                                                                         className="form-control form-control-sm text-center font-weight-boldest px-1"
                                                                         value={val}
+                                                                        placeholder="Score"
                                                                         onFocus={(e) => e.target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })}
                                                                         onBlur={onBlur ? () => onBlur() : undefined}
                                                                         onChange={(e) => onScoreChange(student.id, subj.id, type.id, e.target.value)}
                                                                         style={{ 
-                                                                            width: '60px', 
-                                                                            height: '35px', 
-                                                                            fontSize: '1.1rem',
-                                                                            borderRadius: '8px',
-                                                                            border: isUpdated ? '2px solid #f6c23e' : '1px solid #ebedf3',
-                                                                            background: isUpdated ? '#fff8dd' : '#f8f9fb',
-                                                                            marginBottom: '4px'
+                                                                            width: '65px', 
+                                                                            height: '32px', 
+                                                                            fontSize: '1rem',
+                                                                            borderRadius: '6px',
+                                                                            border: isScoreUpdated ? '2px solid #f6c23e' : '1px solid #ebedf3',
+                                                                            background: isScoreUpdated ? '#fff8dd' : '#f8f9fb',
+                                                                            marginBottom: '3px'
                                                                         }}
                                                                     />
-                                                                    {rubric && (
-                                                                        <div className="d-flex flex-column align-items-center">
-                                                                            <div 
-                                                                                className="label label-inline font-weight-boldest mb-1" 
-                                                                                style={{ 
-                                                                                    backgroundColor: `${color}15`, 
-                                                                                    color: color,
-                                                                                    fontSize: '10px',
-                                                                                    padding: '2px 6px',
-                                                                                    borderRadius: '4px',
-                                                                                    border: `1px solid ${color}`
-                                                                                }}
-                                                                            >
-                                                                                {rubric.label} {rubric.points ? `(${rubric.points} pts)` : ''}
-                                                                            </div>
-                                                                            {rubric.teachersComment && (
-                                                                                <div 
-                                                                                    className="text-center mt-1 px-1" 
-                                                                                    style={{ 
-                                                                                        fontSize: '10px', 
-                                                                                        lineHeight: '1.3', 
-                                                                                        maxWidth: '110px', 
-                                                                                        fontWeight: 900,
-                                                                                        color: '#3f4254',
-                                                                                        whiteSpace: 'normal',
-                                                                                        wordBreak: 'break-word'
-                                                                                    }}
-                                                                                >
-                                                                                    {rubric.teachersComment}
-                                                                                </div>
-                                                                            )}
+
+                                                                    {/* outOf input */}
+                                                                    <div className="d-flex flex-column align-items-center w-100 justify-content-center">
+                                                                        <input
+                                                                            type="number"
+                                                                            className="form-control form-control-sm text-center px-1"
+                                                                            value={outOfVal}
+                                                                            placeholder="Out of"
+                                                                            onFocus={(e) => e.target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' })}
+                                                                            onBlur={onBlur ? () => onBlur() : undefined}
+                                                                            onChange={(e) => onOutOfChange && onOutOfChange(student.id, subj.id, type.id, e.target.value)}
+                                                                            style={{ 
+                                                                                width: '65px', 
+                                                                                height: '26px', 
+                                                                                fontSize: '0.8rem',
+                                                                                borderRadius: '6px',
+                                                                                border: isOutOfUpdated ? '2px solid #f6c23e' : '1px solid #ebedf3',
+                                                                                background: isOutOfUpdated ? '#fff8dd' : '#f0f2f7',
+                                                                                color: '#6c757d'
+                                                                            }}
+                                                                        />
+                                                                    </div>
+
+                                                                    {/* Weighted contribution */}
+                                                                    {contribution !== null && (
+                                                                        <div className="mt-1 text-center" style={{ fontSize: '10px', color: '#3699ff', fontWeight: 800, lineHeight: '1.2' }}>
+                                                                            {contribution.toFixed(1)}<span style={{ fontWeight: 500, color: '#9ca3af' }}>/{pct}%</span>
                                                                         </div>
                                                                     )}
-                                                                     
-                                                                     {/* Personalized Teacher Comment Display */}
-                                                                     {getComment(student.id, subj.id, type.id) && (
-                                                                         <div className="mt-1 text-dark font-weight-boldest text-center px-1" style={{ fontSize: '10px', lineHeight: '1.2', maxWidth: '110px', whiteSpace: 'normal', wordBreak: 'break-word', fontWeight: 900 }}>
-                                                                             {getComment(student.id, subj.id, type.id)}
-                                                                         </div>
-                                                                     )}
-                                                                 </div>
-                                                             );
-                                                         })}
-                                                     </div>
-                                                 </td>
+                                                                </div>
+                                                            );
+                                                        })}
+
+                                                        {/* Per-subject overall rubric */}
+                                                        {hasAnyScore && (() => {
+                                                            const overallRubric = getRubric(overallScore);
+                                                            if (overallRubric?.points) totalPoints += parseFloat(overallRubric.points);
+                                                            const oColor = getRubricColor(overallRubric);
+                                                            return (
+                                                                <div className="d-flex flex-column align-items-center justify-content-center" style={{ minWidth: '70px', borderLeft: '1px dashed #ebedf3', paddingLeft: '10px' }}>
+                                                                    <div style={{ fontSize: '10px', color: '#9ca3af', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>Overall</div>
+                                                                    <div style={{ fontSize: '1.1rem', fontWeight: 900, color: '#3f4254', lineHeight: 1 }}>
+                                                                        {overallScore.toFixed(1)}%
+                                                                    </div>
+                                                                    {overallRubric && (
+                                                                        <>
+                                                                            <div className="label label-inline font-weight-boldest mt-1" style={{ backgroundColor: `${oColor}15`, color: oColor, fontSize: '10px', padding: '2px 6px', borderRadius: '4px', border: `1px solid ${oColor}` }}>
+                                                                                {overallRubric.label}
+                                                                            </div>
+                                                                            {overallRubric.teachersComment && (
+                                                                                <div className="text-center mt-1 px-1" style={{ fontSize: '9px', fontWeight: 800, color: '#3f4254', lineHeight: 1.3, maxWidth: '70px', whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                                                                                    {overallRubric.teachersComment}
+                                                                                </div>
+                                                                            )}
+                                                                        </>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })()}
+                                                    </div>
+                                                </td>
                                              );
                                         })}
                                         <td className="text-center align-middle" style={{ position: 'sticky', right: '120px', zIndex: 50, backgroundColor: isExpanded ? '#f1faff' : '#fff', borderLeft: '1px solid #ebedf3', boxShadow: '-2px 0 5px rgba(0,0,0,0.05)' }}>

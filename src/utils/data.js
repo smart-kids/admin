@@ -389,7 +389,7 @@ var Data = (function () {
         }`;
         const FRAGMENT_COMPLAINTS_DATA = `fragment ComplaintsData on school { complaints { id time content parent { id, name } } }`;
         const FRAGMENT_CHARGE_TYPES_DATA = `fragment ChargeTypesData on school { chargeTypes { id name description amount } }`;
-        const FRAGMENT_STUDENTS_DATA = `fragment StudentsData on school { students(limit: 1000, offset: 0) { id names gender registration class { id, name, teacher { id, name } } route { id, name } parent { id, national_id, name } parent2 { id, national_id, name } } }`;
+        const FRAGMENT_STUDENTS_DATA = `fragment StudentsData on school { students(limit: 1000, offset: 0) { id names gender yearOfEntry registration class { id, name, teacher { id, name } } route { id, name } parent { id, national_id, name } parent2 { id, national_id, name } } }`;
         const FRAGMENT_BUSES_DATA = `fragment BusesData on school { buses { id plate make size driver { id, names } } }`;
         const FRAGMENT_DRIVERS_DATA = `fragment DriversData on school { drivers { id names phone license_expiry licence_number home } }`;
         const FRAGMENT_ADMINS_DATA = `fragment AdminsData on school { admins { id names email phone } }`;
@@ -595,12 +595,12 @@ var Data = (function () {
 
             // Grades hierarchy flattening
             if (updatedSubEntities.has('grades') && activeSchool.grades) {
-                allData.grades = activeSchool.grades;
-                allData.subjects = activeSchool.grades.flatMap(g => (g.subjects || []).map(s => ({ ...s, grade: g.id })));
-                allData.topics = allData.subjects.flatMap(s => s.topics || []);
-                allData.subtopics = allData.topics.flatMap(t => t.subtopics || []);
-                allData.questions = allData.subtopics.flatMap(st => st.questions || []);
-                allData.options = allData.questions.flatMap(q => q.options || []);
+                allData.grades = activeSchool.grades.filter(g => !g.isDeleted);
+                allData.subjects = allData.grades.flatMap(g => (g.subjects || []).filter(s => !s.isDeleted).map(s => ({ ...s, grade: g.id })));
+                allData.topics = allData.subjects.flatMap(s => (s.topics || []).filter(t => !t.isDeleted));
+                allData.subtopics = allData.topics.flatMap(t => (t.subtopics || []).filter(st => !st.isDeleted));
+                allData.questions = allData.subtopics.flatMap(st => (st.questions || []).filter(q => !q.isDeleted));
+                allData.options = allData.questions.flatMap(q => (q.options || []).filter(o => !o.isDeleted));
                 
                 // Lesson Attempts & Events (Flattened)
                 allData.lessonAttempts = allData.subjects.flatMap(s => s.lessonAttempts || []);
@@ -860,7 +860,7 @@ var Data = (function () {
                 })
             })
         },
-        { name: "students", singularName: "student", createFields: ['names', 'route', 'gender', 'registration', 'parent', 'school', 'parent2', 'class'], updateFields: ['names', 'route', 'registration', 'gender', 'parent', 'parent2', 'class'], customMethods: (allData, subs) => ({ getPage: async ({ page = 1, limit = 15, search = "" }) => { const offset = (page - 1) * limit; const response = await query(`query GetStudentPage($limit: Int, $offset: Int, $id: String, $search: String) { school(id: $id) { studentsCount(search: $search) students(limit: $limit, offset: $offset, search: $search) { id names gender registration class{id, name} route{id, name} parent{id, name}  } } }`, { limit, offset, id: localStorage.getItem("school"), search }); const processedStudents = response.school?.students?.map(s => ({ ...s, parent_name: s.parent?.name, class_name: s.class?.name })) || []; return { students: processedStudents, totalCount: response.school?.studentsCount || 0 }; } }) },
+        { name: "students", singularName: "student", createFields: ['names', 'route', 'gender', 'registration', 'parent', 'school', 'parent2', 'class', 'yearOfEntry'], updateFields: ['names', 'route', 'registration', 'gender', 'parent', 'parent2', 'class', 'yearOfEntry'], customMethods: (allData, subs) => ({ getPage: async ({ page = 1, limit = 15, search = "" }) => { const offset = (page - 1) * limit; const response = await query(`query GetStudentPage($limit: Int, $offset: Int, $id: String, $search: String) { school(id: $id) { studentsCount(search: $search) students(limit: $limit, offset: $offset, search: $search) { id names gender yearOfEntry registration class{id, name} route{id, name} parent{id, name}  } } }`, { limit, offset, id: localStorage.getItem("school"), search }); const processedStudents = response.school?.students?.map(s => ({ ...s, parent_name: s.parent?.name, class_name: s.class?.name })) || []; return { students: processedStudents, totalCount: response.school?.studentsCount || 0 }; } }) },
         {
             name: "parents",
             singularName: "parent",

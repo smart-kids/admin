@@ -190,6 +190,12 @@ class ResultsMatrix extends React.Component {
           edits: { ...prev.edits, [`${studentId}-${subjectId}-${typeId}-comment`]: val }
       }));
   };
+
+  handleOutOfChange = (studentId, subjectId, typeId, val) => {
+      this.setState(prev => ({
+          edits: { ...prev.edits, [`${studentId}-${subjectId}-${typeId}-outOf`]: val }
+      }));
+  };
   
   saveAllChanges = async () => {
       const { edits, selectedTerm, assessments } = this.state;
@@ -238,6 +244,7 @@ class ResultsMatrix extends React.Component {
 
               // Apply changes
               if (fieldEdits.score !== undefined) payload.score = parseFloat(fieldEdits.score);
+              if (fieldEdits.outOf !== undefined) payload.outOf = parseFloat(fieldEdits.outOf);
               if (fieldEdits.remark !== undefined) payload.remarks = fieldEdits.remark;
               if (fieldEdits.comment !== undefined) payload.teachersComment = fieldEdits.comment;
 
@@ -648,6 +655,7 @@ class ResultsMatrix extends React.Component {
                         onScoreChange={this.handleScoreChange} 
                         onRemarkChange={this.handleRemarkChange}
                         onCommentChange={this.handleCommentChange}
+                        onOutOfChange={this.handleOutOfChange}
                         onBlur={this.saveAllChanges}
                         onPrintSingle={this.handlePrintSingle} 
                         onSendSms={this.handleSmsClick} 

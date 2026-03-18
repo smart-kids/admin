@@ -114,10 +114,9 @@ export default function StudentDataTableV8() {
   const headers = useMemo(() => [
       { key: 'names', label: 'Student Name', sortable: true },
       { key: 'registration', label: 'Registration', sortable: true },
-      { key: 'class_name', label: 'Class', sortable: true },
-      { key: 'paidFees', label: 'Paid', sortable: true },
-      { key: 'feeStatus.balanceFormated', label: 'Balance', sortable: false },
-      { key: 'parent_name', label: 'Parent', sortable: true },
+      { key: 'class_name', label: 'Current Class', sortable: true },
+      { key: 'yearOfEntry', label: 'Year of Entry', sortable: true },
+      { key: 'parent_name', label: 'Parent Name', sortable: true },
   ], []);
 
   // --- DERIVED STATE ---

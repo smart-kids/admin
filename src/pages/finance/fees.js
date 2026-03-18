@@ -474,6 +474,57 @@ class FeesManagement extends Component {
             group.totalExpected += additionalCharges;
             
             group.totalBalance = group.totalExpected - group.totalPaid;
+
+            // 5b. Calculate Balance Brought Forward (Previous Terms)
+            let balanceBroughtForward = 0;
+            if (selectedTerm && dateRange && terms.length > 0) {
+                // Find all terms that ended BEFORE the current term started
+                const previousTerms = terms.filter(t => {
+                    const tEnd = new Date(t.endDate).getTime();
+                    return tEnd < dateRange.start && t.id !== selectedTerm;
+                });
+
+                // 1. Previous Class Fees
+                const prevFees = group.students.reduce((sum, s) => {
+                    // This is a simplification: assuming same fee for previous terms if not recorded otherwise.
+                    // But usually, we just sum them if we have term-specific fee records.
+                    // Here we'll sum class fees for all previous terms.
+                    const fee = getFees(s.class?.id || s.class);
+                    return sum + (fee * previousTerms.length);
+                }, 0);
+
+                // 2. Previous Charges (Not in current term)
+                const prevChargesSum = (charges || []).filter(c => {
+                    const pId = String(c.parent?.id || c.parent);
+                    if (pId !== group.id) return false;
+                    const cTermId = String(c.term?.id || c.term || "");
+                    if (cTermId) {
+                        return previousTerms.some(pt => String(pt.id) === cTermId);
+                    }
+                    const cTime = new Date(c.time || c.createdAt).getTime();
+                    return cTime < dateRange.start;
+                }).reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+
+                // 3. Previous Payments (Not in current term)
+                const prevPaymentsSum = processedAllPayments.filter(p => {
+                    const isFailed = p.status === 'FAILED' || p.status === 'FAILED_ON_CALLBACK';
+                    const isPendingMpesa = p.status === 'PENDING' && p.type === 'mpesa_init';
+                    if (isFailed || isPendingMpesa) return false;
+
+                    if (p.metadata?.termId) {
+                        return previousTerms.some(pt => String(pt.id) === String(p.metadata.termId));
+                    }
+                    const rawDate = p.time || p.createdAt || p.transactionDate;
+                    if (!rawDate) return false;
+                    const t = new Date(rawDate).getTime();
+                    return t < dateRange.start;
+                }).reduce((sum, p) => sum + parseFloat(p.amount || p.ammount || 0), 0);
+
+                balanceBroughtForward = (prevFees + prevChargesSum) - prevPaymentsSum;
+            }
+
+            group.balanceBroughtForward = balanceBroughtForward;
+            group.totalBalance += balanceBroughtForward; // Add BBF to the total outstanding balance
             
             group.history = relatedPayments;
             group.allHistory = processedAllPayments;
@@ -1363,9 +1414,19 @@ class FeesManagement extends Component {
                                                     {/* EXPANDED DETAILS ROW */}
                                                     {isExpanded && (
                                                         <tr>
-                                                            <td colSpan="6" className="bg-light-primary pl-10 pr-10 pb-5">
+                                                            <td colSpan="7" className="bg-light-primary pl-10 pr-10 pb-5">
                                                                 <div className="row mt-3">
-                                                                    <div className="col-md-12 mb-5">
+                                                                    <div className="col-md-12 mb-5 d-flex gap-4">
+                                                                        {/* BALANCE BROUGHT FORWARD ALERT */}
+                                                                        {group.balanceBroughtForward !== 0 && (
+                                                                            <div className={`alert alert-custom py-2 mb-0 shadow-sm border-0 mr-4 ${group.balanceBroughtForward > 0 ? 'alert-light-danger' : 'alert-light-success'}`} style={{flex: 1}}>
+                                                                                <div className="alert-icon"><i className={`flaticon2-${group.balanceBroughtForward > 0 ? 'warning' : 'check-mark'} ${group.balanceBroughtForward > 0 ? 'text-danger' : 'text-success'}`}></i></div>
+                                                                                <div className="alert-text font-size-sm">
+                                                                                    <span className="font-weight-bolder">Balance Brought Forward:</span> KES {group.balanceBroughtForward.toLocaleString()}
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                        
                                                                         {/* UNALLOCATED ALERT for multi-child families */}
                                                                         {(() => {
                                                                             const unallocatedSum = group.history
