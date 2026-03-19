@@ -827,7 +827,7 @@ class CurriculumManagerV5 extends React.Component {
                 {gradeToEdit.id && <EditGradeModal ref={this.editGradeModalRef} grade={gradeToEdit} edit={(data) => this.handleUpdate('grades', { ...data, id: gradeToEdit.id })} />}
                 {gradeToDelete.id && <DeleteGradeModal ref={this.deleteGradeModalRef} grade={gradeToDelete} delete={this.handleDelete('grades', gradeToDelete)} />}
                 {selectedGrade && <AddSubjectModal ref={this.addSubjectModalRef} save={(data) => this.handleCreate('subjects', data, selectedGrade, 'grade')} />}
-                {selectedSubject && <EditSubjectModal ref={this.editSubjectModalRef} subject={subjectToEdit} edit={(data) => this.handleUpdate('subjects', { ...data, id: subjectToEdit.id, grade: selectedGrade })} />}
+                {subjectToEdit && <EditSubjectModal ref={this.editSubjectModalRef} subject={subjectToEdit} edit={(data) => this.handleUpdate('subjects', { ...data, id: subjectToEdit.id, grade: selectedGrade })} />}
                 {selectedSubject && <DeleteSubjectModal ref={this.deleteSubjectModalRef} subject={subjectToDelete} delete={this.handleDelete('subjects', subjectToDelete, selectedGrade, 'grade')} />}
                 {selectedSubject && <AddTopicModal ref={this.addTopicModalRef} save={(data) => this.handleCreate('topics', data, selectedSubject, 'subject')} />}
                 {selectedSubject && <EditTopicModal ref={this.editTopicModalRef} topic={topicToEdit} edit={(data) => this.handleUpdate('topics', { ...data, id: topicToEdit.id, subject: selectedSubject })} />}
