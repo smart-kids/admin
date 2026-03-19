@@ -22,13 +22,152 @@
 .btn-apple-add:hover { transform: translateY(-2px); }
 
 /* Grid */
-.book-shelf { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 30px; }
-.book-card { cursor: pointer; transition: transform 0.2s; }
-.book-card:hover { transform: translateY(-5px); }
-.book-cover-wrapper { aspect-ratio: 2/3; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.12); margin-bottom: 12px; background: #eee; }
-.book-cover-img { width: 100%; height: 100%; object-fit: cover; }
-.book-title { font-weight: 700; font-size: 15px; line-height: 1.3; color: #222; margin-bottom: 3px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.book-author { font-size: 13px; color: #777; }
+.book-shelf { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 25px; }
+.book-card { 
+    cursor: pointer; 
+    transition: all 0.3s ease; 
+    background: white;
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+.book-card:hover { 
+    transform: translateY(-5px); 
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+.book-cover-wrapper { 
+    aspect-ratio: 2/3; 
+    border-radius: 8px; 
+    overflow: hidden; 
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12); 
+    margin-bottom: 12px; 
+    background: #f8f9fa;
+    position: relative;
+    width: 100%;
+}
+.book-cover-img { 
+    width: 100%; 
+    height: 100%; 
+    object-fit: cover; 
+    transition: transform 0.3s ease;
+}
+.book-card:hover .book-cover-img {
+    transform: scale(1.02);
+}
+
+/* Quick View Overlay */
+.book-quick-view-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    border-radius: 8px;
+}
+.book-cover-wrapper:hover .book-quick-view-overlay {
+    opacity: 1;
+}
+.quick-view-btn {
+    background: rgba(255,255,255,0.9);
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: #007bff;
+    font-size: 1.2rem;
+}
+.quick-view-btn:hover {
+    background: white;
+    transform: scale(1.1);
+}
+
+/* Book Info */
+.book-info {
+    width: 100%;
+    margin-bottom: 12px;
+    flex-grow: 1;
+}
+.book-title { 
+    font-weight: 700; 
+    font-size: 14px; 
+    line-height: 1.3; 
+    color: #222; 
+    margin-bottom: 4px; 
+    overflow: hidden; 
+    white-space: nowrap; 
+    text-overflow: ellipsis; 
+}
+.book-author { 
+    font-size: 12px; 
+    color: #666;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* Action Icons Below Book */
+.book-actions {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    justify-content: center;
+    padding-top: 8px;
+    border-top: 1px solid #f0f0f0;
+}
+.book-action-btn {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #666;
+    font-size: 14px;
+    position: relative;
+}
+.book-action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+.book-action-btn.edit-btn:hover {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+.book-action-btn.view-btn:hover {
+    background: #28a745;
+    color: white;
+    border-color: #28a745;
+}
+.book-action-btn.download-btn:hover {
+    background: #17a2b8;
+    color: white;
+    border-color: #17a2b8;
+}
+.book-action-btn.delete-btn:hover {
+    background: #dc3545;
+    color: white;
+    border-color: #dc3545;
+}
 
 /* MODAL OVERLAY (Essential for visibility) */
 .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 9999; display: flex; justify-content: center; align-items: center; opacity: 1; animation: fadeIn 0.2s ease-out; }
@@ -199,5 +338,44 @@
     }
     .cover-preview-wrapper {
         height: 200px;
+    }
+    
+    /* Book Cards Responsive */
+    .book-shelf {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 15px;
+    }
+    .book-card {
+        padding: 10px;
+    }
+    .book-action-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 12px;
+    }
+    .book-title {
+        font-size: 13px;
+    }
+    .book-author {
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 480px) {
+    .book-shelf {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 12px;
+    }
+    .library-controls {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+    .search-wrapper {
+        width: 100%;
+    }
+    .category-pills {
+        flex-wrap: wrap;
+        justify-content: center;
     }
 }

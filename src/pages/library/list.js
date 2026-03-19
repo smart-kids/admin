@@ -1,6 +1,7 @@
 import React from "react";
 import Data from "../../utils/data"; // Adjust path as needed
 import BookModal from "./add"; // The new ref-based modal
+import PDFReviewModal from "./PDFReviewModal"; // PDF review modal
 import "./Library.css"; // The Apple-style CSS
 
 class LibraryList extends React.Component {
@@ -10,6 +11,8 @@ class LibraryList extends React.Component {
     searchTerm: "",
     activeCategory: "All",
     loading: true,
+    reviewBook: null,
+    showReviewModal: false,
   };
 
   componentDidMount() {
@@ -142,6 +145,14 @@ class LibraryList extends React.Component {
     }
   };
 
+  openReviewMode = (book) => {
+    this.setState({ reviewBook: book, showReviewModal: true });
+  };
+
+  closeReviewMode = () => {
+    this.setState({ reviewBook: null, showReviewModal: false });
+  };
+
   deleteBook = (book) => {
     if (window.confirm(`Are you sure you want to delete "${book.title}"?`)) {
       Data.books.delete(book) // Pass ID or object depending on your API
@@ -165,46 +176,62 @@ class LibraryList extends React.Component {
           onError={(e) => { e.target.onerror = null; e.target.src="https://via.placeholder.com/150x200?text=No+Cover"; }} 
         />
         
-        {/* Overlay Actions (Edit/Delete/View/Download) */}
-        <div className="book-actions-overlay">
+        {/* Quick View Overlay */}
+        <div className="book-quick-view-overlay">
             <button 
-                className="btn-card-action"
-                onClick={() => this.openEditModal(book)}
+                className="quick-view-btn"
+                onClick={() => this.openReviewMode(book)}
+                title="Quick Review"
             >
-                Edit
+                <i className="la la-eye"></i>
             </button>
-            <button 
-                className="btn-card-action delete"
-                onClick={() => this.deleteBook(book)}
-            >
-                Delete
-            </button>
-            {book.pdfUrl && (
-                <>
-                    <button 
-                        className="btn-card-action"
-                        onClick={() => this.downloadBook(book)}
-                    >
-                        Download
-                    </button>
-                    <a 
-                        href={book.pdfUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        className="btn-card-action"
-                        style={{textDecoration: 'none', textAlign: 'center'}}
-                    >
-                        View PDF
-                    </a>
-                </>
-            )}
         </div>
       </div>
+      
+      {/* Book Info */}
       <div className="book-info">
         <div className="book-title" title={book.title}>
           {book.title}
         </div>
         <div className="book-author">{book.author}</div>
+      </div>
+      
+      {/* Action Icons Below Book */}
+      <div className="book-actions">
+        <button 
+            className="book-action-btn edit-btn"
+            onClick={() => this.openEditModal(book)}
+            title="Edit Book"
+        >
+            <i className="la la-edit"></i>
+        </button>
+        
+        {book.pdfUrl && (
+            <>
+                <button 
+                    className="book-action-btn view-btn"
+                    onClick={() => this.openReviewMode(book)}
+                    title="Review PDF"
+                >
+                    <i className="la la-file-pdf"></i>
+                </button>
+                <button 
+                    className="book-action-btn download-btn"
+                    onClick={() => this.downloadBook(book)}
+                    title="Download PDF"
+                >
+                    <i className="la la-download"></i>
+                </button>
+            </>
+        )}
+        
+        <button 
+            className="book-action-btn delete-btn"
+            onClick={() => this.deleteBook(book)}
+            title="Delete Book"
+        >
+            <i className="la la-trash"></i>
+        </button>
       </div>
     </div>
   );
@@ -279,6 +306,14 @@ class LibraryList extends React.Component {
             ref={ref => this.modalRef = ref}
             onSave={this.handleSaveBook}
         />
+        
+        {/* 5. PDF Review Modal */}
+        {this.state.showReviewModal && this.state.reviewBook && (
+            <PDFReviewModal 
+                book={this.state.reviewBook}
+                onClose={this.closeReviewMode}
+            />
+        )}
       </div>
     );
   }

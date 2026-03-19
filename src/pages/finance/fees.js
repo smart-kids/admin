@@ -1344,7 +1344,11 @@ class FeesManagement extends Component {
                                                         </td>
                                                         <td>
                                                             <span className="text-dark-75 font-weight-bolder d-block font-size-lg">{group.totalExpected.toLocaleString()}</span>
-                                                            <span className="text-muted font-size-xs">Fees: {group.totalExpected - group.totalCharges} + Charges: {group.totalCharges}</span>
+                                                            <span className="text-muted font-size-xs">
+                                                                Current: {(group.totalExpected - group.totalCharges - (group.balanceBroughtForward || 0)).toLocaleString()} 
+                                                                {group.totalCharges > 0 && ` + Charges: ${group.totalCharges.toLocaleString()}`}
+                                                                {group.balanceBroughtForward && group.balanceBroughtForward !== 0 && ` + Brought Forward: ${group.balanceBroughtForward.toLocaleString()}`}
+                                                            </span>
                                                         </td>
                                                         <td>
                                                             <div className="d-flex flex-column">
