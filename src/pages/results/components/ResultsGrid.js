@@ -420,7 +420,16 @@ const ResultsGrid = ({ students, subjects, assessments, allAssessments, allTerms
         setExpandedStudents(prev => ({ ...prev, [studentId]: !prev[studentId] }));
     }, []);
 
-    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    const letters = useMemo(() => {
+        const availableLetters = new Set();
+        students.forEach(student => {
+            const firstLetter = (student.names || '').trim().charAt(0).toUpperCase();
+            if (firstLetter && /[A-Z]/.test(firstLetter)) {
+                availableLetters.add(firstLetter);
+            }
+        });
+        return Array.from(availableLetters).sort();
+    }, [students]);
 
 
     // Helper to get score for a cell
