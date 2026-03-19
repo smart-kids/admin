@@ -447,6 +447,7 @@ class ResultsMatrix extends React.Component {
 
   renderInsights = () => {
     const { assessments, students, subjects, assessmentRubrics, selectedClass, selectedTerm, terms } = this.state;
+    const filteredStudents = this.getFilteredStudents();
     const currentAss = (assessments || []).filter(a => 
         (!selectedClass || a.student?.class?.id === selectedClass || a.student?.class === selectedClass) &&
         (!selectedTerm || a.term?.id === selectedTerm || a.term === selectedTerm)
@@ -478,7 +479,6 @@ class ResultsMatrix extends React.Component {
     }).filter(t => t.value > 0);
 
     // Top Performers Ranking
-    const filteredStudents = this.getFilteredStudents();
     const studentPerformance = filteredStudents.map(student => {
         const studentAss = currentAss.filter(a => (a.student === student.id || a.student?.id === student.id));
         let totalPoints = 0;
