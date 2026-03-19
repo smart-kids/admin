@@ -215,12 +215,26 @@ class ResultsMatrix extends React.Component {
           const typeId = parts[2];
           const field = parts[3];
           const groupKey = `${studentId}-${subjectId}-${typeId}`;
-          if (!groupedEdits[groupKey]) groupedEdits[groupKey] = {};
+          if (!groupedEdits[groupKey]) { groupedEdits[groupKey] = {}; }
           groupedEdits[groupKey][field] = edits[key];
       });
 
       try {
           const payloads = [];
+          const outOfChanges = {}; // Track out-of changes per subject+type
+          
+          // First pass: identify all out-of changes
+          for (const key of Object.keys(groupedEdits)) {
+              const [studentId, subjectId, typeId] = key.split('-');
+              const fieldEdits = groupedEdits[key];
+              
+              if (fieldEdits.outOf !== undefined) {
+                  const changeKey = `${subjectId}-${typeId}`;
+                  outOfChanges[changeKey] = parseFloat(fieldEdits.outOf);
+              }
+          }
+          
+          // Second pass: build payloads including out-of changes for all relevant students
           for (const key of Object.keys(groupedEdits)) {
               const [studentId, subjectId, typeId] = key.split('-');
               const fieldEdits = groupedEdits[key];
@@ -253,6 +267,38 @@ class ResultsMatrix extends React.Component {
                   payloads.push(payload);
               }
           }
+          
+          // Third pass: apply out-of changes to ALL students who took the same assessment
+          for (const [changeKey, newOutOf] of Object.entries(outOfChanges)) {
+              const [subjectId, typeId] = changeKey.split('-');
+              
+              // Find all students who took this assessment
+              const allRelevantAssessments = assessments.filter(a =>
+                  (a.subject === subjectId || a.subject?.id === subjectId) &&
+                  (a.type === typeId || a.type?.id === typeId || a.assessmentType === typeId || a.assessmentType?.id === typeId) &&
+                  (a.term === selectedTerm || a.term?.id === selectedTerm)
+              );
+              
+              allRelevantAssessments.forEach(assessment => {
+                  const studentId = assessment.student?.id || assessment.student;
+                  if (!groupedEdits[`${studentId}-${subjectId}-${typeId}`]) {
+                      // This student didn't have individual edits, but we need to update their out-of value
+                      payloads.push({
+                          school: localStorage.getItem('school'),
+                          term: selectedTerm,
+                          type: typeId,
+                          student: studentId,
+                          subject: subjectId,
+                          outOf: newOutOf,
+                          ...assessment,
+                          score: assessment.score || 0,
+                          remarks: assessment.remarks || assessment.remark,
+                          teachersComment: assessment.teachersComment || assessment.comment
+                      });
+                  }
+              });
+          }
+          
           if (payloads.length > 0) {
               await Data.assessments.bulkSave(payloads);
               // Clear these specific edits

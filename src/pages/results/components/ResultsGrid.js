@@ -468,12 +468,26 @@ const ResultsGrid = ({ students, subjects, assessments, allAssessments, allTerms
         if (updates && updates.hasOwnProperty(updateKey)) {
             return updates[updateKey];
         }
-        const assessment = assessments.find(a =>
+        
+        // First, try to find any assessment for this subject+type combination to get the consistent out-of value
+        const subjectTypeAssessment = assessments.find(a =>
+            (a.subject === subjectId || a.subject?.id === subjectId) &&
+            (a.assessmentType === typeId || a.assessmentType?.id === typeId || a.type === typeId || a.type?.id === typeId)
+        );
+        
+        // If we found an assessment with an outOf value, use it for all students
+        if (subjectTypeAssessment && subjectTypeAssessment.outOf !== undefined && subjectTypeAssessment.outOf !== null) {
+            return subjectTypeAssessment.outOf;
+        }
+        
+        // Fallback to student-specific assessment (for backward compatibility)
+        const studentAssessment = assessments.find(a =>
             (a.student === studentId || a.student?.id === studentId) &&
             (a.subject === subjectId || a.subject?.id === subjectId) &&
             (a.assessmentType === typeId || a.assessmentType?.id === typeId || a.type === typeId || a.type?.id === typeId)
         );
-        return assessment ? (assessment.outOf ?? "100") : "100";
+        
+        return studentAssessment ? (studentAssessment.outOf ?? "100") : "100";
     };
 
     const getRubric = (score) => {
