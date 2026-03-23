@@ -121,6 +121,10 @@ class FeesManagement extends Component {
         showPaymentModal: false,
         showManualPaymentModal: false,
         showEditPaymentModal: false,
+        showBBFModal: false,
+        selectedBBFGroup: null,
+        bbfEdits: {},
+        savingBBF: false,
         showStatementModal: false, // NEW
         editPaymentData: null,
         statementGroup: null, // NEW
@@ -519,6 +523,9 @@ class FeesManagement extends Component {
 
                 balanceBroughtForward = (prevFees + prevChargesSum) - prevPaymentsSum;
             }
+
+            const manualBroughtForward = group.students.reduce((sum, s) => sum + (parseFloat(s.balanceBroughtForward) || 0), 0);
+            balanceBroughtForward += manualBroughtForward;
 
             group.balanceBroughtForward = balanceBroughtForward;
             group.totalBalance += balanceBroughtForward; // Add BBF to the total outstanding balance
@@ -1108,6 +1115,36 @@ class FeesManagement extends Component {
         );
     };
 
+    openBBFModal = (group) => {
+        const bbfEdits = {};
+        group.students.forEach(s => {
+            bbfEdits[s.id] = s.balanceBroughtForward || 0;
+        });
+        this.setState({ showBBFModal: true, selectedBBFGroup: group, bbfEdits });
+    };
+
+    handleBBFChange = (studentId, val) => {
+        this.setState(prev => ({ bbfEdits: { ...prev.bbfEdits, [studentId]: val } }));
+    };
+
+    saveBBFChanges = async () => {
+        this.setState({ savingBBF: true });
+        try {
+            const { bbfEdits } = this.state;
+            const promises = Object.entries(bbfEdits).map(([id, val]) => {
+                return Data.students.update({ id, balanceBroughtForward: parseFloat(val) || 0 });
+            });
+            await Promise.all(promises);
+            if (window.toastr) window.toastr.success("Balance Brought Forward updated");
+            this.setState({ showBBFModal: false, selectedBBFGroup: null, bbfEdits: {} });
+        } catch (e) {
+            console.error(e);
+            if (window.toastr) window.toastr.error("Failed to update Balance");
+        } finally {
+            this.setState({ savingBBF: false });
+        }
+    };
+
     render() {
         const { 
             classes, terms, selectedClass, selectedTerm, searchTerm, 
@@ -1405,6 +1442,13 @@ class FeesManagement extends Component {
                                                                         title="Send SMS balance"
                                                                     >
                                                                         <i className="flaticon2-paper-plane"></i>
+                                                                    </button>
+                                                                    <button 
+                                                                        className="btn btn-icon btn-light-warning btn-sm mx-1"
+                                                                        onClick={() => this.openBBFModal(group)}
+                                                                        title="Edit Balance Brought Forward"
+                                                                    >
+                                                                        <i className="flaticon2-pen text-dark"></i>
                                                                     </button>
                                                                 </>
                                                             )}
@@ -1951,6 +1995,43 @@ class FeesManagement extends Component {
                     onClose={() => this.setState({ showSmsModal: false, smsGroup: null })}
                     onSend={this.handleSendSms}
                 />
+            )}
+
+            {/* BALANCE BROUGHT FORWARD MODAL */}
+            {this.state.showBBFModal && this.state.selectedBBFGroup && (
+                <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                    <div className="modal-dialog modal-dialog-centered">
+                        <div className="modal-content shadow-lg border-0" style={{ borderRadius: '15px' }}>
+                            <div className="modal-header border-0">
+                                <h5 className="modal-title font-weight-bold">Initial Balances (Brought Forward)</h5>
+                                <button type="button" className="close" onClick={() => this.setState({ showBBFModal: false, selectedBBFGroup: null })}><span>&times;</span></button>
+                            </div>
+                            <div className="modal-body pt-0">
+                                <div className="alert alert-custom alert-light-primary py-2 mb-5">
+                                    <div className="alert-text font-size-sm">Set the manual migration balances for students under {this.state.selectedBBFGroup.parent.name}.</div>
+                                </div>
+                                {this.state.selectedBBFGroup.students.map(s => (
+                                    <div key={s.id} className="form-group mb-4">
+                                        <label className="font-weight-bold">{s.names} <span className="text-muted">({s.registration})</span></label>
+                                        <div className="input-group">
+                                            <div className="input-group-prepend"><span className="input-group-text bg-light border-0">KES</span></div>
+                                            <input 
+                                                type="number" 
+                                                className="form-control bg-light border-0" 
+                                                value={this.state.bbfEdits[s.id] || 0} 
+                                                onChange={(e) => this.handleBBFChange(s.id, e.target.value)} 
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <div className="modal-footer border-0 pt-0">
+                                <button className="btn btn-light-danger font-weight-bold" onClick={() => this.setState({ showBBFModal: false, selectedBBFGroup: null })}>Cancel</button>
+                                <button className={`btn btn-primary font-weight-bold px-8 ${this.state.savingBBF ? 'spinner spinner-white spinner-right' : ''}`} onClick={this.saveBBFChanges} disabled={this.state.savingBBF}>Save Balances</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             )}
 
             {this.state.showBulkSmsModal && (

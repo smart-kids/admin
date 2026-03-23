@@ -544,11 +544,36 @@ class ResultsMatrix extends React.Component {
     
     if (loading && !classes.length) return <div className="p-10 text-center"><div className="spinner spinner-primary mr-3"></div>Loading...</div>;
 
+    const userData = JSON.parse(localStorage.getItem("user") || "{}");
+    const userRole = localStorage.getItem("userRole");
+    const isTeacher = userRole === 'teacher' || userData?.userType === 'teacher' || userData?.role === 'teacher';
+    const teacherId = userData?.id;
+
+    let availableSubjects = subjects || [];
+    let availableGrades = this.state.grades || [];
+    let availableClasses = classes || [];
+
+    if (isTeacher && teacherId) {
+        // Teacher can only see their assigned subjects
+        availableSubjects = availableSubjects.filter(s => s.teacher === teacherId || s.teacher?.id === teacherId);
+        
+        // Grades containing those subjects
+        const teacherGradeIds = [...new Set(availableSubjects.map(s => s.grade?.id || s.grade))];
+        availableGrades = availableGrades.filter(g => teacherGradeIds.includes(String(g.id)));
+
+        // Classes belonging to those grades OR where teacher is the class teacher
+        availableClasses = availableClasses.filter(c => {
+            const gradeMatch = teacherGradeIds.includes(String(c.grade?.id || c.grade));
+            const teacherMatch = (c.teacher?.id || c.teacher) === teacherId;
+            return gradeMatch || teacherMatch;
+        });
+    }
+
     const students = this.getFilteredStudents();
     const currentTerm = terms?.find(t => t.id === selectedTerm) || { name: 'Term' };
     
     const { selectedGrade } = this.state;
-    const filteredSubjectsList = (subjects || []).filter(s => {
+    const filteredSubjectsList = availableSubjects.filter(s => {
         if (!s) return false;
         const sGradeId = s.grade?.id || s.grade;
         // If no grade selected, show all. If grade selected, must match.
@@ -644,7 +669,7 @@ class ResultsMatrix extends React.Component {
                     <div className="dropdown dropdown-inline mr-2 d-flex align-items-center">
                         <select className="form-control form-control-sm form-control-solid" value={selectedClass} onChange={e => this.handleClassChange(e.target.value)}>
                             <option value="">Class (Students)...</option>
-                            {classes?.map(c => <option key={c.id} value={c.id}>{c.name} ({c.student_num || 0} Students)</option>)}
+                            {availableClasses.map(c => <option key={c.id} value={c.id}>{c.name} ({c.student_num || 0} Students)</option>)}
                         </select>
                         <div className="ml-1 d-flex">
                             <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/classes"} title="Configure Classes">
@@ -662,7 +687,7 @@ class ResultsMatrix extends React.Component {
                             localStorage.setItem('matrix_selectedGrade', e.target.value);
                         }}>
                             <option value="">Grade (Subjects)...</option>
-                            {(this.state.grades || [])?.map(g => <option key={g.id} value={g.id}>{g.name} ({(g.subjects || []).length} Subjects)</option>)}
+                            {availableGrades.map(g => <option key={g.id} value={g.id}>{g.name} ({(g.subjects || []).length} Subjects)</option>)}
                         </select>
                         <div className="ml-1 d-flex">
                             <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/learning"} title="Configure Grades">

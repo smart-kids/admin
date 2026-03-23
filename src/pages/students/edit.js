@@ -20,7 +20,8 @@ class Modal extends React.Component {
       route: null,
       parent: null,
       parent2: null,
-      paidFees: 0
+      paidFees: 0,
+      balanceBroughtForward: 0
     }
   };
 
@@ -64,7 +65,8 @@ class Modal extends React.Component {
             route: _this.state.edit.route?.id || "",
             parent: _this.state.edit.parent?.id || "",
             parent2: _this.state.edit.parent2?.id || "",
-            paidFees: parseFloat(_this.state.edit.paidFees) || 0
+            paidFees: parseFloat(_this.state.edit.paidFees) || 0,
+            balanceBroughtForward: parseFloat(_this.state.edit.balanceBroughtForward) || 0
           };
 
           await _this.props.save(payload);
@@ -93,7 +95,8 @@ class Modal extends React.Component {
           parent: props.edit.parent || null,
           parent2: props.edit.parent2 || null,
           gender: props.edit.gender || "",
-          paidFees: props.edit.paidFees || 0
+          paidFees: props.edit.paidFees || 0,
+          balanceBroughtForward: props.edit.balanceBroughtForward || 0
         }
       };
     }
@@ -305,6 +308,23 @@ class Modal extends React.Component {
                             const val = e.target.value;
                             this.setState(prevState => ({ 
                                 edit: { ...prevState.edit, paidFees: val } 
+                            }));
+                          }}
+                        />
+                      </div>
+
+                      {/* Balance Brought Forward */}
+                      <div className="col-lg-6">
+                        <label>Balance Brought Forward:</label>
+                        <input
+                          type="number"
+                          className="form-control"
+                          name="balanceBroughtForward"
+                          value={edit.balanceBroughtForward || 0}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            this.setState(prevState => ({ 
+                                edit: { ...prevState.edit, balanceBroughtForward: val } 
                             }));
                           }}
                         />
