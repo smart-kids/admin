@@ -1262,6 +1262,8 @@ class FeesManagement extends Component {
         return (
           <div className="kt-grid__item kt-grid__item--fluid kt-grid kt-grid--ver kt-page">
             <div className="kt-grid__item kt-grid__item--fluid kt-grid kt-grid--hor kt-wrapper" id="kt_wrapper">
+              <Navbar />
+              <Subheader links={["Finance"]} />
 
               <div className="kt-content kt-grid__item kt-grid__item--fluid pt-0" style={{height:"100vh"}} id="kt_content">
                 <div className="kt-container pt-0">
