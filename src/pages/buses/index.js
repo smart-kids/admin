@@ -15,7 +15,6 @@ class App extends React.Component {
           id="kt_wrapper"
         >
           <Navbar />
-          <Navbar />
 
           <div
             className="kt-content kt-grid__item kt-grid__item--fluid kt-grid kt-grid--hor pt-0"

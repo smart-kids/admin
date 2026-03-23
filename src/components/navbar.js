@@ -57,13 +57,13 @@ class Navbar extends React.Component {
   };
 
   componentDidMount() {
-    const userData = JSON.parse(localStorage.getItem("user"));
+    const userData = JSON.parse(localStorage.getItem("user")) || {};
     const schools = Data.schools.list() || [];
     
     this.setState({ 
       schools,
       fetchingSchools: schools.length === 0,
-      userRole: userData.role
+      userRole: userData.userType || userData.role
     });
 
     Data.schools.subscribe(({ schools, selectedSchool }) => {
@@ -89,9 +89,11 @@ class Navbar extends React.Component {
       }
     }, 10000);
     
-    let role = "";
-    if (userData && typeof userData === 'object' && Object.keys(userData).length > 0) {
-      role = Object.keys(userData)[0];
+    let role = userData.userType || userData.role || "";
+    if (!role && userData && typeof userData === 'object' && Object.keys(userData).length > 0) {
+      if (typeof Object.keys(userData)[0] === 'string' && ['teacher', 'admin', 'student', 'parent'].includes(Object.keys(userData)[0].toLowerCase())) {
+          role = Object.keys(userData)[0];
+      }
     }
     this.setState({ userRole: role });
 
@@ -178,7 +180,9 @@ class Navbar extends React.Component {
 
   renderMobileNav = () => {
     const { isMobileMenuOpen, availableSchools, selectedSchool, openMobileSubmenu } = this.state;
-    const isTeacher = this.state.userRole === 'teacher' || this.state.userRole === 'Teacher';
+    const userData = JSON.parse(localStorage.getItem("user")) || {};
+    const effectiveRole = this.state.userRole || userData.userType || userData.role;
+    const isTeacher = effectiveRole === 'teacher' || effectiveRole === 'Teacher';
     const showLowBalanceIndicator = selectedSchool && selectedSchool.financial && typeof selectedSchool.financial.balance === 'number' && selectedSchool.financial.balance < 300;
     const manageDataItems = [
         { path: "/schools", label: "Schools" }, { path: "/admins", label: "Admins" },
@@ -263,7 +267,7 @@ class Navbar extends React.Component {
                     )}
                 </li>
                 {/* Main Links */}
-                <li><Link to="/home" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-dashboard" style={{marginRight: '12px', fontSize: '1.2rem', color: '#94a3b8'}}></i> Reports</Link></li>
+                {!isTeacher && <li><Link to="/home" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-dashboard" style={{marginRight: '12px', fontSize: '1.2rem', color: '#94a3b8'}}></i> Reports</Link></li>}
                 <li><Link to="/comms" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-bullhorn" style={{marginRight: '12px', fontSize: '1.2rem', color: '#94a3b8'}}></i> SMS & Email</Link></li>
                 <li><Link to="/learning" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-graduation-cap" style={{marginRight: '12px', fontSize: '1.2rem', color: '#94a3b8'}}></i> Learning</Link></li>
                 <li><Link to="/results" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-bar-chart" style={{marginRight: '12px', fontSize: '1.2rem', color: '#94a3b8'}}></i> Results</Link></li>
@@ -333,7 +337,8 @@ class Navbar extends React.Component {
     const paceLoaderColor = effectiveTopBarTextColor;
     const fixedContentSpacerHeight = firstBarHeight + gapBetweenNavbars;
 
-    const isTeacher = this.state.userRole === 'teacher' || this.state.userRole === 'Teacher';
+    const effectiveRole = this.state.userRole || storedUser.userType || storedUser.role;
+    const isTeacher = effectiveRole === 'teacher' || effectiveRole === 'Teacher';
     const manageDataItems = [
       { path: "/schools", label: "Schools", IconComponent: SvgSchoolsIcon }, { path: "/admins", label: "Admins", IconComponent: SvgAdminsIcon },
       { path: "/invitations", label: "Invitations", IconComponent: SvgInvitationsIcon }, { path: "/drivers", label: "Drivers", IconComponent: SvgDriversIcon },
@@ -413,11 +418,20 @@ class Navbar extends React.Component {
                     </div>
                   </li>
                 )}
+                {!isTeacher && (
                 <li className="kt-menu__item">
                   <Link to="/home" className="kt-menu__link">
                     <span className="kt-menu__link-text" style={{ ...topNavlinkStyle, fontWeight: '500' }}>Reports</span>
                   </Link>
                 </li>
+                )}
+                {isTeacher && (
+                <li className="kt-menu__item">
+                  <Link to="/learning" className="kt-menu__link">
+                    <span className="kt-menu__link-text" style={{ ...topNavlinkStyle, fontWeight: '500' }}>Learning</span>
+                  </Link>
+                </li>
+                )}
                 {!isTeacher && (
                   <li className="kt-menu__item kt-menu__item--submenu kt-menu__item--rel" data-ktmenu-submenu-toggle="click" aria-haspopup="true">
                     <a href="!#" onClick={e => e.preventDefault()} className="kt-menu__link kt-menu__toggle">
@@ -517,10 +531,10 @@ class Navbar extends React.Component {
                 <div className="kt-header-menu">
                     <ul className="kt-menu__nav">
                         <li className="kt-menu__item"><Link to="/comms" className="kt-menu__link"><span className="kt-menu__link-text" style={bottomNavCommonLinkStyle}>SMS & Email</span></Link></li>
-                        <li className="kt-menu__item"><Link to="/learning" className="kt-menu__link"><span className="kt-menu__link-text" style={bottomNavCommonLinkStyle}>Learning</span></Link></li>
+                        {!isTeacher && <li className="kt-menu__item"><Link to="/learning" className="kt-menu__link"><span className="kt-menu__link-text" style={bottomNavCommonLinkStyle}>Learning</span></Link></li>}
                         <li className="kt-menu__item"><Link to="/library" className="kt-menu__link"><span className="kt-menu__link-text" style={bottomNavCommonLinkStyle}>Library</span></Link></li>
                         {!isTeacher && <li className="kt-menu__item"><Link to="/finance/fees" className="kt-menu__link"><span className="kt-menu__link-text" style={bottomNavCommonLinkStyle}>Fee</span></Link></li>}
-                        <li className="kt-menu__item"><Link to="/results" className="kt-menu__link"><span className="kt-menu__link-text" style={bottomNavCommonLinkStyle}>Results</span></Link></li>
+                        {!isTeacher && <li className="kt-menu__item"><Link to="/results" className="kt-menu__link"><span className="kt-menu__link-text" style={bottomNavCommonLinkStyle}>Results</span></Link></li>}
                     </ul>
                 </div>
             </div>

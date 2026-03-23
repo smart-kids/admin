@@ -392,7 +392,23 @@ class CurriculumManagerV5 extends React.Component {
         
         // Filter and sort Subjects
         const subjectsListRaw = this._sortListByOrderArray(currentGradeObj?.subjects, currentGradeObj?.subjectsOrder); 
-        const subjectsList = subjectsListRaw.filter(s => s.name);
+        let subjectsList = subjectsListRaw.filter(s => s.name);
+        
+        const userDataObj = JSON.parse(localStorage.getItem("user") || "{}");
+        const isUserTeacher = userDataObj?.userType === 'teacher' || userDataObj?.role === 'teacher' || userDataObj?.userType === 'Teacher';
+        const teachersData = Data.teachers.list() || [];
+        
+        if (isUserTeacher) {
+            subjectsList = subjectsList.filter(s => s.teacher === userDataObj.id)
+                                       .map(s => ({ ...s, displayName: s.name }));
+        } else {
+            subjectsList = subjectsList.map(s => {
+                const teacherObj = teachersData.find(t => t.id === s.teacher);
+                const teacherName = teacherObj ? (teacherObj.name || teacherObj.names) : 'Unassigned';
+                return { ...s, displayName: `${s.name} <span style="font-size: 0.75rem; color: #64748b; margin-left: 8px; font-weight: normal; background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">👤 ${teacherName}</span>` };
+            });
+        }
+        
         newState.filteredSubjects = this._applyFilter(subjectsList, subjectSearchTerm, 'name'); 
         
         const currentSubjectObj = selectedSubject ? (currentGradeObj?.subjects || []).find(s => s.id === selectedSubject) : null; 
@@ -593,8 +609,8 @@ class CurriculumManagerV5 extends React.Component {
 
     renderContentColumns() {
         const { grades, gradeSearchTerm, filteredSubjects, subjectSearchTerm, selectedGrade, selectedSubject, _masterGradesList, isLoading } = this.state;
-        const userData = JSON.parse(localStorage.getItem("user"));
-        const isTeacher = userData?.role === 'teacher';
+        const userData = JSON.parse(localStorage.getItem("user") || "{}");
+        const isTeacher = userData?.userType === 'teacher' || userData?.role === 'teacher' || userData?.userType === 'Teacher';
         const tableOptions = { reorderable: !isTeacher, linkable: true, editable: !isTeacher, deleteable: !isTeacher };
         const selectedGradeObj = selectedGrade ? _masterGradesList.find(g => g.id === selectedGrade) : null;
 
@@ -619,7 +635,7 @@ class CurriculumManagerV5 extends React.Component {
                     <div className="cm-column-header"><h5>{selectedGradeObj?.name || '...'} Subjects</h5>{!isTeacher && <button type="button" className="cm-add-btn" onClick={() => this.addSubjectModalRef.current.show()} title="Add Subject"><i className="la la-plus"></i></button>}</div>
                     <div className="cm-column-body">
                         <Search title="subjects" onSearch={this.onSubjectSearch} value={subjectSearchTerm} />
-                        <Table listId={`subjects-list-${selectedGrade}`} headers={[{ label: "Name", key: "name" }]} data={filteredSubjects} options={tableOptions} selectedItemId={selectedSubject} show={subject => this.handleSubjectSelect(subject.id)} edit={subject => this.setState({ subjectToEdit: subject }, () => this.editSubjectModalRef.current.show())} delete={subject => this.setState({ subjectToDelete: subject }, () => this.deleteSubjectModalRef.current.show())} onOrderChange={(list) => this._handleReorder('subjects', list)} isLoading={subjectsLoading} onAdd={!isTeacher ? () => this.addSubjectModalRef.current.show() : null} addItemText={!isTeacher ? "Add Subject" : null} />
+                        <Table listId={`subjects-list-${selectedGrade}`} headers={[{ label: "Name", key: "displayName" }]} data={filteredSubjects} options={tableOptions} selectedItemId={selectedSubject} show={subject => this.handleSubjectSelect(subject.id)} edit={subject => this.setState({ subjectToEdit: subject }, () => this.editSubjectModalRef.current.show())} delete={subject => this.setState({ subjectToDelete: subject }, () => this.deleteSubjectModalRef.current.show())} onOrderChange={(list) => this._handleReorder('subjects', list)} isLoading={subjectsLoading} onAdd={!isTeacher ? () => this.addSubjectModalRef.current.show() : null} addItemText={!isTeacher ? "Add Subject" : null} />
                     </div>
                 </div>
             )}
@@ -629,9 +645,9 @@ class CurriculumManagerV5 extends React.Component {
 
     renderMainContentArea() {
         const { activeTab, filteredTopics, selectedTopic, filteredSubtopics, selectedSubtopic, filteredQuestions, selectedQuestion, filteredOptions, selectedSubject, selectedGrade, topicSearchTerm, subtopicSearchTerm, questionSearchTerm, optionSearchTerm } = this.state;
-        const userData = JSON.parse(localStorage.getItem("user"));
-        const isTeacher = userData?.role === 'teacher';
-        const tableOptions = { reorderable: !isTeacher, linkable: true, editable: !isTeacher, deleteable: !isTeacher };
+        const userData = JSON.parse(localStorage.getItem("user") || "{}");
+        const isTeacher = userData?.userType === 'teacher' || userData?.role === 'teacher' || userData?.userType === 'Teacher';
+        const tableOptions = { reorderable: true, linkable: true, editable: true, deleteable: true };
         const correctOptionIds = filteredOptions.filter(o => o.correct).map(o => o.id);
         
         const currentGradeObj = selectedGrade ? this.state._masterGradesList.find(g => g.id === selectedGrade) : null;
@@ -655,36 +671,36 @@ class CurriculumManagerV5 extends React.Component {
                     <div className={`tab-pane ${activeTab === 'content' ? 'active' : ''}`}>
                         <div className="tab-inner-scroller">
                             <div className="cm-sub-column">
-                                <div className="cm-column-header"><h5>Strands</h5>{!isTeacher && <button type="button" className="cm-add-btn" onClick={() => this.addTopicModalRef.current.show()} title="Add Strand"><i className="la la-plus"></i></button>}</div>
+                                <div className="cm-column-header"><h5>Strands</h5><button type="button" className="cm-add-btn" onClick={() => this.addTopicModalRef.current.show()} title="Add Strand"><i className="la la-plus"></i></button></div>
                                 <div className="cm-column-body">
                                     <Search title="strands" onSearch={this.onTopicSearch} value={topicSearchTerm} />
-                                    <Table listId={`topics-list-${selectedSubject}`} headers={[{ label: "Name", key: "name" }]} data={filteredTopics} options={tableOptions} selectedItemId={selectedTopic} show={topic => this.handleTopicSelect(topic.id)} edit={topic => this.setState({ topicToEdit: topic }, () => this.editTopicModalRef.current.show())} delete={topic => this.setState({ topicToDelete: topic }, () => this.deleteTopicModalRef.current.show())} onOrderChange={(list) => this._handleReorder('topics', list)} isLoading={topicsLoading} onAdd={!isTeacher ? () => this.addTopicModalRef.current.show() : null} addItemText={!isTeacher ? "Add Strand" : null} />
+                                    <Table listId={`topics-list-${selectedSubject}`} headers={[{ label: "Name", key: "name" }]} data={filteredTopics} options={tableOptions} selectedItemId={selectedTopic} show={topic => this.handleTopicSelect(topic.id)} edit={topic => this.setState({ topicToEdit: topic }, () => this.editTopicModalRef.current.show())} delete={topic => this.setState({ topicToDelete: topic }, () => this.deleteTopicModalRef.current.show())} onOrderChange={(list) => this._handleReorder('topics', list)} isLoading={topicsLoading} onAdd={() => this.addTopicModalRef.current.show()} addItemText="Add Strand" />
                                 </div>
                             </div>
                              {selectedTopic && (
                                 <div className="cm-sub-column">
-                                    <div className="cm-column-header"><h5>Sub Strands</h5>{!isTeacher && <button type="button" className="cm-add-btn" onClick={() => this.addSubtopicModalRef.current.show()} title="Add Sub Strand"><i className="la la-plus"></i></button>}</div>
+                                    <div className="cm-column-header"><h5>Sub Strands</h5><button type="button" className="cm-add-btn" onClick={() => this.addSubtopicModalRef.current.show()} title="Add Sub Strand"><i className="la la-plus"></i></button></div>
                                     <div className="cm-column-body">
                                         <Search title="sub-strands" onSearch={this.onSubtopicSearch} value={subtopicSearchTerm} />
-                                        <Table listId={`subtopics-list-${selectedTopic}`} headers={[{ label: "Name", key: "name" }]} data={filteredSubtopics} options={tableOptions} selectedItemId={selectedSubtopic} show={subtopic => this.handleSubtopicSelect(subtopic.id)} edit={subtopic => this.setState({ subtopicToEdit: subtopic }, () => this.editSubtopicModalRef.current.show())} delete={subtopic => this.setState({ subtopicToDelete: subtopic }, () => this.deleteSubtopicModalRef.current.show())} onOrderChange={(list) => this._handleReorder('subtopics', list)} isLoading={subtopicsLoading} onAdd={!isTeacher ? () => this.addSubtopicModalRef.current.show() : null} addItemText={!isTeacher ? "Add Sub Strand" : null} />
+                                        <Table listId={`subtopics-list-${selectedTopic}`} headers={[{ label: "Name", key: "name" }]} data={filteredSubtopics} options={tableOptions} selectedItemId={selectedSubtopic} show={subtopic => this.handleSubtopicSelect(subtopic.id)} edit={subtopic => this.setState({ subtopicToEdit: subtopic }, () => this.editSubtopicModalRef.current.show())} delete={subtopic => this.setState({ subtopicToDelete: subtopic }, () => this.deleteSubtopicModalRef.current.show())} onOrderChange={(list) => this._handleReorder('subtopics', list)} isLoading={subtopicsLoading} onAdd={() => this.addSubtopicModalRef.current.show()} addItemText="Add Sub Strand" />
                                     </div>
                                 </div>
                             )}
                             {selectedSubtopic && (
                                 <div className="cm-sub-column" style={{ width: '450px' }}>
-                                    <div className="cm-column-header"><h5>Questions</h5>{!isTeacher && <button type="button" className="cm-add-btn" onClick={() => this.addQuestionModalRef.current.show()} title="Add Question"><i className="la la-plus"></i></button>}</div>
+                                    <div className="cm-column-header"><h5>Questions</h5><button type="button" className="cm-add-btn" onClick={() => this.addQuestionModalRef.current.show()} title="Add Question"><i className="la la-plus"></i></button></div>
                                     <div className="cm-column-body">
                                         <Search title="questions" onSearch={this.onQuestionSearch} value={questionSearchTerm} />
-                                        <Table listId={`questions-list-${selectedSubtopic}`} headers={[{ label: "Name", key: "name" }]} data={filteredQuestions} options={tableOptions} selectedItemId={selectedQuestion} show={question => this.handleQuestionSelect(question.id)} edit={question => this.setState({ questionToEdit: question }, () => this.editQuestionModalRef.current.show())} delete={question => this.setState({ questionToDelete: question }, () => this.deleteQuestionModalRef.current.show())} onOrderChange={(list) => this._handleReorder('questions', list)} isLoading={questionsLoading} onAdd={!isTeacher ? () => this.addQuestionModalRef.current.show() : null} addItemText={!isTeacher ? "Add Question" : null} />
+                                        <Table listId={`questions-list-${selectedSubtopic}`} headers={[{ label: "Name", key: "name" }]} data={filteredQuestions} options={tableOptions} selectedItemId={selectedQuestion} show={question => this.handleQuestionSelect(question.id)} edit={question => this.setState({ questionToEdit: question }, () => this.editQuestionModalRef.current.show())} delete={question => this.setState({ questionToDelete: question }, () => this.deleteQuestionModalRef.current.show())} onOrderChange={(list) => this._handleReorder('questions', list)} isLoading={questionsLoading} onAdd={() => this.addQuestionModalRef.current.show()} addItemText="Add Question" />
                                     </div>
                                 </div>
                             )}
                             {selectedQuestion && (
                                 <div className="cm-sub-column">
-                                    <div className="cm-column-header"><h5>Options</h5>{!isTeacher && <button type="button" className="cm-add-btn" onClick={() => this.addOptionModalRef.current.show()} title="Add Option"><i className="la la-plus"></i></button>}</div>
+                                    <div className="cm-column-header"><h5>Options</h5><button type="button" className="cm-add-btn" onClick={() => this.addOptionModalRef.current.show()} title="Add Option"><i className="la la-plus"></i></button></div>
                                     <div className="cm-column-body">
                                         <Search title="options" onSearch={this.onOptionSearch} value={optionSearchTerm} />
-                                        <Table listId={`options-list-${selectedQuestion}`} headers={[{ label: "Answer", key: "value" }]} data={filteredOptions} options={{ ...tableOptions, linkable: false }} edit={option => this.setState({ optionToEdit: option }, () => this.editOptionModalRef.current.show())} delete={option => this.setState({ optionToDelete: option }, () => this.deleteOptionModalRef.current.show())} onOrderChange={(list) => this._handleReorder('options', list)} correctItemIds={correctOptionIds} isLoading={optionsLoading} onAdd={!isTeacher ? () => this.addOptionModalRef.current.show() : null} addItemText={!isTeacher ? "Add Option" : null} />
+                                        <Table listId={`options-list-${selectedQuestion}`} headers={[{ label: "Answer", key: "value" }]} data={filteredOptions} options={{ ...tableOptions, linkable: false }} edit={option => this.setState({ optionToEdit: option }, () => this.editOptionModalRef.current.show())} delete={option => this.setState({ optionToDelete: option }, () => this.deleteOptionModalRef.current.show())} onOrderChange={(list) => this._handleReorder('options', list)} correctItemIds={correctOptionIds} isLoading={optionsLoading} onAdd={() => this.addOptionModalRef.current.show()} addItemText="Add Option" />
                                     </div>
                                 </div>
                             )}

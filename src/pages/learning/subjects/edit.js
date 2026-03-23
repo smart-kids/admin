@@ -134,7 +134,8 @@ class Modal extends React.Component {
   render() {
     const { subject, teachers } = this.state;
     const userRole = localStorage.getItem('userRole');
-    const isTeacher = userRole === 'teacher';
+    const userData = JSON.parse(localStorage.getItem("user") || "{}");
+    const isTeacher = userRole === 'teacher' || userData?.userType === 'teacher' || userData?.role === 'teacher';
 
     return (
       <div>
