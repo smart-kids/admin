@@ -385,14 +385,14 @@ class CurriculumManagerV5 extends React.Component {
 
         // Filter and sort Grades
         const gradesListRaw = this._sortListByOrderArray(_masterGradesList, school?.gradeOrder);
-        const gradesList = gradesListRaw.filter(g => g.name); // ONLY show if it has a name
+        const gradesList = gradesListRaw.filter(g => g.name && !g.isDeleted); // ONLY show if it has a name and not deleted
         newState.grades = this._applyFilter(gradesList, gradeSearchTerm, 'name'); 
 
         const currentGradeObj = selectedGrade ? _masterGradesList.find(g => g.id === selectedGrade) : null; 
         
         // Filter and sort Subjects
         const subjectsListRaw = this._sortListByOrderArray(currentGradeObj?.subjects, currentGradeObj?.subjectsOrder); 
-        let subjectsList = subjectsListRaw.filter(s => s.name);
+        let subjectsList = subjectsListRaw.filter(s => s.name && !s.isDeleted);
         
         const userDataObj = JSON.parse(localStorage.getItem("user") || "{}");
         const isUserTeacher = userDataObj?.userType === 'teacher' || userDataObj?.role === 'teacher' || userDataObj?.userType === 'Teacher';
@@ -415,28 +415,28 @@ class CurriculumManagerV5 extends React.Component {
         
         // Filter and sort Topics
         const topicsListRaw = this._sortListByOrderArray(currentSubjectObj?.topics, currentSubjectObj?.topicsOrder); 
-        const topicsList = topicsListRaw.filter(t => t.name);
+        const topicsList = topicsListRaw.filter(t => t.name && !t.isDeleted);
         newState.filteredTopics = this._applyFilter(topicsList, topicSearchTerm, 'name'); 
         
         const currentTopicObj = selectedTopic ? (currentSubjectObj?.topics || []).find(t => t.id === selectedTopic) : null; 
         
         // Filter and sort Subtopics
         const subtopicsListRaw = this._sortListByOrderArray(currentTopicObj?.subtopics, currentTopicObj?.subtopicOrder); 
-        const subtopicsList = subtopicsListRaw.filter(st => st.name);
+        const subtopicsList = subtopicsListRaw.filter(st => st.name && !st.isDeleted);
         newState.filteredSubtopics = this._applyFilter(subtopicsList, subtopicSearchTerm, 'name'); 
         
         const currentSubtopicObj = selectedSubtopic ? (currentTopicObj?.subtopics || []).find(st => st.id === selectedSubtopic) : null; 
         
         // Process questions with images
         const questionsListRaw = this._sortListByOrderArray(currentSubtopicObj?.questions, currentSubtopicObj?.questionsOrder); 
-        const questionsList = questionsListRaw.filter(q => q.name).map(q => ({ ...q, images: questionImagesMap[q.id] || [] }));
+        const questionsList = questionsListRaw.filter(q => q.name && !q.isDeleted).map(q => ({ ...q, images: questionImagesMap[q.id] || [] }));
         newState.filteredQuestions = this._applyFilter(questionsList, questionSearchTerm, 'name'); 
         
         const currentQuestionObj = selectedQuestion ? (currentSubtopicObj?.questions || []).find(q => q.id === selectedQuestion) : null; 
         
         // Filter and sort Options (use 'value' instead of 'name')
         const optionsListRaw = this._sortListByOrderArray(currentQuestionObj?.options, currentQuestionObj?.optionsOrder); 
-        const optionsList = optionsListRaw.filter(o => o.value);
+        const optionsList = optionsListRaw.filter(o => o.value && !o.isDeleted);
         newState.filteredOptions = this._applyFilter(optionsList, optionSearchTerm, 'value'); 
 
         this.setState(newState, () => {
@@ -497,7 +497,7 @@ class CurriculumManagerV5 extends React.Component {
     _sortListByOrderArray = (list, orderArray) => { if (!list || !Array.isArray(list)) return []; if (!orderArray || !Array.isArray(orderArray)) return list; const orderMap = new Map(orderArray.map((id, index) => [id, index])); return [...list].sort((a, b) => (orderMap.get(a.id) ?? Infinity) - (orderMap.get(b.id) ?? Infinity)); };
     handleCreate = async (entity, data, parentId, parentKey) => { try { const payload = parentId ? { ...data, [parentKey]: parentId } : data; const result = await Data[entity].create(payload); this.onEntityCreated(entity.slice(0, -1)); return result; } catch (err) { toastr.error(`Failed to create ${entity.slice(0, -1)}`); throw err; } };
     handleUpdate = async (entity, payload) => { try { const result = await Data[entity].update(payload); this.onEntityUpdated(entity.slice(0, -1)); return result; } catch (err) { toastr.error(`Failed to update ${entity.slice(0, -1)}`); throw err; } };
-    handleDelete = (entity, item) => async () => { try { await Data[entity].delete({ id: item.id }); this.onEntityDeleted(entity.slice(0, -1)); const singularEntity = entity.slice(0, -1); const capitalizedEntity = singularEntity.charAt(0).toUpperCase() + singularEntity.slice(1); if (this.state[`selected${capitalizedEntity}`] === item.id) { this.setState(this.clearSelectionsAndDataFromLevel(singularEntity), this.refreshCurrentSelectionsAndFilters); } } catch (err) { toastr.error(`Failed to delete ${entity.slice(0, -1)}`); throw err; } };
+    handleDelete = (entity, item) => async () => { try { await Data[entity].delete({ id: item.id }); this.onEntityDeleted(entity.slice(0, -1)); const singularEntity = entity.slice(0, -1); const capitalizedEntity = singularEntity.charAt(0).toUpperCase() + singularEntity.slice(1); if (this.state[`selected${capitalizedEntity}`] === item.id) { this.setState(this.clearSelectionsAndDataFromLevel(singularEntity), this.refreshCurrentSelectionsAndFilters); } else { this.refreshCurrentSelectionsAndFilters(); } } catch (err) { toastr.error(`Failed to delete ${entity.slice(0, -1)}`); throw err; } };
     scrollBy = (amount) => { if (this.scrollContainerRef.current) { this.scrollContainerRef.current.scrollBy({ left: amount, behavior: 'smooth' }); } }
     _handleReorder = async (entityType, reorderedList) => { const { school, selectedGrade, selectedSubject, selectedTopic, selectedSubtopic, selectedQuestion } = this.state; const ids = reorderedList.map(item => item.id); let entityToUpdate, payload; switch (entityType) { case 'grades': this.setState({ grades: reorderedList }); entityToUpdate = 'schools'; payload = { id: school.id, gradeOrder: ids }; break; case 'subjects': this.setState({ filteredSubjects: reorderedList }); entityToUpdate = 'grades'; payload = { id: selectedGrade, subjectsOrder: ids }; break; case 'topics': this.setState({ filteredTopics: reorderedList }); entityToUpdate = 'subjects'; payload = { id: selectedSubject, topicsOrder: ids, grade: selectedGrade }; break; case 'subtopics': this.setState({ filteredSubtopics: reorderedList }); entityToUpdate = 'topics'; payload = { id: selectedTopic, subtopicOrder: ids, subject: selectedSubject }; break; case 'questions': this.setState({ filteredQuestions: reorderedList }); entityToUpdate = 'subtopics'; payload = { id: selectedSubtopic, questionsOrder: ids, topic: selectedTopic }; break; case 'options': this.setState({ filteredOptions: reorderedList }); entityToUpdate = 'questions'; payload = { id: selectedQuestion, optionsOrder: ids, subtopic: selectedSubtopic }; break; default: return; } try { await this.handleUpdate(entityToUpdate, payload); } catch (error) { toastr.error(`Failed to update order for ${entityType}. Reverting.`); this.refreshCurrentSelectionsAndFilters(); } };
     

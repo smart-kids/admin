@@ -546,14 +546,28 @@ var Data = (function () {
             notifyEntity('assessmentRubrics');
             notifyEntity('drivers');
             notifyEntity('admins');
-            notifyEntity('buses', b => ({ ...b, driver: b.driver?.names }));
+            notifyEntity('buses', b => {
+                const driverId = b.driver?.id || b.driver;
+                const driverObj = allData.drivers.find(d => String(d.id) === String(driverId));
+                return { ...b, driver: driverObj?.names || 'Unassigned' };
+            });
             notifyEntity('routes');
             notifyEntity('complaints');
             notifyEntity('trips');
-            notifyEntity('schedules', s => ({ ...s, bus_make: s.bus?.make, route_name: s.route?.name }));
+            notifyEntity('schedules', s => {
+                const busId = s.bus?.id || s.bus;
+                const routeId = s.route?.id || s.route;
+                const busObj = allData.buses.find(b => String(b.id) === String(busId));
+                const routeObj = allData.routes.find(r => String(r.id) === String(routeId));
+                return { ...s, bus_make: busObj?.make, route_name: routeObj?.name };
+            });
             
             // NOTE: Classes are crucial for fees. 
-            notifyEntity('classes', c => ({ ...c, student_num: c.students?.length || 0, teacher_name: c.teacher?.name }));
+            notifyEntity('classes', c => {
+                const teacherId = c.teacher?.id || c.teacher;
+                const teacherObj = allData.teachers.find(t => String(t.id) === String(teacherId));
+                return { ...c, student_num: c.students?.length || 0, teacher_name: teacherObj?.name || 'Unassigned' };
+            });
             
             notifyEntity('teachers');
             notifyEntity('invitations');
