@@ -54,7 +54,7 @@ class Modal extends React.Component {
           const payload = {
             id: _this.state.edit.id,
             name: _this.state.edit.name,
-            teacher: typeof _this.state.edit.teacher === 'object' ? _this.state.edit.teacher.id : String(_this.state.edit.teacher || ""),
+            teacher: (_this.state.edit.teacher && typeof _this.state.edit.teacher === 'object') ? _this.state.edit.teacher.id : String(_this.state.edit.teacher || ""),
             feeAmount: Number(_this.state.edit.feeAmount || 0),
             grade: String(_this.state.edit.grade || "")
           };
@@ -78,8 +78,8 @@ class Modal extends React.Component {
       // Ensure teacher and grade are strings (IDs) even if they come as objects
       const sanitizedEdit = {
         ...props.edit,
-        teacher: typeof props.edit.teacher === 'object' ? props.edit.teacher.id : props.edit.teacher,
-        grade: typeof props.edit.grade === 'object' ? props.edit.grade.id : props.edit.grade
+        teacher: (props.edit.teacher && typeof props.edit.teacher === 'object') ? props.edit.teacher.id : props.edit.teacher,
+        grade: (props.edit.grade && typeof props.edit.grade === 'object') ? props.edit.grade.id : props.edit.grade
       };
       return {
         edit: sanitizedEdit
