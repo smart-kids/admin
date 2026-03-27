@@ -326,13 +326,13 @@ var Data = (function () {
         const FRAGMENT_USER_DATA = `fragment UserData on user { name email phone }`;
         const FRAGMENT_SCHOOL_DETAILS = `fragment schoolDetails on school { id name phone email address logo themeColor studentsCount parentsCount gradeOrder }`;
         const FRAGMENT_GRADES_DATA = `fragment GradesData on school {
-            grades { id name subjectsOrder subjects { id name topicsOrder topics { id name icon subtopicOrder subtopics { id name questionsOrder questions { id name videos type contentOrder attachments optionsOrder } } } } }
+            grades { id name subjectsOrder subjects { id name teacher topicsOrder topics { id name icon subtopicOrder subtopics { id name questionsOrder questions { id name videos type contentOrder attachments optionsOrder } } } } }
         }`;
         const FRAGMENT_GRADES_IMAGES_DATA = `fragment GradesImagesData on school {
-            grades($id:String!) { id subjects { id topics { id subtopics { id questions { id images } } } } }
+            grades($id:String!) { id subjects { id teacher topics { id subtopics { id questions { id images } } } } }
         }`;
         const FRAGMENT_GRADES_OPTIONS_DATA = `fragment GradesOptionsData on school {
-            grades { id subjects { id topics { id subtopics { id questions { id options { id value correct } } } } } }
+            grades { id subjects { id teacher topics { id subtopics { id questions { id options { id value correct } } } } } }
         }`;
 
         const FRAGMENT_LESSON_DATA = `fragment LessonData on school {
@@ -340,6 +340,7 @@ var Data = (function () {
                 id
                 subjects {
                     id
+                    teacher
                     lessonAttempts {
                         id
                         lessonId
