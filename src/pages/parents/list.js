@@ -125,13 +125,50 @@ export default function ParentDataTable() {
     try {
       console.log("Fetching children for parent:", parentId);
       
-      // Fetch students linked to this parent
-      const studentsResponse = await Data.students.getPage({
-        page: 1,
-        limit: 100, // Get all students
-        search: `parent:${parentId}`, // Search by parent reference
-        sort: { key: 'name', direction: 'ascending' }
-      });
+      // Fetch students linked to this parent using multiple possible search patterns
+      let studentsResponse;
+      try {
+        // Try different search patterns for parent-student relationship
+        studentsResponse = await Data.students.getPage({
+          page: 1,
+          limit: 100,
+          search: parentId, // Try direct ID search first
+          sort: { key: 'name', direction: 'ascending' }
+        });
+        
+        // If no results, try alternative patterns
+        if (studentsResponse.students.length === 0) {
+          studentsResponse = await Data.students.getPage({
+            page: 1,
+            limit: 100,
+            search: `parent_id:${parentId}`, // Try parent_id pattern
+            sort: { key: 'name', direction: 'ascending' }
+          });
+        }
+        
+        // If still no results, try filtering all students
+        if (studentsResponse.students.length === 0) {
+          const allStudents = await Data.students.getPage({
+            page: 1,
+            limit: 500, // Get more students
+            search: '', // No search to get all
+            sort: { key: 'name', direction: 'ascending' }
+          });
+          
+          // Filter students by parent relationship
+          studentsResponse = {
+            students: allStudents.students.filter(student => 
+              student.parent === parentId || 
+              student.parent?.id === parentId ||
+              student.parentId === parentId ||
+              student.parent_id === parentId
+            )
+          };
+        }
+      } catch (error) {
+        console.error("Error fetching students:", error);
+        studentsResponse = { students: [] };
+      }
 
       // Fetch classes these students are in
       const classIds = [...new Set(studentsResponse.students.map(s => s.class))];
@@ -163,12 +200,15 @@ export default function ParentDataTable() {
 
   // Toggle parent expansion
   const toggleParentExpansion = useCallback(async (parentId) => {
+    console.log("Toggling parent expansion for:", parentId);
     const newExpanded = new Set(expandedParents);
     
     if (newExpanded.has(parentId)) {
       newExpanded.delete(parentId);
+      console.log("Collapsing parent:", parentId);
     } else {
       newExpanded.add(parentId);
+      console.log("Expanding parent:", parentId);
       // Fetch children if not already cached
       await fetchParentChildren(parentId);
     }
@@ -383,7 +423,7 @@ export default function ParentDataTable() {
                 <input 
                     type="text" 
                     className="v8-search-input" 
-                    placeholder="Search parents by name, ID, phone, email..." 
+                    placeholder="Search parents by ALL fields (name, ID, phone, email, gender, national_id)..." 
                     value={searchTerm} 
                     onChange={(e) => handleRealTimeSearch(e.target.value)} 
                 />
@@ -457,13 +497,14 @@ export default function ParentDataTable() {
                       </tr>
                       
                       {/* Children Tree View */}
-                      {isExpanded && children && (
+                      {isExpanded && (
                         <tr>
                           <td colSpan={headers.length + 1} style={{padding: '0', backgroundColor: '#f8f9fa'}}>
                             <div style={{padding: '20px', border: '1px solid #e9ecef', borderRadius: '8px', margin: '10px'}}>
                               <div style={{display: 'flex', alignItems: 'center', marginBottom: '15px', fontWeight: 'bold', color: '#495057'}}>
                                 <i className="la la-users" style={{marginRight: '8px'}}></i>
                                 Children & Student Details
+                                {console.log("Rendering children for parent:", row.id, "Children data:", children)}
                               </div>
                               
                               {/* Students Section */}
