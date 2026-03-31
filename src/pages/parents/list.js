@@ -31,6 +31,7 @@ export default function ParentDataTable() {
   // Search state
   const [searchTerm, setSearchTerm] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
+  const [searchTimeout, setSearchTimeout] = useState(null);
 
   // Pagination & Sorting state
   const [currentPage, setCurrentPage] = useState(1);
@@ -78,11 +79,15 @@ export default function ParentDataTable() {
 
   // Effect for one-time setup
   useEffect(() => {
-    // Cleanup for the highlight-new-record timers on unmount
+    // Cleanup for highlight-new-record timers on unmount
     return () => {
       newRecordTimers.current.forEach(timerId => clearTimeout(timerId));
+      // Cleanup search timeout on unmount
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
     };
-  }, []);
+  }, [searchTimeout]);
 
   // --- HEADERS CONFIGURATION ---
   const headers = useMemo(() => [
@@ -101,8 +106,30 @@ export default function ParentDataTable() {
     setCurrentPage(1);
     setActiveSearch(searchTerm);
   };
+
+  const handleRealTimeSearch = (value) => {
+    setSearchTerm(value);
+    
+    // Clear existing timeout
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    
+    // Set new timeout for real-time search (debounce)
+    const timeout = setTimeout(() => {
+      setCurrentPage(1);
+      setActiveSearch(value);
+    }, 300); // 300ms debounce
+    
+    setSearchTimeout(timeout);
+  };
+
   const handleClearSearch = () => {
     setSearchTerm("");
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+      setSearchTimeout(null);
+    }
     if (activeSearch) {
       setCurrentPage(1);
       setActiveSearch("");
@@ -249,7 +276,13 @@ export default function ParentDataTable() {
         </div>
         <div className="v8-toolbar">
             <div className="v8-search-group">
-                <input type="text" className="v8-search-input" placeholder="Search by name, ID, email..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSearch()} />
+                <input 
+                    type="text" 
+                    className="v8-search-input" 
+                    placeholder="Search parents by name, ID, phone, email..." 
+                    value={searchTerm} 
+                    onChange={(e) => handleRealTimeSearch(e.target.value)} 
+                />
                 <button className="btn" onClick={handleSearch} style={{backgroundColor: 'var(--v8-accent-color)', color: 'white'}}>Search</button>
                 {activeSearch && <button className="btn" onClick={handleClearSearch} style={{backgroundColor: 'var(--v8-border-color)', color: 'var(--v8-text-secondary)'}}>Clear</button>}
             </div>

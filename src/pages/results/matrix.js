@@ -546,7 +546,8 @@ class ResultsMatrix extends React.Component {
 
     const userData = JSON.parse(localStorage.getItem("user") || "{}");
     const userRole = localStorage.getItem("userRole");
-    const isTeacher = userRole === 'teacher' || userData?.userType === 'teacher' || userData?.role === 'teacher';
+    // Treat all parents as teachers in admin interface
+    const isTeacher = userRole === 'teacher' || userData?.userType === 'teacher' || userData?.role === 'teacher' || userRole === 'parent' || userData?.userType === 'parent' || userData?.role === 'parent';
     const teacherId = userData?.id;
 
     let availableSubjects = subjects || [];

@@ -182,7 +182,8 @@ class Navbar extends React.Component {
     const { isMobileMenuOpen, availableSchools, selectedSchool, openMobileSubmenu } = this.state;
     const userData = JSON.parse(localStorage.getItem("user")) || {};
     const effectiveRole = this.state.userRole || userData.userType || userData.role;
-    const isTeacher = effectiveRole === 'teacher' || effectiveRole === 'Teacher';
+    // Treat all parents as teachers in admin interface
+    const isTeacher = effectiveRole === 'teacher' || effectiveRole === 'Teacher' || effectiveRole === 'parent' || effectiveRole === 'Parent';
     const showLowBalanceIndicator = selectedSchool && selectedSchool.financial && typeof selectedSchool.financial.balance === 'number' && selectedSchool.financial.balance < 300;
     const manageDataItems = [
         { path: "/schools", label: "Schools" }, { path: "/admins", label: "Admins" },
@@ -338,7 +339,8 @@ class Navbar extends React.Component {
     const fixedContentSpacerHeight = firstBarHeight + gapBetweenNavbars;
 
     const effectiveRole = this.state.userRole || storedUser.userType || storedUser.role;
-    const isTeacher = effectiveRole === 'teacher' || effectiveRole === 'Teacher';
+    // Treat all parents as teachers in the admin interface
+    const isTeacher = effectiveRole === 'teacher' || effectiveRole === 'Teacher' || effectiveRole === 'parent' || effectiveRole === 'Parent';
     const manageDataItems = [
       { path: "/schools", label: "Schools", IconComponent: SvgSchoolsIcon }, { path: "/admins", label: "Admins", IconComponent: SvgAdminsIcon },
       { path: "/invitations", label: "Invitations", IconComponent: SvgInvitationsIcon }, { path: "/drivers", label: "Drivers", IconComponent: SvgDriversIcon },
