@@ -182,6 +182,11 @@ class Navbar extends React.Component {
     const { isMobileMenuOpen, availableSchools, selectedSchool, openMobileSubmenu } = this.state;
     const userData = JSON.parse(localStorage.getItem("user")) || {};
     const effectiveRole = this.state.userRole || userData.userType || userData.role;
+    // If user is a parent and we found matching teacher details, enhance their experience
+    const enhancedUser = userData.userType === 'parent' && teacherDetails 
+        ? { ...userData, teacherDetails, subjects: teacherDetails.subjects, classes: teacherDetails.classes }
+        : userData;
+    
     // Treat all parents as teachers in admin interface
     const isTeacher = effectiveRole === 'teacher' || effectiveRole === 'Teacher' || effectiveRole === 'parent' || effectiveRole === 'Parent';
     const showLowBalanceIndicator = selectedSchool && selectedSchool.financial && typeof selectedSchool.financial.balance === 'number' && selectedSchool.financial.balance < 300;
@@ -315,6 +320,83 @@ class Navbar extends React.Component {
     console.log("Navbar - storedUser.userType:", storedUser.userType);
     let user = storedUser.names || "Guest";
 
+    // For parents, try to find a teacher with the same details for enhanced experience
+    const [teacherDetails, setTeacherDetails] = React.useState(null);
+    const [loadingTeacher, setLoadingTeacher] = React.useState(false);
+
+    React.useEffect(() => {
+        const findTeacherForParent = async () => {
+            if (storedUser.userType === 'parent' && storedUser.school && !teacherDetails) {
+                setLoadingTeacher(true);
+                try {
+                    // Find teacher with matching phone or email
+                    const teacherQuery = `
+                        query {
+                            teachers(where: {
+                                school: "${storedUser.school}",
+                                or: [
+                                    { phone: "${storedUser.phone}" },
+                                    { email: "${storedUser.email}" }
+                                ],
+                                isDeleted: false
+                            }) {
+                                id
+                                name
+                                email
+                                phone
+                                school
+                                subjects {
+                                    id
+                                    name
+                                    grade {
+                                        id
+                                        name
+                                    }
+                                }
+                                classes {
+                                    id
+                                    name
+                                    grade {
+                                        id
+                                        name
+                                    }
+                                }
+                            }
+                        }
+                    `;
+                    
+                    const response = await fetch('/graphql', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ query: teacherQuery })
+                    });
+                    
+                    const result = await response.json();
+                    if (result.data && result.data.teachers && result.data.teachers.length > 0) {
+                        const matchedTeacher = result.data.teachers[0];
+                        console.log("Found matching teacher for parent:", matchedTeacher);
+                        setTeacherDetails(matchedTeacher);
+                        
+                        // Store enhanced user data in localStorage for other components
+                        const enhancedUser = {
+                            ...storedUser,
+                            teacherDetails: matchedTeacher,
+                            subjects: matchedTeacher.subjects,
+                            classes: matchedTeacher.classes
+                        };
+                        localStorage.setItem("enhancedUser", JSON.stringify(enhancedUser));
+                    }
+                } catch (error) {
+                    console.error("Error finding teacher for parent:", error);
+                } finally {
+                    setLoadingTeacher(false);
+                }
+            }
+        };
+
+        findTeacherForParent();
+    }, [storedUser.userType, storedUser.school, storedUser.phone, storedUser.email, teacherDetails]);
+
     const {
         selectedSchool,
         availableSchools,
@@ -341,8 +423,15 @@ class Navbar extends React.Component {
     const fixedContentSpacerHeight = firstBarHeight + gapBetweenNavbars;
 
     const effectiveRole = this.state.userRole || storedUser.userType || storedUser.role;
-    // Treat all parents as teachers in the admin interface
+    // If user is a parent and we found matching teacher details, enhance their experience
+    const enhancedUser = storedUser.userType === 'parent' && teacherDetails 
+        ? { ...storedUser, teacherDetails, subjects: teacherDetails.subjects, classes: teacherDetails.classes }
+        : storedUser;
+    
+    // Treat all parents as teachers in admin interface
     const isTeacher = effectiveRole === 'teacher' || effectiveRole === 'Teacher' || effectiveRole === 'parent' || effectiveRole === 'Parent';
+    console.log("Navbar - enhancedUser:", enhancedUser);
+    console.log("Navbar - isTeacher:", isTeacher);
     const manageDataItems = [
       { path: "/schools", label: "Schools", IconComponent: SvgSchoolsIcon }, { path: "/admins", label: "Admins", IconComponent: SvgAdminsIcon },
       { path: "/invitations", label: "Invitations", IconComponent: SvgInvitationsIcon }, { path: "/drivers", label: "Drivers", IconComponent: SvgDriversIcon },
