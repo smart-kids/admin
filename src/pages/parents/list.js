@@ -33,6 +33,10 @@ export default function ParentDataTable() {
   const [activeSearch, setActiveSearch] = useState("");
   const [searchTimeout, setSearchTimeout] = useState(null);
 
+  // Tree view state
+  const [expandedParents, setExpandedParents] = useState(new Set());
+  const [parentChildren, setParentChildren] = useState({});
+
   // Pagination & Sorting state
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
@@ -51,13 +55,53 @@ export default function ParentDataTable() {
     }
     
     try {
-      // Assumes a `Data.parents.getPage` method exists, similar to `Data.students.getPage`
-      const pageResponse = await Data.parents.getPage({
-        page,
-        limit,
-        search,
-        sort,
-      });
+      // Check if user has enhanced teacher data (parent with teacher details)
+      const enhancedUser = JSON.parse(localStorage.getItem("enhancedUser"));
+      
+      // Convert search to lowercase for case-insensitive matching
+      const searchLower = search ? search.toLowerCase().trim() : '';
+      
+      let pageResponse;
+      
+      if (enhancedUser?.teacherDetails) {
+        // For parents with teacher details, also search in teacher data
+        console.log("Searching parents and teachers for:", searchLower);
+        
+        // Search parents and teachers simultaneously with case-insensitive search
+        const [parentResponse, teacherResponse] = await Promise.all([
+          Data.parents.getPage({ page, limit, search: searchLower, sort }),
+          Data.teachers.getPage({ page, limit, search: searchLower, sort })
+        ]);
+        
+        // Combine results, prioritizing parents
+        const combinedResults = [
+          ...parentResponse.parents,
+          ...teacherResponse.teachers.map(teacher => ({
+            ...teacher,
+            // Mark as teacher result for UI differentiation
+            _isTeacherResult: true,
+            // Map teacher fields to parent interface
+            name: teacher.name,
+            email: teacher.email,
+            phone: teacher.phone,
+            national_id: teacher.national_id || '',
+            gender: teacher.gender || '',
+          }))
+        ].slice(0, limit); // Limit combined results
+        
+        pageResponse = {
+          parents: combinedResults,
+          totalCount: parentResponse.totalCount + teacherResponse.totalCount
+        };
+      } else {
+        // Assumes a `Data.parents.getPage` method exists, similar to `Data.students.getPage`
+        pageResponse = await Data.parents.getPage({
+          page,
+          limit,
+          search: searchLower,
+          sort,
+        });
+      }
       
       const { parents: fetchedParents, totalCount } = pageResponse;
       setParents(fetchedParents);
@@ -71,6 +115,66 @@ export default function ParentDataTable() {
       setIsPaginating(false);
     }
   }, [initialLoading]);
+
+  // --- CHILDREN FETCHING ---
+  const fetchParentChildren = useCallback(async (parentId) => {
+    if (parentChildren[parentId]) {
+      return parentChildren[parentId]; // Return cached data
+    }
+
+    try {
+      console.log("Fetching children for parent:", parentId);
+      
+      // Fetch students linked to this parent
+      const studentsResponse = await Data.students.getPage({
+        page: 1,
+        limit: 100, // Get all students
+        search: `parent:${parentId}`, // Search by parent reference
+        sort: { key: 'name', direction: 'ascending' }
+      });
+
+      // Fetch classes these students are in
+      const classIds = [...new Set(studentsResponse.students.map(s => s.class))];
+      const classesResponse = classIds.length > 0 ? await Data.classes.getPage({
+        where: { id: { in: classIds } },
+        limit: 100
+      }) : { classes: [] };
+
+      // Fetch grades for these classes
+      const gradeIds = [...new Set(classesResponse.classes.map(c => c.grade))];
+      const gradesResponse = gradeIds.length > 0 ? await Data.grades.getPage({
+        where: { id: { in: gradeIds } },
+        limit: 100
+      }) : { grades: [] };
+
+      const childrenData = {
+        students: studentsResponse.students,
+        classes: classesResponse.classes,
+        grades: gradesResponse.grades
+      };
+
+      setParentChildren(prev => ({ ...prev, [parentId]: childrenData }));
+      return childrenData;
+    } catch (error) {
+      console.error("Failed to fetch parent children:", error);
+      return { students: [], classes: [], grades: [] };
+    }
+  }, []);
+
+  // Toggle parent expansion
+  const toggleParentExpansion = useCallback(async (parentId) => {
+    const newExpanded = new Set(expandedParents);
+    
+    if (newExpanded.has(parentId)) {
+      newExpanded.delete(parentId);
+    } else {
+      newExpanded.add(parentId);
+      // Fetch children if not already cached
+      await fetchParentChildren(parentId);
+    }
+    
+    setExpandedParents(newExpanded);
+  }, [expandedParents, fetchParentChildren]);
 
   // Effect to fetch data whenever pagination, sorting, or searching changes.
   useEffect(() => {
@@ -308,15 +412,130 @@ export default function ParentDataTable() {
               {initialLoading ? (
                 [...Array(rowsPerPage)].map((_, i) => <tr key={i}><td colSpan={headers.length + 1}><div style={{height: '2rem', backgroundColor: '#EFF2F5', borderRadius: '4px', margin: '1rem 0', animation: 'pulse 1.5s infinite ease-in-out'}}></div></td></tr>)
               ) : parents.length > 0 ? (
-                parents.map(row => (
-                    <tr key={row.id} className={newlyAddedIds.has(row.id) ? 'v8-new-row' : ''}>
-                      {headers.map(h => <td key={h.key} className={h.key === 'name' ? 'td-primary' : ''}>{getNestedValue(row, h.key)}</td>)}
-                      <td className="v8-table-actions" style={{textAlign: 'right'}}>
-                        <button title="Edit Parent" onClick={() => handleEdit(row)}><i className="la la-edit" style={{fontSize: '1.5rem'}}></i></button>
-                        <button title="Delete Parent" onClick={() => handleDelete(row)}><i className="la la-trash" style={{fontSize: '1.5rem'}}></i></button>
-                      </td>
-                    </tr>
-                ))
+                parents.map(row => {
+                  const isExpanded = expandedParents.has(row.id);
+                  const children = parentChildren[row.id];
+                  
+                  return (
+                    <React.Fragment key={row.id}>
+                      <tr key={row.id} className={newlyAddedIds.has(row.id) ? 'v8-new-row' : ''}>
+                        {headers.map(h => <td key={h.key} className={h.key === 'name' ? 'td-primary' : ''}>
+                          {getNestedValue(row, h.key)}
+                          {row._isTeacherResult && (
+                            <span style={{
+                              backgroundColor: '#0095E8',
+                              color: 'white',
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              fontSize: '0.75rem',
+                              marginLeft: '8px',
+                              fontWeight: 'bold'
+                            }}>
+                              TEACHER
+                            </span>
+                          )}
+                        </td>}
+                        <td className="v8-table-actions" style={{textAlign: 'right'}}>
+                          <button 
+                            title={isExpanded ? 'Collapse' : 'Expand'} 
+                            onClick={() => toggleParentExpansion(row.id)}
+                            style={{color: '#0095E8', marginRight: '8px'}}
+                          >
+                            <i className={`la la-${isExpanded ? 'chevron-up' : 'chevron-down'}`} style={{fontSize: '1rem'}}></i>
+                          </button>
+                          {row._isTeacherResult ? (
+                            <button title="View Teacher Details" onClick={() => handleEdit(row)} style={{color: '#0095E8'}}>
+                              <i className="la la-eye" style={{fontSize: '1.5rem'}}></i>
+                            </button>
+                          ) : (
+                            <>
+                              <button title="Edit Parent" onClick={() => handleEdit(row)}><i className="la la-edit" style={{fontSize: '1.5rem'}}></i></button>
+                              <button title="Delete Parent" onClick={() => handleDelete(row)}><i className="la la-trash" style={{fontSize: '1.5rem'}}></i></button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                      
+                      {/* Children Tree View */}
+                      {isExpanded && children && (
+                        <tr>
+                          <td colSpan={headers.length + 1} style={{padding: '0', backgroundColor: '#f8f9fa'}}>
+                            <div style={{padding: '20px', border: '1px solid #e9ecef', borderRadius: '8px', margin: '10px'}}>
+                              <div style={{display: 'flex', alignItems: 'center', marginBottom: '15px', fontWeight: 'bold', color: '#495057'}}>
+                                <i className="la la-users" style={{marginRight: '8px'}}></i>
+                                Children & Student Details
+                              </div>
+                              
+                              {/* Students Section */}
+                              {children.students && children.students.length > 0 && (
+                                <div style={{marginBottom: '15px'}}>
+                                  <div style={{fontWeight: 'bold', color: '#6c757d', marginBottom: '8px'}}>
+                                    <i className="la la-graduation-cap" style={{marginRight: '8px'}}></i>
+                                    Students ({children.students.length})
+                                  </div>
+                                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '10px'}}>
+                                    {children.students.map(student => (
+                                      <div key={student.id} style={{padding: '10px', border: '1px solid #dee2e6', borderRadius: '6px', backgroundColor: 'white'}}>
+                                        <div style={{fontWeight: 'bold', color: '#495057', marginBottom: '5px'}}>{student.names}</div>
+                                        <div style={{fontSize: '0.85rem', color: '#6c757d'}}>
+                                          <div>ID: {student.admissionNumber || student.id}</div>
+                                          <div>Class: {student.className || 'N/A'}</div>
+                                          <div>Grade: {student.gradeName || 'N/A'}</div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* Classes Section */}
+                              {children.classes && children.classes.length > 0 && (
+                                <div style={{marginBottom: '15px'}}>
+                                  <div style={{fontWeight: 'bold', color: '#28a745', marginBottom: '8px'}}>
+                                    <i className="la la-chalkboard" style={{marginRight: '8px'}}></i>
+                                    Classes ({children.classes.length})
+                                  </div>
+                                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '8px'}}>
+                                    {children.classes.map(cls => (
+                                      <div key={cls.id} style={{padding: '8px', border: '1px solid #dee2e6', borderRadius: '6px', backgroundColor: 'white'}}>
+                                        <div style={{fontWeight: 'bold', color: '#495057', marginBottom: '5px'}}>{cls.name}</div>
+                                        <div style={{fontSize: '0.85rem', color: '#6c757d'}}>
+                                          <div>Grade: {cls.gradeName || 'N/A'}</div>
+                                          <div>Students: {cls.studentCount || 'N/A'}</div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                              
+                              {/* Grades Section */}
+                              {children.grades && children.grades.length > 0 && (
+                                <div>
+                                  <div style={{fontWeight: 'bold', color: '#17a2b8', marginBottom: '8px'}}>
+                                    <i className="la fa-chart-line" style={{marginRight: '8px'}}></i>
+                                    Grades ({children.grades.length})
+                                  </div>
+                                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '8px'}}>
+                                    {children.grades.map(grade => (
+                                      <div key={grade.id} style={{padding: '8px', border: '1px solid #dee2e6', borderRadius: '6px', backgroundColor: 'white'}}>
+                                        <div style={{fontWeight: 'bold', color: '#495057', marginBottom: '5px'}}>{grade.name}</div>
+                                        <div style={{fontSize: '0.85rem', color: '#6c757d'}}>
+                                          <div>Level: {grade.level || 'N/A'}</div>
+                                        <div>Classes: {grade.classCount || 'N/A'}</div>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })
               ) : (
                 <tr><td colSpan={headers.length + 1} style={{ textAlign: 'center', padding: '4rem', color: '#B5B5C3' }}>No parents found.</td></tr>
               )}
