@@ -311,6 +311,8 @@ class Navbar extends React.Component {
 
   render() {
     const storedUser = JSON.parse(localStorage.getItem("user")) || {};
+    console.log("Navbar - storedUser:", storedUser);
+    console.log("Navbar - storedUser.userType:", storedUser.userType);
     let user = storedUser.names || "Guest";
 
     const {

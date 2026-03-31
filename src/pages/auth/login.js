@@ -302,6 +302,8 @@ class Login extends React.Component {
     };
 
     handleLoginSuccess = (token, userData) => {
+        console.log("Login success - userData:", userData);
+        console.log("Login success - userType:", userData.userType);
         localStorage.setItem("authorization", token);
         localStorage.setItem("user", JSON.stringify(userData));
         Data.init(); // Assuming this initializes some app-wide data
