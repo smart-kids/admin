@@ -6,11 +6,13 @@ import AddModal from "./add";
 import UploadModal from "./upload";
 import EditModal from "./edit";
 import DeleteModal from "./delete";
+import UpgradeModal from "./upgrade";
 
 const addModalInstance = new AddModal();
 const uploadModalInstance = new UploadModal();
 const editModalInstance = new EditModal();
 const deleteModalInstance = new DeleteModal();
+const upgradeModalInstance = new UpgradeModal();
 
 // Helper function to safely access nested properties
 const getNestedValue = (obj, path) => {
@@ -146,12 +148,22 @@ export default function StudentDataTableV8() {
     setSortConfig({ key, direction });
   };
 
-  const [edit, setEdit] = useState(null);
-  const [remove, setRemove] = useState(null);
-  
-  // Now when handleEdit is called, 'classes' and 'routes' state should be populated via subscription
-  const handleEdit = (student) => { setEdit(student); editModalInstance.show(); };
-  const handleDelete = (student) => { setRemove(student); deleteModalInstance.show(); };
+  const handleEdit = (row) => editModalInstance.show(row, async (updateData) => {
+    await Data.students.update(updateData);
+    handleAfterAction();
+  });
+
+  const handleDelete = (row) => deleteModalInstance.show(row, async () => {
+    await Data.students.delete(row);
+    handleAfterAction();
+  });
+
+  const handleUpgrade = (row) => {
+    upgradeModalInstance.show(row, async (upgradeData) => {
+      await Data.students.upgrade(upgradeData);
+      handleAfterAction();
+    });
+  };
 
   const handleStudentCreated = (newStudent) => {
     if (!newStudent || !newStudent.id) return;
@@ -323,6 +335,7 @@ export default function StudentDataTableV8() {
                       <td className="v8-table-actions" style={{textAlign: 'right'}}>
                         <button title="Edit Student" onClick={() => handleEdit(row)}><i className="la la-edit" style={{fontSize: '1.5rem'}}></i></button>
                         <button title="Delete Student" onClick={() => handleDelete(row)}><i className="la la-trash" style={{fontSize: '1.5rem'}}></i></button>
+                        <button title="Upgrade Student" onClick={() => handleUpgrade(row)}><i className="la la-arrow-up" style={{fontSize: '1.5rem'}}></i></button>
                       </td>
                     </tr>
                 ))
