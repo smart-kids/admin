@@ -1080,52 +1080,16 @@ var Data = (function () {
                         const { page = 1, limit = 15, sort = { key: 'createdAt', direction: 'descending' } } = params;
                         const schoolId = localStorage.getItem("school");
                         
-                        // Use the imported query function directly
-                        const response = await query(
-                            `query GetInstitutionalDeposits($schoolId: String!, $page: Int, $limit: Int, $sortKey: String, $sortDirection: String) {
-                                schools {
-                                    payments(schoolId: $schoolId, page: $page, limit: $limit, sortKey: $sortKey, sortDirection: $sortDirection) {
-                                        payments {
-                                            id
-                                            amount
-                                            phone
-                                            status
-                                            mpesaReceiptNumber
-                                            merchantRequestID
-                                            checkoutRequestID
-                                            resultCode
-                                            resultDesc
-                                            createdAt
-                                            updatedAt
-                                            metadata
-                                            type 
-                                            paymentType
-                                            student { id names }
-                                            ref 
-                                            time 
-                                        }
-                                        totalCount
-                                    }
-                                }
-                            }`,
-                            { 
-                                schoolId, 
-                                page, 
-                                limit, 
-                                sortKey: sort.key, 
-                                sortDirection: sort.direction 
-                            }
-                        );
-                        
-                        const allPayments = response.schools?.[0]?.payments?.payments || [];
-                        const totalCount = response.schools?.[0]?.payments?.totalCount || 0;
+                        // Use the existing payments from allData (already loaded from initial queries)
+                        const allPayments = Data.payments.list() || [];
                         
                         // Filter payments to identify institutional deposits
                         const institutionalDeposits = allPayments.filter(payment => {
                             const metadata = payment.metadata || {};
                             return metadata.type === 'institutional_deposit' || 
                                    metadata.purpose === 'institutional_deposit' ||
-                                   payment.type === 'institutional_deposit';
+                                   payment.type === 'institutional_deposit' ||
+                                   payment.paymentType === 'institutional_deposit';
                         }).map(payment => ({
                             ...payment,
                             depositorName: payment.metadata?.depositorName || 'Institutional Deposit',
@@ -1135,8 +1099,13 @@ var Data = (function () {
                             status: payment.status === 'COMPLETED' ? 'completed' : 'pending'
                         }));
                         
+                        // Apply pagination
+                        const startIndex = (page - 1) * limit;
+                        const endIndex = startIndex + limit;
+                        const paginatedDeposits = institutionalDeposits.slice(startIndex, endIndex);
+                        
                         resolve({
-                            deposits: institutionalDeposits,
+                            deposits: paginatedDeposits,
                             totalCount: institutionalDeposits.length
                         });
                     } catch (error) {
