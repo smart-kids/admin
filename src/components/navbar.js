@@ -182,10 +182,9 @@ class Navbar extends React.Component {
     const { isMobileMenuOpen, availableSchools, selectedSchool, openMobileSubmenu } = this.state;
     const userData = JSON.parse(localStorage.getItem("user")) || {};
     const effectiveRole = this.state.userRole || userData.userType || userData.role;
-    // If user is a parent and we found matching teacher details, enhance their experience
-    const enhancedUser = userData.userType === 'parent' && teacherDetails 
-        ? { ...userData, teacherDetails, subjects: teacherDetails.subjects, classes: teacherDetails.classes }
-        : userData;
+    
+    // Check for enhanced user data (parents with teacher details)
+    const enhancedUser = JSON.parse(localStorage.getItem("enhancedUser")) || userData;
     
     // Treat all parents as teachers in admin interface
     const isTeacher = effectiveRole === 'teacher' || effectiveRole === 'Teacher' || effectiveRole === 'parent' || effectiveRole === 'Parent';
