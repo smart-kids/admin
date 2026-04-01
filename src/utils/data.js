@@ -37,6 +37,7 @@ const allData = {
     books: [],
     assessmentTypes: [],
     assessmentRubrics: [],
+    institutionalDeposits: [],
 };
 
 // Centralized subscriptions object. Each key will hold an array of callbacks.
@@ -1067,6 +1068,116 @@ var Data = (function () {
             singularName: "chargeType", 
             createFields: ['school', 'name', 'description', 'amount'], 
             updateFields: ['name', 'description', 'amount'] 
+        },
+        {
+            name: "institutionalDeposits",
+            singularName: "institutionalDeposit",
+            createFields: ['school', 'amount', 'depositorName', 'paymentMethod', 'purpose', 'status', 'metadata'],
+            updateFields: ['amount', 'depositorName', 'paymentMethod', 'purpose', 'status', 'metadata'],
+            customMethods: (allData, subs, api) => ({
+                getPage: (params = {}) => new Promise(async (resolve, reject) => {
+                    try {
+                        const { page = 1, limit = 15, sort = { key: 'createdAt', direction: 'descending' } } = params;
+                        const schoolId = localStorage.getItem("school");
+                        
+                        // Use the imported query function directly
+                        const response = await query(
+                            `query GetInstitutionalDeposits($schoolId: String!, $page: Int, $limit: Int, $sortKey: String, $sortDirection: String) {
+                                schools {
+                                    payments(schoolId: $schoolId, page: $page, limit: $limit, sortKey: $sortKey, sortDirection: $sortDirection) {
+                                        payments {
+                                            id
+                                            amount
+                                            phone
+                                            status
+                                            mpesaReceiptNumber
+                                            merchantRequestID
+                                            checkoutRequestID
+                                            resultCode
+                                            resultDesc
+                                            createdAt
+                                            updatedAt
+                                            metadata
+                                            type 
+                                            paymentType
+                                            student { id names }
+                                            ref 
+                                            time 
+                                        }
+                                        totalCount
+                                    }
+                                }
+                            }`,
+                            { 
+                                schoolId, 
+                                page, 
+                                limit, 
+                                sortKey: sort.key, 
+                                sortDirection: sort.direction 
+                            }
+                        );
+                        
+                        const allPayments = response.schools?.[0]?.payments?.payments || [];
+                        const totalCount = response.schools?.[0]?.payments?.totalCount || 0;
+                        
+                        // Filter payments to identify institutional deposits
+                        const institutionalDeposits = allPayments.filter(payment => {
+                            const metadata = payment.metadata || {};
+                            return metadata.type === 'institutional_deposit' || 
+                                   metadata.purpose === 'institutional_deposit' ||
+                                   payment.type === 'institutional_deposit';
+                        }).map(payment => ({
+                            ...payment,
+                            depositorName: payment.metadata?.depositorName || 'Institutional Deposit',
+                            paymentMethod: payment.paymentType || 'mpesa',
+                            purpose: payment.metadata?.purpose || 'institutional_deposit',
+                            receiptNumber: payment.mpesaReceiptNumber || `INST-${payment.id}`,
+                            status: payment.status === 'COMPLETED' ? 'completed' : 'pending'
+                        }));
+                        
+                        resolve({
+                            deposits: institutionalDeposits,
+                            totalCount: institutionalDeposits.length
+                        });
+                    } catch (error) {
+                        console.error('Failed to fetch institutional deposits:', error);
+                        reject(error);
+                    }
+                }),
+                createWithMpesa: (depositData) => new Promise(async (resolve, reject) => {
+                    try {
+                        const schoolId = localStorage.getItem("school");
+                        const { amount, phone, depositorName, purpose = 'institutional_deposit' } = depositData;
+                        
+                        // Use existing M-Pesa payment system with institutional metadata
+                        const mpesaResponse = await Data.schools.charge(phone, amount, {
+                            type: 'institutional_deposit',
+                            depositorName,
+                            purpose,
+                            paymentType: 'institutional_deposit'
+                        }, schoolId);
+                        
+                        resolve({
+                            mpesaInit: mpesaResponse.payments?.init,
+                            metadata: {
+                                type: 'institutional_deposit',
+                                depositorName,
+                                purpose
+                            }
+                        });
+                    } catch (error) {
+                        console.error('Failed to create institutional M-Pesa payment:', error);
+                        reject(error);
+                    }
+                }),
+                isInstitutionalPayment: (payment) => {
+                    const metadata = payment.metadata || {};
+                    return metadata.type === 'institutional_deposit' || 
+                           metadata.purpose === 'institutional_deposit' ||
+                           payment.type === 'institutional_deposit' ||
+                           payment.paymentType === 'institutional_deposit';
+                }
+            })
         }
     ];
 
