@@ -459,7 +459,7 @@ export default function ParentDataTable() {
                   return (
                     <React.Fragment key={row.id}>
                       <tr key={row.id} className={newlyAddedIds.has(row.id) ? 'v8-new-row' : ''}>
-                        {headers.map(h => <td key={h.key} className={h.key === 'name' ? 'td-primary' : ''}>
+                        {headers.map(h => ( <td key={h.key} className={h.key === 'name' ? 'td-primary' : ''}>
                           {getNestedValue(row, h.key)}
                           {row._isTeacherResult && (
                             <span style={{
@@ -474,7 +474,8 @@ export default function ParentDataTable() {
                               TEACHER
                             </span>
                           )}
-                        </td>}
+                        </td>
+                        ))}
                         <td className="v8-table-actions" style={{textAlign: 'right'}}>
                           <button 
                             title={isExpanded ? 'Collapse' : 'Expand'} 
