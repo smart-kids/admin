@@ -52,11 +52,14 @@ export default function StudentDataTableV8() {
       setIsPaginating(true);
     }
     
+    // Convert search to lowercase for case-insensitive matching
+    const searchLower = search ? search.toLowerCase().trim() : '';
+    
     try {
       const pageResponse = await Data.students.getPage({
         page,
         limit,
-        search,
+        search: searchLower,
         sort,
       });
       
@@ -288,7 +291,7 @@ export default function StudentDataTableV8() {
         </div>
         <div className="v8-toolbar">
             <div className="v8-search-group">
-                <input type="text" className="v8-search-input" placeholder="Search by name, registration, parent..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSearch()} />
+                <input type="text" className="v8-search-input" placeholder="Search students by ALL fields (name, registration, parent, class, grade, ID, phone, email)..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSearch()} />
                 <button className="btn" onClick={handleSearch} style={{backgroundColor: 'var(--v8-accent-color)', color: 'white'}}>Search</button>
                 {activeSearch && <button className="btn" onClick={handleClearSearch} style={{backgroundColor: 'var(--v8-border-color)', color: 'var(--v8-text-secondary)'}}>Clear</button>}
             </div>
