@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import Data from "../../utils/data";
+import Fuse from "fuse.js";
 
 // Modals
 import AddModal from "./add";
@@ -63,14 +64,51 @@ export default function StudentDataTableV8() {
     const searchLower = search ? search.toLowerCase().trim() : '';
     
     try {
-      const pageResponse = await Data.students.getPage({
-        page,
-        limit,
-        search: searchLower,
-        sort,
-      });
+      let fetchedStudents = [];
+      let totalCount = 0;
+
+      if (searchLower) {
+        // Client-side exact and fuzzy search across all fields
+        const allStudents = Data.students.list() || [];
+        const fuse = new Fuse(allStudents, {
+          keys: [
+            "names",
+            "registration",
+            "class_name",
+            "route_name",
+            "parent_name",
+            "parent.national_id",
+            "parent.phone",
+            "parent.email",
+            "gender",
+            "id"
+          ],
+          threshold: 0.3,
+          ignoreLocation: true,
+          useExtendedSearch: true
+        });
+
+        const results = fuse.search(searchLower);
+        const sortedResults = results.map(r => r.item);
+
+        totalCount = sortedResults.length;
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+        fetchedStudents = sortedResults.slice(startIndex, endIndex);
+
+      } else {
+        // Server-side pagination for default view
+        const pageResponse = await Data.students.getPage({
+          page,
+          limit,
+          search: "",
+          sort,
+        });
+        
+        fetchedStudents = pageResponse.students;
+        totalCount = pageResponse.totalCount;
+      }
       
-      const { students: fetchedStudents, totalCount } = pageResponse;
       setStudents(fetchedStudents);
       setTotalStudents(totalCount);
     } catch (error) {

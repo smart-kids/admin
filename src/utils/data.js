@@ -875,7 +875,18 @@ var Data = (function () {
                 })
             })
         },
-        { name: "students", singularName: "student", createFields: ['names', 'route', 'gender', 'registration', 'parent', 'school', 'parent2', 'class'], updateFields: ['names', 'route', 'registration', 'gender', 'parent', 'parent2', 'class'], customMethods: (allData, subs) => ({ getPage: async ({ page = 1, limit = 15, search = "" }) => { const offset = (page - 1) * limit; const response = await query(`query GetStudentPage($limit: Int, $offset: Int, $id: String, $search: String) { school(id: $id) { studentsCount(search: $search) students(limit: $limit, offset: $offset, search: $search) { id names gender registration class{id, name} route{id, name} parent{id, name}  } } }`, { limit, offset, id: localStorage.getItem("school"), search }); const processedStudents = response.school?.students?.map(s => ({ ...s, parent_name: s.parent?.name, class_name: s.class?.name })) || []; return { students: processedStudents, totalCount: response.school?.studentsCount || 0 }; }), 
+        { 
+            name: "students", 
+            singularName: "student", 
+            createFields: ['names', 'route', 'gender', 'registration', 'parent', 'school', 'parent2', 'class'], 
+            updateFields: ['names', 'route', 'registration', 'gender', 'parent', 'parent2', 'class'], 
+            customMethods: (allData, subs) => ({ 
+                getPage: async ({ page = 1, limit = 15, search = "" }) => { 
+                    const offset = (page - 1) * limit; 
+                    const response = await query(`query GetStudentPage($limit: Int, $offset: Int, $id: String, $search: String) { school(id: $id) { studentsCount(search: $search) students(limit: $limit, offset: $offset, search: $search) { id names gender registration class{id, name} route{id, name} parent{id, name}  } } }`, { limit, offset, id: localStorage.getItem("school"), search }); 
+                    const processedStudents = response.school?.students?.map(s => ({ ...s, parent_name: s.parent?.name, class_name: s.class?.name })) || []; 
+                    return { students: processedStudents, totalCount: response.school?.studentsCount || 0 }; 
+                }, 
                 upgrade: async (studentData) => {
                     try {
                         const { id, ...updateData } = studentData;
@@ -906,7 +917,9 @@ var Data = (function () {
                         console.error('Failed to upgrade student:', error);
                         throw error;
                     }
-                } },
+                }
+            })
+        },
         {
             name: "parents",
             singularName: "parent",
@@ -1178,9 +1191,8 @@ var Data = (function () {
                            payment.paymentType === 'institutional_deposit';
                 }
             })
-        }
+        },
     ];
-
     const generatedApis = {};
     entityConfigs.forEach(config => {
         generatedApis[config.name] = createEntityAPI(config);

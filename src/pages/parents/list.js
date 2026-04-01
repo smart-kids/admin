@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import Data from "../../utils/data";
+import Fuse from "fuse.js";
 
 // Modals are used as before. No changes needed for them.
 import AddModal from "./add";
@@ -56,54 +57,91 @@ export default function ParentDataTable() {
     
     try {
       // Check if user has enhanced teacher data (parent with teacher details)
-      const enhancedUser = JSON.parse(localStorage.getItem("enhancedUser"));
+      const enhancedUser = JSON.parse(localStorage.getItem("enhancedUser") || "null");
       
       // Convert search to lowercase for case-insensitive matching
       const searchLower = search ? search.toLowerCase().trim() : '';
       
-      let pageResponse;
-      
-      if (enhancedUser?.teacherDetails) {
-        // For parents with teacher details, also search in teacher data
-        console.log("Searching parents and teachers for:", searchLower);
-        
-        // Search parents and teachers simultaneously with case-insensitive search
-        const [parentResponse, teacherResponse] = await Promise.all([
-          Data.parents.getPage({ page, limit, search: searchLower, sort }),
-          Data.teachers.getPage({ page, limit, search: searchLower, sort })
-        ]);
-        
-        // Combine results, prioritizing parents
-        const combinedResults = [
-          ...parentResponse.parents,
-          ...teacherResponse.teachers.map(teacher => ({
-            ...teacher,
-            // Mark as teacher result for UI differentiation
-            _isTeacherResult: true,
-            // Map teacher fields to parent interface
-            name: teacher.name,
-            email: teacher.email,
-            phone: teacher.phone,
-            national_id: teacher.national_id || '',
-            gender: teacher.gender || '',
-          }))
-        ].slice(0, limit); // Limit combined results
-        
-        pageResponse = {
-          parents: combinedResults,
-          totalCount: parentResponse.totalCount + teacherResponse.totalCount
-        };
-      } else {
-        // Assumes a `Data.parents.getPage` method exists, similar to `Data.students.getPage`
-        pageResponse = await Data.parents.getPage({
-          page,
-          limit,
-          search: searchLower,
-          sort,
+      let fetchedParents = [];
+      let totalCount = 0;
+
+      if (searchLower) {
+        // Client-side fuzzy search
+        let searchData = [];
+        if (enhancedUser?.teacherDetails) {
+            const allParents = Data.parents.list() || [];
+            const allTeachers = Data.teachers.list() || [];
+            const mappedTeachers = allTeachers.map(teacher => ({
+                ...teacher,
+                _isTeacherResult: true,
+                name: teacher.name,
+                email: teacher.email,
+                phone: teacher.phone,
+                national_id: teacher.national_id || '',
+                gender: teacher.gender || '',
+            }));
+            searchData = [...allParents, ...mappedTeachers];
+        } else {
+            searchData = Data.parents.list() || [];
+        }
+
+        const fuse = new Fuse(searchData, {
+          keys: [
+            "name",
+            "national_id",
+            "email",
+            "phone",
+            "gender",
+            "id",
+            "students.names",
+            "students.registration"
+          ],
+          threshold: 0.3,
+          ignoreLocation: true,
+          useExtendedSearch: true
         });
+
+        const results = fuse.search(searchLower);
+        const sortedResults = results.map(r => r.item);
+
+        totalCount = sortedResults.length;
+        const startIndex = (page - 1) * limit;
+        const endIndex = startIndex + limit;
+        fetchedParents = sortedResults.slice(startIndex, endIndex);
+
+      } else {
+        if (enhancedUser?.teacherDetails) {
+          const [parentResponse, teacherResponse] = await Promise.all([
+            Data.parents.getPage({ page, limit, search: "", sort }),
+            Data.teachers.getPage({ page, limit, search: "", sort })
+          ]);
+          
+          fetchedParents = [
+            ...parentResponse.parents,
+            ...teacherResponse.teachers.map(teacher => ({
+              ...teacher,
+              _isTeacherResult: true,
+              name: teacher.name,
+              email: teacher.email,
+              phone: teacher.phone,
+              national_id: teacher.national_id || '',
+              gender: teacher.gender || '',
+            }))
+          ].slice(0, limit);
+          
+          totalCount = parentResponse.totalCount + teacherResponse.totalCount;
+        } else {
+          const pageResponse = await Data.parents.getPage({
+            page,
+            limit,
+            search: "",
+            sort,
+          });
+          fetchedParents = pageResponse.parents;
+          totalCount = pageResponse.totalCount;
+        }
       }
       
-      const { parents: fetchedParents, totalCount } = pageResponse;
       setParents(fetchedParents);
       setTotalParents(totalCount);
     } catch (error) {
