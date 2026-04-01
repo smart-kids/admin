@@ -47,6 +47,11 @@ export default function StudentDataTableV8() {
   // State for highlighting newly added records
   const [newlyAddedIds, setNewlyAddedIds] = useState(new Set());
   const newRecordTimers = useRef(new Map());
+  
+  // Modal states
+  const [edit, setEdit] = useState(null);
+  const [remove, setRemove] = useState(null);
+  const [upgrade, setUpgrade] = useState(null);
 
   // --- DATA FETCHING (PAGINATED STUDENTS) ---
   const fetchPageData = useCallback(async (page, limit, search, sort) => {
@@ -216,6 +221,14 @@ export default function StudentDataTableV8() {
         <DeleteModal 
             remove={remove} 
             save={async student => { await Data.students.delete(student); handleAfterAction(); }} 
+        />
+      )}
+      
+      {upgrade && (
+        <UpgradeModal 
+            student={upgrade} 
+            save={async upgradeData => { await Data.students.upgrade(upgradeData); handleAfterAction(); }} 
+            onUpgradeSuccess={() => setUpgrade(null)}
         />
       )}
 
