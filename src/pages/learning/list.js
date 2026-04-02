@@ -410,7 +410,7 @@ class CurriculumManagerV5 extends React.Component {
 
     saveStateToLocalStorage = () => { 
         if (this.state.isLoading || !this.state.school) return; 
-        const { selectedGrade, selectedSubject, selectedTopic, selectedSubtopic, selectedQuestion, gradeSearchTerm, subjectSearchTerm, topicSearchTerm, subtopicSearchTerm, questionSearchTerm, optionSearchTerm, activeTab, planningSubTab } = this.state; 
+        const { selectedGrade, selectedSubject, selectedTopic, selectedSubtopic, selectedQuestion, gradeSearchTerm, subjectSearchTerm, topicSearchTerm, subtopicSearchTerm, questionSearchTerm, optionSearchTerm, activeTab, planningSubTab, selectedTermId } = this.state; 
         const scrollLeft = this.scrollContainerRef.current ? this.scrollContainerRef.current.scrollLeft : 0;
         localStorage.setItem("learningState", JSON.stringify({ 
             selectedGrade, selectedSubject, selectedTopic, selectedSubtopic, selectedQuestion, 
@@ -425,11 +425,13 @@ class CurriculumManagerV5 extends React.Component {
         if (hasPersistedStateChanged) { 
             this.saveStateToLocalStorage(); 
         } 
-        if (prevState.selectedSubject !== this.state.selectedSubject && this.state.selectedSubject) { 
-            this.processLessonAttemptsForSubject(this.state.selectedSubject); 
+        
+        const { selectedSubject, selectedTermId, selectedTopic, selectedSubtopic } = this.state;
+        if (prevState.selectedSubject !== selectedSubject && selectedSubject) { 
+            this.processLessonAttemptsForSubject(selectedSubject); 
             this.refreshPlanningFilters();
         } 
-        if (prevState.selectedTermId !== this.state.selectedTermId || prevState.selectedTopic !== this.state.selectedTopic || prevState.selectedSubtopic !== this.state.selectedSubtopic) {
+        if (prevState.selectedTermId !== selectedTermId || prevState.selectedTopic !== selectedTopic || prevState.selectedSubtopic !== selectedSubtopic) {
             this.refreshPlanningFilters();
         }
     }
@@ -508,6 +510,7 @@ class CurriculumManagerV5 extends React.Component {
         // For simplicity in this iteration, I'll assume standard inputs or a shared state for Quill
         
         try {
+            const { selectedTermId, selectedTopic, selectedSubtopic } = this.state;
             if (schemeToEdit?.id) {
                 await Data.scheme_of_works.update({ 
                     ...data, 
@@ -544,6 +547,7 @@ class CurriculumManagerV5 extends React.Component {
         data.week = parseInt(data.week) || 0;
 
         try {
+            const { selectedTermId } = this.state;
             if (recordToEdit?.id) {
                 await Data.record_of_works.update({ 
                     ...data, 
@@ -878,11 +882,9 @@ class CurriculumManagerV5 extends React.Component {
                     <button className={`cm-tab-btn ${activeTab === 'content' ? 'active' : ''}`} onClick={() => this.handleTabChange('content')}>
                         <i className="la la-book" style={{ marginRight: '8px' }}></i> Content & Strands
                     </button>
-                    {selectedTopic && selectedSubtopic && (
-                        <button className={`cm-tab-btn ${activeTab === 'planning' ? 'active' : ''}`} onClick={() => this.handleTabChange('planning')}>
-                            <i className="la la-pencil-square-o" style={{ marginRight: '8px' }}></i> Schemes & Planning
-                        </button>
-                    )}
+                    <button className={`cm-tab-btn ${activeTab === 'planning' ? 'active' : ''}`} onClick={() => this.handleTabChange('planning')}>
+                        <i className="la la-pencil-square-o" style={{ marginRight: '8px' }}></i> Schemes & Planning
+                    </button>
                     <button className={`cm-tab-btn ${activeTab === 'responses' ? 'active' : ''}`} onClick={() => this.handleTabChange('responses')}>
                         <i className="la la-users" style={{ marginRight: '8px' }}></i> Student Activity
                     </button>
@@ -1115,30 +1117,96 @@ class CurriculumManagerV5 extends React.Component {
         );
     }
     renderTeacherPlanningTab() {
-        const { planningSubTab, filteredSchemes, filteredRecords } = this.state;
-        const userData = JSON.parse(localStorage.getItem("user") || "{}");
-        const isTeacher = userData?.userType === 'Teacher' || userData?.role === 'teacher';
-
+        const { planningSubTab, filteredSchemes, filteredRecords, filteredTopics, selectedTopic, filteredSubtopics, selectedSubtopic, topicSearchTerm, subtopicSearchTerm } = this.state;
+        
         return (
-            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                <div className="planning-header">
-                    <div className="planning-sub-tabs">
-                        <div className={`planning-sub-tab ${planningSubTab === 'scheme' ? 'active' : ''}`} onClick={() => this.handlePlanningSubTabChange('scheme')}>Schemes of Work</div>
-                        <div className={`planning-sub-tab ${planningSubTab === 'record' ? 'active' : ''}`} onClick={() => this.handlePlanningSubTabChange('record')}>Daily Records of Work</div>
+            <div className="tab-inner-scroller">
+                {/* Strands Column */}
+                <div className="cm-sub-column" style={{ width: '320px' }}>
+                    <div className="cm-column-header">
+                        <h5 className="flex-grow-1"><i className="la la-layer-group mr-2"></i>Strands</h5>
+                        <button className="cm-add-btn" onClick={() => this.addTopicModalRef.current.show()} title="Add Strand"><i className="la la-plus"></i></button>
                     </div>
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                        <button className="btn btn-outline-primary btn-sm" onClick={this.handlePrintPlanning}>
-                            <i className="la la-print"></i> Print / Export PDF
-                        </button>
-                        <button className="btn btn-primary btn-sm" onClick={() => this.setState({ showPlanningModal: true, [planningSubTab === 'scheme' ? 'schemeToEdit' : 'recordToEdit']: null })}>
-                            <i className="la la-plus"></i> Add {planningSubTab === 'scheme' ? 'Scheme Entry' : 'Daily Record'}
-                        </button>
+                    <div className="cm-column-body">
+                        <div className="cm-search-wrapper">
+                            <i className="la la-search search-icon"></i>
+                            <input type="text" className="form-control cm-search-input" placeholder="Search strands..." value={topicSearchTerm} onChange={(e) => this.setState({ topicSearchTerm: e.target.value }, this.refreshCurrentSelectionsAndFilters)} />
+                        </div>
+                        <Table 
+                            data={filteredTopics} 
+                            headers={[{ key: 'name' }]} 
+                            options={{ reorderable: true, editable: true, deleteable: true, linkable: true }} 
+                            listId="planning-topics" 
+                            selectedId={selectedTopic} 
+                            onSelect={this.handleTopicSelect} 
+                            onEdit={(topic) => this.setState({ topicToEdit: topic }, () => this.editTopicModalRef.current.show())} 
+                            onDelete={(topic) => this.setState({ topicToDelete: topic }, () => this.deleteTopicModalRef.current.show())} 
+                            onReorder={(list) => this.handleReorder(list, 'topicsOrder', 'grade', this.getItemById('grades', this.state.selectedGrade))}
+                        />
                     </div>
                 </div>
 
-                <div className="planning-content">
-                    {planningSubTab === 'scheme' ? this.renderSchemesTable() : this.renderRecordsTable()}
-                </div>
+                {/* Sub-strands Column */}
+                {selectedTopic && (
+                    <div className="cm-sub-column" style={{ width: '320px' }}>
+                        <div className="cm-column-header">
+                            <h5 className="flex-grow-1"><i className="la la-stream mr-2"></i>Sub-strands</h5>
+                            <button className="cm-add-btn" onClick={() => this.addSubtopicModalRef.current.show()} title="Add Sub-strand"><i className="la la-plus"></i></button>
+                        </div>
+                        <div className="cm-column-body">
+                            <div className="cm-search-wrapper">
+                                <i className="la la-search search-icon"></i>
+                                <input type="text" className="form-control cm-search-input" placeholder="Search sub-strands..." value={subtopicSearchTerm} onChange={(e) => this.setState({ subtopicSearchTerm: e.target.value }, this.refreshCurrentSelectionsAndFilters)} />
+                            </div>
+                            <Table 
+                                data={filteredSubtopics} 
+                                headers={[{ key: 'name' }]} 
+                                options={{ reorderable: true, editable: true, deleteable: true, linkable: true }} 
+                                listId="planning-subtopics" 
+                                selectedId={selectedSubtopic} 
+                                onSelect={this.handleSubtopicSelect} 
+                                onEdit={(subtopic) => this.setState({ subtopicToEdit: subtopic }, () => this.editSubtopicModalRef.current.show())} 
+                                onDelete={(subtopic) => this.setState({ subtopicToDelete: subtopic }, () => this.deleteSubtopicModalRef.current.show())} 
+                                onReorder={(list) => this.handleReorder(list, 'subtopicsOrder', 'subject', this.getItemById('topics', selectedTopic))}
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {/* Planning Details (Table) Column */}
+                {selectedSubtopic ? (
+                    <div className="cm-column cm-column-large p-0" style={{ flexGrow: 1, height: '100%', border: 'none', borderRadius: 0, background: 'transparent' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                            <div className="planning-header" style={{ borderTop: 'none', borderLeft: '1px solid #f1f5f9' }}>
+                                <div className="planning-sub-tabs">
+                                    <div className={`planning-sub-tab ${planningSubTab === 'scheme' ? 'active' : ''}`} onClick={() => this.handlePlanningSubTabChange('scheme')}>Schemes of Work</div>
+                                    <div className={`planning-sub-tab ${planningSubTab === 'record' ? 'active' : ''}`} onClick={() => this.handlePlanningSubTabChange('record')}>Daily Records of Work</div>
+                                </div>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <button className="btn btn-outline-primary btn-sm" onClick={this.handlePrintPlanning}>
+                                        <i className="la la-print"></i> Print / Export PDF
+                                    </button>
+                                    <button className="btn btn-primary btn-sm" onClick={() => this.setState({ showPlanningModal: true, [planningSubTab === 'scheme' ? 'schemeToEdit' : 'recordToEdit']: null })}>
+                                        <i className="la la-plus"></i> Add {planningSubTab === 'scheme' ? 'Scheme Entry' : 'Daily Record'}
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="planning-content" style={{ backgroundColor: '#fcfdfe', borderLeft: '1px solid #f1f5f9' }}>
+                                {planningSubTab === 'scheme' ? this.renderSchemesTable() : this.renderRecordsTable()}
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    selectedTopic && (
+                        <div className="flex-grow-1 d-flex align-items-center justify-content-center text-muted p-5">
+                            <div className="text-center">
+                                <i className="la la-arrow-left mb-3" style={{ fontSize: '3rem', opacity: 0.1 }}></i>
+                                <p>Select a sub-strand to view and manage planning.</p>
+                            </div>
+                        </div>
+                    )
+                )}
                 
                 {this.renderPlanningModal()}
             </div>
