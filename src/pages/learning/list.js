@@ -73,7 +73,9 @@ class CurriculumManagerV5 extends React.Component {
         selectedUserId: null, selectedAttemptId: null,
         questionImagesMap: {}, // Cache for fetched question images
         
-        // Planning State
+        // Planning & Term State
+        terms: [],
+        selectedTermId: null,
         schemesOfWork: [],
         filteredSchemes: [],
         recordsOfWork: [],
@@ -269,6 +271,17 @@ class CurriculumManagerV5 extends React.Component {
         this._recordsSubscription = Data.record_of_works.subscribe(({ record_of_works }) => {
             this.setState({ recordsOfWork: record_of_works }, this.refreshPlanningFilters);
         });
+
+        this._termsSubscription = Data.terms.subscribe(({ terms }) => {
+            const sortedTerms = (terms || []).sort((a, b) => (a.order || 0) - (b.order || 0));
+            this.setState({ terms: sortedTerms }, () => {
+                if (!this.state.selectedTermId && sortedTerms.length > 0) {
+                    // Default to Term 1 if possible
+                    const term1 = sortedTerms.find(t => t.name.toLowerCase().includes('term 1')) || sortedTerms[0];
+                    this.setState({ selectedTermId: term1.id }, this.refreshPlanningFilters);
+                }
+            });
+        });
         
         if (Data.lessonAttempts && typeof Data.lessonAttempts.subscribe === 'function') {
             this._attemptsSubscription = Data.lessonAttempts.subscribe(({ lessonAttempts }) => {
@@ -288,6 +301,7 @@ class CurriculumManagerV5 extends React.Component {
         if (this._attemptsSubscription) this._attemptsSubscription();
         if (this._schemesSubscription) this._schemesSubscription();
         if (this._recordsSubscription) this._recordsSubscription();
+        if (this._termsSubscription) this._termsSubscription();
         if (this.styleTag) this.styleTag.remove();
         window.removeEventListener('beforeunload', this.saveStateToLocalStorage);
     }
@@ -345,6 +359,7 @@ class CurriculumManagerV5 extends React.Component {
             optionSearchTerm: sourceState.optionSearchTerm || '', 
             activeTab: sourceState.activeTab || 'content',
             planningSubTab: sourceState.planningSubTab || 'scheme',
+            selectedTermId: sourceState.selectedTermId || null,
             scrollLeft: sourceState.scrollLeft || 0
         };
 
@@ -400,12 +415,12 @@ class CurriculumManagerV5 extends React.Component {
         localStorage.setItem("learningState", JSON.stringify({ 
             selectedGrade, selectedSubject, selectedTopic, selectedSubtopic, selectedQuestion, 
             gradeSearchTerm, subjectSearchTerm, topicSearchTerm, subtopicSearchTerm, 
-            questionSearchTerm, optionSearchTerm, activeTab, planningSubTab, scrollLeft 
+            questionSearchTerm, optionSearchTerm, activeTab, planningSubTab, selectedTermId, scrollLeft 
         })); 
     };
 
     componentDidUpdate(prevProps, prevState) { 
-        const persistedStateKeys = ['selectedGrade', 'selectedSubject', 'selectedTopic', 'selectedSubtopic', 'selectedQuestion', 'gradeSearchTerm', 'subjectSearchTerm', 'topicSearchTerm', 'subtopicSearchTerm', 'questionSearchTerm', 'optionSearchTerm', 'activeTab', 'planningSubTab']; 
+        const persistedStateKeys = ['selectedGrade', 'selectedSubject', 'selectedTopic', 'selectedSubtopic', 'selectedQuestion', 'gradeSearchTerm', 'subjectSearchTerm', 'topicSearchTerm', 'subtopicSearchTerm', 'questionSearchTerm', 'optionSearchTerm', 'activeTab', 'planningSubTab', 'selectedTermId']; 
         const hasPersistedStateChanged = persistedStateKeys.some(key => JSON.stringify(prevState[key]) !== JSON.stringify(this.state[key])); 
         if (hasPersistedStateChanged) { 
             this.saveStateToLocalStorage(); 
@@ -414,16 +429,61 @@ class CurriculumManagerV5 extends React.Component {
             this.processLessonAttemptsForSubject(this.state.selectedSubject); 
             this.refreshPlanningFilters();
         } 
+        if (prevState.selectedTermId !== this.state.selectedTermId || prevState.selectedTopic !== this.state.selectedTopic || prevState.selectedSubtopic !== this.state.selectedSubtopic) {
+            this.refreshPlanningFilters();
+        }
     }
 
     refreshPlanningFilters = () => {
-        const { schemesOfWork, recordsOfWork, selectedSubject } = this.state;
+        const { schemesOfWork, recordsOfWork, selectedSubject, selectedTermId, selectedTopic, selectedSubtopic, terms } = this.state;
         if (!selectedSubject) return;
 
+        // Default term fallback: find "Term 1" if selectedTermId is null
+        let activeTermId = selectedTermId;
+        if (!activeTermId && terms.length > 0) {
+            const term1 = terms.find(t => t.name.toLowerCase().includes('term 1')) || terms[0];
+            activeTermId = term1.id;
+        }
+
+        const filterFn = (item) => {
+            const matchesSubject = String(item.subject?.id || item.subject) === String(selectedSubject);
+            
+            // Term filtering: match selectedTermId OR treat null as Term 1 (if Term 1 is the fallback)
+            const itemTermId = item.term?.id || item.term;
+            let matchesTerm = String(itemTermId) === String(activeTermId);
+            
+            // Legacy/Default strategy: if item has no term, and we're looking at Term 1, count it as a match
+            if (!itemTermId && terms.length > 0) {
+                const term1 = terms.find(t => t.name.toLowerCase().includes('term 1')) || terms[0];
+                if (String(activeTermId) === String(term1.id)) matchesTerm = true;
+            }
+
+            // User requirement: planning is specific to strand/substrand
+            const matchesTopic = !selectedTopic || String(item.strand) === String(this.getTopicName(selectedTopic));
+            const matchesSubtopic = !selectedSubtopic || String(item.substrands) === String(this.getSubtopicName(selectedSubtopic));
+
+            return matchesSubject && matchesTerm && matchesTopic && matchesSubtopic;
+        };
+
         this.setState({
-            filteredSchemes: schemesOfWork.filter(s => String(s.subject?.id || s.subject) === String(selectedSubject)),
-            filteredRecords: recordsOfWork.filter(r => String(r.subject?.id || r.subject) === String(selectedSubject))
+            filteredSchemes: schemesOfWork.filter(filterFn),
+            filteredRecords: recordsOfWork.filter(filterFn)
         });
+    }
+
+    getTopicName = (id) => {
+        const { selectedGrade, selectedSubject, _masterGradesList } = this.state;
+        const grade = _masterGradesList.find(g => g.id === selectedGrade);
+        const subject = grade?.subjects?.find(s => s.id === selectedSubject);
+        return subject?.topics?.find(t => t.id === id)?.name || id;
+    }
+
+    getSubtopicName = (id) => {
+        const { selectedGrade, selectedSubject, selectedTopic, _masterGradesList } = this.state;
+        const grade = _masterGradesList.find(g => g.id === selectedGrade);
+        const subject = grade?.subjects?.find(s => s.id === selectedSubject);
+        const topic = subject?.topics?.find(t => t.id === selectedTopic);
+        return topic?.subtopics?.find(st => st.id === id)?.name || id;
     }
 
     handlePlanningSubTabChange = (tab) => {
@@ -449,13 +509,22 @@ class CurriculumManagerV5 extends React.Component {
         
         try {
             if (schemeToEdit?.id) {
-                await Data.scheme_of_works.update({ ...data, id: schemeToEdit.id });
+                await Data.scheme_of_works.update({ 
+                    ...data, 
+                    id: schemeToEdit.id,
+                    term: selectedTermId,
+                    strand: this.getTopicName(selectedTopic),
+                    substrands: this.getSubtopicName(selectedSubtopic)
+                });
                 toastr.success("Scheme updated!");
             } else {
                 await Data.scheme_of_works.create({ 
                     ...data, 
                     subject: selectedSubject, 
                     school: school.id,
+                    term: selectedTermId,
+                    strand: this.getTopicName(selectedTopic),
+                    substrands: this.getSubtopicName(selectedSubtopic),
                     teacher: JSON.parse(localStorage.getItem("user"))?.id
                 });
                 toastr.success("Scheme created!");
@@ -476,13 +545,18 @@ class CurriculumManagerV5 extends React.Component {
 
         try {
             if (recordToEdit?.id) {
-                await Data.record_of_works.update({ ...data, id: recordToEdit.id });
+                await Data.record_of_works.update({ 
+                    ...data, 
+                    id: recordToEdit.id,
+                    term: selectedTermId
+                });
                 toastr.success("Record updated!");
             } else {
                 await Data.record_of_works.create({ 
                     ...data, 
                     subject: selectedSubject, 
                     school: school.id,
+                    term: selectedTermId,
                     teacher: JSON.parse(localStorage.getItem("user"))?.id
                 });
                 toastr.success("Record created!");
@@ -804,9 +878,11 @@ class CurriculumManagerV5 extends React.Component {
                     <button className={`cm-tab-btn ${activeTab === 'content' ? 'active' : ''}`} onClick={() => this.handleTabChange('content')}>
                         <i className="la la-book" style={{ marginRight: '8px' }}></i> Content & Strands
                     </button>
-                    <button className={`cm-tab-btn ${activeTab === 'planning' ? 'active' : ''}`} onClick={() => this.handleTabChange('planning')}>
-                        <i className="la la-pencil-square-o" style={{ marginRight: '8px' }}></i> Schemes & Planning
-                    </button>
+                    {selectedTopic && selectedSubtopic && (
+                        <button className={`cm-tab-btn ${activeTab === 'planning' ? 'active' : ''}`} onClick={() => this.handleTabChange('planning')}>
+                            <i className="la la-pencil-square-o" style={{ marginRight: '8px' }}></i> Schemes & Planning
+                        </button>
+                    )}
                     <button className={`cm-tab-btn ${activeTab === 'responses' ? 'active' : ''}`} onClick={() => this.handleTabChange('responses')}>
                         <i className="la la-users" style={{ marginRight: '8px' }}></i> Student Activity
                     </button>
@@ -966,6 +1042,37 @@ class CurriculumManagerV5 extends React.Component {
         );
     }
 
+    renderHeader() {
+        const { school, terms, selectedTermId } = this.state;
+        return (
+            <div className="cm-header-main" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fff', padding: '1rem 1.5rem', borderRadius: '16px', border: '1px solid var(--cm-border-color)', marginBottom: '1.5rem', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'var(--cm-primary-bg-light)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <i className="la la-school" style={{ fontSize: '1.5rem', color: 'var(--cm-primary-color)' }}></i>
+                    </div>
+                    <h3 style={{ margin: 0 }}>{school?.name || 'Curriculum Manager'}</h3>
+                </div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                    <div className="d-flex align-items-center" style={{ background: '#f8fafc', padding: '4px 12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
+                        <i className="la la-calendar" style={{ color: '#64748b', marginRight: '8px' }}></i>
+                        <select 
+                            className="form-control form-control-sm border-0 bg-transparent font-weight-bold" 
+                            style={{ minWidth: '140px', cursor: 'pointer', color: '#1e293b' }}
+                            value={selectedTermId || ''}
+                            onChange={(e) => this.setState({ selectedTermId: e.target.value }, this.refreshPlanningFilters)}
+                        >
+                            {terms.length === 0 && <option value="">No Terms Found</option>}
+                            {terms.map(term => (
+                                <option key={term.id} value={term.id}>{term.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     render() {
         const { isLoading, gradeToEdit, gradeToDelete, subjectToEdit, subjectToDelete, topicToEdit, topicToDelete, subtopicToEdit, subtopicToDelete, questionToEdit, questionToDelete, optionToEdit, optionToDelete, selectedGrade, selectedSubject, selectedTopic, selectedSubtopic, selectedQuestion } = this.state;
 
@@ -975,7 +1082,7 @@ class CurriculumManagerV5 extends React.Component {
 
         return (
             <div className="cm-container">
-                <div className="cm-header-main"></div>
+                {this.renderHeader()}
                 
                 <div style={{ display: 'flex', alignItems: 'flex-start' }}>
                     <button onClick={() => this.scrollToStart()} className="btn btn-sm btn-icon btn-light mr-2" title="Scroll to Start"><i className="la la-angle-double-left"></i></button>
