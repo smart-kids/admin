@@ -103,8 +103,14 @@ class InstitutionalDeposits extends Component {
         },
         billingInfo: {
             totalUsageTime: 0,
+            appUsageCost: 0,
+            smsCount: 0,
+            smsCost: 0,
             estimatedCost: 0,
-            ratePerMinute: 2 // KES per minute
+            totalPaid: 0,
+            balance: 0,
+            ratePerMinute: 2, // KES per minute
+            ratePerSms: 2 // Assuming 2 KES per SMS
         }
     };
 
@@ -117,8 +123,11 @@ class InstitutionalDeposits extends Component {
         this.unsubscribeParents = Data.parents.subscribe(() => this.updateUserStats());
         this.unsubscribeTeachers = Data.teachers.subscribe(() => this.updateUserStats());
         this.unsubscribeAdmins = Data.admins.subscribe(() => this.updateUserStats());
-        this.unsubscribeLessonAttempts = Data.lessonAttempts.subscribe(() => this.updateLearningStats());
-        this.unsubscribeAttemptEvents = Data.attemptEvents.subscribe(() => this.updateLearningStats());
+        this.unsubscribeLessonAttempts = Data.lessonAttempts.subscribe(() => this.updateBillingStats());
+        this.unsubscribeAttemptEvents = Data.attemptEvents.subscribe(() => this.updateBillingStats());
+        this.unsubscribePayments = Data.payments.subscribe(() => this.updateBillingStats());
+        this.unsubscribeSms = Data.smsEvents.subscribe(() => this.updateBillingStats());
+        this.unsubscribeEvents = Data.events.subscribe(() => this.updateBillingStats());
     }
 
     componentWillUnmount() {
@@ -129,6 +138,9 @@ class InstitutionalDeposits extends Component {
         if (this.unsubscribeAdmins) this.unsubscribeAdmins();
         if (this.unsubscribeLessonAttempts) this.unsubscribeLessonAttempts();
         if (this.unsubscribeAttemptEvents) this.unsubscribeAttemptEvents();
+        if (this.unsubscribePayments) this.unsubscribePayments();
+        if (this.unsubscribeSms) this.unsubscribeSms();
+        if (this.unsubscribeEvents) this.unsubscribeEvents();
     }
 
     fetchDeposits = async () => {
@@ -158,7 +170,7 @@ class InstitutionalDeposits extends Component {
 
     fetchStatistics = () => {
         this.updateUserStats();
-        this.updateLearningStats();
+        this.updateBillingStats();
     };
 
     updateUserStats = () => {
@@ -177,15 +189,10 @@ class InstitutionalDeposits extends Component {
         });
     };
 
-    updateLearningStats = () => {
+    updateBillingStats = () => {
         const lessonAttempts = Data.lessonAttempts.list() || [];
-        const attemptEvents = Data.attemptEvents.list() || [];
+        const smsEvents = Data.smsEvents.list() || [];
         
-        const completedAttempts = lessonAttempts.filter(attempt => attempt.status === 'completed');
-        const totalQuestions = attemptEvents.filter(event => event.eventType === 'answer').length;
-        const correctAnswers = attemptEvents.filter(event => event.eventType === 'answer' && event.isCorrect).length;
-        
-        // Calculate total time spent on learning
         let totalTimeInMinutes = 0;
         lessonAttempts.forEach(attempt => {
             if (attempt.startedAt && attempt.completedAt) {
@@ -196,22 +203,36 @@ class InstitutionalDeposits extends Component {
             }
         });
 
-        const estimatedCost = totalTimeInMinutes * this.state.billingInfo.ratePerMinute;
+        const smsCost = smsEvents.length * this.state.billingInfo.ratePerSms;
+        const appUsageCost = totalTimeInMinutes * this.state.billingInfo.ratePerMinute;
+        const estimatedTotalCost = appUsageCost + smsCost;
 
-        this.setState({
-            learningStats: {
-                totalAttempts: lessonAttempts.length,
-                completedAttempts: completedAttempts.length,
-                totalQuestions,
-                correctAnswers,
-                totalTime: Math.round(totalTimeInMinutes)
-            },
-            billingInfo: {
-                totalUsageTime: Math.round(totalTimeInMinutes),
-                estimatedCost: Math.round(estimatedCost),
-                ratePerMinute: this.state.billingInfo.ratePerMinute
-            }
+        const allPayments = Data.payments.list() || [];
+        let totalPaid = 0;
+        allPayments.forEach(p => {
+             const metadata = p.metadata || {};
+             if (metadata.type === 'institutional_deposit' || 
+                 metadata.purpose === 'institutional_deposit' ||
+                 p.type === 'institutional_deposit' ||
+                 p.paymentType === 'institutional_deposit') {
+                 if (p.status === 'COMPLETED' || p.status === 'completed') {
+                     totalPaid += (Number(p.amount) || 0);
+                 }
+             }
         });
+
+        this.setState(prevState => ({
+            billingInfo: {
+                ...prevState.billingInfo,
+                totalUsageTime: Math.round(totalTimeInMinutes),
+                appUsageCost: Math.round(appUsageCost),
+                smsCount: smsEvents.length,
+                smsCost: Math.round(smsCost),
+                estimatedCost: Math.round(estimatedTotalCost),
+                totalPaid: totalPaid,
+                balance: Math.round(totalPaid - estimatedTotalCost)
+            }
+        }));
     };
 
     handleMpesaDeposit = () => {
@@ -426,42 +447,30 @@ class InstitutionalDeposits extends Component {
                     </div>
                 </div>
                 
-                {/* System Overview */}
+                {/* Ext. Communication Stats */}
                 <div className="col-xl-3 col-lg-6">
                     <div className="kt-portlet kt-portlet--height-fluid">
                         <div className="kt-portlet__head kt-portlet__head--noborder">
                             <div className="kt-portlet__head-label">
-                                <h3 className="kt-portlet__head-title">📈 System Overview</h3>
+                                <h3 className="kt-portlet__head-title">📱 Ext. Communication Stats</h3>
                             </div>
                         </div>
                         <div className="kt-portlet__body">
                             <div className="text-center mb-4">
-                                <div className="kt-font-xxl kt-font-bold kt-font-primary">{totalProcessedRecords.toLocaleString()}</div>
-                                <div className="kt-font-sm mt-2">Total Processed Records</div>
+                                <div className="kt-font-xxl kt-font-bold kt-font-success">{smsEvents.length}</div>
+                                <div className="kt-font-sm mt-2">SMS Events Dispatched</div>
                             </div>
                             <div className="row">
                                 <div className="col-6">
                                     <div className="text-center">
-                                        <div className="kt-font-lg kt-font-success">{learningStats.totalAttempts}</div>
-                                        <div className="kt-font-sm">Learning Attempts</div>
+                                        <div className="kt-font-lg kt-font-brand">{events.length}</div>
+                                        <div className="kt-font-sm">Sys Events</div>
                                     </div>
                                 </div>
                                 <div className="col-6">
                                     <div className="text-center">
-                                        <div className="kt-font-lg kt-font-info">{learningStats.completedAttempts}</div>
-                                        <div className="kt-font-sm">Completed</div>
-                                    </div>
-                                </div>
-                                <div className="col-6 mt-3">
-                                    <div className="text-center">
-                                        <div className="kt-font-lg kt-font-warning">{learningStats.totalQuestions}</div>
-                                        <div className="kt-font-sm">Questions Answered</div>
-                                    </div>
-                                </div>
-                                <div className="col-6 mt-3">
-                                    <div className="text-center">
-                                        <div className="kt-font-lg kt-font-brand">{learningStats.correctAnswers}</div>
-                                        <div className="kt-font-sm">Correct Answers</div>
+                                        <div className="kt-font-lg kt-font-primary">{complaints.length}</div>
+                                        <div className="kt-font-sm">Sys Complaints</div>
                                     </div>
                                 </div>
                             </div>
@@ -469,30 +478,36 @@ class InstitutionalDeposits extends Component {
                     </div>
                 </div>
                 
-                {/* Usage & Billing */}
+                {/* Usage vs Deposits Costing */}
                 <div className="col-xl-3 col-lg-6">
                     <div className="kt-portlet kt-portlet--height-fluid">
                         <div className="kt-portlet__head kt-portlet__head--noborder">
                             <div className="kt-portlet__head-label">
-                                <h3 className="kt-portlet__head-title">💰 Usage & Billing</h3>
+                                <h3 className="kt-portlet__head-title">💰 Usage vs Deposits</h3>
                             </div>
                         </div>
                         <div className="kt-portlet__body">
                             <div className="text-center mb-4">
-                                <div className="kt-font-xxl kt-font-bold kt-font-primary">
-                                    {Math.floor(learningStats.totalTime / 60)}h {learningStats.totalTime % 60}m
+                                <div className={`kt-font-xxl kt-font-bold kt-font-${billingInfo.balance >= 0 ? "success" : "danger"}`}>
+                                    KES {billingInfo.balance.toLocaleString()}
                                 </div>
-                                <div className="kt-font-sm mt-2">Total Learning Time</div>
-                                <div className="progress progress-sm mt-3">
-                                    <div className="progress-bar bg-primary" style={{width: '75%'}}></div>
-                                </div>
-                                <div className="kt-font-sm mt-2">This month</div>
+                                <div className="kt-font-sm mt-2">Overall Balance</div>
                             </div>
-                            <div className="text-center">
-                                <div className="kt-font-xxl kt-font-bold kt-font-danger">KES {billingInfo.estimatedCost.toLocaleString()}</div>
-                                <div className="kt-font-sm mt-2">Estimated Cost</div>
-                                <div className="kt-font-sm mt-3">Rate: KES {billingInfo.ratePerMinute}/min</div>
-                                <div className="kt-font-sm">Based on {billingInfo.totalUsageTime} minutes</div>
+                            <div className="d-flex justify-content-between mb-2">
+                                <span className="kt-font-sm">Est Usage Cost:</span>
+                                <span className="kt-font-sm text-danger">- KES {billingInfo.estimatedCost.toLocaleString()}</span>
+                            </div>
+                            <div className="d-flex justify-content-between mb-2 border-bottom pb-2">
+                                <span className="kt-font-sm">Total Termly Paid:</span>
+                                <span className="kt-font-sm text-success">+ KES {billingInfo.totalPaid.toLocaleString()}</span>
+                            </div>
+                            <div className="d-flex justify-content-between mt-3">
+                                <span className="kt-font-sm">Time ({billingInfo.totalUsageTime}m):</span>
+                                <span className="kt-font-sm text-muted">KES {billingInfo.appUsageCost.toLocaleString()}</span>
+                            </div>
+                            <div className="d-flex justify-content-between mt-1">
+                                <span className="kt-font-sm">SMS ({billingInfo.smsCount}):</span>
+                                <span className="kt-font-sm text-muted">KES {billingInfo.smsCost.toLocaleString()}</span>
                             </div>
                         </div>
                     </div>
@@ -523,8 +538,8 @@ class InstitutionalDeposits extends Component {
                                 <div className="mt-4">
                                     <h6 className="kt-font-bold">📞 Bank Details</h6>
                                     <div className="kt-font-sm">
-                                        <div><strong>Bank:</strong> Equity Bank Kenya</div>
-                                        <div><strong>Account:</strong> 00802934567890</div>
+                                        <div><strong>Bank:</strong> Family Bank</div>
+                                        <div><strong>Account:</strong> [To be configured]</div>
                                         <div><strong>Name:</strong> Smart Kids School Ltd</div>
                                     </div>
                                 </div>
@@ -776,11 +791,10 @@ class InstitutionalDeposits extends Component {
                                         </div>
                                         <div className="kt-portlet__body">
                                             <table className="table">
-                                                <tr><td><strong>Bank:</strong></td><td>Equity Bank Kenya</td></tr>
+                                                <tr><td><strong>Bank:</strong></td><td>Family Bank</td></tr>
                                                 <tr><td><strong>Account Name:</strong></td><td>Smart Kids School Ltd</td></tr>
-                                                <tr><td><strong>Account Number:</strong></td><td>00802934567890</td></tr>
+                                                <tr><td><strong>Account Number:</strong></td><td>[To be configured]</td></tr>
                                                 <tr><td><strong>Branch:</strong></td><td>Westlands Branch</td></tr>
-                                                <tr><td><strong>Swift Code:</strong></td><td>EQBLKENA</td></tr>
                                             </table>
                                         </div>
                                     </div>
