@@ -1,6 +1,8 @@
 import React from "react";
 import Data from "../../utils/data";
 import moment from "moment"; // Moment.js for "time ago" functionality
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css'; // import styles
 
 // Import all the real modal components
 import AddGradeModal from "./grades/add";
@@ -70,6 +72,17 @@ class CurriculumManagerV5 extends React.Component {
         activeTab: 'content', allLessonAttempts: [], subjectLessonAttempts: [], usersWithAttempts: [],
         selectedUserId: null, selectedAttemptId: null,
         questionImagesMap: {}, // Cache for fetched question images
+        
+        // Planning State
+        schemesOfWork: [],
+        filteredSchemes: [],
+        recordsOfWork: [],
+        filteredRecords: [],
+        planningSubTab: 'scheme', // 'scheme' or 'record'
+        isPlanningLoading: false,
+        schemeToEdit: null,
+        recordToEdit: null,
+        showPlanningModal: false,
     };
 
     componentDidMount() {
@@ -207,6 +220,39 @@ class CurriculumManagerV5 extends React.Component {
             .option-display.correct { background-color: #f0fdf4; border-color: #bbf7d0; color: #166534; }
             .option-display.selected-incorrect { background-color: #fef2f2; border-color: #fecaca; color: #991b1b; }
             .option-display.selected-correct { background-color: #dcfce7; border-color: #86efac; color: #15803d; font-weight: 600; }
+            
+            /* Teacher Planning Styles */
+            .planning-header { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem; background: #fff; border-bottom: 1px solid #f1f5f9; }
+            .planning-sub-tabs { display: flex; gap: 1rem; }
+            .planning-sub-tab { padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #64748b; transition: all 0.2s; }
+            .planning-sub-tab.active { background: var(--cm-primary-color); color: #fff; border-color: var(--cm-primary-color); }
+            
+            .planning-content { padding: 1.5rem; overflow-y: auto; flex-grow: 1; }
+            .planning-table-container { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow-x: auto; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); }
+            .planning-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+            .planning-table th { background: #fafbfd; padding: 1rem; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #f1f5f9; white-space: nowrap; }
+            .planning-table td { padding: 1rem; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: top; }
+            .planning-table tr:hover { background: #fcfdfe; }
+            
+            .planning-actions { display: flex; gap: 0.5rem; }
+            .planning-btn { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; border: 1px solid #e2e8f0; background: #fff; cursor: pointer; transition: all 0.2s; }
+            .planning-btn:hover { background: #f1f5f9; color: var(--cm-primary-color); }
+            .planning-btn.btn-danger:hover { color: #ef4444; }
+            
+            .rich-content-cell { max-width: 300px; max-height: 150px; overflow-y: auto; line-height: 1.5; color: #64748b; }
+            .rich-content-cell p { margin-bottom: 0.5rem; }
+            
+            /* Print Styles */
+            @media print {
+                body * { visibility: hidden; }
+                .tab-pane.active, .tab-pane.active * { visibility: visible; }
+                .tab-pane.active { position: absolute; left: 0; top: 0; width: 100%; padding: 0 !important; }
+                .planning-header button, .planning-actions, .cm-tab-header, .cm-header-main, .cm-column:not(.cm-column-large) { display: none !important; }
+                .planning-table-container { border: none; box-shadow: none; }
+                .planning-table th { background: #eee !important; border: 1px solid #ddd !important; -webkit-print-color-adjust: exact; }
+                .planning-table td { border: 1px solid #ddd !important; }
+                .rich-content-cell { max-width: none; max-height: none; overflow: visible; }
+            }
         `;
         const styleTag = document.createElement("style");
         styleTag.innerHTML = customStyles;
@@ -215,6 +261,14 @@ class CurriculumManagerV5 extends React.Component {
 
         window.addEventListener('beforeunload', this.saveStateToLocalStorage);
         this._schoolSubscription = Data.schools.subscribe(this.processDataUpdate);
+        
+        this._schemesSubscription = Data.scheme_of_works.subscribe(({ scheme_of_works }) => {
+            this.setState({ schemesOfWork: scheme_of_works }, this.refreshPlanningFilters);
+        });
+        
+        this._recordsSubscription = Data.record_of_works.subscribe(({ record_of_works }) => {
+            this.setState({ recordsOfWork: record_of_works }, this.refreshPlanningFilters);
+        });
         
         if (Data.lessonAttempts && typeof Data.lessonAttempts.subscribe === 'function') {
             this._attemptsSubscription = Data.lessonAttempts.subscribe(({ lessonAttempts }) => {
@@ -232,6 +286,8 @@ class CurriculumManagerV5 extends React.Component {
     componentWillUnmount() {
         if (this._schoolSubscription) this._schoolSubscription();
         if (this._attemptsSubscription) this._attemptsSubscription();
+        if (this._schemesSubscription) this._schemesSubscription();
+        if (this._recordsSubscription) this._recordsSubscription();
         if (this.styleTag) this.styleTag.remove();
         window.removeEventListener('beforeunload', this.saveStateToLocalStorage);
     }
@@ -285,7 +341,10 @@ class CurriculumManagerV5 extends React.Component {
             subtopicSearchTerm: sourceState.subtopicSearchTerm || '', 
             questionSearchTerm: sourceState.questionSearchTerm || '', 
             optionSearchTerm: sourceState.optionSearchTerm || '', 
+            questionSearchTerm: sourceState.questionSearchTerm || '', 
+            optionSearchTerm: sourceState.optionSearchTerm || '', 
             activeTab: sourceState.activeTab || 'content',
+            planningSubTab: sourceState.planningSubTab || 'scheme',
             scrollLeft: sourceState.scrollLeft || 0
         };
 
@@ -341,7 +400,7 @@ class CurriculumManagerV5 extends React.Component {
         localStorage.setItem("learningState", JSON.stringify({ 
             selectedGrade, selectedSubject, selectedTopic, selectedSubtopic, selectedQuestion, 
             gradeSearchTerm, subjectSearchTerm, topicSearchTerm, subtopicSearchTerm, 
-            questionSearchTerm, optionSearchTerm, activeTab, scrollLeft 
+            questionSearchTerm, optionSearchTerm, activeTab, planningSubTab, scrollLeft 
         })); 
     };
 
@@ -353,7 +412,85 @@ class CurriculumManagerV5 extends React.Component {
         } 
         if (prevState.selectedSubject !== this.state.selectedSubject && this.state.selectedSubject) { 
             this.processLessonAttemptsForSubject(this.state.selectedSubject); 
+            this.refreshPlanningFilters();
         } 
+    }
+
+    refreshPlanningFilters = () => {
+        const { schemesOfWork, recordsOfWork, selectedSubject } = this.state;
+        if (!selectedSubject) return;
+
+        this.setState({
+            filteredSchemes: schemesOfWork.filter(s => String(s.subject?.id || s.subject) === String(selectedSubject)),
+            filteredRecords: recordsOfWork.filter(r => String(r.subject?.id || r.subject) === String(selectedSubject))
+        });
+    }
+
+    handlePlanningSubTabChange = (tab) => {
+        this.setState({ planningSubTab: tab });
+    }
+
+    handlePrintPlanning = () => {
+        window.print();
+    }
+
+    handleSaveScheme = async (e) => {
+        e.preventDefault();
+        const { schemeToEdit, selectedSubject, school } = this.state;
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+        
+        // Handle numerical fields
+        data.week = parseInt(data.week) || 0;
+        data.lessonnumber = parseInt(data.lessonnumber) || 0;
+        
+        // Handle Quill fields (if any passed, but we'll use state-managed Quill usually)
+        // For simplicity in this iteration, I'll assume standard inputs or a shared state for Quill
+        
+        try {
+            if (schemeToEdit?.id) {
+                await Data.scheme_of_works.update({ ...data, id: schemeToEdit.id });
+                toastr.success("Scheme updated!");
+            } else {
+                await Data.scheme_of_works.create({ 
+                    ...data, 
+                    subject: selectedSubject, 
+                    school: school.id,
+                    teacher: JSON.parse(localStorage.getItem("user"))?.id
+                });
+                toastr.success("Scheme created!");
+            }
+            this.setState({ showPlanningModal: false, schemeToEdit: null });
+        } catch (err) {
+            toastr.error("Failed to save scheme");
+        }
+    }
+
+    handleSaveRecord = async (e) => {
+        e.preventDefault();
+        const { recordToEdit, selectedSubject, school } = this.state;
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+        
+        data.week = parseInt(data.week) || 0;
+
+        try {
+            if (recordToEdit?.id) {
+                await Data.record_of_works.update({ ...data, id: recordToEdit.id });
+                toastr.success("Record updated!");
+            } else {
+                await Data.record_of_works.create({ 
+                    ...data, 
+                    subject: selectedSubject, 
+                    school: school.id,
+                    teacher: JSON.parse(localStorage.getItem("user"))?.id
+                });
+                toastr.success("Record created!");
+            }
+            this.setState({ showPlanningModal: false, recordToEdit: null });
+        } catch (err) {
+            toastr.error("Failed to save record");
+        }
     }
     
     fetchQuestionImages = async (questions) => {
@@ -665,6 +802,7 @@ class CurriculumManagerV5 extends React.Component {
             <div className="cm-column cm-column-large">
                 <div className="cm-tab-header">
                     <button className={`cm-tab-btn ${activeTab === 'content' ? 'active' : ''}`} onClick={() => this.handleTabChange('content')}>Content & Curriculum</button>
+                    <button className={`cm-tab-btn ${activeTab === 'planning' ? 'active' : ''}`} onClick={() => this.handleTabChange('planning')}>Teacher Planning</button>
                     <button className={`cm-tab-btn ${activeTab === 'responses' ? 'active' : ''}`} onClick={() => this.handleTabChange('responses')}>Student Submissions</button>
                 </div>
                 <div className="tab-content">
@@ -708,6 +846,9 @@ class CurriculumManagerV5 extends React.Component {
                     </div>
                     <div className={`tab-pane ${activeTab === 'responses' ? 'active' : ''}`}>
                         {this.renderStudentAttemptsTab()}
+                    </div>
+                    <div className={`tab-pane ${activeTab === 'planning' ? 'active' : ''}`}>
+                        {this.renderTeacherPlanningTab()}
                     </div>
                 </div>
             </div>
@@ -860,6 +1001,238 @@ class CurriculumManagerV5 extends React.Component {
             </div>
         );
     }
+    renderTeacherPlanningTab() {
+        const { planningSubTab, filteredSchemes, filteredRecords } = this.state;
+        const userData = JSON.parse(localStorage.getItem("user") || "{}");
+        const isTeacher = userData?.userType === 'Teacher' || userData?.role === 'teacher';
+
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                <div className="planning-header">
+                    <div className="planning-sub-tabs">
+                        <div className={`planning-sub-tab ${planningSubTab === 'scheme' ? 'active' : ''}`} onClick={() => this.handlePlanningSubTabChange('scheme')}>Schemes of Work</div>
+                        <div className={`planning-sub-tab ${planningSubTab === 'record' ? 'active' : ''}`} onClick={() => this.handlePlanningSubTabChange('record')}>Daily Records of Work</div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button className="btn btn-outline-primary btn-sm" onClick={this.handlePrintPlanning}>
+                            <i className="la la-print"></i> Print / Export PDF
+                        </button>
+                        <button className="btn btn-primary btn-sm" onClick={() => this.setState({ showPlanningModal: true, [planningSubTab === 'scheme' ? 'schemeToEdit' : 'recordToEdit']: null })}>
+                            <i className="la la-plus"></i> Add {planningSubTab === 'scheme' ? 'Scheme Entry' : 'Daily Record'}
+                        </button>
+                    </div>
+                </div>
+
+                <div className="planning-content">
+                    {planningSubTab === 'scheme' ? this.renderSchemesTable() : this.renderRecordsTable()}
+                </div>
+                
+                {this.renderPlanningModal()}
+            </div>
+        );
+    }
+
+    renderSchemesTable() {
+        const { filteredSchemes } = this.state;
+        return (
+            <div className="planning-table-container">
+                <table className="planning-table">
+                    <thead>
+                        <tr>
+                            <th>Week/Lesson</th>
+                            <th>Strands</th>
+                            <th>Outcomes & Questions</th>
+                            <th>Experience & Competencies</th>
+                            <th>Resources & Assessment</th>
+                            <th>Reflection</th>
+                            <th className="planning-actions">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filteredSchemes.length > 0 ? filteredSchemes.map(item => (
+                            <tr key={item.id}>
+                                <td>
+                                    <strong>Wk {item.week}</strong><br/>
+                                    <span className="text-muted">Les {item.lessonnumber}</span>
+                                </td>
+                                <td>
+                                    <div className="font-weight-bold">{item.strand}</div>
+                                    <div className="small text-muted">{item.substrands}</div>
+                                </td>
+                                <td>
+                                    <div className="rich-content-cell" dangerouslySetInnerHTML={{ __html: item.learningoutcomes }}></div>
+                                    <div className="small mt-1 text-primary" dangerouslySetInnerHTML={{ __html: item.keyenquiringquestions }}></div>
+                                </td>
+                                <td>
+                                    <div className="rich-content-cell" dangerouslySetInnerHTML={{ __html: item.learningexperience }}></div>
+                                    <div className="small mt-1 font-italic" dangerouslySetInnerHTML={{ __html: item.corecompetencies }}></div>
+                                </td>
+                                <td>
+                                    <div className="small" dangerouslySetInnerHTML={{ __html: item.learningresources }}></div>
+                                    <div className="small mt-1 text-info" dangerouslySetInnerHTML={{ __html: item.assessment }}></div>
+                                </td>
+                                <td>
+                                    <div className="rich-content-cell" dangerouslySetInnerHTML={{ __html: item.reflection }}></div>
+                                </td>
+                                <td>
+                                    <div className="planning-actions">
+                                        <button className="planning-btn" onClick={() => this.setState({ schemeToEdit: item, showPlanningModal: true })}><i className="la la-pencil"></i></button>
+                                        <button className="planning-btn btn-danger" onClick={() => { if(window.confirm("Delete this scheme entry?")) Data.scheme_of_works.delete({ id: item.id }) }}><i className="la la-trash"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                        )) : <tr><td colSpan="7" className="text-center p-5 text-muted">No schemes of work entries found.</td></tr>}
+                    </tbody>
+                </table>
+            </div>
+        );
+    }
+
+    renderRecordsTable() {
+        const { filteredRecords } = this.state;
+        return (
+            <div className="planning-table-container">
+                <table className="planning-table">
+                    <thead>
+                        <tr>
+                            <th>Week / Date</th>
+                            <th>Outcomes</th>
+                            <th>Content Covered</th>
+                            <th>Activities</th>
+                            <th>Assignments</th>
+                            <th className="planning-actions">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filteredRecords.length > 0 ? filteredRecords.map(item => (
+                            <tr key={item.id}>
+                                <td>
+                                    <strong>Week {item.week}</strong><br/>
+                                    <span className="small text-muted">{item.dateofteaching}</span>
+                                </td>
+                                <td><div className="rich-content-cell" dangerouslySetInnerHTML={{ __html: item.learningoutcomes }}></div></td>
+                                <td><div className="rich-content-cell" dangerouslySetInnerHTML={{ __html: item.lessoncovered }}></div></td>
+                                <td><div className="rich-content-cell" dangerouslySetInnerHTML={{ __html: item.keyactivities }}></div></td>
+                                <td><div className="rich-content-cell" dangerouslySetInnerHTML={{ __html: item.assignments }}></div></td>
+                                <td>
+                                    <div className="planning-actions">
+                                        <button className="planning-btn" onClick={() => this.setState({ recordToEdit: item, showPlanningModal: true })}><i className="la la-pencil"></i></button>
+                                        <button className="planning-btn btn-danger" onClick={() => { if(window.confirm("Delete this record entry?")) Data.record_of_works.delete({ id: item.id }) }}><i className="la la-trash"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                        )) : <tr><td colSpan="6" className="text-center p-5 text-muted">No records of work found.</td></tr>}
+                    </tbody>
+                </table>
+            </div>
+        );
+    }
+
+    renderPlanningModal() {
+        const { showPlanningModal, planningSubTab, schemeToEdit, recordToEdit } = this.state;
+        if (!showPlanningModal) return null;
+
+        const isScheme = planningSubTab === 'scheme';
+        const item = isScheme ? schemeToEdit : recordToEdit;
+        const title = (item ? 'Edit ' : 'Add ') + (isScheme ? 'Scheme of Work' : 'Record of Work');
+
+        return (
+            <div className="modal show d-block" tabIndex="-1" style={{ background: 'rgba(0,0,0,0.5)', overflowY: 'auto' }}>
+                <div className="modal-dialog modal-xl">
+                    <div className="modal-content" style={{ borderRadius: '16px', border: 'none' }}>
+                        <div className="modal-header">
+                            <h5 className="modal-title">{title}</h5>
+                            <button type="button" className="close" onClick={() => this.setState({ showPlanningModal: false })}>
+                                <span>&times;</span>
+                            </button>
+                        </div>
+                        <form onSubmit={isScheme ? this.handleSaveScheme : this.handleSaveRecord}>
+                            <div className="modal-body p-4">
+                                <div className="row">
+                                    <div className="col-md-3">
+                                        <div className="form-group">
+                                            <label>Week</label>
+                                            <input type="number" name="week" className="form-control" defaultValue={item?.week} required />
+                                        </div>
+                                    </div>
+                                    {isScheme ? (
+                                        <>
+                                            <div className="col-md-3">
+                                                <div className="form-group">
+                                                    <label>Lesson Number</label>
+                                                    <input type="number" name="lessonnumber" className="form-control" defaultValue={item?.lessonnumber} />
+                                                </div>
+                                            </div>
+                                            <div className="col-md-3">
+                                                <div className="form-group">
+                                                    <label>Strand</label>
+                                                    <input type="text" name="strand" className="form-control" defaultValue={item?.strand} />
+                                                </div>
+                                            </div>
+                                            <div className="col-md-3">
+                                                <div className="form-group">
+                                                    <label>Sub Strands</label>
+                                                    <input type="text" name="substrands" className="form-control" defaultValue={item?.substrands} />
+                                                </div>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="col-md-9">
+                                            <div className="form-group">
+                                                <label>Date of Teaching</label>
+                                                <input type="date" name="dateofteaching" className="form-control" defaultValue={item?.dateofteaching} />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="row mt-3">
+                                    {isScheme ? (
+                                        <>
+                                            <PlanningField label="Learning Outcomes" name="learningoutcomes" value={item?.learningoutcomes} />
+                                            <PlanningField label="Key Enquiring Questions" name="keyenquiringquestions" value={item?.keyenquiringquestions} />
+                                            <PlanningField label="Learning Experience / Activities" name="learningexperience" value={item?.learningexperience} />
+                                            <PlanningField label="Core Competencies" name="corecompetencies" value={item?.corecompetencies} />
+                                            <PlanningField label="Values Learnt" name="valueslearnt" value={item?.valueslearnt} />
+                                            <PlanningField label="Learning Resources" name="learningresources" value={item?.learningresources} />
+                                            <PlanningField label="Assessment (Formative)" name="assessment" value={item?.assessment} />
+                                            <PlanningField label="Reflection" name="reflection" value={item?.reflection} />
+                                        </>
+                                    ) : (
+                                        <>
+                                            <PlanningField label="Learning Outcomes" name="learningoutcomes" value={item?.learningoutcomes} />
+                                            <PlanningField label="Lesson Covered / Content" name="lessoncovered" value={item?.lessoncovered} />
+                                            <PlanningField label="Key Activities" name="keyactivities" value={item?.keyactivities} />
+                                            <PlanningField label="Assignments" name="assignments" value={item?.assignments} />
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" className="btn btn-secondary" onClick={() => this.setState({ showPlanningModal: false })}>Cancel</button>
+                                <button type="submit" className="btn btn-primary">Save Entry</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 }
+
+// Helper for rich text fields in the modal
+const PlanningField = ({ label, name, value }) => {
+    // We'll use a hidden input for the form submit to catch the Quill value
+    // In a real production app, we'd use controlled components, but for this fast refactor
+    // we'll use a local state or a ref.
+    const [content, setContent] = React.useState(value || '');
+    return (
+        <div className="col-md-6 mb-3">
+            <label className="font-weight-bold">{label}</label>
+            <input type="hidden" name={name} value={content} />
+            <ReactQuill theme="snow" value={content} onChange={setContent} style={{ height: '150px', marginBottom: '45px' }} />
+        </div>
+    );
+};
 
 export default CurriculumManagerV5;

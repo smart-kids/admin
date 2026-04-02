@@ -38,6 +38,8 @@ const allData = {
     assessmentTypes: [],
     assessmentRubrics: [],
     institutionalDeposits: [],
+    scheme_of_works: [],
+    record_of_works: [],
 };
 
 // Centralized subscriptions object. Each key will hold an array of callbacks.
@@ -1191,6 +1193,18 @@ var Data = (function () {
                            payment.paymentType === 'institutional_deposit';
                 }
             })
+        },
+        {
+            name: "scheme_of_works",
+            singularName: "scheme_of_work",
+            createFields: ['school', 'subject', 'term', 'teacher', 'week', 'lessonnumber', 'strand', 'substrands', 'learningoutcomes', 'keyenquiringquestions', 'learningexperience', 'corecompetencies', 'valueslearnt', 'learningresources', 'assessment', 'reflection'],
+            updateFields: ['term', 'teacher', 'week', 'lessonnumber', 'strand', 'substrands', 'learningoutcomes', 'keyenquiringquestions', 'learningexperience', 'corecompetencies', 'valueslearnt', 'learningresources', 'assessment', 'reflection']
+        },
+        {
+            name: "record_of_works",
+            singularName: "record_of_work",
+            createFields: ['school', 'subject', 'term', 'teacher', 'week', 'dateofteaching', 'learningoutcomes', 'lessoncovered', 'keyactivities', 'assignments'],
+            updateFields: ['term', 'teacher', 'week', 'dateofteaching', 'learningoutcomes', 'lessoncovered', 'keyactivities', 'assignments']
         },
     ];
     const generatedApis = {};
