@@ -150,11 +150,11 @@ class CurriculumManagerV5 extends React.Component {
             .cm-search-input:focus { background: #fff; }
             .search-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 1rem; }
             
-            .cm-tab-header { display: flex; gap: 2rem; padding: 0 1.5rem; border-bottom: 1px solid #f1f5f9; background-color: #fff; flex-shrink: 0; }
-            .cm-tab-btn { background: none; border: none; padding: 1.25rem 0; cursor: pointer; color: #64748b; font-weight: 600; position: relative; font-size: 0.9rem; transition: color 0.2s; }
-            .cm-tab-btn:hover { color: #1e293b; }
+            .cm-tab-header { display: flex; gap: 2.5rem; padding: 0 2rem; border-bottom: 2px solid #f1f5f9; background-color: #fcfdfe; flex-shrink: 0; box-shadow: inset 0 -1px 0 #e2e8f0; }
+            .cm-tab-btn { background: none; border: none; padding: 1.25rem 0; cursor: pointer; color: #94a3b8; font-weight: 700; position: relative; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s; }
+            .cm-tab-btn:hover { color: var(--cm-primary-color); }
             .cm-tab-btn.active { color: var(--cm-primary-color); }
-            .cm-tab-btn.active::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 3px; background-color: var(--cm-primary-color); border-radius: 3px 3px 0 0; }
+            .cm-tab-btn.active::after { content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 3px; background-color: var(--cm-primary-color); border-radius: 4px 4px 0 0; box-shadow: 0 -1px 4px rgba(88, 103, 221, 0.2); }
             
             .tab-content { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
             .tab-pane { display: none; flex-grow: 1; height: 100%; }
@@ -799,11 +799,17 @@ class CurriculumManagerV5 extends React.Component {
         const optionsLoading = selectedQuestion && currentQuestionObj?.options === undefined && filteredOptions.length === 0;
 
         return (
-            <div className="cm-column cm-column-large">
+            <div className="cm-column cm-column-large" style={{ minWidth: '800px', flexGrow: 4, display: 'flex', flexDirection: 'column' }}>
                 <div className="cm-tab-header">
-                    <button className={`cm-tab-btn ${activeTab === 'content' ? 'active' : ''}`} onClick={() => this.handleTabChange('content')}>Content & Curriculum</button>
-                    <button className={`cm-tab-btn ${activeTab === 'planning' ? 'active' : ''}`} onClick={() => this.handleTabChange('planning')}>Teacher Planning</button>
-                    <button className={`cm-tab-btn ${activeTab === 'responses' ? 'active' : ''}`} onClick={() => this.handleTabChange('responses')}>Student Submissions</button>
+                    <button className={`cm-tab-btn ${activeTab === 'content' ? 'active' : ''}`} onClick={() => this.handleTabChange('content')}>
+                        <i className="la la-book" style={{ marginRight: '8px' }}></i> Content & Strands
+                    </button>
+                    <button className={`cm-tab-btn ${activeTab === 'planning' ? 'active' : ''}`} onClick={() => this.handleTabChange('planning')}>
+                        <i className="la la-pencil-square-o" style={{ marginRight: '8px' }}></i> Schemes & Planning
+                    </button>
+                    <button className={`cm-tab-btn ${activeTab === 'responses' ? 'active' : ''}`} onClick={() => this.handleTabChange('responses')}>
+                        <i className="la la-users" style={{ marginRight: '8px' }}></i> Student Activity
+                    </button>
                 </div>
                 <div className="tab-content">
                     <div className={`tab-pane ${activeTab === 'content' ? 'active' : ''}`}>
