@@ -395,7 +395,7 @@ class CurriculumManagerV5 extends React.Component {
 
     saveStateToLocalStorage = () => { 
         if (this.state.isLoading || !this.state.school) return; 
-        const { selectedGrade, selectedSubject, selectedTopic, selectedSubtopic, selectedQuestion, gradeSearchTerm, subjectSearchTerm, topicSearchTerm, subtopicSearchTerm, questionSearchTerm, optionSearchTerm, activeTab } = this.state; 
+        const { selectedGrade, selectedSubject, selectedTopic, selectedSubtopic, selectedQuestion, gradeSearchTerm, subjectSearchTerm, topicSearchTerm, subtopicSearchTerm, questionSearchTerm, optionSearchTerm, activeTab, planningSubTab } = this.state; 
         const scrollLeft = this.scrollContainerRef.current ? this.scrollContainerRef.current.scrollLeft : 0;
         localStorage.setItem("learningState", JSON.stringify({ 
             selectedGrade, selectedSubject, selectedTopic, selectedSubtopic, selectedQuestion, 
@@ -405,7 +405,7 @@ class CurriculumManagerV5 extends React.Component {
     };
 
     componentDidUpdate(prevProps, prevState) { 
-        const persistedStateKeys = ['selectedGrade', 'selectedSubject', 'selectedTopic', 'selectedSubtopic', 'selectedQuestion', 'gradeSearchTerm', 'subjectSearchTerm', 'topicSearchTerm', 'subtopicSearchTerm', 'questionSearchTerm', 'optionSearchTerm', 'activeTab']; 
+        const persistedStateKeys = ['selectedGrade', 'selectedSubject', 'selectedTopic', 'selectedSubtopic', 'selectedQuestion', 'gradeSearchTerm', 'subjectSearchTerm', 'topicSearchTerm', 'subtopicSearchTerm', 'questionSearchTerm', 'optionSearchTerm', 'activeTab', 'planningSubTab']; 
         const hasPersistedStateChanged = persistedStateKeys.some(key => JSON.stringify(prevState[key]) !== JSON.stringify(this.state[key])); 
         if (hasPersistedStateChanged) { 
             this.saveStateToLocalStorage(); 
