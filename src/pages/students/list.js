@@ -47,6 +47,7 @@ export default function StudentDataTableV8() {
 
   // State for highlighting newly added records
   const [newlyAddedIds, setNewlyAddedIds] = useState(new Set());
+  const [searchTimeout, setSearchTimeout] = useState(null);
   const newRecordTimers = useRef(new Map());
   
   // Modal states
@@ -158,6 +159,15 @@ export default function StudentDataTableV8() {
     };
   }, []);
 
+  // Cleanup for search timeout on unmount or update
+  useEffect(() => {
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+    };
+  }, [searchTimeout]);
+
   // --- HEADERS CONFIGURATION ---
   const headers = useMemo(() => [
       { key: 'names', label: 'Student Name', sortable: true },
@@ -174,8 +184,30 @@ export default function StudentDataTableV8() {
     setCurrentPage(1); 
     setActiveSearch(searchTerm);
   };
+  
+  const handleRealTimeSearch = (value) => {
+    setSearchTerm(value);
+    
+    // Clear existing timeout
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    
+    // Set new timeout for real-time search (debounce)
+    const timeout = setTimeout(() => {
+      setCurrentPage(1);
+      setActiveSearch(value);
+    }, 300); // 300ms debounce
+    
+    setSearchTimeout(timeout);
+  };
+
   const handleClearSearch = () => {
     setSearchTerm("");
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+      setSearchTimeout(null);
+    }
     if (activeSearch) {
       setCurrentPage(1);
       setActiveSearch("");
@@ -354,7 +386,7 @@ export default function StudentDataTableV8() {
         </div>
         <div className="v8-toolbar">
             <div className="v8-search-group">
-                <input type="text" className="v8-search-input" placeholder="Search students by ALL fields (name, registration, parent, class, grade, ID, phone, email)..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSearch()} />
+                <input type="text" className="v8-search-input" placeholder="Search students by ALL fields (name, registration, parent, class, grade, ID, phone, email)..." value={searchTerm} onChange={(e) => handleRealTimeSearch(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleSearch()} />
                 <button className="btn" onClick={handleSearch} style={{backgroundColor: 'var(--v8-accent-color)', color: 'white'}}>Search</button>
                 {activeSearch && <button className="btn" onClick={handleClearSearch} style={{backgroundColor: 'var(--v8-border-color)', color: 'var(--v8-text-secondary)'}}>Clear</button>}
             </div>
