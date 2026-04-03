@@ -499,7 +499,172 @@ class CurriculumManagerV5 extends React.Component {
     }
 
     handlePrintPlanning = () => {
-        window.print();
+        const { school, selectedSubject, selectedTermId, selectedTopic, selectedSubtopic, schemesOfWork, recordsOfWork, terms, _masterGradesList, selectedGrade } = this.state;
+        
+        const termName = terms.find(t => t.id === selectedTermId)?.name || 'All Terms';
+        const strandName = this.getTopicName(selectedTopic);
+        const substrandName = this.getSubtopicName(selectedSubtopic);
+        
+        // Get the subject name
+        const grade = _masterGradesList.find(g => g.id === selectedGrade);
+        const subjectName = grade?.subjects?.find(s => s.id === selectedSubject)?.name || '';
+
+        // Filter all data for this term across all strands/substrands
+        const filterByTermAndSubject = (items) => items.filter(item => {
+            const matchesSubject = String(item.subject?.id || item.subject) === String(selectedSubject);
+            const matchesTerm = String(item.term?.id || item.term) === String(selectedTermId);
+            return matchesSubject && matchesTerm && !item.isDeleted;
+        });
+
+        const allSchemes = filterByTermAndSubject(schemesOfWork).sort((a, b) => (a.week - b.week) || (a.lessonnumber - b.lessonnumber));
+        const allRecords = filterByTermAndSubject(recordsOfWork).sort((a, b) => (a.week - b.week));
+
+        const stripHtml = (html) => {
+            const tmp = document.createElement('DIV');
+            tmp.innerHTML = html || '';
+            return tmp.textContent || tmp.innerText || '';
+        };
+
+        const schemeRows = allSchemes.map(item => `
+            <tr>
+                <td style="text-align:center; white-space:nowrap"><strong>Wk ${item.week}</strong><br/><span style="color:#666; font-size:0.85em">Les ${item.lessonnumber || '-'}</span></td>
+                <td><strong>${item.strand || ''}</strong><br/><span style="color:#444; font-size:0.85em">${item.substrands || ''}</span></td>
+                <td>${stripHtml(item.learningoutcomes)}</td>
+                <td>${stripHtml(item.keyenquiringquestions)}</td>
+                <td>${stripHtml(item.learningexperience)}</td>
+                <td>${stripHtml(item.corecompetencies)}</td>
+                <td>${stripHtml(item.valueslearnt)}</td>
+                <td>${stripHtml(item.learningresources)}</td>
+                <td>${stripHtml(item.assessment)}</td>
+                <td>${stripHtml(item.reflection)}</td>
+            </tr>`).join('');
+
+        const recordRows = allRecords.map(item => `
+            <tr>
+                <td style="text-align:center; white-space:nowrap"><strong>Wk ${item.week}</strong><br/><span style="color:#666; font-size:0.85em">${item.dateofteaching || ''}</span></td>
+                <td><strong>${item.strand || ''}</strong><br/><span style="color:#444; font-size:0.85em">${item.substrands || ''}</span></td>
+                <td>${stripHtml(item.learningoutcomes)}</td>
+                <td>${stripHtml(item.lessoncovered)}</td>
+                <td>${stripHtml(item.keyactivities)}</td>
+                <td>${stripHtml(item.assignments)}</td>
+                <td style="text-align:center; font-style:italic; color:#888;"></td>
+            </tr>`).join('');
+
+        const html = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>${school?.name || 'School'} – ${subjectName} – ${termName}</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 9pt; color: #1a1a1a; background: #fff; }
+        .page { max-width: 100%; padding: 10mm; }
+        
+        /* Header */
+        .doc-header { text-align: center; margin-bottom: 12px; border-bottom: 3px solid #1e293b; padding-bottom: 10px; }
+        .school-name { font-size: 16pt; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #1e293b; }
+        .doc-subtitle { font-size: 10pt; color: #475569; margin-top: 4px; }
+        .doc-meta { display: flex; justify-content: space-between; margin-top: 8px; font-size: 8.5pt; color: #64748b; }
+        
+        /* Section heading */
+        .section-heading { 
+            background: #1e293b; color: #fff; 
+            padding: 6px 12px; margin: 16px 0 0 0; 
+            font-size: 10pt; font-weight: 700; letter-spacing: 0.05em;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .section-heading span { opacity: 0.6; font-weight: 400; font-size: 8.5pt; }
+        
+        /* Tables */
+        table { width: 100%; border-collapse: collapse; font-size: 8pt; page-break-inside: auto; }
+        thead { background: #f1f5f9; }
+        th { padding: 5px 6px; text-align: left; font-weight: 700; border: 1px solid #cbd5e1; white-space: nowrap; font-size: 7.5pt; text-transform: uppercase; color: #334155; letter-spacing: 0.03em; }
+        td { padding: 5px 6px; border: 1px solid #e2e8f0; vertical-align: top; line-height: 1.4; }
+        tr:nth-child(even) td { background: #f8fafc; }
+        tr { page-break-inside: avoid; }
+        
+        /* Footer */
+        .doc-footer { margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 8px; display: flex; justify-content: space-between; font-size: 7.5pt; color: #94a3b8; }
+        .signature-row { display: flex; gap: 40px; margin-top: 24px; }
+        .sig-block { flex: 1; border-top: 1px solid #334155; padding-top: 4px; font-size: 8pt; color: #475569; text-align: center; }
+
+        @media print {
+            body { font-size: 8.5pt; }
+            .page { padding: 8mm; }
+            .section-heading { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            thead { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="doc-header">
+        <div class="school-name">${school?.name || 'School'}</div>
+        <div class="doc-subtitle">${subjectName} &mdash; ${termName}</div>
+        <div class="doc-meta">
+            <span>Printed: ${new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })}</span>
+            <span>Teacher's Planning Document</span>
+        </div>
+    </div>
+
+    <!-- SCHEMES OF WORK -->
+    <div class="section-heading">📋 Schemes of Work <span>${allSchemes.length} entries</span></div>
+    ${allSchemes.length > 0 ? `
+    <table>
+        <thead>
+            <tr>
+                <th style="width:40px">Wk/Les</th>
+                <th style="width:120px">Strand / Sub-strand</th>
+                <th>Learning Outcomes</th>
+                <th>Key Enquiring Questions</th>
+                <th>Learning Experience</th>
+                <th>Core Competencies</th>
+                <th>Values Learnt</th>
+                <th>Learning Resources</th>
+                <th>Assessment</th>
+                <th>Reflection</th>
+            </tr>
+        </thead>
+        <tbody>${schemeRows}</tbody>
+    </table>` : '<p style="padding:10px; color:#94a3b8; font-style:italic">No Scheme of Work entries for this term.</p>'}
+
+    <!-- DAILY RECORDS OF WORK -->
+    <div class="section-heading" style="margin-top:20px">📝 Daily Records of Work <span>${allRecords.length} entries</span></div>
+    ${allRecords.length > 0 ? `
+    <table>
+        <thead>
+            <tr>
+                <th style="width:50px">Wk / Date</th>
+                <th style="width:120px">Strand / Sub-strand</th>
+                <th>Learning Outcomes</th>
+                <th>Lesson Covered</th>
+                <th>Key Activities</th>
+                <th>Assignments</th>
+                <th style="width:80px">Remarks / Sign</th>
+            </tr>
+        </thead>
+        <tbody>${recordRows}</tbody>
+    </table>` : '<p style="padding:10px; color:#94a3b8; font-style:italic">No Daily Records for this term.</p>'}
+
+    <div class="signature-row">
+        <div class="sig-block">Class Teacher Signature</div>
+        <div class="sig-block">Head of Department</div>
+        <div class="sig-block">Principal / Director</div>
+    </div>
+
+    <div class="doc-footer">
+        <span>${school?.name || ''}</span>
+        <span>Confidential &mdash; For internal use only</span>
+        <span>${subjectName} &mdash; ${termName}</span>
+    </div>
+</div>
+<script> window.onload = function() { window.print(); } </script>
+</body>
+</html>`;
+
+        const printWindow = window.open('', '_blank', 'width=1200,height=900');
+        printWindow.document.write(html);
+        printWindow.document.close();
     }
 
     handleSaveScheme = async (e) => {
@@ -899,8 +1064,8 @@ class CurriculumManagerV5 extends React.Component {
                         <i className="la la-users" style={{ marginRight: '8px' }}></i> Student Activity
                     </button>
                     
-                    {/* Integrated Term Selector */}
-                    <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', paddingRight: '1rem' }}>
+                    {/* Integrated Term Selector + Print */}
+                    <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px', paddingRight: '1rem' }}>
                         <div className="d-flex align-items-center" style={{ background: '#f8fafc', padding: '2px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', height: '32px' }}>
                             <i className="la la-calendar" style={{ color: '#64748b', marginRight: '6px', fontSize: '0.9rem' }}></i>
                             <select 
@@ -915,6 +1080,15 @@ class CurriculumManagerV5 extends React.Component {
                                 ))}
                             </select>
                         </div>
+                        {activeTab === 'planning' && (
+                            <button 
+                                className="btn btn-outline-secondary btn-sm d-flex align-items-center" 
+                                style={{ height: '32px', borderRadius: '8px', fontSize: '0.8rem' }}
+                                onClick={this.handlePrintPlanning}
+                            >
+                                <i className="la la-print mr-1"></i> Print
+                            </button>
+                        )}
                     </div>
                 </div>
                 <div className="tab-content">
@@ -1222,15 +1396,22 @@ class CurriculumManagerV5 extends React.Component {
                 {selectedSubtopic ? (
                     <div className="cm-column cm-column-large p-0" style={{ flexGrow: 1, height: '100%', border: 'none', borderRadius: 0, background: 'transparent' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                            {/* Sub-strand title banner */}
+                            <div style={{ padding: '12px 20px', background: '#fff', borderLeft: '1px solid #f1f5f9', borderBottom: '1px solid #f1f5f9' }}>
+                                <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: '#94a3b8', fontWeight: 700, marginBottom: '2px' }}>
+                                    <i className="la la-layer-group mr-1"></i>{this.getTopicName(selectedTopic)}
+                                </div>
+                                <h5 style={{ margin: 0, fontWeight: 800, color: '#1e293b', fontSize: '1.05rem' }}>
+                                    <i className="la la-stream mr-2" style={{ color: 'var(--cm-primary-color)' }}></i>
+                                    {this.getSubtopicName(selectedSubtopic)}
+                                </h5>
+                            </div>
                             <div className="planning-header" style={{ borderTop: 'none', borderLeft: '1px solid #f1f5f9' }}>
                                 <div className="planning-sub-tabs">
                                     <div className={`planning-sub-tab ${planningSubTab === 'scheme' ? 'active' : ''}`} onClick={() => this.handlePlanningSubTabChange('scheme')}>Schemes of Work</div>
                                     <div className={`planning-sub-tab ${planningSubTab === 'record' ? 'active' : ''}`} onClick={() => this.handlePlanningSubTabChange('record')}>Daily Records of Work</div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '10px' }}>
-                                    <button className="btn btn-outline-primary btn-sm" onClick={this.handlePrintPlanning}>
-                                        <i className="la la-print"></i> Print / Export PDF
-                                    </button>
                                     <button className="btn btn-primary btn-sm" onClick={() => this.setState({ showPlanningModal: true, [planningSubTab === 'scheme' ? 'schemeToEdit' : 'recordToEdit']: null })}>
                                         <i className="la la-plus"></i> Add {planningSubTab === 'scheme' ? 'Scheme Entry' : 'Daily Record'}
                                     </button>
