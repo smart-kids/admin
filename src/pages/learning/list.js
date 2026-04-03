@@ -85,6 +85,8 @@ class CurriculumManagerV5 extends React.Component {
         schemeToEdit: null,
         recordToEdit: null,
         showPlanningModal: false,
+        showPrintView: false,
+        printData: null,
     };
 
     componentDidMount() {
@@ -498,6 +500,9 @@ class CurriculumManagerV5 extends React.Component {
         this.setState({ planningSubTab: tab });
     }
 
+    togglePrintView = () => this.setState(prev => ({ showPrintView: !prev.showPrintView, printData: null }));
+    handlePrint = () => window.print();
+
     handlePrintPlanning = () => {
         const { school, selectedSubject, selectedTermId, selectedTopic, selectedSubtopic, schemesOfWork, recordsOfWork, terms, _masterGradesList, selectedGrade } = this.state;
         
@@ -505,11 +510,9 @@ class CurriculumManagerV5 extends React.Component {
         const strandName = this.getTopicName(selectedTopic);
         const substrandName = this.getSubtopicName(selectedSubtopic);
         
-        // Get the subject name
         const grade = _masterGradesList.find(g => g.id === selectedGrade);
         const subjectName = grade?.subjects?.find(s => s.id === selectedSubject)?.name || '';
 
-        // Filter all data for this term across all strands/substrands
         const filterByTermAndSubject = (items) => items.filter(item => {
             const matchesSubject = String(item.subject?.id || item.subject) === String(selectedSubject);
             const matchesTerm = String(item.term?.id || item.term) === String(selectedTermId);
@@ -519,152 +522,10 @@ class CurriculumManagerV5 extends React.Component {
         const allSchemes = filterByTermAndSubject(schemesOfWork).sort((a, b) => (a.week - b.week) || (a.lessonnumber - b.lessonnumber));
         const allRecords = filterByTermAndSubject(recordsOfWork).sort((a, b) => (a.week - b.week));
 
-        const stripHtml = (html) => {
-            const tmp = document.createElement('DIV');
-            tmp.innerHTML = html || '';
-            return tmp.textContent || tmp.innerText || '';
-        };
-
-        const schemeRows = allSchemes.map(item => `
-            <tr>
-                <td style="text-align:center; white-space:nowrap"><strong>Wk ${item.week}</strong><br/><span style="color:#666; font-size:0.85em">Les ${item.lessonnumber || '-'}</span></td>
-                <td><strong>${item.strand || ''}</strong><br/><span style="color:#444; font-size:0.85em">${item.substrands || ''}</span></td>
-                <td>${stripHtml(item.learningoutcomes)}</td>
-                <td>${stripHtml(item.keyenquiringquestions)}</td>
-                <td>${stripHtml(item.learningexperience)}</td>
-                <td>${stripHtml(item.corecompetencies)}</td>
-                <td>${stripHtml(item.valueslearnt)}</td>
-                <td>${stripHtml(item.learningresources)}</td>
-                <td>${stripHtml(item.assessment)}</td>
-                <td>${stripHtml(item.reflection)}</td>
-            </tr>`).join('');
-
-        const recordRows = allRecords.map(item => `
-            <tr>
-                <td style="text-align:center; white-space:nowrap"><strong>Wk ${item.week}</strong><br/><span style="color:#666; font-size:0.85em">${item.dateofteaching || ''}</span></td>
-                <td><strong>${item.strand || ''}</strong><br/><span style="color:#444; font-size:0.85em">${item.substrands || ''}</span></td>
-                <td>${stripHtml(item.learningoutcomes)}</td>
-                <td>${stripHtml(item.lessoncovered)}</td>
-                <td>${stripHtml(item.keyactivities)}</td>
-                <td>${stripHtml(item.assignments)}</td>
-                <td style="text-align:center; font-style:italic; color:#888;"></td>
-            </tr>`).join('');
-
-        const html = `<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8" />
-    <title>${school?.name || 'School'} – ${subjectName} – ${termName}</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 9pt; color: #1a1a1a; background: #fff; }
-        .page { max-width: 100%; padding: 10mm; }
-        
-        /* Header */
-        .doc-header { text-align: center; margin-bottom: 12px; border-bottom: 3px solid #1e293b; padding-bottom: 10px; }
-        .school-name { font-size: 16pt; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #1e293b; }
-        .doc-subtitle { font-size: 10pt; color: #475569; margin-top: 4px; }
-        .doc-meta { display: flex; justify-content: space-between; margin-top: 8px; font-size: 8.5pt; color: #64748b; }
-        
-        /* Section heading */
-        .section-heading { 
-            background: #1e293b; color: #fff; 
-            padding: 6px 12px; margin: 16px 0 0 0; 
-            font-size: 10pt; font-weight: 700; letter-spacing: 0.05em;
-            display: flex; align-items: center; gap: 8px;
-        }
-        .section-heading span { opacity: 0.6; font-weight: 400; font-size: 8.5pt; }
-        
-        /* Tables */
-        table { width: 100%; border-collapse: collapse; font-size: 8pt; page-break-inside: auto; }
-        thead { background: #f1f5f9; }
-        th { padding: 5px 6px; text-align: left; font-weight: 700; border: 1px solid #cbd5e1; white-space: nowrap; font-size: 7.5pt; text-transform: uppercase; color: #334155; letter-spacing: 0.03em; }
-        td { padding: 5px 6px; border: 1px solid #e2e8f0; vertical-align: top; line-height: 1.4; }
-        tr:nth-child(even) td { background: #f8fafc; }
-        tr { page-break-inside: avoid; }
-        
-        /* Footer */
-        .doc-footer { margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 8px; display: flex; justify-content: space-between; font-size: 7.5pt; color: #94a3b8; }
-        .signature-row { display: flex; gap: 40px; margin-top: 24px; }
-        .sig-block { flex: 1; border-top: 1px solid #334155; padding-top: 4px; font-size: 8pt; color: #475569; text-align: center; }
-
-        @media print {
-            body { font-size: 8.5pt; }
-            .page { padding: 8mm; }
-            .section-heading { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            thead { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        }
-    </style>
-</head>
-<body>
-<div class="page">
-    <div class="doc-header">
-        <div class="school-name">${school?.name || 'School'}</div>
-        <div class="doc-subtitle">${subjectName} &mdash; ${termName}</div>
-        <div class="doc-meta">
-            <span>Printed: ${new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' })}</span>
-            <span>Teacher's Planning Document</span>
-        </div>
-    </div>
-
-    <!-- SCHEMES OF WORK -->
-    <div class="section-heading">📋 Schemes of Work <span>${allSchemes.length} entries</span></div>
-    ${allSchemes.length > 0 ? `
-    <table>
-        <thead>
-            <tr>
-                <th style="width:40px">Wk/Les</th>
-                <th style="width:120px">Strand / Sub-strand</th>
-                <th>Learning Outcomes</th>
-                <th>Key Enquiring Questions</th>
-                <th>Learning Experience</th>
-                <th>Core Competencies</th>
-                <th>Values Learnt</th>
-                <th>Learning Resources</th>
-                <th>Assessment</th>
-                <th>Reflection</th>
-            </tr>
-        </thead>
-        <tbody>${schemeRows}</tbody>
-    </table>` : '<p style="padding:10px; color:#94a3b8; font-style:italic">No Scheme of Work entries for this term.</p>'}
-
-    <!-- DAILY RECORDS OF WORK -->
-    <div class="section-heading" style="margin-top:20px">📝 Daily Records of Work <span>${allRecords.length} entries</span></div>
-    ${allRecords.length > 0 ? `
-    <table>
-        <thead>
-            <tr>
-                <th style="width:50px">Wk / Date</th>
-                <th style="width:120px">Strand / Sub-strand</th>
-                <th>Learning Outcomes</th>
-                <th>Lesson Covered</th>
-                <th>Key Activities</th>
-                <th>Assignments</th>
-                <th style="width:80px">Remarks / Sign</th>
-            </tr>
-        </thead>
-        <tbody>${recordRows}</tbody>
-    </table>` : '<p style="padding:10px; color:#94a3b8; font-style:italic">No Daily Records for this term.</p>'}
-
-    <div class="signature-row">
-        <div class="sig-block">Class Teacher Signature</div>
-        <div class="sig-block">Head of Department</div>
-        <div class="sig-block">Principal / Director</div>
-    </div>
-
-    <div class="doc-footer">
-        <span>${school?.name || ''}</span>
-        <span>Confidential &mdash; For internal use only</span>
-        <span>${subjectName} &mdash; ${termName}</span>
-    </div>
-</div>
-<script> window.onload = function() { window.print(); } </script>
-</body>
-</html>`;
-
-        const printWindow = window.open('', '_blank', 'width=1200,height=900');
-        printWindow.document.write(html);
-        printWindow.document.close();
+        this.setState({
+            showPrintView: true,
+            printData: { school, subjectName, termName, strandName, substrandName, allSchemes, allRecords }
+        });
     }
 
     handleSaveScheme = async (e) => {
@@ -1282,6 +1143,133 @@ class CurriculumManagerV5 extends React.Component {
 
         if (isLoading) {
             return (<div className="cm-container"><div className="cm-header-main"></div><SkeletonLoader /></div>);
+        }
+
+        // --- Print Preview Mode (matches fees.js / matrix.js pattern) ---
+        if (this.state.showPrintView && this.state.printData) {
+            const { school, subjectName, termName, allSchemes, allRecords } = this.state.printData;
+            const stripHtml = (html) => { const t = document.createElement('div'); t.innerHTML = html || ''; return t.textContent || t.innerText || ''; };
+
+            const schemeColHeaders = ['Wk/Les', 'Strand / Sub-strand', 'Learning Outcomes', 'Key Enquiring Questions', 'Learning Experience', 'Core Competencies', 'Values Learnt', 'Learning Resources', 'Assessment', 'Reflection'];
+            const recordColHeaders = ['Wk / Date', 'Strand / Sub-strand', 'Learning Outcomes', 'Lesson Covered', 'Key Activities', 'Assignments', 'Remarks / Sign'];
+
+            const Table = ({ headers, rows }) => (
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '8.5pt' }}>
+                    <thead>
+                        <tr style={{ background: '#f1f5f9' }}>
+                            {headers.map((h, i) => <th key={i} style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'left', fontSize: '7pt', textTransform: 'uppercase', color: '#334155', fontWeight: 700, whiteSpace: 'nowrap' }}>{h}</th>)}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {rows.map((row, ri) => (
+                            <tr key={ri} style={{ background: ri % 2 === 1 ? '#f8fafc' : '#fff' }}>
+                                {row.map((cell, ci) => <td key={ci} style={{ padding: '5px 8px', border: '1px solid #e2e8f0', verticalAlign: 'top', lineHeight: 1.4 }}>{cell}</td>)}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            );
+
+            const SectionHeading = ({ children, count }) => (
+                <div style={{ background: '#1e293b', color: '#fff', padding: '7px 14px', margin: '24px 0 0 0', fontSize: '10pt', fontWeight: 700, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span>{children}</span>
+                    <span style={{ opacity: 0.5, fontWeight: 400, fontSize: '8.5pt' }}>{count} entries</span>
+                </div>
+            );
+
+            const schemeRows = allSchemes.map(item => [
+                <><strong>Wk {item.week}</strong><br/><span style={{color:'#888',fontSize:'0.85em'}}>Les {item.lessonnumber || '-'}</span></>,
+                <><strong>{item.strand || ''}</strong><br/><span style={{color:'#555',fontSize:'0.85em'}}>{item.substrands || ''}</span></>,
+                stripHtml(item.learningoutcomes),
+                stripHtml(item.keyenquiringquestions),
+                stripHtml(item.learningexperience),
+                stripHtml(item.corecompetencies),
+                stripHtml(item.valueslearnt),
+                stripHtml(item.learningresources),
+                stripHtml(item.assessment),
+                stripHtml(item.reflection)
+            ]);
+
+            const recordRows = allRecords.map(item => [
+                <><strong>Wk {item.week}</strong><br/><span style={{color:'#888',fontSize:'0.85em'}}>{item.dateofteaching || ''}</span></>,
+                <><strong>{item.strand || ''}</strong><br/><span style={{color:'#555',fontSize:'0.85em'}}>{item.substrands || ''}</span></>,
+                stripHtml(item.learningoutcomes),
+                stripHtml(item.lessoncovered),
+                stripHtml(item.keyactivities),
+                stripHtml(item.assignments),
+                ''
+            ]);
+
+            return (
+                <div style={{ minHeight: '100vh', background: '#f3f4f6', paddingBottom: '40px' }}>
+                    {/* Toolbar — hidden when printing */}
+                    <div className="d-print-none" style={{ background: '#fff', padding: '12px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+                        <button className="btn btn-secondary font-weight-bold" onClick={this.togglePrintView}>
+                            <i className="fa fa-arrow-left mr-2"></i> Back to Planning
+                        </button>
+                        <h5 className="m-0 font-weight-bold">Planning Document Preview &mdash; {termName}</h5>
+                        <button className="btn btn-primary font-weight-bold" onClick={this.handlePrint}>
+                            <i className="fa fa-print mr-2"></i> Print / Save PDF
+                        </button>
+                    </div>
+
+                    {/* Document */}
+                    <div id="print-area" style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px' }}>
+                        <div style={{ background: '#fff', padding: '32px 40px', borderRadius: '8px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
+                            {/* Header */}
+                            <div style={{ textAlign: 'center', borderBottom: '3px solid #1e293b', paddingBottom: '12px', marginBottom: '16px' }}>
+                                <div style={{ fontSize: '20pt', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#1e293b' }}>{school?.name || 'School'}</div>
+                                <div style={{ fontSize: '11pt', color: '#475569', marginTop: '4px' }}>{subjectName} &mdash; {termName}</div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '8.5pt', color: '#94a3b8' }}>
+                                    <span>Printed: {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                                    <span>Teacher's Planning Document</span>
+                                </div>
+                            </div>
+
+                            {/* Schemes of Work */}
+                            <SectionHeading count={allSchemes.length}>📋 Schemes of Work</SectionHeading>
+                            {allSchemes.length > 0
+                                ? <Table headers={schemeColHeaders} rows={schemeRows} />
+                                : <p style={{ padding: '12px', color: '#94a3b8', fontStyle: 'italic' }}>No Scheme of Work entries for this term.</p>
+                            }
+
+                            {/* Daily Records */}
+                            <SectionHeading count={allRecords.length}>📝 Daily Records of Work</SectionHeading>
+                            {allRecords.length > 0
+                                ? <Table headers={recordColHeaders} rows={recordRows} />
+                                : <p style={{ padding: '12px', color: '#94a3b8', fontStyle: 'italic' }}>No Daily Records for this term.</p>
+                            }
+
+                            {/* Signature row */}
+                            <div style={{ display: 'flex', gap: '40px', marginTop: '40px' }}>
+                                {['Class Teacher Signature', 'Head of Department', 'Principal / Director'].map((label, i) => (
+                                    <div key={i} style={{ flex: 1, borderTop: '1px solid #334155', paddingTop: '4px', fontSize: '8.5pt', color: '#475569', textAlign: 'center' }}>{label}</div>
+                                ))}
+                            </div>
+
+                            {/* Footer */}
+                            <div style={{ marginTop: '20px', borderTop: '1px solid #e2e8f0', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', fontSize: '7.5pt', color: '#94a3b8' }}>
+                                <span>{school?.name || ''}</span>
+                                <span>Confidential — For internal use only</span>
+                                <span>{subjectName} — {termName}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* @media print — hide all chrome, show only #print-area */}
+                    <style>{`
+                        @media print {
+                            #kt_header, #kt_header_mobile, #kt_header_secondary, .kt-subheader,
+                            .kt-footer, .kt-aside, .d-print-none { display: none !important; }
+                            body, html { background: white !important; margin: 0 !important; padding: 0 !important; }
+                            #kt_wrapper, .kt-content, .kt-container { background: white !important; padding: 0 !important; margin: 0 !important; display: block !important; }
+                            #print-area { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+                            #print-area > div { border-radius: 0 !important; box-shadow: none !important; padding: 8mm 10mm !important; }
+                            table thead { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                        }
+                    `}</style>
+                </div>
+            );
         }
 
         return (
