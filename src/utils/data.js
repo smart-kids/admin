@@ -1213,8 +1213,8 @@ const FRAGMENT_RECORD_OF_WORKS_DATA = `fragment RecordOfWorksData on school {
         {
             name: "record_of_works",
             singularName: "record_of_work",
-            createFields: ['school', 'subject', 'term', 'teacher', 'week', 'dateofteaching', 'learningoutcomes', 'lessoncovered', 'keyactivities', 'assignments'],
-            updateFields: ['term', 'teacher', 'week', 'dateofteaching', 'learningoutcomes', 'lessoncovered', 'keyactivities', 'assignments']
+            createFields: ['school', 'subject', 'term', 'teacher', 'week', 'dateofteaching', 'strand', 'substrands', 'learningoutcomes', 'lessoncovered', 'keyactivities', 'assignments'],
+            updateFields: ['term', 'teacher', 'week', 'dateofteaching', 'strand', 'substrands', 'learningoutcomes', 'lessoncovered', 'keyactivities', 'assignments']
         },
     ];
     const generatedApis = {};

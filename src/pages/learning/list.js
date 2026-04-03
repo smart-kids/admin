@@ -461,8 +461,14 @@ class CurriculumManagerV5 extends React.Component {
             }
 
             // User requirement: planning is specific to strand/substrand
-            const matchesTopic = !selectedTopic || String(item.strand) === String(this.getTopicName(selectedTopic));
-            const matchesSubtopic = !selectedSubtopic || String(item.substrands) === String(this.getSubtopicName(selectedSubtopic));
+            const itemStrand = item.strand ? String(item.strand).trim().toLowerCase() : "";
+            const itemSubstrands = item.substrands ? String(item.substrands).trim().toLowerCase() : "";
+            
+            const targetStrand = selectedTopic ? String(this.getTopicName(selectedTopic)).trim().toLowerCase() : "";
+            const targetSubstrand = selectedSubtopic ? String(this.getSubtopicName(selectedSubtopic)).trim().toLowerCase() : "";
+
+            const matchesTopic = !selectedTopic || itemStrand === targetStrand;
+            const matchesSubtopic = !selectedSubtopic || itemSubstrands === targetSubstrand;
 
             return matchesSubject && matchesTerm && matchesTopic && matchesSubtopic;
         };
@@ -1365,11 +1371,17 @@ class CurriculumManagerV5 extends React.Component {
             <div className="modal show d-block" tabIndex="-1" style={{ background: 'rgba(0,0,0,0.5)', overflowY: 'auto' }}>
                 <div className="modal-dialog modal-xl">
                     <div className="modal-content" style={{ borderRadius: '16px', border: 'none' }}>
-                        <div className="modal-header">
-                            <h5 className="modal-title">{title}</h5>
-                            <button type="button" className="close" onClick={() => this.setState({ showPlanningModal: false })}>
-                                <span>&times;</span>
-                            </button>
+                        <div className="modal-header d-flex flex-column align-items-start py-3">
+                            <div className="d-flex justify-content-between w-100 mb-2">
+                                <h5 className="modal-title">{title}</h5>
+                                <button type="button" className="close" onClick={() => this.setState({ showPlanningModal: false })}>
+                                    <span>&times;</span>
+                                </button>
+                            </div>
+                            <div className="d-flex gap-3 small text-muted">
+                                <span><i className="la la-layer-group"></i> <strong>Strand:</strong> {this.getTopicName(this.state.selectedTopic)}</span>
+                                <span className="ml-3"><i className="la la-stream"></i> <strong>Sub-strand:</strong> {this.getSubtopicName(this.state.selectedSubtopic)}</span>
+                            </div>
                         </div>
                         <form onSubmit={isScheme ? this.handleSaveScheme : this.handleSaveRecord}>
                             <div className="modal-body p-4">
