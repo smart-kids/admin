@@ -432,7 +432,7 @@ const FRAGMENT_SCHEME_OF_WORKS_DATA = `fragment SchemeOfWorksData on school {
     scheme_of_works(limit: 5000) { id school subject { id } term { id } teacher week lessonnumber strand substrands learningoutcomes keyenquiringquestions learningexperience corecompetencies valueslearnt learningresources assessment reflection isDeleted } 
 }`;
 const FRAGMENT_RECORD_OF_WORKS_DATA = `fragment RecordOfWorksData on school { 
-    record_of_works(limit: 5000) { id school subject { id } term { id } teacher week dateofteaching learningoutcomes lessoncovered keyactivities assignments isDeleted } 
+    record_of_works(limit: 5000) { id school subject { id } term { id } teacher week dateofteaching strand substrands learningoutcomes lessoncovered keyactivities assignments isDeleted } 
 }`;
         const deepMergeById = (target, source) => {
             for (const key in source) {

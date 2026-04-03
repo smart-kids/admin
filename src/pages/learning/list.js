@@ -552,7 +552,9 @@ class CurriculumManagerV5 extends React.Component {
                 await Data.record_of_works.update({ 
                     ...data, 
                     id: recordToEdit.id,
-                    term: selectedTermId
+                    term: selectedTermId,
+                    strand: this.getTopicName(this.state.selectedTopic),
+                    substrands: this.getSubtopicName(this.state.selectedSubtopic)
                 });
                 toastr.success("Record updated!");
             } else {
@@ -561,6 +563,8 @@ class CurriculumManagerV5 extends React.Component {
                     subject: selectedSubject, 
                     school: school.id,
                     term: selectedTermId,
+                    strand: this.getTopicName(this.state.selectedTopic),
+                    substrands: this.getSubtopicName(this.state.selectedSubtopic),
                     teacher: JSON.parse(localStorage.getItem("user"))?.id
                 });
                 toastr.success("Record created!");
@@ -1173,7 +1177,7 @@ class CurriculumManagerV5 extends React.Component {
                             options={{ reorderable: true, editable: true, deleteable: true, linkable: true }} 
                             listId="planning-topics" 
                             selectedItemId={selectedTopic} 
-                            show={this.handleTopicSelect} 
+                            show={(item) => this.handleTopicSelect(item.id)} 
                             edit={(topic) => this.setState({ topicToEdit: topic }, () => this.editTopicModalRef.current.show())} 
                             delete={(topic) => this.setState({ topicToDelete: topic }, () => this.deleteTopicModalRef.current.show())} 
                             onOrderChange={(list) => this._handleReorder('topics', list)}
@@ -1199,7 +1203,7 @@ class CurriculumManagerV5 extends React.Component {
                                 options={{ reorderable: true, editable: true, deleteable: true, linkable: true }} 
                                 listId="planning-subtopics" 
                                 selectedItemId={selectedSubtopic} 
-                                show={this.handleSubtopicSelect} 
+                                show={(item) => this.handleSubtopicSelect(item.id)} 
                                 edit={(subtopic) => this.setState({ subtopicToEdit: subtopic }, () => this.editSubtopicModalRef.current.show())} 
                                 delete={(subtopic) => this.setState({ subtopicToDelete: subtopic }, () => this.deleteSubtopicModalRef.current.show())} 
                                 onOrderChange={(list) => this._handleReorder('subtopics', list)}
@@ -1370,35 +1374,21 @@ class CurriculumManagerV5 extends React.Component {
                         <form onSubmit={isScheme ? this.handleSaveScheme : this.handleSaveRecord}>
                             <div className="modal-body p-4">
                                 <div className="row">
-                                    <div className="col-md-3">
+                                    <div className="col-md-4">
                                         <div className="form-group">
                                             <label>Week</label>
                                             <input type="number" name="week" className="form-control" defaultValue={item?.week} required />
                                         </div>
                                     </div>
                                     {isScheme ? (
-                                        <>
-                                            <div className="col-md-3">
-                                                <div className="form-group">
-                                                    <label>Lesson Number</label>
-                                                    <input type="number" name="lessonnumber" className="form-control" defaultValue={item?.lessonnumber} />
-                                                </div>
+                                        <div className="col-md-8">
+                                            <div className="form-group">
+                                                <label>Lesson Number</label>
+                                                <input type="number" name="lessonnumber" className="form-control" defaultValue={item?.lessonnumber} />
                                             </div>
-                                            <div className="col-md-3">
-                                                <div className="form-group">
-                                                    <label>Strand</label>
-                                                    <input type="text" name="strand" className="form-control" defaultValue={item?.strand} />
-                                                </div>
-                                            </div>
-                                            <div className="col-md-3">
-                                                <div className="form-group">
-                                                    <label>Sub Strands</label>
-                                                    <input type="text" name="substrands" className="form-control" defaultValue={item?.substrands} />
-                                                </div>
-                                            </div>
-                                        </>
+                                        </div>
                                     ) : (
-                                        <div className="col-md-9">
+                                        <div className="col-md-8">
                                             <div className="form-group">
                                                 <label>Date of Teaching</label>
                                                 <input type="date" name="dateofteaching" className="form-control" defaultValue={item?.dateofteaching} />
