@@ -428,6 +428,12 @@ var Data = (function () {
     } 
 }`;
         const FRAGMENT_BOOKS_DATA = `fragment BooksData on school { books { id title author category coverUrl pdfUrl description isDeleted } }`;
+const FRAGMENT_SCHEME_OF_WORKS_DATA = `fragment SchemeOfWorksData on school { 
+    scheme_of_works(limit: 5000) { id school subject { id } term { id } teacher week lessonnumber strand substrands learningoutcomes keyenquiringquestions learningexperience corecompetencies valueslearnt learningresources assessment reflection isDeleted } 
+}`;
+const FRAGMENT_RECORD_OF_WORKS_DATA = `fragment RecordOfWorksData on school { 
+    record_of_works(limit: 5000) { id school subject { id } term { id } teacher week dateofteaching learningoutcomes lessoncovered keyactivities assignments isDeleted } 
+}`;
         const deepMergeById = (target, source) => {
             for (const key in source) {
                 if (Object.prototype.hasOwnProperty.call(source, key)) {
@@ -578,6 +584,8 @@ var Data = (function () {
             notifyEntity('smsLogs');
             notifyEntity('books');
             notifyEntity('chargeTypes');
+            notifyEntity('scheme_of_works', s => ({ ...s, subject: s.subject?.id || s.subject, term: s.term?.id || s.term }));
+            notifyEntity('record_of_works', r => ({ ...r, subject: r.subject?.id || r.subject, term: r.term?.id || r.term }));
             
             // Financials
             if (updatedSubEntities.has('financial') || updatedSubEntities.has('charges') || updatedSubEntities.has('payments')) {
@@ -663,6 +671,8 @@ var Data = (function () {
             { query: `query GetTerms { schools { id ...TermsData } } ${FRAGMENT_TERMS_DATA}` },
             { query: `query GetAssessmentTypes { schools { id ...AssessmentTypesData } } ${FRAGMENT_ASSESSMENT_TYPES_DATA}` },
             { query: `query GetAssessmentRubrics { schools { id ...AssessmentRubricsData } } ${FRAGMENT_ASSESSMENT_RUBRICS_DATA}` },
+            { query: `query GetSchemeOfWorks { schools { id ...SchemeOfWorksData } } ${FRAGMENT_SCHEME_OF_WORKS_DATA}` },
+            { query: `query GetRecordOfWorks { schools { id ...RecordOfWorksData } } ${FRAGMENT_RECORD_OF_WORKS_DATA}` },
         ];
 
         queries.forEach(({ query: qStr, variables = {} }) => {

@@ -879,15 +879,33 @@ class CurriculumManagerV5 extends React.Component {
         return (
             <div className="cm-column cm-column-large" style={{ minWidth: '800px', flexGrow: 4, display: 'flex', flexDirection: 'column' }}>
                 <div className="cm-tab-header">
-                    <button className={`cm-tab-btn ${activeTab === 'content' ? 'active' : ''}`} onClick={() => this.handleTabChange('content')}>
-                        <i className="la la-book" style={{ marginRight: '8px' }}></i> Content & Strands
-                    </button>
                     <button className={`cm-tab-btn ${activeTab === 'planning' ? 'active' : ''}`} onClick={() => this.handleTabChange('planning')}>
                         <i className="la la-pencil-square-o" style={{ marginRight: '8px' }}></i> Schemes & Planning
+                    </button>
+                    <button className={`cm-tab-btn ${activeTab === 'content' ? 'active' : ''}`} onClick={() => this.handleTabChange('content')}>
+                        <i className="la la-book" style={{ marginRight: '8px' }}></i> Content & Strands
                     </button>
                     <button className={`cm-tab-btn ${activeTab === 'responses' ? 'active' : ''}`} onClick={() => this.handleTabChange('responses')}>
                         <i className="la la-users" style={{ marginRight: '8px' }}></i> Student Activity
                     </button>
+                    
+                    {/* Integrated Term Selector */}
+                    <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', paddingRight: '1rem' }}>
+                        <div className="d-flex align-items-center" style={{ background: '#f8fafc', padding: '2px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', height: '32px' }}>
+                            <i className="la la-calendar" style={{ color: '#64748b', marginRight: '6px', fontSize: '0.9rem' }}></i>
+                            <select 
+                                className="form-control form-control-sm border-0 bg-transparent font-weight-bold" 
+                                style={{ minWidth: '120px', cursor: 'pointer', color: '#1e293b', fontSize: '0.8rem', padding: 0, height: 'auto' }}
+                                value={this.state.selectedTermId || ''}
+                                onChange={(e) => this.setState({ selectedTermId: e.target.value }, this.refreshPlanningFilters)}
+                            >
+                                {this.state.terms.length === 0 && <option value="">No Terms Found</option>}
+                                {this.state.terms.map(term => (
+                                    <option key={term.id} value={term.id}>{term.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                    </div>
                 </div>
                 <div className="tab-content">
                     <div className={`tab-pane ${activeTab === 'content' ? 'active' : ''}`}>
@@ -1083,8 +1101,8 @@ class CurriculumManagerV5 extends React.Component {
         }
 
         return (
-            <div className="cm-container">
-                {this.renderHeader()}
+            <div className="cm-container pt-0">
+                {/* renderHeader removed to satisfy two-topbar limit */}
                 
                 <div style={{ display: 'flex', alignItems: 'flex-start' }}>
                     <button onClick={() => this.scrollToStart()} className="btn btn-sm btn-icon btn-light mr-2" title="Scroll to Start"><i className="la la-angle-double-left"></i></button>
@@ -1119,6 +1137,23 @@ class CurriculumManagerV5 extends React.Component {
     renderTeacherPlanningTab() {
         const { planningSubTab, filteredSchemes, filteredRecords, filteredTopics, selectedTopic, filteredSubtopics, selectedSubtopic, topicSearchTerm, subtopicSearchTerm } = this.state;
         
+        if (!selectedTopic) {
+            return (
+                <div className="tab-inner-scroller d-flex align-items-center justify-content-center" style={{ minHeight: '400px' }}>
+                    <div className="text-center p-5 bg-white shadow-sm" style={{ borderRadius: '24px', maxWidth: '500px' }}>
+                        <div className="mb-4" style={{ fontSize: '4.5rem' }}>🎯</div>
+                        <h3 className="mb-3 font-weight-bold">Start Your Planning</h3>
+                        <p className="text-muted mb-4">Select a <strong>Grade</strong> and <strong>Subject</strong> from the sidebar, then choose a <strong>Strand</strong> to begin managing your schemes and records of work.</p>
+                        <div className="d-flex justify-content-center gap-3">
+                            <button className="btn btn-primary px-4 py-2" style={{ borderRadius: '12px' }} onClick={() => this.setState({ activeTab: 'content' })}>
+                                <i className="la la-book mr-2"></i> View Content & Strands
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
         return (
             <div className="tab-inner-scroller">
                 {/* Strands Column */}
@@ -1137,11 +1172,11 @@ class CurriculumManagerV5 extends React.Component {
                             headers={[{ key: 'name' }]} 
                             options={{ reorderable: true, editable: true, deleteable: true, linkable: true }} 
                             listId="planning-topics" 
-                            selectedId={selectedTopic} 
-                            onSelect={this.handleTopicSelect} 
-                            onEdit={(topic) => this.setState({ topicToEdit: topic }, () => this.editTopicModalRef.current.show())} 
-                            onDelete={(topic) => this.setState({ topicToDelete: topic }, () => this.deleteTopicModalRef.current.show())} 
-                            onReorder={(list) => this.handleReorder(list, 'topicsOrder', 'grade', this.getItemById('grades', this.state.selectedGrade))}
+                            selectedItemId={selectedTopic} 
+                            show={this.handleTopicSelect} 
+                            edit={(topic) => this.setState({ topicToEdit: topic }, () => this.editTopicModalRef.current.show())} 
+                            delete={(topic) => this.setState({ topicToDelete: topic }, () => this.deleteTopicModalRef.current.show())} 
+                            onOrderChange={(list) => this._handleReorder('topics', list)}
                         />
                     </div>
                 </div>
@@ -1163,11 +1198,11 @@ class CurriculumManagerV5 extends React.Component {
                                 headers={[{ key: 'name' }]} 
                                 options={{ reorderable: true, editable: true, deleteable: true, linkable: true }} 
                                 listId="planning-subtopics" 
-                                selectedId={selectedSubtopic} 
-                                onSelect={this.handleSubtopicSelect} 
-                                onEdit={(subtopic) => this.setState({ subtopicToEdit: subtopic }, () => this.editSubtopicModalRef.current.show())} 
-                                onDelete={(subtopic) => this.setState({ subtopicToDelete: subtopic }, () => this.deleteSubtopicModalRef.current.show())} 
-                                onReorder={(list) => this.handleReorder(list, 'subtopicsOrder', 'subject', this.getItemById('topics', selectedTopic))}
+                                selectedItemId={selectedSubtopic} 
+                                show={this.handleSubtopicSelect} 
+                                edit={(subtopic) => this.setState({ subtopicToEdit: subtopic }, () => this.editSubtopicModalRef.current.show())} 
+                                delete={(subtopic) => this.setState({ subtopicToDelete: subtopic }, () => this.deleteSubtopicModalRef.current.show())} 
+                                onOrderChange={(list) => this._handleReorder('subtopics', list)}
                             />
                         </div>
                     </div>
@@ -1277,6 +1312,7 @@ class CurriculumManagerV5 extends React.Component {
                     <thead>
                         <tr>
                             <th>Week / Date</th>
+                            <th>Strand / Sub-strand</th>
                             <th>Outcomes</th>
                             <th>Content Covered</th>
                             <th>Activities</th>
@@ -1291,6 +1327,10 @@ class CurriculumManagerV5 extends React.Component {
                                     <strong>Week {item.week}</strong><br/>
                                     <span className="small text-muted">{item.dateofteaching}</span>
                                 </td>
+                                <td>
+                                    <div className="font-weight-bold" style={{ fontSize: '0.8rem' }}>{item.strand}</div>
+                                    <div className="small text-muted">{item.substrands}</div>
+                                </td>
                                 <td><div className="rich-content-cell" dangerouslySetInnerHTML={{ __html: item.learningoutcomes }}></div></td>
                                 <td><div className="rich-content-cell" dangerouslySetInnerHTML={{ __html: item.lessoncovered }}></div></td>
                                 <td><div className="rich-content-cell" dangerouslySetInnerHTML={{ __html: item.keyactivities }}></div></td>
@@ -1302,7 +1342,7 @@ class CurriculumManagerV5 extends React.Component {
                                     </div>
                                 </td>
                             </tr>
-                        )) : <tr><td colSpan="6" className="text-center p-5 text-muted">No records of work found.</td></tr>}
+                        )) : <tr><td colSpan="7" className="text-center p-5 text-muted">No records of work found.</td></tr>}
                     </tbody>
                 </table>
             </div>
