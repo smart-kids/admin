@@ -537,7 +537,12 @@ class Navbar extends React.Component {
 
         {/* SECONDARY NAVBAR (Scrolling) */}
         <div id="kt_header_secondary" className="d-none d-lg-flex" style={{ backgroundColor: GLASS_BG, backdropFilter: GLASS_BACKDROP, justifyContent: 'space-between', alignItems: 'center', height: `${secondaryNavbarEffectiveHeight}px`, position: 'relative', marginLeft: `${secondaryNavbarHorizontalMargin}px`, marginRight: `${secondaryNavbarHorizontalMargin}px`, marginBottom: `${gapBetweenNavbars}px`, borderRadius: '16px', boxShadow: '0 8px 30px rgba(0, 0, 0, 0.06)', padding: '0 30px', border: '1px solid rgba(255, 255, 255, 0.4)', }}>
-            {/* School Name branding removed from secondary bar for cleaner look */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginRight: '30px' }}>
+                <Link to="/home" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <img alt="School Logo" style={{ maxHeight: '35px', width: 'auto', borderRadius: '6px' }} src={selectedSchool?.logo || '/assets/media/logos/ic_launcher.png'} />
+                    <span style={{ fontSize: '1.2rem', fontWeight: 600, color: '#1e293b', whiteSpace: 'nowrap' }}>{selectedSchool?.name || 'Shule Plus'}</span>
+                </Link>
+            </div>
             <div id="kt_bottom_nav_menu_container" className="kt-header-menu-wrapper" style={{ flexGrow: 1 }}>
                 <div className="kt-header-menu">
                     <ul className="kt-menu__nav">
