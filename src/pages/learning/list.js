@@ -80,10 +80,16 @@ class CurriculumManagerV5 extends React.Component {
         filteredSchemes: [],
         recordsOfWork: [],
         filteredRecords: [],
-        planningSubTab: 'scheme', // 'scheme' or 'record'
+        lessonPlans: [],
+        filteredLessonPlans: [],
+        iepTemplates: [],
+        filteredIepTemplates: [],
+        planningSubTab: 'scheme', // 'scheme', 'lesson', 'record', or 'iep'
         isPlanningLoading: false,
         schemeToEdit: null,
         recordToEdit: null,
+        lessonPlanToEdit: null,
+        iepToEdit: null,
         showPlanningModal: false,
         showPrintView: false,
         printData: null,
@@ -273,6 +279,14 @@ class CurriculumManagerV5 extends React.Component {
         this._recordsSubscription = Data.record_of_works.subscribe(({ record_of_works }) => {
             this.setState({ recordsOfWork: record_of_works }, this.refreshPlanningFilters);
         });
+        
+        this._lessonPlansSubscription = Data.lesson_plans.subscribe(({ lesson_plans }) => {
+            this.setState({ lessonPlans: lesson_plans }, this.refreshPlanningFilters);
+        });
+        
+        this._iepTemplatesSubscription = Data.iep_templates.subscribe(({ iep_templates }) => {
+            this.setState({ iepTemplates: iep_templates }, this.refreshPlanningFilters);
+        });
 
         this._termsSubscription = Data.terms.subscribe(({ terms }) => {
             const sortedTerms = (terms || []).sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -303,6 +317,8 @@ class CurriculumManagerV5 extends React.Component {
         if (this._attemptsSubscription) this._attemptsSubscription();
         if (this._schemesSubscription) this._schemesSubscription();
         if (this._recordsSubscription) this._recordsSubscription();
+        if (this._lessonPlansSubscription) this._lessonPlansSubscription();
+        if (this._iepTemplatesSubscription) this._iepTemplatesSubscription();
         if (this._termsSubscription) this._termsSubscription();
         if (this.styleTag) this.styleTag.remove();
         window.removeEventListener('beforeunload', this.saveStateToLocalStorage);
@@ -439,10 +455,9 @@ class CurriculumManagerV5 extends React.Component {
     }
 
     refreshPlanningFilters = () => {
-        const { schemesOfWork, recordsOfWork, selectedSubject, selectedTermId, selectedTopic, selectedSubtopic, terms } = this.state;
+        const { schemesOfWork, recordsOfWork, lessonPlans, iepTemplates, selectedSubject, selectedTermId, selectedTopic, selectedSubtopic, terms } = this.state;
         if (!selectedSubject) return;
 
-        // Default term fallback: find "Term 1" if selectedTermId is null
         let activeTermId = selectedTermId;
         if (!activeTermId && terms.length > 0) {
             const term1 = terms.find(t => t.name.toLowerCase().includes('term 1')) || terms[0];
@@ -451,33 +466,31 @@ class CurriculumManagerV5 extends React.Component {
 
         const filterFn = (item) => {
             const matchesSubject = String(item.subject?.id || item.subject) === String(selectedSubject);
-            
-            // Term filtering: match selectedTermId OR treat null as Term 1 (if Term 1 is the fallback)
             const itemTermId = item.term?.id || item.term;
             let matchesTerm = String(itemTermId) === String(activeTermId);
-            
-            // Legacy/Default strategy: if item has no term, and we're looking at Term 1, count it as a match
             if (!itemTermId && terms.length > 0) {
                 const term1 = terms.find(t => t.name.toLowerCase().includes('term 1')) || terms[0];
                 if (String(activeTermId) === String(term1.id)) matchesTerm = true;
             }
-
-            // User requirement: planning is specific to strand/substrand
             const itemStrand = item.strand ? String(item.strand).trim().toLowerCase() : "";
             const itemSubstrands = item.substrands ? String(item.substrands).trim().toLowerCase() : "";
-            
             const targetStrand = selectedTopic ? String(this.getTopicName(selectedTopic)).trim().toLowerCase() : "";
             const targetSubstrand = selectedSubtopic ? String(this.getSubtopicName(selectedSubtopic)).trim().toLowerCase() : "";
-
             const matchesTopic = !selectedTopic || itemStrand === targetStrand;
             const matchesSubtopic = !selectedSubtopic || itemSubstrands === targetSubstrand;
-
             return matchesSubject && matchesTerm && matchesTopic && matchesSubtopic;
         };
 
         this.setState({
             filteredSchemes: schemesOfWork.filter(filterFn),
-            filteredRecords: recordsOfWork.filter(filterFn)
+            filteredRecords: recordsOfWork.filter(filterFn),
+            filteredLessonPlans: lessonPlans.filter(filterFn),
+            filteredIepTemplates: iepTemplates.filter(item => {
+                const matchesSubject = !selectedSubject || String(item.subject?.id || item.subject) === String(selectedSubject);
+                const itemStrand = item.strand ? String(item.strand).trim().toLowerCase() : "";
+                const targetStrand = selectedTopic ? String(this.getTopicName(selectedTopic)).trim().toLowerCase() : "";
+                return matchesSubject && (!selectedTopic || itemStrand === targetStrand);
+            })
         });
     }
 
@@ -504,7 +517,7 @@ class CurriculumManagerV5 extends React.Component {
     handlePrint = () => window.print();
 
     handlePrintPlanning = () => {
-        const { school, selectedSubject, selectedTermId, selectedTopic, selectedSubtopic, schemesOfWork, recordsOfWork, terms, _masterGradesList, selectedGrade } = this.state;
+        const { school, selectedSubject, selectedTermId, selectedTopic, selectedSubtopic, schemesOfWork, recordOfWork, lessonPlans, iepTemplates, terms, _masterGradesList, selectedGrade } = this.state;
         
         const termName = terms.find(t => t.id === selectedTermId)?.name || 'All Terms';
         const strandName = this.getTopicName(selectedTopic);
@@ -515,16 +528,19 @@ class CurriculumManagerV5 extends React.Component {
 
         const filterByTermAndSubject = (items) => items.filter(item => {
             const matchesSubject = String(item.subject?.id || item.subject) === String(selectedSubject);
-            const matchesTerm = String(item.term?.id || item.term) === String(selectedTermId);
-            return matchesSubject && matchesTerm && !item.isDeleted;
+            const itemTermId = item.term?.id || item.term;
+            const matchesTerm = String(itemTermId) === String(selectedTermId);
+            return matchesSubject && (matchesTerm || !itemTermId) && !item.isDeleted;
         });
 
         const allSchemes = filterByTermAndSubject(schemesOfWork).sort((a, b) => (a.week - b.week) || (a.lessonnumber - b.lessonnumber));
-        const allRecords = filterByTermAndSubject(recordsOfWork).sort((a, b) => (a.week - b.week));
+        const allLessonPlans = filterByTermAndSubject(lessonPlans);
+        const allRecords = filterByTermAndSubject(this.state.recordsOfWork || []).sort((a, b) => (a.week - b.week));
+        const allIep = filterByTermAndSubject(iepTemplates);
 
         this.setState({
             showPrintView: true,
-            printData: { school, subjectName, termName, strandName, substrandName, allSchemes, allRecords }
+            printData: { school, subjectName, termName, strandName, substrandName, allSchemes, allLessonPlans, allRecords, allIep }
         });
     }
 
@@ -1147,10 +1163,11 @@ class CurriculumManagerV5 extends React.Component {
 
         // --- Print Preview Mode (matches fees.js / matrix.js pattern) ---
         if (this.state.showPrintView && this.state.printData) {
-            const { school, subjectName, termName, allSchemes, allRecords } = this.state.printData;
+            const { school, subjectName, termName, allSchemes, allLessonPlans, allRecords, allIep } = this.state.printData;
             const stripHtml = (html) => { const t = document.createElement('div'); t.innerHTML = html || ''; return t.textContent || t.innerText || ''; };
 
-            const schemeColHeaders = ['Wk/Les', 'Strand / Sub-strand', 'Learning Outcomes', 'Key Enquiring Questions', 'Learning Experience', 'Core Competencies', 'Values Learnt', 'Learning Resources', 'Assessment', 'Reflection'];
+            const schemeColHeaders = ['Wk/Les', 'Strand / Sub-strand', 'Learning Outcomes', 'Key Enquiring Questions', 'Learning Experience', 'Core Competencies', 'Learning Resources', 'Methods', 'Reflection'];
+            const lessonColHeaders = ['Strand / Sub-strand', 'Learning Outcomes', 'Key Enquiry Questions', 'Resources', 'Introduction', 'Lesson Development', 'Conclusion', 'Extended Activity', 'Reflection'];
             const recordColHeaders = ['Wk / Date', 'Strand / Sub-strand', 'Learning Outcomes', 'Lesson Covered', 'Key Activities', 'Assignments', 'Remarks / Sign'];
 
             const Table = ({ headers, rows }) => (
@@ -1184,9 +1201,20 @@ class CurriculumManagerV5 extends React.Component {
                 stripHtml(item.keyenquiringquestions),
                 stripHtml(item.learningexperience),
                 stripHtml(item.corecompetencies),
-                stripHtml(item.valueslearnt),
                 stripHtml(item.learningresources),
                 stripHtml(item.assessment),
+                stripHtml(item.reflection)
+            ]);
+
+            const lessonRows = allLessonPlans.map(item => [
+                <><strong>{item.strand || ''}</strong><br/><span style={{color:'#555',fontSize:'0.85em'}}>{item.substrands || ''}</span></>,
+                stripHtml(item.learningoutcomes),
+                stripHtml(item.keyenquiringquestions),
+                stripHtml(item.learningresources),
+                stripHtml(item.introduction),
+                stripHtml(item.lessondevelopment),
+                stripHtml(item.conclusion),
+                stripHtml(item.extendedactivity),
                 stripHtml(item.reflection)
             ]);
 
@@ -1231,6 +1259,13 @@ class CurriculumManagerV5 extends React.Component {
                             {allSchemes.length > 0
                                 ? <Table headers={schemeColHeaders} rows={schemeRows} />
                                 : <p style={{ padding: '12px', color: '#94a3b8', fontStyle: 'italic' }}>No Scheme of Work entries for this term.</p>
+                            }
+
+                            {/* Lesson Plans */}
+                            <SectionHeading count={allLessonPlans.length}>📖 Lesson Plans</SectionHeading>
+                            {allLessonPlans.length > 0
+                                ? <Table headers={lessonColHeaders} rows={lessonRows} />
+                                : <p style={{ padding: '12px', color: '#94a3b8', fontStyle: 'italic' }}>No Lesson Plans for this term.</p>
                             }
 
                             {/* Daily Records */}
@@ -1397,17 +1432,35 @@ class CurriculumManagerV5 extends React.Component {
                             <div className="planning-header" style={{ borderTop: 'none', borderLeft: '1px solid #f1f5f9' }}>
                                 <div className="planning-sub-tabs">
                                     <div className={`planning-sub-tab ${planningSubTab === 'scheme' ? 'active' : ''}`} onClick={() => this.handlePlanningSubTabChange('scheme')}>Schemes of Work</div>
+                                    <div className={`planning-sub-tab ${planningSubTab === 'lesson' ? 'active' : ''}`} onClick={() => this.handlePlanningSubTabChange('lesson')}>Lesson Plans</div>
                                     <div className={`planning-sub-tab ${planningSubTab === 'record' ? 'active' : ''}`} onClick={() => this.handlePlanningSubTabChange('record')}>Daily Records of Work</div>
+                                    <div className={`planning-sub-tab ${planningSubTab === 'iep' ? 'active' : ''}`} onClick={() => this.handlePlanningSubTabChange('iep')}>IEP Template</div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '10px' }}>
-                                    <button className="btn btn-primary btn-sm" onClick={() => this.setState({ showPlanningModal: true, [planningSubTab === 'scheme' ? 'schemeToEdit' : 'recordToEdit']: null })}>
-                                        <i className="la la-plus"></i> Add {planningSubTab === 'scheme' ? 'Scheme Entry' : 'Daily Record'}
+                                    <button className="btn btn-primary btn-sm" onClick={() => this.setState({ 
+                                        showPlanningModal: true, 
+                                        schemeToEdit: null, 
+                                        recordToEdit: null, 
+                                        lessonPlanToEdit: null, 
+                                        iepToEdit: null 
+                                    })}>
+                                        <i className="la la-plus"></i> Add {
+                                            planningSubTab === 'scheme' ? 'Scheme Entry' : 
+                                            planningSubTab === 'lesson' ? 'Lesson Plan' : 
+                                            planningSubTab === 'record' ? 'Daily Record' : 'IEP'
+                                        }
+                                    </button>
+                                    <button className="btn btn-outline-primary btn-sm" onClick={this.handlePrintPlanning}>
+                                        <i className="la la-print"></i> Print
                                     </button>
                                 </div>
                             </div>
 
                             <div className="planning-content" style={{ backgroundColor: '#fcfdfe', borderLeft: '1px solid #f1f5f9' }}>
-                                {planningSubTab === 'scheme' ? this.renderSchemesTable() : this.renderRecordsTable()}
+                                {planningSubTab === 'scheme' && this.renderSchemesTable()}
+                                {planningSubTab === 'lesson' && this.renderLessonPlansTable()}
+                                {planningSubTab === 'record' && this.renderRecordsTable()}
+                                {planningSubTab === 'iep' && this.renderIepTemplatesTable()}
                             </div>
                         </div>
                     </div>
@@ -1438,7 +1491,7 @@ class CurriculumManagerV5 extends React.Component {
                             <th>Strands</th>
                             <th>Outcomes & Questions</th>
                             <th>Experience & Competencies</th>
-                            <th>Resources & Assessment</th>
+                            <th>Resources & Methods</th>
                             <th>Reflection</th>
                             <th className="planning-actions">Actions</th>
                         </tr>
@@ -1528,13 +1581,176 @@ class CurriculumManagerV5 extends React.Component {
         );
     }
 
+    renderLessonPlansTable() {
+        const { filteredLessonPlans } = this.state;
+        return (
+            <div className="planning-table-container">
+                <table className="planning-table">
+                    <thead>
+                        <tr>
+                            <th>Strands</th>
+                            <th>Learning Outcomes</th>
+                            <th>Key Enquiry Questions</th>
+                            <th>Resources</th>
+                            <th>Introduction & Dev</th>
+                            <th>Conclusion & Ext</th>
+                            <th>Reflection</th>
+                            <th className="planning-actions">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filteredLessonPlans.length > 0 ? filteredLessonPlans.map(item => (
+                            <tr key={item.id}>
+                                <td>
+                                    <div className="font-weight-bold">{item.strand}</div>
+                                    <div className="small text-muted">{item.substrands}</div>
+                                </td>
+                                <td><div className="rich-content-cell" dangerouslySetInnerHTML={{ __html: item.learningoutcomes }}></div></td>
+                                <td><div className="small text-primary" dangerouslySetInnerHTML={{ __html: item.keyenquiringquestions }}></div></td>
+                                <td><div className="small" dangerouslySetInnerHTML={{ __html: item.learningresources }}></div></td>
+                                <td>
+                                    <div className="small font-weight-bold">Intro:</div>
+                                    <div className="rich-content-cell mb-2" dangerouslySetInnerHTML={{ __html: item.introduction }}></div>
+                                    <div className="small font-weight-bold">Dev:</div>
+                                    <div className="rich-content-cell" dangerouslySetInnerHTML={{ __html: item.lessondevelopment }}></div>
+                                </td>
+                                <td>
+                                    <div className="small font-weight-bold">Conclusion:</div>
+                                    <div className="rich-content-cell mb-2" dangerouslySetInnerHTML={{ __html: item.conclusion }}></div>
+                                    <div className="small font-weight-bold">Extended:</div>
+                                    <div className="rich-content-cell" dangerouslySetInnerHTML={{ __html: item.extendedactivity }}></div>
+                                </td>
+                                <td><div className="rich-content-cell" dangerouslySetInnerHTML={{ __html: item.reflection }}></div></td>
+                                <td>
+                                    <div className="planning-actions">
+                                        <button className="planning-btn" onClick={() => this.setState({ lessonPlanToEdit: item, showPlanningModal: true })}><i className="la la-pencil"></i></button>
+                                        <button className="planning-btn btn-danger" onClick={() => { if(window.confirm("Delete this lesson plan?")) Data.lesson_plans.delete({ id: item.id }) }}><i className="la la-trash"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                        )) : <tr><td colSpan="8" className="text-center p-5 text-muted">No lesson plans found.</td></tr>}
+                    </tbody>
+                </table>
+            </div>
+        );
+    }
+
+    renderIepTemplatesTable() {
+        const { filteredIepTemplates } = this.state;
+        const students = Data.students.list() || [];
+        return (
+            <div className="planning-table-container">
+                <table className="planning-table">
+                    <thead>
+                        <tr>
+                            <th>Learner</th>
+                            <th>Strands</th>
+                            <th>Strengths & Needs</th>
+                            <th>Outcome & Exp</th>
+                            <th>Resources & Methods</th>
+                            <th>Dates</th>
+                            <th>Reflection</th>
+                            <th className="planning-actions">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {filteredIepTemplates.length > 0 ? filteredIepTemplates.map(item => {
+                            const student = students.find(s => String(s.id) === String(item.student?.id || item.student));
+                            return (
+                                <tr key={item.id}>
+                                    <td>
+                                        <div className="font-weight-bold">{student?.names || 'Unknown Learner'}</div>
+                                        <div className="small text-muted">{student?.registration}</div>
+                                    </td>
+                                    <td>
+                                        <div className="font-weight-bold">{item.strand}</div>
+                                        <div className="small text-muted">{item.substrands}</div>
+                                    </td>
+                                    <td>
+                                        <div className="small font-weight-bold text-success">Strengths:</div>
+                                        <div className="rich-content-cell mb-2" dangerouslySetInnerHTML={{ __html: item.strengths }}></div>
+                                        <div className="small font-weight-bold text-danger">Needs:</div>
+                                        <div className="rich-content-cell" dangerouslySetInnerHTML={{ __html: item.needs }}></div>
+                                    </td>
+                                    <td>
+                                        <div className="small font-weight-bold">Outcome:</div>
+                                        <div className="rich-content-cell mb-2" dangerouslySetInnerHTML={{ __html: item.outcome }}></div>
+                                        <div className="small font-weight-bold">Experience:</div>
+                                        <div className="rich-content-cell" dangerouslySetInnerHTML={{ __html: item.experience }}></div>
+                                    </td>
+                                    <td>
+                                        <div className="small font-weight-bold">Resources:</div>
+                                        <div className="rich-content-cell mb-2" dangerouslySetInnerHTML={{ __html: item.resources }}></div>
+                                        <div className="small font-weight-bold">Methods:</div>
+                                        <div className="rich-content-cell" dangerouslySetInnerHTML={{ __html: item.methods }}></div>
+                                    </td>
+                                    <td>
+                                        <div className="small"><strong>Start:</strong> {item.initiationDate || '-'}</div>
+                                        <div className="small"><strong>End:</strong> {item.terminationDate || '-'}</div>
+                                    </td>
+                                    <td><div className="rich-content-cell" dangerouslySetInnerHTML={{ __html: item.reflection }}></div></td>
+                                    <td>
+                                        <div className="planning-actions">
+                                            <button className="planning-btn" onClick={() => this.setState({ iepToEdit: item, showPlanningModal: true })}><i className="la la-pencil"></i></button>
+                                            <button className="planning-btn btn-danger" onClick={() => { if(window.confirm("Delete this IEP entry?")) Data.iep_templates.delete({ id: item.id }) }}><i className="la la-trash"></i></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            );
+                        }) : <tr><td colSpan="8" className="text-center p-5 text-muted">No IEP templates found.</td></tr>}
+                    </tbody>
+                </table>
+            </div>
+        );
+    }
+
     renderPlanningModal() {
-        const { showPlanningModal, planningSubTab, schemeToEdit, recordToEdit } = this.state;
+        const { showPlanningModal, planningSubTab, schemeToEdit, recordToEdit, lessonPlanToEdit, iepToEdit } = this.state;
         if (!showPlanningModal) return null;
 
-        const isScheme = planningSubTab === 'scheme';
-        const item = isScheme ? schemeToEdit : recordToEdit;
-        const title = (item ? 'Edit ' : 'Add ') + (isScheme ? 'Scheme of Work' : 'Record of Work');
+        const typeLabels = {
+            scheme: 'Scheme of Work',
+            lesson: 'Lesson Plan',
+            record: 'Record of Work',
+            iep: 'IEP Template'
+        };
+
+        const item = 
+            planningSubTab === 'scheme' ? schemeToEdit : 
+            planningSubTab === 'lesson' ? lessonPlanToEdit : 
+            planningSubTab === 'record' ? recordToEdit : iepToEdit;
+
+        const title = (item ? 'Edit ' : 'Add ') + typeLabels[planningSubTab];
+        const students = Data.students.list() || [];
+
+        const onSave = (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = Object.fromEntries(formData.entries());
+            
+            // Add required context
+            data.subject = this.state.selectedSubject;
+            data.term = this.state.selectedTermId;
+            data.teacher = Data.teachers.list().find(t => t.id)?.id; // Simplistic teacher selection
+            data.strand = this.getTopicName(this.state.selectedTopic);
+            data.substrands = this.getSubtopicName(this.state.selectedSubtopic);
+            
+            if (item) data.id = item.id;
+
+            const apiMap = {
+                scheme: Data.scheme_of_works,
+                lesson: Data.lesson_plans,
+                record: Data.record_of_works,
+                iep: Data.iep_templates
+            };
+
+            apiMap[planningSubTab][item ? 'update' : 'create'](data)
+                .then(() => {
+                    toastr.success(`${typeLabels[planningSubTab]} saved successfully`);
+                    this.setState({ showPlanningModal: false });
+                })
+                .catch(err => toastr.error(`Failed to save: ${err.message}`));
+        };
 
         return (
             <div className="modal show d-block" tabIndex="-1" style={{ background: 'rgba(0,0,0,0.5)', overflowY: 'auto' }}>
@@ -1552,23 +1768,40 @@ class CurriculumManagerV5 extends React.Component {
                                 <span className="ml-3"><i className="la la-stream"></i> <strong>Sub-strand:</strong> {this.getSubtopicName(this.state.selectedSubtopic)}</span>
                             </div>
                         </div>
-                        <form onSubmit={isScheme ? this.handleSaveScheme : this.handleSaveRecord}>
+                        <form onSubmit={onSave}>
                             <div className="modal-body p-4">
-                                <div className="row">
-                                    <div className="col-md-4">
-                                        <div className="form-group">
-                                            <label>Week</label>
-                                            <input type="number" name="week" className="form-control" defaultValue={item?.week} required />
+                                {planningSubTab === 'iep' && (
+                                    <div className="row mb-3">
+                                        <div className="col-md-12">
+                                            <div className="form-group">
+                                                <label className="font-weight-bold">Name of Learner</label>
+                                                <select name="student" className="form-control" defaultValue={item?.student?.id || item?.student} required>
+                                                    <option value="">Select Learner...</option>
+                                                    {students.map(s => <option key={s.id} value={s.id}>{s.names} ({s.registration})</option>)}
+                                                </select>
+                                            </div>
                                         </div>
                                     </div>
-                                    {isScheme ? (
+                                )}
+
+                                <div className="row">
+                                    {planningSubTab !== 'iep' && planningSubTab !== 'lesson' && (
+                                        <div className="col-md-4">
+                                            <div className="form-group">
+                                                <label>Week</label>
+                                                <input type="number" name="week" className="form-control" defaultValue={item?.week} required />
+                                            </div>
+                                        </div>
+                                    )}
+                                    {planningSubTab === 'scheme' && (
                                         <div className="col-md-8">
                                             <div className="form-group">
                                                 <label>Lesson Number</label>
                                                 <input type="number" name="lessonnumber" className="form-control" defaultValue={item?.lessonnumber} />
                                             </div>
                                         </div>
-                                    ) : (
+                                    )}
+                                    {planningSubTab === 'record' && (
                                         <div className="col-md-8">
                                             <div className="form-group">
                                                 <label>Date of Teaching</label>
@@ -1576,26 +1809,65 @@ class CurriculumManagerV5 extends React.Component {
                                             </div>
                                         </div>
                                     )}
+                                    {planningSubTab === 'iep' && (
+                                        <>
+                                            <div className="col-md-6">
+                                                <div className="form-group">
+                                                    <label>Date of Initiation</label>
+                                                    <input type="date" name="initiationDate" className="form-control" defaultValue={item?.initiationDate} />
+                                                </div>
+                                            </div>
+                                            <div className="col-md-6">
+                                                <div className="form-group">
+                                                    <label>Date of Termination</label>
+                                                    <input type="date" name="terminationDate" className="form-control" defaultValue={item?.terminationDate} />
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
 
                                 <div className="row mt-3">
-                                    {isScheme ? (
+                                    {planningSubTab === 'scheme' && (
                                         <>
                                             <PlanningField label="Learning Outcomes" name="learningoutcomes" value={item?.learningoutcomes} />
                                             <PlanningField label="Key Enquiring Questions" name="keyenquiringquestions" value={item?.keyenquiringquestions} />
                                             <PlanningField label="Learning Experience / Activities" name="learningexperience" value={item?.learningexperience} />
                                             <PlanningField label="Core Competencies" name="corecompetencies" value={item?.corecompetencies} />
-                                            <PlanningField label="Values Learnt" name="valueslearnt" value={item?.valueslearnt} />
                                             <PlanningField label="Learning Resources" name="learningresources" value={item?.learningresources} />
-                                            <PlanningField label="Assessment (Formative)" name="assessment" value={item?.assessment} />
+                                            <PlanningField label="Methods" name="assessment" value={item?.assessment} />
                                             <PlanningField label="Reflection" name="reflection" value={item?.reflection} />
                                         </>
-                                    ) : (
+                                    )}
+                                    {planningSubTab === 'lesson' && (
+                                        <>
+                                            <PlanningField label="Lesson Learning Outcomes" name="learningoutcomes" value={item?.learningoutcomes} />
+                                            <PlanningField label="Key Enquiry Questions" name="keyenquiringquestions" value={item?.keyenquiringquestions} />
+                                            <PlanningField label="Learning Resources" name="learningresources" value={item?.learningresources} />
+                                            <PlanningField label="Introduction" name="introduction" value={item?.introduction} />
+                                            <PlanningField label="Lesson Development" name="lessondevelopment" value={item?.lessondevelopment} />
+                                            <PlanningField label="Conclusion" name="conclusion" value={item?.conclusion} />
+                                            <PlanningField label="Extended Activity" name="extendedactivity" value={item?.extendedactivity} />
+                                            <PlanningField label="Reflection" name="reflection" value={item?.reflection} />
+                                        </>
+                                    )}
+                                    {planningSubTab === 'record' && (
                                         <>
                                             <PlanningField label="Learning Outcomes" name="learningoutcomes" value={item?.learningoutcomes} />
                                             <PlanningField label="Lesson Covered / Content" name="lessoncovered" value={item?.lessoncovered} />
                                             <PlanningField label="Key Activities" name="keyactivities" value={item?.keyactivities} />
                                             <PlanningField label="Assignments" name="assignments" value={item?.assignments} />
+                                        </>
+                                    )}
+                                    {planningSubTab === 'iep' && (
+                                        <>
+                                            <PlanningField label="Areas of Strength" name="strengths" value={item?.strengths} />
+                                            <PlanningField label="Area of Need" name="needs" value={item?.needs} />
+                                            <PlanningField label="Specific Learning Outcome" name="outcome" value={item?.outcome} />
+                                            <PlanningField label="Learning Experience" name="experience" value={item?.experience} />
+                                            <PlanningField label="Resources Required" name="resources" value={item?.resources} />
+                                            <PlanningField label="Assessment Method and Tools" name="methods" value={item?.methods} />
+                                            <PlanningField label="Reflection" name="reflection" value={item?.reflection} />
                                         </>
                                     )}
                                 </div>

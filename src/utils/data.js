@@ -40,6 +40,8 @@ const allData = {
     institutionalDeposits: [],
     scheme_of_works: [],
     record_of_works: [],
+    lesson_plans: [],
+    iep_templates: [],
 };
 
 // Centralized subscriptions object. Each key will hold an array of callbacks.
@@ -429,10 +431,16 @@ var Data = (function () {
 }`;
         const FRAGMENT_BOOKS_DATA = `fragment BooksData on school { books { id title author category coverUrl pdfUrl description isDeleted } }`;
 const FRAGMENT_SCHEME_OF_WORKS_DATA = `fragment SchemeOfWorksData on school { 
-    scheme_of_works(limit: 5000) { id school subject { id } term { id } teacher { id } week lessonnumber strand substrands learningoutcomes keyenquiringquestions learningexperience corecompetencies valueslearnt learningresources assessment reflection isDeleted } 
+    scheme_of_works(limit: 5000) { id school subject { id } term { id } teacher { id } week lessonnumber strand substrands learningoutcomes keyenquiringquestions learningexperience corecompetencies learningresources assessment reflection isDeleted } 
 }`;
 const FRAGMENT_RECORD_OF_WORKS_DATA = `fragment RecordOfWorksData on school { 
     record_of_works(limit: 5000) { id school subject { id } term { id } teacher { id } week dateofteaching strand substrands learningoutcomes lessoncovered keyactivities assignments isDeleted } 
+}`;
+const FRAGMENT_LESSON_PLANS_DATA = `fragment LessonPlansData on school { 
+    lesson_plans(limit: 5000) { id school subject { id } term { id } teacher { id } strand substrands learningoutcomes keyenquiringquestions learningresources introduction lessondevelopment conclusion extendedactivity reflection isDeleted } 
+}`;
+const FRAGMENT_IEP_TEMPLATES_DATA = `fragment IEPTemplatesData on school { 
+    iep_templates(limit: 5000) { id school student { id names registration } strand substrands strengths needs outcome experience resources methods initiationDate terminationDate reflection isDeleted } 
 }`;
         const deepMergeById = (target, source) => {
             for (const key in source) {
@@ -586,6 +594,8 @@ const FRAGMENT_RECORD_OF_WORKS_DATA = `fragment RecordOfWorksData on school {
             notifyEntity('chargeTypes');
             notifyEntity('scheme_of_works', s => ({ ...s, subject: s.subject?.id || s.subject, term: s.term?.id || s.term, teacher: s.teacher?.id || s.teacher }));
             notifyEntity('record_of_works', r => ({ ...r, subject: r.subject?.id || r.subject, term: r.term?.id || r.term, teacher: r.teacher?.id || r.teacher }));
+            notifyEntity('lesson_plans', l => ({ ...l, subject: l.subject?.id || l.subject, term: l.term?.id || l.term, teacher: l.teacher?.id || l.teacher }));
+            notifyEntity('iep_templates', i => ({ ...i, student: i.student?.id || i.student }));
             
             // Financials
             if (updatedSubEntities.has('financial') || updatedSubEntities.has('charges') || updatedSubEntities.has('payments')) {
@@ -673,6 +683,8 @@ const FRAGMENT_RECORD_OF_WORKS_DATA = `fragment RecordOfWorksData on school {
             { query: `query GetAssessmentRubrics { schools { id ...AssessmentRubricsData } } ${FRAGMENT_ASSESSMENT_RUBRICS_DATA}` },
             { query: `query GetSchemeOfWorks { schools { id ...SchemeOfWorksData } } ${FRAGMENT_SCHEME_OF_WORKS_DATA}` },
             { query: `query GetRecordOfWorks { schools { id ...RecordOfWorksData } } ${FRAGMENT_RECORD_OF_WORKS_DATA}` },
+            { query: `query GetLessonPlans { schools { id ...LessonPlansData } } ${FRAGMENT_LESSON_PLANS_DATA}` },
+            { query: `query GetIEPTemplates { schools { id ...IEPTemplatesData } } ${FRAGMENT_IEP_TEMPLATES_DATA}` },
         ];
 
         queries.forEach(({ query: qStr, variables = {} }) => {
@@ -1207,14 +1219,26 @@ const FRAGMENT_RECORD_OF_WORKS_DATA = `fragment RecordOfWorksData on school {
         {
             name: "scheme_of_works",
             singularName: "scheme_of_work",
-            createFields: ['school', 'subject', 'term', 'teacher', 'week', 'lessonnumber', 'strand', 'substrands', 'learningoutcomes', 'keyenquiringquestions', 'learningexperience', 'corecompetencies', 'valueslearnt', 'learningresources', 'assessment', 'reflection'],
-            updateFields: ['term', 'teacher', 'week', 'lessonnumber', 'strand', 'substrands', 'learningoutcomes', 'keyenquiringquestions', 'learningexperience', 'corecompetencies', 'valueslearnt', 'learningresources', 'assessment', 'reflection']
+            createFields: ['school', 'subject', 'term', 'teacher', 'week', 'lessonnumber', 'strand', 'substrands', 'learningoutcomes', 'keyenquiringquestions', 'learningexperience', 'corecompetencies', 'learningresources', 'assessment', 'reflection'],
+            updateFields: ['term', 'teacher', 'week', 'lessonnumber', 'strand', 'substrands', 'learningoutcomes', 'keyenquiringquestions', 'learningexperience', 'corecompetencies', 'learningresources', 'assessment', 'reflection']
         },
         {
             name: "record_of_works",
             singularName: "record_of_work",
             createFields: ['school', 'subject', 'term', 'teacher', 'week', 'dateofteaching', 'strand', 'substrands', 'learningoutcomes', 'lessoncovered', 'keyactivities', 'assignments'],
             updateFields: ['term', 'teacher', 'week', 'dateofteaching', 'strand', 'substrands', 'learningoutcomes', 'lessoncovered', 'keyactivities', 'assignments']
+        },
+        {
+            name: "lesson_plans",
+            singularName: "lesson_plan",
+            createFields: ['school', 'subject', 'term', 'teacher', 'strand', 'substrands', 'learningoutcomes', 'keyenquiringquestions', 'learningresources', 'introduction', 'lessondevelopment', 'conclusion', 'extendedactivity', 'reflection'],
+            updateFields: ['term', 'teacher', 'strand', 'substrands', 'learningoutcomes', 'keyenquiringquestions', 'learningresources', 'introduction', 'lessondevelopment', 'conclusion', 'extendedactivity', 'reflection']
+        },
+        {
+            name: "iep_templates",
+            singularName: "iep_template",
+            createFields: ['school', 'student', 'strand', 'substrands', 'strengths', 'needs', 'outcome', 'experience', 'resources', 'methods', 'initiationDate', 'terminationDate', 'reflection'],
+            updateFields: ['student', 'strand', 'substrands', 'strengths', 'needs', 'outcome', 'experience', 'resources', 'methods', 'initiationDate', 'terminationDate', 'reflection']
         },
     ];
     const generatedApis = {};
