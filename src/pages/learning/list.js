@@ -1229,22 +1229,41 @@ class CurriculumManagerV5 extends React.Component {
                         <Subheader links={["Curriculum", "Planning Print Preview"]} />
                         <style>{`
                             @media print {
-                                body { margin: 0; padding: 0; background-color: white !important; visibility: hidden; }
-                                #print-area, #print-area * { visibility: visible; }
-                                #print-area { 
-                                    position: absolute; 
-                                    left: 0; 
-                                    top: 0; 
-                                    width: 100%; 
-                                    padding-top: 0 !important;
-                                    padding-bottom: 0 !important;
-                                    background-color: white !important;
-                                    display: block !important;
-                                }
-                                .kt-header, .kt-aside, .kt-footer, .kt-subheader, .navbar, .d-print-none, #kt_header, #kt_aside {
+                                /* Hide EVERY standard UI element */
+                                .kt-header, .kt-header-mobile, .kt-aside, .kt-footer, .kt-subheader, 
+                                .navbar, .d-print-none, .kt-subheader-search, #kt_header, #kt_aside, #kt_footer {
                                     display: none !important;
                                 }
-                                @page { size: A4; margin: 0; }
+
+                                /* Reset all layout wrappers */
+                                body, .kt-page, .kt-wrapper, .kt-content, .kt-body, #kt_wrapper, #kt_content {
+                                    padding: 0 !important;
+                                    margin: 0 !important;
+                                    display: block !important;
+                                    height: auto !important;
+                                    min-height: 0 !important;
+                                }
+
+                                .kt-container {
+                                    padding: 0 !important;
+                                    margin: 0 !important;
+                                    max-width: none !important;
+                                    width: 100% !important;
+                                    display: block !important;
+                                }
+
+                                #print-area {
+                                    padding: 0 !important;
+                                    margin: 0 !important;
+                                    display: block !important;
+                                    background-color: white !important;
+                                    width: 100% !important;
+                                }
+
+                                @page {
+                                    size: A4;
+                                    margin: 0;
+                                }
                             }
                         `}</style>
                         <div className="kt-content kt-grid__item kt-grid__item--fluid" style={{height:"auto"}} id="kt_content">
