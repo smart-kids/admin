@@ -84,6 +84,14 @@ class ResultsMatrix extends React.Component {
         this.setState({ schoolInfo: selectedSchool });
     });
 
+    // Check for defaults as data arrives
+    this.checkAutoSelect = setInterval(() => {
+        if (this.state.classes.length > 0 && this.state.terms.length > 0) {
+            this.autoSelectDefaults();
+            clearInterval(this.checkAutoSelect);
+        }
+    }, 500);
+
     const schoolInfo = Data.schools.getSelected();
     
     let restoredGrade = localStorage.getItem('matrix_selectedGrade');
@@ -95,31 +103,89 @@ class ResultsMatrix extends React.Component {
         selectedTerm: localStorage.getItem('matrix_selectedTerm') || "",
         selectedGrade: restoredGrade || ""
     });
+  }
 
-    setTimeout(() => {
-        const { selectedClass, selectedTerm, classes, terms, selectedGrade } = this.state;
-        let updates = {};
-        if (!selectedClass && classes?.length > 0) updates.selectedClass = classes[0].id;
-        if (!selectedTerm && terms?.length > 0) updates.selectedTerm = terms[0].id;
+  getAvailableData = () => {
+    const { classes, subjects, grades: allGrades, terms } = this.state;
+    const userData = JSON.parse(localStorage.getItem("user") || "{}");
+    const userRole = localStorage.getItem("userRole");
+    // Check for enhanced user data (parents with teacher details)
+    const enhancedUser = JSON.parse(localStorage.getItem("enhancedUser")) || userData;
+    // Treat all parents as teachers in admin interface
+    const isTeacher = userRole === 'teacher' || userData?.userType === 'teacher' || userData?.role === 'teacher' || userRole === 'parent' || userData?.userType === 'parent' || userData?.role === 'parent';
+    const teacherId = enhancedUser?.teacherDetails?.id || userData?.id;
 
-        if (!selectedGrade) {
-            const classToUse = updates.selectedClass || selectedClass;
-            const currentClass = classes.find(c => String(c.id) === String(classToUse));
+    let availableSubjects = subjects || [];
+    let availableGrades = allGrades || [];
+    let availableClasses = classes || [];
+
+    if (isTeacher && teacherId) {
+        // Teacher can only see their assigned subjects
+        availableSubjects = availableSubjects.filter(s => s.teacher === teacherId || s.teacher?.id === teacherId);
+        
+        // Grades containing those subjects
+        const teacherGradeIds = [...new Set(availableSubjects.map(s => s.grade?.id || s.grade))].map(String);
+        availableGrades = availableGrades.filter(g => teacherGradeIds.includes(String(g.id)));
+
+        // Classes belonging to those grades OR where teacher is the class teacher
+        availableClasses = availableClasses.filter(c => {
+            const gradeMatch = teacherGradeIds.includes(String(c.grade?.id || c.grade));
+            const teacherMatch = (c.teacher?.id || c.teacher) === teacherId;
+            return gradeMatch || teacherMatch;
+        });
+    }
+
+    return { availableSubjects, availableGrades, availableClasses, terms };
+  }
+
+  autoSelectDefaults = () => {
+    const { selectedClass, selectedTerm, selectedGrade, loading } = this.state;
+    const { availableClasses, availableGrades, terms } = this.getAvailableData();
+    let updates = {};
+    let shouldUpdate = false;
+
+    if (!selectedClass && availableClasses?.length > 0) {
+        updates.selectedClass = String(availableClasses[0].id);
+        localStorage.setItem('matrix_selectedClass', updates.selectedClass);
+        shouldUpdate = true;
+    }
+
+    if (!selectedTerm && terms?.length > 0) {
+        updates.selectedTerm = String(terms[0].id);
+        localStorage.setItem('matrix_selectedTerm', updates.selectedTerm);
+        shouldUpdate = true;
+    }
+
+    if (!selectedGrade && availableGrades?.length > 0) {
+        const classId = updates.selectedClass || selectedClass;
+        if (classId) {
+            const currentClass = availableClasses.find(c => String(c.id) === String(classId));
             const gradeId = currentClass?.grade?.id || currentClass?.grade;
-            if (gradeId) updates.selectedGrade = gradeId;
+            if (gradeId) {
+                updates.selectedGrade = String(gradeId);
+                localStorage.setItem('matrix_selectedGrade', updates.selectedGrade);
+                shouldUpdate = true;
+            }
         }
+        
+        if (!updates.selectedGrade && availableGrades.length > 0) {
+            updates.selectedGrade = String(availableGrades[0].id);
+            localStorage.setItem('matrix_selectedGrade', updates.selectedGrade);
+            shouldUpdate = true;
+        }
+    }
 
-        if (Object.keys(updates).length > 0) {
-            this.setState(updates, () => {
-                if (this.state.selectedClass && this.state.selectedTerm) {
-                    this.fetchAssessments();
-                }
-            });
-        } else if (selectedClass && selectedTerm) {
-            this.fetchAssessments();
-        }
-        this.setState({ loading: false });
-    }, 2000);
+    if (shouldUpdate) {
+        this.setState(updates, () => {
+            if (this.state.selectedClass && this.state.selectedTerm) {
+                this.fetchAssessments();
+            }
+        });
+    } else if (selectedClass && selectedTerm && loading) {
+        this.fetchAssessments();
+    }
+    
+    if (loading) this.setState({ loading: false });
   }
   
   componentDidUpdate(prevProps, prevState) {
@@ -141,6 +207,7 @@ class ResultsMatrix extends React.Component {
   }
 
   componentWillUnmount() {
+      if (this.checkAutoSelect) clearInterval(this.checkAutoSelect);
       if (this.unsubClasses) this.unsubClasses();
       if (this.unsubTerms) this.unsubTerms();
       if (this.unsubGrades) this.unsubGrades();
@@ -544,33 +611,7 @@ class ResultsMatrix extends React.Component {
     
     if (loading && !classes.length) return <div className="p-10 text-center"><div className="spinner spinner-primary mr-3"></div>Loading...</div>;
 
-    const userData = JSON.parse(localStorage.getItem("user") || "{}");
-    const userRole = localStorage.getItem("userRole");
-    // Check for enhanced user data (parents with teacher details)
-    const enhancedUser = JSON.parse(localStorage.getItem("enhancedUser")) || userData;
-    // Treat all parents as teachers in admin interface
-    const isTeacher = userRole === 'teacher' || userData?.userType === 'teacher' || userData?.role === 'teacher' || userRole === 'parent' || userData?.userType === 'parent' || userData?.role === 'parent';
-    const teacherId = enhancedUser?.teacherDetails?.id || userData?.id;
-
-    let availableSubjects = subjects || [];
-    let availableGrades = this.state.grades || [];
-    let availableClasses = classes || [];
-
-    if (isTeacher && teacherId) {
-        // Teacher can only see their assigned subjects
-        availableSubjects = availableSubjects.filter(s => s.teacher === teacherId || s.teacher?.id === teacherId);
-        
-        // Grades containing those subjects
-        const teacherGradeIds = [...new Set(availableSubjects.map(s => s.grade?.id || s.grade))];
-        availableGrades = availableGrades.filter(g => teacherGradeIds.includes(String(g.id)));
-
-        // Classes belonging to those grades OR where teacher is the class teacher
-        availableClasses = availableClasses.filter(c => {
-            const gradeMatch = teacherGradeIds.includes(String(c.grade?.id || c.grade));
-            const teacherMatch = (c.teacher?.id || c.teacher) === teacherId;
-            return gradeMatch || teacherMatch;
-        });
-    }
+    const { availableSubjects, availableGrades, availableClasses } = this.getAvailableData();
 
     const students = this.getFilteredStudents();
     const currentTerm = terms?.find(t => t.id === selectedTerm) || { name: 'Term' };

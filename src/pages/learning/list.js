@@ -560,7 +560,10 @@ class CurriculumManagerV5 extends React.Component {
     }
 
     handlePlanningSubTabChange = (tab) => {
-        this.setState({ planningSubTab: tab });
+        this.setState({ planningSubTab: tab }, () => {
+            // Auto-scroll to show the content
+            setTimeout(() => this.scrollToEnd(), 50);
+        });
     }
 
     togglePrintView = () => this.setState(prev => ({ showPrintView: !prev.showPrintView, printData: null }));
