@@ -27,7 +27,7 @@ const PlanningPrintView = ({
             boxSizing: 'border-box',
             paddingBottom: '2.5cm'
         }}>
-            <div className="report-card-container" style={{ padding: '1.5cm 2cm' }}>
+            <div className="report-card-container" style={{ padding: '2.5cm 2cm' }}>
                 {/* 1. Header */}
                 <ReportHeader school={school} title="TEACHER PLANNING PORTFOLIO" themeColor={themeColor} />
 

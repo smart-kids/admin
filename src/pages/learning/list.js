@@ -1226,8 +1226,27 @@ class CurriculumManagerV5 extends React.Component {
             return (
                 <div className="kt-grid__item kt-grid__item--fluid kt-grid kt-grid--ver kt-page">
                     <div className="kt-grid__item kt-grid__item--fluid kt-grid kt-grid--hor kt-wrapper" id="kt_wrapper">
-                        <Navbar />
                         <Subheader links={["Curriculum", "Planning Print Preview"]} />
+                        <style>{`
+                            @media print {
+                                body { margin: 0; padding: 0; background-color: white !important; visibility: hidden; }
+                                #print-area, #print-area * { visibility: visible; }
+                                #print-area { 
+                                    position: absolute; 
+                                    left: 0; 
+                                    top: 0; 
+                                    width: 100%; 
+                                    padding-top: 0 !important;
+                                    padding-bottom: 0 !important;
+                                    background-color: white !important;
+                                    display: block !important;
+                                }
+                                .kt-header, .kt-aside, .kt-footer, .kt-subheader, .navbar, .d-print-none, #kt_header, #kt_aside {
+                                    display: none !important;
+                                }
+                                @page { size: A4; margin: 0; }
+                            }
+                        `}</style>
                         <div className="kt-content kt-grid__item kt-grid__item--fluid" style={{height:"auto"}} id="kt_content">
                             <div className="kt-container pt-4">
                                 <div className="d-print-none p-4 mb-4 d-flex justify-content-between align-items-center bg-white rounded shadow-sm border">
