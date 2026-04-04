@@ -24,7 +24,8 @@ const PlanningPrintView = ({
             margin: '0 auto', 
             fontFamily: "'Inter', 'Roboto', sans-serif",
             color: '#1e293b',
-            boxSizing: 'border-box'
+            boxSizing: 'border-box',
+            paddingBottom: '2.5cm'
         }}>
             <div className="report-card-container" style={{ padding: '1.5cm 2cm' }}>
                 {/* 1. Header */}
@@ -52,6 +53,10 @@ const PlanningPrintView = ({
                     <div>
                         <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Prepared By</div>
                         <div style={{ fontSize: '1rem', fontWeight: 700 }}>{teacher?.name || 'Subject Teacher'}</div>
+                        {teacher?.tsc_number && (
+                            <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '2px' }}>TSC No: {teacher.tsc_number}</div>
+                        )}
+                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{teacher?.email} {teacher?.phone && `| ${teacher.phone}`}</div>
                     </div>
                     <div>
                         <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', marginBottom: '4px' }}>Date Generated</div>
@@ -115,7 +120,7 @@ const PlanningPrintView = ({
 
                 {/* 4. LESSON PLANS SECTION (Narrative Style) */}
                 {lessons.length > 0 && (
-                    <div className="print-section" style={{ marginBottom: '1.5cm', pageBreakBefore: 'always' }}>
+                    <div className="print-section" style={{ marginBottom: '1.5cm' }}>
                         <h2 style={{ fontSize: '1.1rem', fontWeight: 800, borderBottom: `3px solid ${themeColor}`, paddingBottom: '8px', marginBottom: '20px', color: themeColor }}>
                             II. DAILY LESSON PLANS
                         </h2>
@@ -157,7 +162,7 @@ const PlanningPrintView = ({
                                         <div style={{ fontSize: '0.9rem', lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: lp.conclusion }}></div>
                                         {lp.extendedactivity && (
                                             <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #e2e8f0' }}>
-                                                <strong>Extended:</strong> {lp.extendedactivity}
+                                                <strong>Extended:</strong> <span dangerouslySetInnerHTML={{ __html: lp.extendedactivity }}></span>
                                             </div>
                                         )}
                                     </div>
@@ -165,7 +170,7 @@ const PlanningPrintView = ({
 
                                 {lp.reflection && (
                                     <div style={{ marginTop: '15px', fontStyle: 'italic', color: '#475569', fontSize: '0.85rem', padding: '10px', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
-                                        <strong>Teacher's Reflection:</strong> {lp.reflection}
+                                        <strong>Teacher's Reflection:</strong> <span dangerouslySetInnerHTML={{ __html: lp.reflection }}></span>
                                     </div>
                                 )}
                             </div>
@@ -202,10 +207,10 @@ const PlanningPrintView = ({
                                             </td>
                                             <td style={{ padding: '10px', verticalAlign: 'top' }}>
                                                 <div style={{ marginBottom: '4px' }}>
-                                                    <strong>Activities:</strong> {r.keyactivities}
+                                                    <strong>Activities:</strong> <span dangerouslySetInnerHTML={{ __html: r.keyactivities }}></span>
                                                 </div>
                                                 <div>
-                                                    <strong>Assignments:</strong> {r.assignments}
+                                                    <strong>Assignments:</strong> <span dangerouslySetInnerHTML={{ __html: r.assignments }}></span>
                                                 </div>
                                             </td>
                                             <td style={{ padding: '10px', verticalAlign: 'top', textAlign: 'center' }}>
@@ -221,7 +226,7 @@ const PlanningPrintView = ({
 
                 {/* 6. IEP TEMPLATES (Profile Style) */}
                 {iep.length > 0 && (
-                    <div className="print-section" style={{ pageBreakBefore: 'always' }}>
+                    <div className="print-section">
                         <h2 style={{ fontSize: '1.1rem', fontWeight: 800, borderBottom: `3px solid ${themeColor}`, paddingBottom: '8px', marginBottom: '20px', color: themeColor }}>
                             IV. INDIVIDUALIZED EDUCATION PLANS (IEP)
                         </h2>

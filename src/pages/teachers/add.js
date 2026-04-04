@@ -14,6 +14,7 @@ class Modal extends React.Component {
     name: "",
     school: "",
     national_id:"",
+    tsc_number: "",
     phone: '',
     email: '',
     gender: ''
@@ -57,6 +58,8 @@ class Modal extends React.Component {
           _this.setState({
             loading: false,
             name: "",
+            national_id: "",
+            tsc_number: "",
             phone: '',
             email: '',
             gender: '',
@@ -105,16 +108,31 @@ class Modal extends React.Component {
                   <div className="kt-portlet__body">
                     <div className="form-group row">
                     <div className="col-lg-3">
-                        <label>National TSC Number:</label>
+                        <label>National ID:</label>
                         <input
                           type="text"
                           className="form-control"
-                          id="tse"
-                          name="tse"
+                          id="national_id"
+                          name="national_id"
                           minLength="2"
                           value={this.state.national_id}
                           onChange={(e) => this.setState({
                             national_id: e.target.value
+                          })}
+                          required
+                        />
+                      </div>
+                      <div className="col-lg-3">
+                        <label>TSC Number:</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="tsc"
+                          name="tsc"
+                          minLength="2"
+                          value={this.state.tsc_number}
+                          onChange={(e) => this.setState({
+                            tsc_number: e.target.value
                           })}
                           required
                         />

@@ -14,6 +14,7 @@ class Modal extends React.Component {
     edit: {
       names: "",
       national_id:"",
+      tsc_number: "",
       route: {
         name: ""
       },
@@ -99,7 +100,7 @@ class Modal extends React.Component {
                 className="kt-form kt-form--label-right"
               >
                 <div className="modal-header">
-                  <h5 className="modal-title">Edit Parent</h5>
+                  <h5 className="modal-title">Edit Teacher</h5>
                   <button
                     type="button"
                     className="close"
@@ -113,17 +114,32 @@ class Modal extends React.Component {
                   <div className="kt-portlet__body">
                     <div className="form-group row">
                     <div className="col-lg-3">
-                        <label>ID Number:</label>
+                        <label>National ID:</label>
                         <input
                           type="text"
                           className="form-control"
-                          id="fullname"
-                          name="fullname"
+                          id="national_id"
+                          name="national_id"
                           minLength="2"
                           value={this.state.edit.national_id}
-                          onChange={(e) => this.setState(Object.assign(this.state.edit, {
-                            national_id: e.target.value
-                          }))}
+                          onChange={(e) => this.setState({
+                            edit: { ...this.state.edit, national_id: e.target.value }
+                          })}
+                          required
+                        />
+                      </div>
+                      <div className="col-lg-3">
+                        <label>TSC Number:</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="tsc"
+                          name="tsc"
+                          minLength="2"
+                          value={this.state.edit.tsc_number}
+                          onChange={(e) => this.setState({
+                            edit: { ...this.state.edit, tsc_number: e.target.value }
+                          })}
                           required
                         />
                       </div>
@@ -136,9 +152,9 @@ class Modal extends React.Component {
                           name="fullname"
                           minLength="2"
                           value={this.state.edit.name}
-                          onChange={(e) => this.setState(Object.assign(this.state.edit, {
-                            name: e.target.value
-                          }))}
+                          onChange={(e) => this.setState({
+                            edit: { ...this.state.edit, name: e.target.value }
+                          })}
                           required
                         />
                       </div>
@@ -151,9 +167,9 @@ class Modal extends React.Component {
                           name="phone"
                           minLength="10"
                           value={this.state.edit.phone}
-                          onChange={(e) => this.setState(Object.assign(this.state.edit, {
-                            phone: e.target.value
-                          }))}
+                          onChange={(e) => this.setState({
+                            edit: { ...this.state.edit, phone: e.target.value }
+                          })}
                           required
                         />
                       </div>
@@ -166,9 +182,9 @@ class Modal extends React.Component {
                           name="email"
                           minLength="2"
                           value={this.state.edit.email}
-                          onChange={(e) => this.setState(Object.assign(this.state.edit, {
-                            email: e.target.value
-                          }))}
+                          onChange={(e) => this.setState({
+                            edit: { ...this.state.edit, email: e.target.value }
+                          })}
                           required
                         />
                       </div>
@@ -178,10 +194,10 @@ class Modal extends React.Component {
                           name="route"
                           className="form-control"
                           required
-                          value={this.state.gender}
-                          onChange={(e) => this.setState(Object.assign(this.state.edit, {
-                            gender: e.target.value
-                          }))}
+                          value={this.state.edit.gender}
+                          onChange={(e) => this.setState({
+                            edit: { ...this.state.edit, gender: e.target.value }
+                          })}
                         >
                           <option value="">Select gender</option>
                           {["MALE", "FEMALE"].map(gender => (
@@ -194,7 +210,6 @@ class Modal extends React.Component {
                 </div>
                 <div className="modal-footer">
                   <button
-                    type="button"
                     className="btn btn-outline-brand"
                     type="submit"
                     disabled={this.state.loading}

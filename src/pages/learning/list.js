@@ -575,7 +575,14 @@ class CurriculumManagerV5 extends React.Component {
         const term = terms.find(t => t.id === selectedTermId);
         const grade = _masterGradesList.find(g => g.id === selectedGrade);
         const subject = grade?.subjects?.find(s => s.id === selectedSubject);
-        const user = JSON.parse(localStorage.getItem("user") || '{}');
+        
+        // Get user from localStorage, then try to find the full teacher profile in Data.teachers.list()
+        let user = JSON.parse(localStorage.getItem("user") || '{}');
+        const teachersList = Data.teachers.list() || [];
+        const fullTeacherProfile = teachersList.find(t => String(t.id) === String(user.id));
+        if (fullTeacherProfile) {
+            user = { ...user, ...fullTeacherProfile };
+        }
         
         const filterByTermAndSubject = (items) => items.filter(item => {
             const matchesSubject = String(item.subject?.id || item.subject) === String(selectedSubject);
