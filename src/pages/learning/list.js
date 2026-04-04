@@ -397,6 +397,7 @@ class CurriculumManagerV5 extends React.Component {
             isLoading: this.state.isLoading ? !isDataReady : false, 
         }, () => {
             this.refreshCurrentSelectionsAndFilters();
+            this.refreshPlanningFilters(); // Explicitly refresh planning data once names are resolved
             if (this.state.selectedSubject) this.processLessonAttemptsForSubject(this.state.selectedSubject);
             
             // Restore scroll position once data is ready and rendered
