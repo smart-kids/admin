@@ -26,6 +26,11 @@ import DeleteOptionModal from "./options/delete";
 
 // Import the rich-media Table component
 import Table from "./components/table";
+import PlanningPrintView from "./components/PlanningPrintView";
+
+// --- Components for Reports ---
+import Navbar from "../../components/navbar";
+import Subheader from "../../components/subheader";
 
 // --- Helper Components ---
 const Search = ({ onSearch, value, title }) => (
@@ -91,6 +96,8 @@ class CurriculumManagerV5 extends React.Component {
         lessonPlanToEdit: null,
         iepToEdit: null,
         showPlanningModal: false,
+        
+        // Print System
         showPrintView: false,
         printData: null,
     };
@@ -254,13 +261,56 @@ class CurriculumManagerV5 extends React.Component {
             
             /* Print Styles */
             @media print {
-                body * { visibility: hidden; }
-                .tab-pane.active, .tab-pane.active * { visibility: visible; }
-                .tab-pane.active { position: absolute; left: 0; top: 0; width: 100%; padding: 0 !important; }
-                .planning-header button, .planning-actions, .cm-tab-header, .cm-header-main, .cm-column:not(.cm-column-large) { display: none !important; }
+                /* Hide UI Clutter */
+                #kt_header, #kt_header_mobile, #kt_header_secondary, .kt-subheader, .kt-footer, .kt-aside, .d-print-none, .cm-tab-header, .cm-header-main, .cm-column:not(.cm-column-large), .planning-header button, .planning-actions { 
+                    display: none !important; 
+                }
+                
+                /* Reset Layout for Print */
+                body, html { 
+                    background: white !important; 
+                    margin: 0 !important; 
+                    padding: 0 !important; 
+                    height: auto !important;
+                }
+                
+                .cm-container {
+                    padding: 0 !important;
+                    margin: 0 !important;
+                    width: 100% !important;
+                    background: white !important;
+                }
+
+                #kt_wrapper, .kt-content, .kt-container, #print-area { 
+                    background: white !important; 
+                    padding: 0 !important; 
+                    margin: 0 !important; 
+                    width: 100% !important; 
+                    max-width: 100% !important; 
+                    display: block !important;
+                    border: none !important;
+                }
+
+                .planning-print-root {
+                    padding: 0 !important;
+                    margin: 0 !important;
+                    width: 100% !important;
+                    border: none !important;
+                }
+
+                .report-card-container { 
+                    page-break-after: auto; 
+                    width: 100% !important; 
+                    max-width: none !important;
+                    height: auto !important; 
+                    border: none !important; 
+                    margin: 0 !important; 
+                    box-shadow: none !important; 
+                }
+                
                 .planning-table-container { border: none; box-shadow: none; }
-                .planning-table th { background: #eee !important; border: 1px solid #ddd !important; -webkit-print-color-adjust: exact; }
-                .planning-table td { border: 1px solid #ddd !important; }
+                .planning-table th { background: #f1f5f9 !important; border: 1px solid #e2e8f0 !important; -webkit-print-color-adjust: exact; }
+                .planning-table td { border: 1px solid #e2e8f0 !important; }
                 .rich-content-cell { max-width: none; max-height: none; overflow: visible; }
             }
         `;
@@ -517,15 +567,13 @@ class CurriculumManagerV5 extends React.Component {
     handlePrint = () => window.print();
 
     handlePrintPlanning = () => {
-        const { school, selectedSubject, selectedTermId, selectedTopic, selectedSubtopic, schemesOfWork, recordOfWork, lessonPlans, iepTemplates, terms, _masterGradesList, selectedGrade } = this.state;
+        const { school, selectedSubject, selectedTermId, selectedTopic, selectedSubtopic, schemesOfWork, recordsOfWork, lessonPlans, iepTemplates, terms, _masterGradesList, selectedGrade } = this.state;
         
-        const termName = terms.find(t => t.id === selectedTermId)?.name || 'All Terms';
-        const strandName = this.getTopicName(selectedTopic);
-        const substrandName = this.getSubtopicName(selectedSubtopic);
-        
+        const term = terms.find(t => t.id === selectedTermId);
         const grade = _masterGradesList.find(g => g.id === selectedGrade);
-        const subjectName = grade?.subjects?.find(s => s.id === selectedSubject)?.name || '';
-
+        const subject = grade?.subjects?.find(s => s.id === selectedSubject);
+        const user = JSON.parse(localStorage.getItem("user") || '{}');
+        
         const filterByTermAndSubject = (items) => items.filter(item => {
             const matchesSubject = String(item.subject?.id || item.subject) === String(selectedSubject);
             const itemTermId = item.term?.id || item.term;
@@ -535,12 +583,12 @@ class CurriculumManagerV5 extends React.Component {
 
         const allSchemes = filterByTermAndSubject(schemesOfWork).sort((a, b) => (a.week - b.week) || (a.lessonnumber - b.lessonnumber));
         const allLessonPlans = filterByTermAndSubject(lessonPlans);
-        const allRecords = filterByTermAndSubject(this.state.recordsOfWork || []).sort((a, b) => (a.week - b.week));
+        const allRecords = filterByTermAndSubject(recordsOfWork || []).sort((a, b) => (a.week - b.week));
         const allIep = filterByTermAndSubject(iepTemplates);
 
         this.setState({
             showPrintView: true,
-            printData: { school, subjectName, termName, strandName, substrandName, allSchemes, allLessonPlans, allRecords, allIep }
+            printData: { school, teacher: user, subject, grade, term, allSchemes, allLessonPlans, allRecords, allIep }
         });
     }
 
@@ -1161,151 +1209,49 @@ class CurriculumManagerV5 extends React.Component {
             return (<div className="cm-container"><div className="cm-header-main"></div><SkeletonLoader /></div>);
         }
 
-        // --- Print Preview Mode (matches fees.js / matrix.js pattern) ---
+        // --- Professional Print Preview Mode ---
         if (this.state.showPrintView && this.state.printData) {
-            const { school, subjectName, termName, allSchemes, allLessonPlans, allRecords, allIep } = this.state.printData;
-            const stripHtml = (html) => { const t = document.createElement('div'); t.innerHTML = html || ''; return t.textContent || t.innerText || ''; };
-
-            const schemeColHeaders = ['Wk/Les', 'Strand / Sub-strand', 'Learning Outcomes', 'Key Enquiring Questions', 'Learning Experience', 'Core Competencies', 'Learning Resources', 'Methods', 'Reflection'];
-            const lessonColHeaders = ['Strand / Sub-strand', 'Learning Outcomes', 'Key Enquiry Questions', 'Resources', 'Introduction', 'Lesson Development', 'Conclusion', 'Extended Activity', 'Reflection'];
-            const recordColHeaders = ['Wk / Date', 'Strand / Sub-strand', 'Learning Outcomes', 'Lesson Covered', 'Key Activities', 'Assignments', 'Remarks / Sign'];
-
-            const Table = ({ headers, rows }) => (
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '8.5pt' }}>
-                    <thead>
-                        <tr style={{ background: '#f1f5f9' }}>
-                            {headers.map((h, i) => <th key={i} style={{ padding: '6px 8px', border: '1px solid #cbd5e1', textAlign: 'left', fontSize: '7pt', textTransform: 'uppercase', color: '#334155', fontWeight: 700, whiteSpace: 'nowrap' }}>{h}</th>)}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {rows.map((row, ri) => (
-                            <tr key={ri} style={{ background: ri % 2 === 1 ? '#f8fafc' : '#fff' }}>
-                                {row.map((cell, ci) => <td key={ci} style={{ padding: '5px 8px', border: '1px solid #e2e8f0', verticalAlign: 'top', lineHeight: 1.4 }}>{cell}</td>)}
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            );
-
-            const SectionHeading = ({ children, count }) => (
-                <div style={{ background: '#1e293b', color: '#fff', padding: '7px 14px', margin: '24px 0 0 0', fontSize: '10pt', fontWeight: 700, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span>{children}</span>
-                    <span style={{ opacity: 0.5, fontWeight: 400, fontSize: '8.5pt' }}>{count} entries</span>
-                </div>
-            );
-
-            const schemeRows = allSchemes.map(item => [
-                <><strong>Wk {item.week}</strong><br/><span style={{color:'#888',fontSize:'0.85em'}}>Les {item.lessonnumber || '-'}</span></>,
-                <><strong>{item.strand || ''}</strong><br/><span style={{color:'#555',fontSize:'0.85em'}}>{item.substrands || ''}</span></>,
-                stripHtml(item.learningoutcomes),
-                stripHtml(item.keyenquiringquestions),
-                stripHtml(item.learningexperience),
-                stripHtml(item.corecompetencies),
-                stripHtml(item.learningresources),
-                stripHtml(item.assessment),
-                stripHtml(item.reflection)
-            ]);
-
-            const lessonRows = allLessonPlans.map(item => [
-                <><strong>{item.strand || ''}</strong><br/><span style={{color:'#555',fontSize:'0.85em'}}>{item.substrands || ''}</span></>,
-                stripHtml(item.learningoutcomes),
-                stripHtml(item.keyenquiringquestions),
-                stripHtml(item.learningresources),
-                stripHtml(item.introduction),
-                stripHtml(item.lessondevelopment),
-                stripHtml(item.conclusion),
-                stripHtml(item.extendedactivity),
-                stripHtml(item.reflection)
-            ]);
-
-            const recordRows = allRecords.map(item => [
-                <><strong>Wk {item.week}</strong><br/><span style={{color:'#888',fontSize:'0.85em'}}>{item.dateofteaching || ''}</span></>,
-                <><strong>{item.strand || ''}</strong><br/><span style={{color:'#555',fontSize:'0.85em'}}>{item.substrands || ''}</span></>,
-                stripHtml(item.learningoutcomes),
-                stripHtml(item.lessoncovered),
-                stripHtml(item.keyactivities),
-                stripHtml(item.assignments),
-                ''
-            ]);
+            const { school, teacher, subject, grade, term, allSchemes, allLessonPlans, allRecords, allIep } = this.state.printData;
 
             return (
-                <div style={{ minHeight: '100vh', background: '#f3f4f6', paddingBottom: '40px' }}>
-                    {/* Toolbar — hidden when printing */}
-                    <div className="d-print-none" style={{ background: '#fff', padding: '12px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-                        <button className="btn btn-secondary font-weight-bold" onClick={this.togglePrintView}>
-                            <i className="fa fa-arrow-left mr-2"></i> Back to Planning
-                        </button>
-                        <h5 className="m-0 font-weight-bold">Planning Document Preview &mdash; {termName}</h5>
-                        <button className="btn btn-primary font-weight-bold" onClick={this.handlePrint}>
-                            <i className="fa fa-print mr-2"></i> Print / Save PDF
-                        </button>
-                    </div>
-
-                    {/* Document */}
-                    <div id="print-area" style={{ maxWidth: '1100px', margin: '0 auto', padding: '0 24px' }}>
-                        <div style={{ background: '#fff', padding: '32px 40px', borderRadius: '8px', boxShadow: '0 2px 12px rgba(0,0,0,0.08)' }}>
-                            {/* Header */}
-                            <div style={{ textAlign: 'center', borderBottom: '3px solid #1e293b', paddingBottom: '12px', marginBottom: '16px' }}>
-                                <div style={{ fontSize: '20pt', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#1e293b' }}>{school?.name || 'School'}</div>
-                                <div style={{ fontSize: '11pt', color: '#475569', marginTop: '4px' }}>{subjectName} &mdash; {termName}</div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '8.5pt', color: '#94a3b8' }}>
-                                    <span>Printed: {new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
-                                    <span>Teacher's Planning Document</span>
+                <div className="kt-grid__item kt-grid__item--fluid kt-grid kt-grid--ver kt-page">
+                    <div className="kt-grid__item kt-grid__item--fluid kt-grid kt-grid--hor kt-wrapper" id="kt_wrapper">
+                        <Navbar />
+                        <Subheader links={["Curriculum", "Planning Print Preview"]} />
+                        <div className="kt-content kt-grid__item kt-grid__item--fluid" style={{height:"auto"}} id="kt_content">
+                            <div className="kt-container pt-4">
+                                <div className="d-print-none p-4 mb-4 d-flex justify-content-between align-items-center bg-white rounded shadow-sm border">
+                                    <button className="btn btn-secondary" onClick={this.togglePrintView}>
+                                        <i className="la la-arrow-left"></i> Back to Planning
+                                    </button>
+                                    <div className="text-center">
+                                        <h4 className="m-0 font-weight-bold">Teacher Planning Portfolio Preview</h4>
+                                        <span className="text-muted small">Professional A4 Export Format</span>
+                                    </div>
+                                    <button className="btn btn-primary font-weight-bold" onClick={this.handlePrint}>
+                                        <i className="la la-print mr-2"></i> Print Document
+                                    </button>
                                 </div>
-                            </div>
-
-                            {/* Schemes of Work */}
-                            <SectionHeading count={allSchemes.length}>📋 Schemes of Work</SectionHeading>
-                            {allSchemes.length > 0
-                                ? <Table headers={schemeColHeaders} rows={schemeRows} />
-                                : <p style={{ padding: '12px', color: '#94a3b8', fontStyle: 'italic' }}>No Scheme of Work entries for this term.</p>
-                            }
-
-                            {/* Lesson Plans */}
-                            <SectionHeading count={allLessonPlans.length}>📖 Lesson Plans</SectionHeading>
-                            {allLessonPlans.length > 0
-                                ? <Table headers={lessonColHeaders} rows={lessonRows} />
-                                : <p style={{ padding: '12px', color: '#94a3b8', fontStyle: 'italic' }}>No Lesson Plans for this term.</p>
-                            }
-
-                            {/* Daily Records */}
-                            <SectionHeading count={allRecords.length}>📝 Daily Records of Work</SectionHeading>
-                            {allRecords.length > 0
-                                ? <Table headers={recordColHeaders} rows={recordRows} />
-                                : <p style={{ padding: '12px', color: '#94a3b8', fontStyle: 'italic' }}>No Daily Records for this term.</p>
-                            }
-
-                            {/* Signature row */}
-                            <div style={{ display: 'flex', gap: '40px', marginTop: '40px' }}>
-                                {['Class Teacher Signature', 'Head of Department', 'Principal / Director'].map((label, i) => (
-                                    <div key={i} style={{ flex: 1, borderTop: '1px solid #334155', paddingTop: '4px', fontSize: '8.5pt', color: '#475569', textAlign: 'center' }}>{label}</div>
-                                ))}
-                            </div>
-
-                            {/* Footer */}
-                            <div style={{ marginTop: '20px', borderTop: '1px solid #e2e8f0', paddingTop: '8px', display: 'flex', justifyContent: 'space-between', fontSize: '7.5pt', color: '#94a3b8' }}>
-                                <span>{school?.name || ''}</span>
-                                <span>Confidential — For internal use only</span>
-                                <span>{subjectName} — {termName}</span>
+                                <div id="print-area" style={{ backgroundColor: '#f3f4f6', paddingTop: '20px', paddingBottom: '20px', display: 'flex', justifyContent: 'center', overflowX: 'auto' }}>
+                                    <PlanningPrintView 
+                                        school={school}
+                                        teacher={teacher}
+                                        subject={subject}
+                                        grade={grade}
+                                        term={term}
+                                        schemes={allSchemes}
+                                        lessons={allLessonPlans}
+                                        records={allRecords}
+                                        iep={allIep}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>
-
-                    {/* @media print — hide all chrome, show only #print-area */}
-                    <style>{`
-                        @media print {
-                            #kt_header, #kt_header_mobile, #kt_header_secondary, .kt-subheader,
-                            .kt-footer, .kt-aside, .d-print-none { display: none !important; }
-                            body, html { background: white !important; margin: 0 !important; padding: 0 !important; }
-                            #kt_wrapper, .kt-content, .kt-container { background: white !important; padding: 0 !important; margin: 0 !important; display: block !important; }
-                            #print-area { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
-                            #print-area > div { border-radius: 0 !important; box-shadow: none !important; padding: 8mm 10mm !important; }
-                            table thead { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                        }
-                    `}</style>
                 </div>
             );
         }
+
 
         return (
             <div className="cm-container pt-0">
