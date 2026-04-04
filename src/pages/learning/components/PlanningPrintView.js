@@ -19,15 +19,15 @@ const PlanningPrintView = ({
     return (
         <div className="planning-print-root" style={{ 
             backgroundColor: 'white', 
-            minHeight: '29.7cm', 
-            width: '21cm', 
+            minHeight: '21cm', 
+            width: '29.7cm', 
             margin: '0 auto', 
             fontFamily: "'Inter', 'Roboto', sans-serif",
             color: '#1e293b',
             boxSizing: 'border-box',
-            paddingBottom: '2.5cm'
+            paddingBottom: '2cm'
         }}>
-            <div className="report-card-container" style={{ padding: '2.5cm 2cm' }}>
+            <div className="report-card-container" style={{ padding: '1.5cm 1.5cm' }}>
                 {/* 1. Header */}
                 <ReportHeader school={school} title="TEACHER PLANNING PORTFOLIO" themeColor={themeColor} />
 
@@ -148,17 +148,17 @@ const PlanningPrintView = ({
                                     </div>
                                 </div>
 
-                                <div className="lesson-phases">
-                                    <div style={{ marginBottom: '15px', padding: '15px', background: '#f8fafc', borderRadius: '8px' }}>
+                                <div className="lesson-phases" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
+                                    <div style={{ padding: '15px', background: '#f8fafc', borderRadius: '8px' }}>
                                         <h4 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '8px', color: '#334155' }}>1. Introduction</h4>
                                         <div style={{ fontSize: '0.9rem', lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: lp.introduction }}></div>
                                     </div>
-                                    <div style={{ marginBottom: '15px', padding: '15px', borderLeft: `4px solid ${themeColor}` }}>
+                                    <div style={{ padding: '15px', borderLeft: `4px solid ${themeColor}`, background: '#fff', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
                                         <h4 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '8px', color: '#334155' }}>2. Lesson Development</h4>
                                         <div style={{ fontSize: '0.9rem', lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: lp.lessondevelopment }}></div>
                                     </div>
-                                    <div style={{ marginBottom: '15px', padding: '15px', background: '#f8fafc', borderRadius: '8px' }}>
-                                        <h4 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '8px', color: '#334155' }}>3. Conclusion & Extended Activity</h4>
+                                    <div style={{ padding: '15px', background: '#f8fafc', borderRadius: '8px' }}>
+                                        <h4 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '8px', color: '#334155' }}>3. Conclusion</h4>
                                         <div style={{ fontSize: '0.9rem', lineHeight: 1.6 }} dangerouslySetInnerHTML={{ __html: lp.conclusion }}></div>
                                         {lp.extendedactivity && (
                                             <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid #e2e8f0' }}>
@@ -242,45 +242,39 @@ const PlanningPrintView = ({
                                     <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800 }}>Learner: {item.student?.names || 'N/A'}</h3>
                                     <div style={{ fontSize: '0.8rem', opacity: 0.9 }}>{item.strand} - {item.substrands}</div>
                                 </div>
-                                <div style={{ padding: '20px' }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
-                                        <div style={{ padding: '12px', background: '#fef2f2', borderRadius: '12px', border: '1px solid #fee2e2' }}>
-                                            <h4 style={{ fontSize: '0.75rem', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase', marginBottom: '6px' }}>Areas of Need</h4>
-                                            <div style={{ fontSize: '0.9rem' }} dangerouslySetInnerHTML={{ __html: item.needs }}></div>
+                                <div style={{ padding: '20px', display: 'grid', gridTemplateColumns: '1fr 1fr 1.2fr', gap: '20px' }}>
+                                    <div style={{ padding: '12px', background: '#fef2f2', borderRadius: '12px', border: '1px solid #fee2e2' }}>
+                                        <h4 style={{ fontSize: '0.75rem', fontWeight: 800, color: '#ef4444', textTransform: 'uppercase', marginBottom: '6px' }}>Areas of Need</h4>
+                                        <div style={{ fontSize: '0.9rem' }} dangerouslySetInnerHTML={{ __html: item.needs }}></div>
+                                    </div>
+                                    <div style={{ padding: '12px', background: '#f0fdf4', borderRadius: '12px', border: '1px solid #dcfce7' }}>
+                                        <h4 style={{ fontSize: '0.75rem', fontWeight: 800, color: '#22c55e', textTransform: 'uppercase', marginBottom: '6px' }}>Areas of Strength</h4>
+                                        <div style={{ fontSize: '0.9rem' }} dangerouslySetInnerHTML={{ __html: item.strengths }}></div>
+                                    </div>
+                                    <div style={{ padding: '12px', background: '#fff', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
+                                        <h4 style={{ fontSize: '0.75rem', fontWeight: 800, color: '#334155', textTransform: 'uppercase', marginBottom: '8px' }}>Outcomes & Experiences</h4>
+                                        <div style={{ fontSize: '0.85rem', marginBottom: '8px' }}>
+                                            <strong>Outcome:</strong>
+                                            <div dangerouslySetInnerHTML={{ __html: item.outcome }}></div>
                                         </div>
-                                        <div style={{ padding: '12px', background: '#f0fdf4', borderRadius: '12px', border: '1px solid #dcfce7' }}>
-                                            <h4 style={{ fontSize: '0.75rem', fontWeight: 800, color: '#22c55e', textTransform: 'uppercase', marginBottom: '6px' }}>Areas of Strength</h4>
-                                            <div style={{ fontSize: '0.9rem' }} dangerouslySetInnerHTML={{ __html: item.strengths }}></div>
+                                        <div style={{ fontSize: '0.85rem' }}>
+                                            <strong>Experience:</strong>
+                                            <div dangerouslySetInnerHTML={{ __html: item.experience }}></div>
                                         </div>
                                     </div>
-
-                                    <div style={{ marginBottom: '20px' }}>
-                                        <h4 style={{ fontSize: '0.85rem', fontWeight: 700, color: '#334155', marginBottom: '8px' }}>Specific Learning Outcomes & Experiences</h4>
-                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                                            <div style={{ fontSize: '0.85rem' }}>
-                                                <strong>Outcome:</strong>
-                                                <div dangerouslySetInnerHTML={{ __html: item.outcome }}></div>
-                                            </div>
-                                            <div style={{ fontSize: '0.85rem' }}>
-                                                <strong>Experience:</strong>
-                                                <div dangerouslySetInnerHTML={{ __html: item.experience }}></div>
-                                            </div>
-                                        </div>
+                                </div>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', padding: '15px 20px', borderTop: '1px solid #f1f5f9', background: '#f8fafc' }}>
+                                    <div>
+                                        <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Resources</div>
+                                        <div style={{ fontSize: '0.8rem' }} dangerouslySetInnerHTML={{ __html: item.resources }}></div>
                                     </div>
-
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', paddingTop: '15px', borderTop: '1px solid #f1f5f9' }}>
-                                        <div>
-                                            <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Resources</div>
-                                            <div style={{ fontSize: '0.8rem' }} dangerouslySetInnerHTML={{ __html: item.resources }}></div>
-                                        </div>
-                                        <div>
-                                            <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Methods</div>
-                                            <div style={{ fontSize: '0.8rem' }} dangerouslySetInnerHTML={{ __html: item.methods }}></div>
-                                        </div>
-                                        <div>
-                                            <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Duration</div>
-                                            <div style={{ fontSize: '0.8rem' }}>Init: {item.initiationDate}<br/>Term: {item.terminationDate}</div>
-                                        </div>
+                                    <div>
+                                        <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Methods</div>
+                                        <div style={{ fontSize: '0.8rem' }} dangerouslySetInnerHTML={{ __html: item.methods }}></div>
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '0.65rem', fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase' }}>Duration</div>
+                                        <div style={{ fontSize: '0.8rem' }}>Init: {item.initiationDate}<br/>Term: {item.terminationDate}</div>
                                     </div>
                                 </div>
                             </div>
