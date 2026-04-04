@@ -1684,6 +1684,10 @@ class CurriculumManagerV5 extends React.Component {
             data.strand = this.getTopicName(this.state.selectedTopic);
             data.substrands = this.getSubtopicName(this.state.selectedSubtopic);
             
+            // Fix: Parse integer fields for GraphQL compatibility
+            if (data.week) data.week = parseInt(data.week);
+            if (data.lessonnumber) data.lessonnumber = parseInt(data.lessonnumber);
+            
             if (item) data.id = item.id;
 
             const apiMap = {
