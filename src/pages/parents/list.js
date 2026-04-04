@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import Data from "../../utils/data";
 import Fuse from "fuse.js";
+import EmptyState from "../../components/EmptyState";
 
 // Modals are used as before. No changes needed for them.
 import AddModal from "./add";
@@ -441,7 +442,10 @@ export default function ParentDataTable() {
       `}</style>
     
       <header className="v8-header">
-        <h2 className="v8-header-title">Parent Directory</h2>
+        <div className="v8-header-title-container">
+            <h2 className="v8-header-title">Parent Directory</h2>
+            <p className="v8-header-desc">Directory of guardians linked to students, powering your bulk communications.</p>
+        </div>
         <div className="v8-header-actions">
           <div className="v8-header-stat">
             <div className="value">{initialLoading ? <div className="v8-spinner" style={{width: 20, height: 20}}></div> : totalParents}</div>
@@ -516,20 +520,28 @@ export default function ParentDataTable() {
                         ))}
                         <td className="v8-table-actions" style={{textAlign: 'right'}}>
                           <button 
-                            title={isExpanded ? 'Collapse' : 'Expand'} 
+                            className="v8-tooltip-container"
                             onClick={() => toggleParentExpansion(row.id)}
-                            style={{color: '#0095E8', marginRight: '8px'}}
+                            style={{color: '#0095E8', marginRight: '8px', background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem'}}
                           >
                             <i className={`la la-${isExpanded ? 'chevron-up' : 'chevron-down'}`} style={{fontSize: '1rem'}}></i>
+                            <span className="v8-tooltip-text">{isExpanded ? 'Collapse' : 'Expand'} Details</span>
                           </button>
                           {row._isTeacherResult ? (
-                            <button title="View Teacher Details" onClick={() => handleEdit(row)} style={{color: '#0095E8'}}>
+                            <button className="v8-tooltip-container" onClick={() => handleEdit(row)} style={{color: '#0095E8', background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem'}}>
                               <i className="la la-eye" style={{fontSize: '1.5rem'}}></i>
+                              <span className="v8-tooltip-text">View Teacher Details</span>
                             </button>
                           ) : (
                             <>
-                              <button title="Edit Parent" onClick={() => handleEdit(row)}><i className="la la-edit" style={{fontSize: '1.5rem'}}></i></button>
-                              <button title="Delete Parent" onClick={() => handleDelete(row)}><i className="la la-trash" style={{fontSize: '1.5rem'}}></i></button>
+                              <button className="v8-tooltip-container" onClick={() => handleEdit(row)} style={{background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem'}}>
+                                <i className="la la-edit" style={{fontSize: '1.5rem'}}></i>
+                                <span className="v8-tooltip-text">Edit Parent</span>
+                              </button>
+                              <button className="v8-tooltip-container" onClick={() => handleDelete(row)} style={{background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem'}}>
+                                <i className="la la-trash" style={{fontSize: '1.5rem'}}></i>
+                                <span className="v8-tooltip-text">Delete Parent</span>
+                              </button>
                             </>
                           )}
                         </td>
@@ -617,7 +629,18 @@ export default function ParentDataTable() {
                   );
                 })
               ) : (
-                <tr><td colSpan={headers.length + 1} style={{ textAlign: 'center', padding: '4rem', color: '#B5B5C3' }}>No parents found.</td></tr>
+                <tr>
+                    <td colSpan={headers.length + 1} style={{ padding: 0 }}>
+                        <EmptyState 
+                            title={activeSearch ? "No parents found" : "No Parents Added"}
+                            description={activeSearch ? `We couldn't find any parent matching "${activeSearch}". Try adjusting your search.` : "Build your directory of guardians to power bulk communications."}
+                            isSearch={!!activeSearch}
+                            primaryAction={activeSearch ? handleClearSearch : () => addModalInstance.show()}
+                            primaryActionText={activeSearch ? "Clear Search" : "Add Parent"}
+                            iconClass={activeSearch ? "la la-search" : "la la-user-friends"}
+                        />
+                    </td>
+                </tr>
               )}
             </tbody>
           </table>

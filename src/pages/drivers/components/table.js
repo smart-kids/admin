@@ -1,4 +1,5 @@
 import React from "react";
+import EmptyState from "../../../../components/EmptyState";
 
 // A simple spinner component (you can replace this with a more sophisticated one)
 const Spinner = () => (
@@ -78,26 +79,13 @@ export default props => {
   // or is an empty array.
   if (!data || data.length === 0) {
     return (
-      <div className="table-empty-state" style={{
-        textAlign: 'center',
-        padding: '50px 20px',
-        border: '1px solid #dee2e6', // Standard Bootstrap table border color
-        borderRadius: '0.25rem', // Standard Bootstrap border radius
-        backgroundColor: '#f8f9fa' // Light background
-      }}>
-        <NoDocumentsIcon />
-        <h4>No Data Found</h4>
-        <p>There are currently no items to display.</p>
-        {onCreateNew && typeof onCreateNew === 'function' && (
-          <button
-            type="button"
-            className="btn btn-primary mt-3"
-            onClick={onCreateNew}
-          >
-            <i className="la la-plus" /> Create New Item
-          </button>
-        )}
-      </div>
+        <EmptyState 
+            title="No Drivers Found"
+            description="There are currently no drivers to display. Build your fleet by adding a new driver."
+            iconClass="la la-truck"
+            primaryAction={onCreateNew && typeof onCreateNew === 'function' ? onCreateNew : null}
+            primaryActionText="Create New Item"
+        />
     );
   }
 
@@ -146,44 +134,42 @@ export default props => {
                   >
                     {options.editable === true && typeof edit === 'function' && (
                       <button
-                        title="Edit details"
                         type="button"
-                        className="btn btn-sm btn-clean btn-icon btn-icon-md"
+                        className="v8-tooltip-container btn btn-sm btn-clean btn-icon btn-icon-md"
                         onClick={() => edit(row)}
                       >
                         <i style={{ color: "#1dc9b7" }} className="la la-edit" />
+                        <span className="v8-tooltip-text">Edit Driver</span>
                       </button>
                     )}
                     {options.deleteable === true && typeof deleteItem === 'function' && (
                       <button
-                        title="Delete"
                         type="button"
-                        className="btn btn-sm btn-clean btn-icon btn-icon-md"
+                        className="v8-tooltip-container btn btn-sm btn-clean btn-icon btn-icon-md"
                         onClick={() => deleteItem(row)}
                       >
                         <i style={{ color: "#fd397a" }} className="la la-trash" />
+                        <span className="v8-tooltip-text">Delete Driver</span>
                       </button>
                     )}
                     {typeof invite === 'function' && (
                        <button
-                          title="Invite"
                           type="button"
-                          className="btn btn-sm btn-outline-primary"
+                          className="v8-tooltip-container btn btn-sm btn-outline-primary"
                           onClick={() => invite(row)}
                         >
                           <i className="la la-envelope" />
-                          <strong>Invite</strong>
+                          <span className="v8-tooltip-text">Invite Driver</span>
                         </button>
                     )}
                     {options.adminable === true && typeof transfer === 'function' && (
                       <button
-                        title="Transfer Ownership"
                         type="button"
-                        className="btn btn-sm btn-outline-danger"
+                        className="v8-tooltip-container btn btn-sm btn-outline-danger"
                         onClick={() => transfer(row)}
                       >
                         <i className="la la-random" />
-                        <strong>Transfer</strong>
+                        <span className="v8-tooltip-text">Transfer Ownership</span>
                       </button>
                     )}
                   </span>

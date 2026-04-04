@@ -16,6 +16,64 @@ code {
 
 /* --- Global Design Polish --- */
 
+/* V8 Typography & Structure Additions */
+.v8-header-desc {
+    font-size: 0.9rem;
+    color: #7E8299;
+    font-weight: 500;
+    margin-top: 0.25rem;
+    margin-bottom: 0;
+}
+
+.v8-header-title-container {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Custom Tooltips */
+.v8-tooltip-container {
+    position: relative;
+    display: inline-block;
+}
+
+.v8-tooltip-container:hover .v8-tooltip-text {
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.v8-tooltip-text {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    bottom: 120%;
+    left: 50%;
+    transform: translateX(-50%) translateY(5px);
+    background-color: #181C32;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    z-index: 100;
+    transition: opacity 0.2s, transform 0.2s, visibility 0.2s;
+    white-space: nowrap;
+    pointer-events: none;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.v8-tooltip-text::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #181C32 transparent transparent transparent;
+}
+
 /* Improved Cards & Depth */
 .card-custom, .kt-portlet {
   border: none !important;

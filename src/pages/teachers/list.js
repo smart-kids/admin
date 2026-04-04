@@ -6,6 +6,7 @@ import DeleteModal from "./delete";
 import Data from "../../utils/data";
 import Fuse from "fuse.js";
 import SuccessMessage from "./components/success-toast";
+import EmptyState from "../../components/EmptyState";
 
 const addModalInstance = new AddModal();
 const uploadModalInstance = new UploadModal();
@@ -227,7 +228,10 @@ export default function TeachersDirectory() {
       `}</style>
 
       <header className="v8-header">
-        <h2 className="v8-header-title">Teacher Directory</h2>
+        <div className="v8-header-title-container">
+            <h2 className="v8-header-title">Teacher Directory</h2>
+            <p className="v8-header-desc">Manage staff profiles, assign curriculum access, and track invites.</p>
+        </div>
         <div className="v8-header-actions">
           <div className="v8-header-stat">
             <div className="value">{loading ? <div className="v8-spinner" style={{width: 20, height: 20}}></div> : totalTeachers}</div>
@@ -270,14 +274,34 @@ export default function TeachersDirectory() {
                     <tr key={row.id || idx} className={newlyAddedIds.has(row.id) ? 'v8-new-row' : ''}>
                       {headers.map(h => <td key={h.key} className={h.key === 'name' ? 'td-primary' : ''}>{row[h.key] || '-'}</td>)}
                       <td className="v8-table-actions" style={{textAlign: 'right'}}>
-                        <button title="Invite Teacher" onClick={() => handleInvite(row.id)}><i className="la la-envelope" style={{fontSize: '1.5rem'}}></i></button>
-                        <button title="Edit Teacher" onClick={() => { setEdit(row); editModalInstance.show(); }}><i className="la la-edit" style={{fontSize: '1.5rem'}}></i></button>
-                        <button title="Delete Teacher" onClick={() => { setRemove(row); deleteModalInstance.show(); }}><i className="la la-trash" style={{fontSize: '1.5rem'}}></i></button>
+                        <button className="v8-tooltip-container" onClick={() => handleInvite(row.id)}>
+                            <i className="la la-envelope" style={{fontSize: '1.5rem'}}></i>
+                            <span className="v8-tooltip-text">Invite Teacher</span>
+                        </button>
+                        <button className="v8-tooltip-container" onClick={() => { setEdit(row); editModalInstance.show(); }}>
+                            <i className="la la-edit" style={{fontSize: '1.5rem'}}></i>
+                            <span className="v8-tooltip-text">Edit</span>
+                        </button>
+                        <button className="v8-tooltip-container" onClick={() => { setRemove(row); deleteModalInstance.show(); }}>
+                            <i className="la la-trash" style={{fontSize: '1.5rem'}}></i>
+                            <span className="v8-tooltip-text">Delete</span>
+                        </button>
                       </td>
                     </tr>
                 ))
               ) : (
-                <tr><td colSpan={headers.length + 1} style={{ textAlign: 'center', padding: '4rem', color: '#B5B5C3' }}>No teachers found.</td></tr>
+                <tr>
+                    <td colSpan={headers.length + 1} style={{ padding: 0 }}>
+                        <EmptyState 
+                            title={activeSearch ? "No teachers found" : "No Teachers Added"}
+                            description={activeSearch ? `We couldn't find any teacher matching "${activeSearch}". Try adjusting your search.` : "Get started by adding your first teacher to the staff directory."}
+                            isSearch={!!activeSearch}
+                            primaryAction={activeSearch ? handleClearSearch : () => addModalInstance.show()}
+                            primaryActionText={activeSearch ? "Clear Search" : "Add Teacher"}
+                            iconClass={activeSearch ? "la la-search" : "la la-user-tie"}
+                        />
+                    </td>
+                </tr>
               )}
             </tbody>
           </table>

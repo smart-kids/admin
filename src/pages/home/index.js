@@ -10,6 +10,7 @@ import Map from "./components/map";
 import ProfilePanel from "../../components/profile-panel";
 import Data from "../../utils/data";
 import List from "../trips/list";
+import OnboardingGuide from "./components/OnboardingGuide";
 
 class Home extends React.Component {
   state = {
@@ -17,7 +18,9 @@ class Home extends React.Component {
     locations: [],
     schedules: [],
     complaints: [],
-    students: 0
+    students: 0,
+    isSchoolEmpty: false,
+    selectedSchoolContext: null
   };
   componentDidMount() {
     const trips = Data.trips.list();
@@ -60,6 +63,28 @@ class Home extends React.Component {
       this.setState(schedules);
     });
 
+    const checkEmptyState = () => {
+        const schoolsData = Data.schools.list() || [];
+        const schoolId = localStorage.getItem('school');
+        const selectedSchool = schoolsData.find(s => String(s.id) === String(schoolId)) || {};
+        
+        const studentsList = Data.students.list() || [];
+        const parentsList = Data.parents.list() || [];
+        
+        const hasStudents = selectedSchool.studentsCount > 0 || studentsList.length > 0;
+        const hasParents = selectedSchool.parentsCount > 0 || parentsList.length > 0;
+        
+        this.setState({
+            selectedSchoolContext: selectedSchool,
+            isSchoolEmpty: !hasStudents && !hasParents
+        });
+    };
+
+    Data.schools.subscribe(checkEmptyState);
+    Data.students.subscribe(checkEmptyState);
+    Data.parents.subscribe(checkEmptyState);
+    checkEmptyState();
+
   }
   render() {
 
@@ -92,7 +117,11 @@ class Home extends React.Component {
                 </div> */}
 
                 <div className="col-lg-12 col-xl-12 order-lg-1 order-xl-1">
-                  <List filter={this.props.match.params.filter} />
+                  {this.state.isSchoolEmpty ? (
+                      <OnboardingGuide schoolMeta={this.state.selectedSchoolContext} />
+                  ) : (
+                      <List filter={this.props.match.params.filter} />
+                  )}
                 </div>
 
               </div>

@@ -46,26 +46,26 @@ class TableRow extends React.Component {
             >
               {this.props.options.editable === true ? (
                 <button
-                  title="Edit details"
                   type="button"
-                  className="btn btn-sm btn-clean btn-icon btn-icon-md"
+                  className="v8-tooltip-container btn btn-sm btn-clean btn-icon btn-icon-md"
                   onClick={() => {
                     this.props.edit(this.props.data);
                   }}
                 >
                   <i className="la la-edit" />
+                  <span className="v8-tooltip-text">Edit Class</span>
                 </button>
               ) : null}
               {this.props.options.deleteable === true ? (
                 <button
-                  title="Delete"
                   type="button"
-                  className="btn btn-sm btn-clean btn-icon btn-icon-md"
+                  className="v8-tooltip-container btn btn-sm btn-clean btn-icon btn-icon-md"
                   onClick={() => {
                     this.props.delete(this.props.data);
                   }}
                 >
                   <i className="la la-trash" />
+                  <span className="v8-tooltip-text">Delete Class</span>
                 </button>
               ) : null}
             </span>

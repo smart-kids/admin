@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import Data from "../../utils/data";
 import Fuse from "fuse.js";
+import EmptyState from "../../components/EmptyState";
 
 // Modals
 import AddModal from "./add";
@@ -369,7 +370,10 @@ export default function StudentDataTableV8() {
       `}</style>
     
       <header className="v8-header">
-        <h2 className="v8-header-title">Student Directory</h2>
+        <div className="v8-header-title-container">
+            <h2 className="v8-header-title">Student Directory</h2>
+            <p className="v8-header-desc">Manage the registry of student profiles, classes, and transportation.</p>
+        </div>
         <div className="v8-header-actions">
           <div className="v8-header-stat">
             <div className="value">{initialLoading ? <div className="v8-spinner" style={{width: 20, height: 20}}></div> : totalStudents}</div>
@@ -416,14 +420,34 @@ export default function StudentDataTableV8() {
                     <tr key={row.id} className={newlyAddedIds.has(row.id) ? 'v8-new-row' : ''}>
                       {headers.map(h => <td key={h.key} className={h.key === 'names' ? 'td-primary' : ''}>{getNestedValue(row, h.key)}</td>)}
                       <td className="v8-table-actions" style={{textAlign: 'right'}}>
-                        <button title="Edit Student" onClick={() => handleEdit(row)}><i className="la la-edit" style={{fontSize: '1.5rem'}}></i></button>
-                        <button title="Delete Student" onClick={() => handleDelete(row)}><i className="la la-trash" style={{fontSize: '1.5rem'}}></i></button>
-                        <button title="Upgrade Student" onClick={() => handleUpgrade(row)}><i className="la la-arrow-up" style={{fontSize: '1.5rem'}}></i></button>
+                        <button className="v8-tooltip-container" onClick={() => handleEdit(row)}>
+                            <i className="la la-edit" style={{fontSize: '1.5rem'}}></i>
+                            <span className="v8-tooltip-text">Edit Student</span>
+                        </button>
+                        <button className="v8-tooltip-container" onClick={() => handleDelete(row)}>
+                            <i className="la la-trash" style={{fontSize: '1.5rem'}}></i>
+                            <span className="v8-tooltip-text">Delete</span>
+                        </button>
+                        <button className="v8-tooltip-container" onClick={() => handleUpgrade(row)}>
+                            <i className="la la-arrow-up" style={{fontSize: '1.5rem'}}></i>
+                            <span className="v8-tooltip-text">Upgrade Class</span>
+                        </button>
                       </td>
                     </tr>
                 ))
               ) : (
-                <tr><td colSpan={headers.length + 1} style={{ textAlign: 'center', padding: '4rem', color: '#B5B5C3' }}>No students found.</td></tr>
+                <tr>
+                    <td colSpan={headers.length + 1} style={{ padding: 0 }}>
+                        <EmptyState 
+                            title={activeSearch ? "No students found" : "No Students Added"}
+                            description={activeSearch ? `We couldn't find any student matching "${activeSearch}". Try adjusting your search.` : "Get started by adding your first student to the system."}
+                            isSearch={!!activeSearch}
+                            primaryAction={activeSearch ? handleClearSearch : () => addModalInstance.show()}
+                            primaryActionText={activeSearch ? "Clear Search" : "Add Student"}
+                            iconClass={activeSearch ? "la la-search" : "la la-user-graduate"}
+                        />
+                    </td>
+                </tr>
               )}
             </tbody>
           </table>

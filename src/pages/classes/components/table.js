@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Row from "./table-row";
+import EmptyState from "../../../../components/EmptyState";
 
 export default props => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -47,7 +48,13 @@ export default props => {
           })}
           {paginatedData.length === 0 && (
             <tr>
-              <td colSpan={props.headers.length + 2} className="text-center p-4 text-muted">No records found.</td>
+              <td colSpan={props.headers.length + 2} style={{ padding: 0 }}>
+                  <EmptyState
+                      title="No Classes Found"
+                      description="There are currently no classes to display. Structure your curriculum by adding a new class."
+                      iconClass="la la-chalkboard"
+                  />
+              </td>
             </tr>
           )}
         </tbody>

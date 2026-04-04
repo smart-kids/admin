@@ -272,11 +272,25 @@ const Register = () => {
         try {
             const payload = { name: schoolName, phone: adminPhone, email: adminEmail, address: schoolAddress, password: adminPassword };
             const res = await axios.post(`${API}/auth/register`, payload);
-            setRegistrationData({ token: res.data.token, user: res.data.data.admin.user, schoolId: res.data.data.admin.school });
-            setCreatedSchoolId(res.data.data.admin.school);
-            setCurrentStep(2);
-        } catch (err) { setError(err.response?.data?.message || "An error occurred.");
-        } finally { setLoading(false); }
+            
+            const token = res.data.token;
+            const user = res.data.data.admin.user;
+            const schoolId = res.data.data.admin.school;
+            
+            localStorage.setItem("authorization", token);
+            localStorage.setItem("user", JSON.stringify(user));
+            localStorage.setItem("school", schoolId);
+            
+            await Data.init();
+            
+            if (window.toastr) window.toastr.success(`Registration successful! Welcome to ${schoolName}.`);
+            history.push('/home');
+            
+        } catch (err) { 
+            setError(err.response?.data?.message || "An error occurred.");
+        } finally { 
+            setLoading(false); 
+        }
     };
     const proceedToDashboard = async (inviteStaff = false) => {
         setLoading(true);
