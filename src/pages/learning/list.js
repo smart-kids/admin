@@ -500,7 +500,7 @@ class CurriculumManagerV5 extends React.Component {
             this.processLessonAttemptsForSubject(selectedSubject); 
             this.refreshPlanningFilters();
         } 
-        if (prevState.selectedTermId !== selectedTermId || prevState.selectedTopic !== selectedTopic || prevState.selectedSubtopic !== selectedSubtopic) {
+        if (prevState.selectedTermId !== selectedTermId || prevState.selectedTopic !== selectedTopic || prevState.selectedSubtopic !== selectedSubtopic || prevState._masterGradesList !== this.state._masterGradesList) {
             this.refreshPlanningFilters();
         }
     }
@@ -523,12 +523,8 @@ class CurriculumManagerV5 extends React.Component {
                 const term1 = terms.find(t => t.name.toLowerCase().includes('term 1')) || terms[0];
                 if (String(activeTermId) === String(term1.id)) matchesTerm = true;
             }
-            const itemStrand = item.strand ? String(item.strand).trim().toLowerCase() : "";
-            const itemSubstrands = item.substrands ? String(item.substrands).trim().toLowerCase() : "";
-            const targetStrand = selectedTopic ? String(this.getTopicName(selectedTopic)).trim().toLowerCase() : "";
-            const targetSubstrand = selectedSubtopic ? String(this.getSubtopicName(selectedSubtopic)).trim().toLowerCase() : "";
-            const matchesTopic = !selectedTopic || itemStrand === targetStrand;
-            const matchesSubtopic = !selectedSubtopic || itemSubstrands === targetSubstrand;
+            const matchesTopic = !selectedTopic || String(item.strand) === String(selectedTopic);
+            const matchesSubtopic = !selectedSubtopic || String(item.substrands) === String(selectedSubtopic);
             return matchesSubject && matchesTerm && matchesTopic && matchesSubtopic;
         };
 
@@ -538,9 +534,8 @@ class CurriculumManagerV5 extends React.Component {
             filteredLessonPlans: lessonPlans.filter(filterFn),
             filteredIepTemplates: iepTemplates.filter(item => {
                 const matchesSubject = !selectedSubject || String(item.subject?.id || item.subject) === String(selectedSubject);
-                const itemStrand = item.strand ? String(item.strand).trim().toLowerCase() : "";
-                const targetStrand = selectedTopic ? String(this.getTopicName(selectedTopic)).trim().toLowerCase() : "";
-                return matchesSubject && (!selectedTopic || itemStrand === targetStrand);
+                const matchesTopic = !selectedTopic || String(item.strand) === String(selectedTopic);
+                return matchesSubject && matchesTopic;
             })
         });
     }
@@ -592,10 +587,18 @@ class CurriculumManagerV5 extends React.Component {
             return matchesSubject && (matchesTerm || !itemTermId) && !item.isDeleted;
         });
 
-        const allSchemes = filterByTermAndSubject(schemesOfWork).sort((a, b) => (a.week - b.week) || (a.lessonnumber - b.lessonnumber));
-        const allLessonPlans = filterByTermAndSubject(lessonPlans);
-        const allRecords = filterByTermAndSubject(recordsOfWork || []).sort((a, b) => (a.week - b.week));
-        const allIep = filterByTermAndSubject(iepTemplates);
+        const allSchemes = filterByTermAndSubject(schemesOfWork).sort((a, b) => (a.week - b.week) || (a.lessonnumber - b.lessonnumber)).map(item => ({
+            ...item, strand: this.getTopicName(item.strand), substrands: this.getSubtopicName(item.substrands)
+        }));
+        const allLessonPlans = filterByTermAndSubject(lessonPlans).map(item => ({
+            ...item, strand: this.getTopicName(item.strand), substrands: this.getSubtopicName(item.substrands)
+        }));
+        const allRecords = filterByTermAndSubject(recordsOfWork || []).sort((a, b) => (a.week - b.week)).map(item => ({
+            ...item, strand: this.getTopicName(item.strand), substrands: this.getSubtopicName(item.substrands)
+        }));
+        const allIep = filterByTermAndSubject(iepTemplates).map(item => ({
+            ...item, strand: this.getTopicName(item.strand), substrands: this.getSubtopicName(item.substrands)
+        }));
 
         this.setState({
             showPrintView: true,
@@ -623,8 +626,8 @@ class CurriculumManagerV5 extends React.Component {
                     ...data, 
                     id: schemeToEdit.id,
                     term: selectedTermId,
-                    strand: this.getTopicName(selectedTopic),
-                    substrands: this.getSubtopicName(selectedSubtopic)
+                    strand: selectedTopic,
+                    substrands: selectedSubtopic
                 });
                 toastr.success("Scheme updated!");
             } else {
@@ -633,8 +636,8 @@ class CurriculumManagerV5 extends React.Component {
                     subject: selectedSubject, 
                     school: school.id,
                     term: selectedTermId,
-                    strand: this.getTopicName(selectedTopic),
-                    substrands: this.getSubtopicName(selectedSubtopic),
+                    strand: selectedTopic,
+                    substrands: selectedSubtopic,
                     teacher: JSON.parse(localStorage.getItem("user"))?.id
                 });
                 toastr.success("Scheme created!");
@@ -1737,8 +1740,8 @@ class CurriculumManagerV5 extends React.Component {
             data.subject = this.state.selectedSubject;
             data.term = this.state.selectedTermId;
             data.teacher = Data.teachers.list().find(t => t.id)?.id; // Simplistic teacher selection
-            data.strand = this.getTopicName(this.state.selectedTopic);
-            data.substrands = this.getSubtopicName(this.state.selectedSubtopic);
+            data.strand = this.state.selectedTopic;
+            data.substrands = this.state.selectedSubtopic;
             
             // Fix: Parse integer fields for GraphQL compatibility
             if (data.week) data.week = parseInt(data.week);

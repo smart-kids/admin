@@ -1,5 +1,5 @@
 import React from "react";
-import EmptyState from "../../../../components/EmptyState";
+import EmptyState from "../../../components/EmptyState";
 
 // A simple spinner component (you can replace this with a more sophisticated one)
 const Spinner = () => (

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import Row from "./table-row";
-import EmptyState from "../../../../components/EmptyState";
+import EmptyState from "../../../components/EmptyState";
 
 export default props => {
   const [currentPage, setCurrentPage] = useState(1);
