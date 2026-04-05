@@ -4,6 +4,7 @@ import app from "../scripts.bundle"; // Assuming this is Metronic's app bundle
 import Data from "../utils/data";
 import { withRouter } from "react-router";
 import Pace from 'react-pace-progress';
+const toastr = window.toastr;
 
 // Keep the Metronic JS initializers for things like dropdowns and the profile offcanvas
 const KTUtil = window.KTUtil;
