@@ -257,6 +257,21 @@ class Navbar extends React.Component {
                 </button>
             </div>
             <ul style={{ listStyle: 'none', padding: '10px 0 0 0', margin: 0 }}>
+                {/* Sync Data (Mobile) */}
+                <li style={{ marginBottom: '5px' }}>
+                    <button 
+                        onClick={() => {
+                            toastr.info("Pulling latest data from server...");
+                            Data.init();
+                            this.toggleMobileMenu();
+                        }}
+                        style={{ ...buttonStyle, background: 'rgba(57, 102, 255, 0.05)', color: '#3966ff' }}
+                    >
+                        <i className="la la-refresh" style={{ marginRight: '12px', fontSize: '1.2rem' }}></i> 
+                        <strong>Sync Data Now</strong>
+                    </button>
+                    <div style={{ height: '1px', background: '#f1f5f9', margin: '10px 15px' }}></div>
+                </li>
                 {/* School Switcher */}
                 <li>
                     <button onClick={() => this.toggleMobileSubmenu('schools')} style={buttonStyle}>
@@ -502,6 +517,21 @@ class Navbar extends React.Component {
           </div>
           
           <div className="kt-header__topbar">
+            {/* Sync Data Button */}
+            <div className="kt-header__topbar-item" style={{ marginRight: '15px' }}>
+              <div 
+                className="kt-header__topbar-wrapper" 
+                onClick={() => {
+                  toastr.info("Pulling latest data from server...");
+                  Data.init();
+                }}
+                style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px', display: 'flex', alignItems: 'center' }}
+                title="Sync Data"
+              >
+                <i className="la la-refresh" style={{ color: effectiveTopBarTextColor, fontSize: '1.4rem' }}></i>
+              </div>
+            </div>
+
             <div className="kt-header__topbar-item kt-header__topbar-item--user" id="kt_offcanvas_toolbar_profile_toggler_btn" style={{ cursor: 'pointer' }}>
               <div className="kt-header__topbar-welcome" style={{ color: effectiveTopBarTextColor }}>Hi,</div>
               <div className="kt-header__topbar-username" style={{ color: effectiveTopBarTextColor, marginLeft: '5px', fontWeight: '500' }}>{user} <span style={{ opacity: 0.7, fontSize: '0.8rem', fontWeight: '400', background: 'rgba(255,255,255,0.2)', padding: '2px 8px', borderRadius: '4px', marginLeft: '5px' }}>({this.state.userRole || storedUser.role || 'User'})</span> </div>

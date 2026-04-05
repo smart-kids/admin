@@ -523,20 +523,28 @@ class CurriculumManagerV5 extends React.Component {
                 const term1 = terms.find(t => t.name.toLowerCase().includes('term 1')) || terms[0];
                 if (String(activeTermId) === String(term1.id)) matchesTerm = true;
             }
+
             const matchesTopic = !selectedTopic || String(item.strand) === String(selectedTopic);
             const matchesSubtopic = !selectedSubtopic || String(item.substrands) === String(selectedSubtopic);
+
             return matchesSubject && matchesTerm && matchesTopic && matchesSubtopic;
         };
 
+        const resolveNames = (item) => ({
+            ...item,
+            strand: this.getTopicName(item.strand),
+            substrands: this.getSubtopicName(item.substrands)
+        });
+
         this.setState({
-            filteredSchemes: schemesOfWork.filter(filterFn),
-            filteredRecords: recordsOfWork.filter(filterFn),
-            filteredLessonPlans: lessonPlans.filter(filterFn),
+            filteredSchemes: schemesOfWork.filter(filterFn).map(resolveNames),
+            filteredRecords: recordsOfWork.filter(filterFn).map(resolveNames),
+            filteredLessonPlans: lessonPlans.filter(filterFn).map(resolveNames),
             filteredIepTemplates: iepTemplates.filter(item => {
                 const matchesSubject = !selectedSubject || String(item.subject?.id || item.subject) === String(selectedSubject);
                 const matchesTopic = !selectedTopic || String(item.strand) === String(selectedTopic);
                 return matchesSubject && matchesTopic;
-            })
+            }).map(resolveNames)
         });
     }
 
@@ -1434,34 +1442,24 @@ class CurriculumManagerV5 extends React.Component {
                                     <div className={`planning-sub-tab ${planningSubTab === 'record' ? 'active' : ''}`} onClick={() => this.handlePlanningSubTabChange('record')}>Daily Records of Work</div>
                                     <div className={`planning-sub-tab ${planningSubTab === 'iep' ? 'active' : ''}`} onClick={() => this.handlePlanningSubTabChange('iep')}>IEP Template</div>
                                 </div>
-                                <div style={{ display: 'flex', gap: '10px' }}>
-                                    <button 
-                                        className="btn btn-outline-info btn-sm" 
-                                        onClick={() => { 
-                                            toastr.info("Pulling latest data from server...");
-                                            Data.init();
-                                        }}
-                                        title="Refresh Data"
-                                    >
-                                        <i className="la la-refresh"></i> Refresh
-                                    </button>
-                                    <button className="btn btn-primary btn-sm" onClick={() => this.setState({ 
-                                        showPlanningModal: true, 
-                                        schemeToEdit: null, 
-                                        recordToEdit: null, 
-                                        lessonPlanToEdit: null, 
-                                        iepToEdit: null 
-                                    })}>
-                                        <i className="la la-plus"></i> Add {
-                                            planningSubTab === 'scheme' ? 'Scheme Entry' : 
-                                            planningSubTab === 'lesson' ? 'Lesson Plan' : 
-                                            planningSubTab === 'record' ? 'Daily Record' : 'IEP'
-                                        }
-                                    </button>
-                                    <button className="btn btn-outline-primary btn-sm" onClick={this.handlePrintPlanning}>
-                                        <i className="la la-print"></i> Print
-                                    </button>
-                                </div>
+                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                        <button className="btn btn-primary btn-sm" onClick={() => this.setState({ 
+                                            showPlanningModal: true, 
+                                            schemeToEdit: null, 
+                                            recordToEdit: null, 
+                                            lessonPlanToEdit: null, 
+                                            iepToEdit: null 
+                                        })}>
+                                            <i className="la la-plus"></i> Add {
+                                                planningSubTab === 'scheme' ? 'Scheme Entry' : 
+                                                planningSubTab === 'lesson' ? 'Lesson Plan' : 
+                                                planningSubTab === 'record' ? 'Daily Record' : 'IEP'
+                                            }
+                                        </button>
+                                        <button className="btn btn-outline-primary btn-sm" onClick={this.handlePrintPlanning}>
+                                            <i className="la la-print"></i> Print
+                                        </button>
+                                    </div>
                             </div>
 
                             <div className="planning-content" style={{ backgroundColor: '#fcfdfe', borderLeft: '1px solid #f1f5f9' }}>
