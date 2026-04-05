@@ -1432,6 +1432,16 @@ class CurriculumManagerV5 extends React.Component {
                                     <div className={`planning-sub-tab ${planningSubTab === 'iep' ? 'active' : ''}`} onClick={() => this.handlePlanningSubTabChange('iep')}>IEP Template</div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '10px' }}>
+                                    <button 
+                                        className="btn btn-outline-info btn-sm" 
+                                        onClick={() => { 
+                                            toastr.info("Pulling latest data from server...");
+                                            Data.init();
+                                        }}
+                                        title="Refresh Data"
+                                    >
+                                        <i className="la la-refresh"></i> Refresh
+                                    </button>
                                     <button className="btn btn-primary btn-sm" onClick={() => this.setState({ 
                                         showPlanningModal: true, 
                                         schemeToEdit: null, 
