@@ -53,7 +53,7 @@ class Modal extends React.Component {
         $(element).removeClass("is-invalid");
       },
 
-      async submitHandler(form, event) {
+      submitHandler: async (form, event) => {
         event.preventDefault();
         try {
           this.setState({ loading: true });
