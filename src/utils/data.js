@@ -382,6 +382,8 @@ var Data = (function () {
             questionsOrder
             scheme_of_works(limit: 100, offset: 0) {
               id
+              subject { id }
+              term { id }
               week
               lessonnumber
               strand
@@ -400,6 +402,8 @@ var Data = (function () {
             }
             lesson_plans(limit: 100, offset: 0) {
               id
+              subject { id }
+              term { id }
               strand
               substrands
               learningoutcomes
@@ -410,6 +414,22 @@ var Data = (function () {
               conclusion
               extendedactivity
               reflection
+              isDeleted
+            }
+            record_of_works(limit: 100, offset: 0) {
+              id
+              subject { id }
+              term { id }
+              week
+              dateofteaching
+              strand
+              substrands
+              learningoutcomes
+              lessoncovered
+              keyactivities
+              assignments
+              createdAt
+              updatedAt
               isDeleted
             }
           }
@@ -745,9 +765,40 @@ var Data = (function () {
                     const planningTopics = planningSubjects.flatMap(s => (s.topics || []).filter(t => !t.isDeleted).map(t => ({ ...t })));
                     const planningSubtopics = planningTopics.flatMap(t => (t.subtopics || []).filter(st => !st.isDeleted).map(st => ({ ...st, topic: t.id })));
 
-                    allData.scheme_of_works = planningSubtopics.flatMap(st => (st.scheme_of_works || []).filter(s => !s.isDeleted));
-                    allData.record_of_works = planningSubtopics.flatMap(st => (st.record_of_works || []).filter(r => !r.isDeleted));
-                    allData.lesson_plans = planningSubtopics.flatMap(st => (st.lesson_plans || []).filter(l => !l.isDeleted));
+                    // Also process questions from grades data if curriculum wasn't processed
+                    if (!activeSchool.curriculum) {
+                        allData.grades = planningGrades;
+                        allData.subjects = planningSubjects.map(s => ({ ...s, grade: s.grade || planningGrades.find(g => g.subjects?.includes(s))?.id }));
+                        allData.topics = planningTopics.map(t => ({ ...t, subject: t.subject || planningSubjects.find(s => s.topics?.includes(t))?.id }));
+                        allData.subtopics = planningSubtopics;
+                        allData.questions = planningSubtopics.flatMap(st => (st.questions || []).filter(q => !q.isDeleted).map(q => ({ ...q, subtopic: st.id })));
+                        allData.options = allData.questions.flatMap(q => (q.options || []).filter(o => !o.isDeleted).map(o => ({ ...o, question: q.id })));
+                    }
+
+                    allData.scheme_of_works = planningSubtopics.flatMap(st => 
+                        (st.scheme_of_works || []).filter(s => !s.isDeleted).map(s => ({ 
+                            ...s, 
+                            // Preserve subject and term context from parent levels
+                            subject: s.subject || planningSubjects.find(sub => sub.topics?.some(topic => topic.subtopics?.some(subtopic => subtopic.id === st.id)))?.id,
+                            term: s.term || planningSubjects.find(sub => sub.topics?.some(topic => topic.subtopics?.some(subtopic => subtopic.id === st.id)))?.term?.id
+                        }))
+                    );
+                    allData.record_of_works = planningSubtopics.flatMap(st => 
+                        (st.record_of_works || []).filter(r => !r.isDeleted).map(r => ({ 
+                            ...r, 
+                            // Preserve subject and term context from parent levels
+                            subject: r.subject || planningSubjects.find(sub => sub.topics?.some(topic => topic.subtopics?.some(subtopic => subtopic.id === st.id)))?.id,
+                            term: r.term || planningSubjects.find(sub => sub.topics?.some(topic => topic.subtopics?.some(subtopic => subtopic.id === st.id)))?.term?.id
+                        }))
+                    );
+                    allData.lesson_plans = planningSubtopics.flatMap(st => 
+                        (st.lesson_plans || []).filter(l => !l.isDeleted).map(l => ({ 
+                            ...l, 
+                            // Preserve subject and term context from parent levels
+                            subject: l.subject || planningSubjects.find(sub => sub.topics?.some(topic => topic.subtopics?.some(subtopic => subtopic.id === st.id)))?.id,
+                            term: l.term || planningSubjects.find(sub => sub.topics?.some(topic => topic.subtopics?.some(subtopic => subtopic.id === st.id)))?.term?.id
+                        }))
+                    );
                     allData.iep_templates = planningTopics.flatMap(t => (t.iep_templates || []).filter(i => !i.isDeleted));
                 }
 
@@ -1335,7 +1386,7 @@ var Data = (function () {
             isNested: true,
             parentEntity: "subtopics",
             parentKey: "substrands",
-            createFields: ['school', 'subject', 'term', 'teacher', 'week', 'lessonnumber', 'strand', 'substrands', 'learningoutcomes', 'keyenquiringquestions', 'learningexperience', 'corecompetencies', 'learningresources', 'assessment', 'reflection'],
+            createFields: ['school', 'subject', 'subtopic', 'term', 'teacher', 'week', 'lessonnumber', 'strand', 'substrands', 'learningoutcomes', 'keyenquiringquestions', 'learningexperience', 'corecompetencies', 'learningresources', 'assessment', 'reflection'],
             updateFields: ['term', 'teacher', 'week', 'lessonnumber', 'strand', 'substrands', 'learningoutcomes', 'keyenquiringquestions', 'learningexperience', 'corecompetencies', 'learningresources', 'assessment', 'reflection']
         },
         {
@@ -1344,7 +1395,7 @@ var Data = (function () {
             isNested: true,
             parentEntity: "subtopics",
             parentKey: "substrands",
-            createFields: ['school', 'subject', 'term', 'teacher', 'week', 'dateofteaching', 'strand', 'substrands', 'learningoutcomes', 'lessoncovered', 'keyactivities', 'assignments'],
+            createFields: ['school', 'subject', 'subtopic', 'term', 'teacher', 'week', 'dateofteaching', 'strand', 'substrands', 'learningoutcomes', 'lessoncovered', 'keyactivities', 'assignments'],
             updateFields: ['term', 'teacher', 'week', 'dateofteaching', 'strand', 'substrands', 'learningoutcomes', 'lessoncovered', 'keyactivities', 'assignments']
         },
         {
@@ -1353,7 +1404,7 @@ var Data = (function () {
             isNested: true,
             parentEntity: "subtopics",
             parentKey: "substrands",
-            createFields: ['school', 'subject', 'term', 'teacher', 'strand', 'substrands', 'learningoutcomes', 'keyenquiringquestions', 'learningresources', 'introduction', 'lessondevelopment', 'conclusion', 'extendedactivity', 'reflection'],
+            createFields: ['school', 'subject', 'subtopic', 'term', 'teacher', 'strand', 'substrands', 'learningoutcomes', 'keyenquiringquestions', 'learningresources', 'introduction', 'lessondevelopment', 'conclusion', 'extendedactivity', 'reflection'],
             updateFields: ['term', 'teacher', 'strand', 'substrands', 'learningoutcomes', 'keyenquiringquestions', 'learningresources', 'introduction', 'lessondevelopment', 'conclusion', 'extendedactivity', 'reflection']
         },
         {

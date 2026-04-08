@@ -518,18 +518,26 @@ class CurriculumManagerV5 extends React.Component {
         }
 
         const filterFn = (item) => {
-            const matchesSubject = String(item.subject?.id || item.subject) === String(selectedSubject);
+            // 1. Match Subject: Check subject object, subject ID string, or use lenient fallback
+            const itemSubjectId = item.subject?.id || item.subject;
+            const matchesSubject = !itemSubjectId || String(itemSubjectId) === String(selectedSubject);
+
+            // 2. Match Term
             const itemTermId = item.term?.id || item.term;
-            let matchesTerm = String(itemTermId) === String(activeTermId);
-            if (!itemTermId && terms.length > 0) {
+            let matchesTerm = true;
+            if (itemTermId && activeTermId) {
+                matchesTerm = String(itemTermId) === String(activeTermId);
+            } else if (!itemTermId && terms.length > 0) {
                 const term1 = terms.find(t => t.name.toLowerCase().includes('term 1')) || terms[0];
                 if (String(activeTermId) === String(term1.id)) matchesTerm = true;
             }
 
-            const matchesTopic = !selectedTopic || String(item.strand) === String(selectedTopic);
-            const matchesSubtopic = !selectedSubtopic || String(item.substrands) === String(selectedSubtopic);
+            // 3. Match Topic/Subtopic (Strands)
+            // Use raw ID stored in strand/substrands, handle both string and object cases
+            const matchesTopic = !selectedTopic || String(item.strand?.id || item.strand) === String(selectedTopic);
+            const matchesSubtopic = !selectedSubtopic || String(item.substrands?.id || item.substrands) === String(selectedSubtopic);
 
-            return matchesSubject && matchesTerm && matchesTopic && matchesSubtopic;
+            return matchesSubject && matchesTerm && matchesTopic && matchesSubtopic && !item.isDeleted;
         };
 
         const resolveNames = (item) => ({
@@ -1739,9 +1747,13 @@ class CurriculumManagerV5 extends React.Component {
             // Add required context
             data.subject = this.state.selectedSubject;
             data.term = this.state.selectedTermId;
-            data.teacher = Data.teachers.list().find(t => t.id)?.id; // Simplistic teacher selection
-            data.strand = this.state.selectedTopic;
-            data.substrands = this.state.selectedSubtopic;
+            data.school = this.state.school.id;
+            
+            // CRITICAL: Use the key 'substrands' to match the entityConfig parentKey
+            data.substrands = this.state.selectedSubtopic; 
+
+            // Keep strand as string description for the table display
+            data.strand = this.state.selectedTopic; 
             
             // Fix: Parse integer fields for GraphQL compatibility
             if (data.week) data.week = parseInt(data.week);
