@@ -451,13 +451,12 @@ var Data = (function () {
         # The nested relation
         logs {
             id
+            smsEventId
             recipientName
             recipientPhone
             status
             error
             providerResponse # The raw JSON
-            timestamp
-            messageType
         }
     } 
 }`;
