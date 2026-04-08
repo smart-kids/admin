@@ -60,12 +60,22 @@ export default function StudentDataTableV8() {
   useEffect(() => {
     if (edit) {
       editModalInstance.show();
+    } else {
+      // Ensure modal is completely hidden and backdrop removed
+      editModalInstance.hide();
+      $('.modal-backdrop').remove();
+      $('body').removeClass('modal-open');
     }
   }, [edit]);
 
   useEffect(() => {
     if (remove) {
       deleteModalInstance.show();
+    } else {
+      // Ensure modal is completely hidden and backdrop removed
+      deleteModalInstance.hide();
+      $('.modal-backdrop').remove();
+      $('body').removeClass('modal-open');
     }
   }, [remove]);
 
