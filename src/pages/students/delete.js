@@ -21,19 +21,6 @@ class Modal extends React.Component {
   }
   hide() {
     $("#" + modalNumber).modal("hide");
-    if (this.props.onHide) {
-      this.props.onHide();
-    }
-  }
-  componentDidMount() {
-    const _this = this;
-    
-    // Add event listener for modal hidden event
-    $("#" + modalNumber).on('hidden.bs.modal', function () {
-      if (_this.props.onHide) {
-        _this.props.onHide();
-      }
-    });
   }
 
   async deleteRecord() {

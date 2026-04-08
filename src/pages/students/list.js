@@ -58,29 +58,7 @@ export default function StudentDataTableV8() {
   const [remove, setRemove] = useState(null);
   const [upgrade, setUpgrade] = useState(null);
 
-  // --- MODAL EFFECTS ---
-  useEffect(() => {
-    if (edit) {
-      editModalInstance.show();
-    } else {
-      // Ensure modal is completely hidden and backdrop removed
-      editModalInstance.hide();
-      $('.modal-backdrop').remove();
-      $('body').removeClass('modal-open');
-    }
-  }, [edit]);
-
-  useEffect(() => {
-    if (remove) {
-      deleteModalInstance.show();
-    } else {
-      // Ensure modal is completely hidden and backdrop removed
-      deleteModalInstance.hide();
-      $('.modal-backdrop').remove();
-      $('body').removeClass('modal-open');
-    }
-  }, [remove]);
-
+  
   // --- DATA FETCHING (PAGINATED STUDENTS) ---
   const fetchPageData = useCallback(async (page, limit, search, sort) => {
     if (!initialLoading) {
@@ -249,9 +227,15 @@ export default function StudentDataTableV8() {
     setSortConfig({ key, direction });
   };
 
-  const handleEdit = (row) => setEdit(row);
+  const handleEdit = (row) => {
+    setEdit(row);
+    editModalInstance.show();
+  };
 
-  const handleDelete = (row) => setRemove(row);
+  const handleDelete = (row) => {
+    setRemove(row);
+    deleteModalInstance.show();
+  };
 
   const handleUpgrade = (row) => {
     upgradeModalInstance.show(row, async (upgradeData) => {
@@ -297,24 +281,18 @@ export default function StudentDataTableV8() {
       <AddModal routes={routes} parents={parents} classes={classes} save={handleCreateStudent} />
       <UploadModal save={() => { fetchPageData(1, rowsPerPage, "", sortConfig) }} />
       
-      {edit && (
-        <EditModal 
-            edit={edit} 
-            routes={routes} 
-            parents={parents} 
-            classes={classes} 
-            save={async student => { await Data.students.update(student); handleAfterAction(); setEdit(null); }} 
-            onHide={() => setEdit(null)}
-        />
-      )}
-      
-      {remove && (
-        <DeleteModal 
-            remove={remove} 
-            save={async student => { await Data.students.delete(student); handleAfterAction(); setRemove(null); }} 
-            onHide={() => setRemove(null)}
-        />
-      )}
+      <EditModal 
+        edit={edit} 
+        routes={routes} 
+        parents={parents} 
+        classes={classes} 
+        save={async student => { await Data.students.update(student); handleAfterAction(); setEdit(null); }} 
+    />
+  
+    <DeleteModal 
+        remove={remove} 
+        save={async student => { await Data.students.delete(student); handleAfterAction(); setRemove(null); }} 
+    />
       
       {upgrade && (
         <UpgradeModal 
