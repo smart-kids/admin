@@ -124,7 +124,7 @@ const createEntityAPI = (config) => {
                 if (payload.amount !== undefined && typeof payload.amount === 'number' && name !== 'chargeTypes') {
                     payload.amount = String(payload.amount);
                 }
-                if (!isNested && !payload.school && name !== 'schools') {
+                if (!payload.school && name !== 'schools') {
                     payload.school = localStorage.getItem("school");
                 }
 
