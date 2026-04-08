@@ -262,7 +262,7 @@ class Navbar extends React.Component {
                 <li style={{ marginBottom: '5px' }}>
                     <button 
                         onClick={() => {
-                            toastr.info("Pulling latest data from server...");
+                            if (window.toastr) window.toastr.info("Pulling latest data from server...");
                             Data.init();
                             this.toggleMobileMenu();
                         }}
@@ -523,7 +523,7 @@ class Navbar extends React.Component {
               <div 
                 className="kt-header__topbar-wrapper" 
                 onClick={() => {
-                  toastr.info("Pulling latest data from server...");
+                  if (window.toastr) window.toastr.info("Pulling latest data from server...");
                   Data.init();
                 }}
                 style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px', display: 'flex', alignItems: 'center' }}

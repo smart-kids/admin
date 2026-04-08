@@ -374,6 +374,8 @@ class CurriculumManagerV5 extends React.Component {
         window.removeEventListener('beforeunload', this.saveStateToLocalStorage);
     }
     
+
+
     // --- Data Processing & State Management ---
     processDataUpdate = ({ schools }) => {
         const activeId = localStorage.getItem("school");
@@ -394,7 +396,7 @@ class CurriculumManagerV5 extends React.Component {
             ...validatedState, 
             school: activeSchool, 
             _masterGradesList: masterGradesList, 
-            isLoading: this.state.isLoading ? !isDataReady : false, 
+            isLoading: this.state.isLoading ? !isDataReady : false
         }, () => {
             this.refreshCurrentSelectionsAndFilters();
             this.refreshPlanningFilters(); // Explicitly refresh planning data once names are resolved
