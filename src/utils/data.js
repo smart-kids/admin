@@ -352,8 +352,12 @@ var Data = (function () {
                     id name teacher topicsOrder 
                     topics { 
                         id name icon subtopicOrder 
+                        iep_templates { id teacher { id names } student { id names } term { id name } strand learningoutcomes }
                         subtopics { 
                             id name questionsOrder 
+                            scheme_of_works { id school subject { id name } term { id name } teacher { id names } week lessonnumber strand substrands learningoutcomes keyenquiringquestions keyscienceconcepts learningresources values corecompetencies }
+                            record_of_works { id school subject { id name } term { id name } teacher { id names } week lessonnumber strand substrands workdone reflection }
+                            lesson_plans { id school subject { id name } term { id name } teacher { id names } lessonnumber strand substrands subtopic learningoutcomes corecompetencies scienceconcepts crosscuttingissues corevalues keysciencequestions learningresources intro body conclusion references }
                         } 
                     } 
                 } 
