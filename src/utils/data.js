@@ -745,10 +745,10 @@ var Data = (function () {
                     const planningTopics = planningSubjects.flatMap(s => (s.topics || []).filter(t => !t.isDeleted).map(t => ({ ...t })));
                     const planningSubtopics = planningTopics.flatMap(t => (t.subtopics || []).filter(st => !st.isDeleted).map(st => ({ ...st, topic: t.id })));
 
-                    allData.scheme_of_works = planningSubtopics.flatMap(st => (st.scheme_of_works || []).filter(s => !s.isDeleted).map(s => ({ ...s, subtopicId: st.id, topicId: st.topic })));
-                    allData.record_of_works = planningSubtopics.flatMap(st => (st.record_of_works || []).filter(r => !r.isDeleted).map(r => ({ ...r, subtopicId: st.id, topicId: st.topic })));
-                    allData.lesson_plans = planningSubtopics.flatMap(st => (st.lesson_plans || []).filter(l => !l.isDeleted).map(l => ({ ...l, subtopicId: st.id, topicId: st.topic })));
-                    allData.iep_templates = planningTopics.flatMap(t => (t.iep_templates || []).filter(i => !i.isDeleted).map(i => ({ ...i, topicId: t.id })));
+                    allData.scheme_of_works = planningSubtopics.flatMap(st => (st.scheme_of_works || []).filter(s => !s.isDeleted));
+                    allData.record_of_works = planningSubtopics.flatMap(st => (st.record_of_works || []).filter(r => !r.isDeleted));
+                    allData.lesson_plans = planningSubtopics.flatMap(st => (st.lesson_plans || []).filter(l => !l.isDeleted));
+                    allData.iep_templates = planningTopics.flatMap(t => (t.iep_templates || []).filter(i => !i.isDeleted));
                 }
 
                 // Lesson Attempts & Events (Flattened - always from curriculum/grades structure)
