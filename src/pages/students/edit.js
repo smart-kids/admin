@@ -35,6 +35,9 @@ class Modal extends React.Component {
 
   hide() {
     $("#" + modalNumber).modal("hide");
+    // Clean up backdrop and modal remnants
+    $(".modal-backdrop").remove();
+    $("body").removeClass("modal-open");
   }
 
   componentDidMount() {
@@ -53,28 +56,28 @@ class Modal extends React.Component {
       async submitHandler(form, event) {
         event.preventDefault();
         try {
-          _this.setState({ loading: true });
+          this.setState({ loading: true });
 
           const payload = {
-            id: _this.state.edit.id,
-            names: _this.state.edit.names,
-            registration: _this.state.edit.registration,
-            gender: _this.state.edit.gender,
+            id: this.state.edit.id,
+            names: this.state.edit.names,
+            registration: this.state.edit.registration,
+            gender: this.state.edit.gender,
             
-            class: _this.state.edit.class?.id || "",
-            route: _this.state.edit.route?.id || "",
-            parent: _this.state.edit.parent?.id || "",
-            parent2: _this.state.edit.parent2?.id || "",
-            paidFees: parseFloat(_this.state.edit.paidFees) || 0,
-            balanceBroughtForward: parseFloat(_this.state.edit.balanceBroughtForward) || 0
+            class: this.state.edit.class?.id || "",
+            route: this.state.edit.route?.id || "",
+            parent: this.state.edit.parent?.id || "",
+            parent2: this.state.edit.parent2?.id || "",
+            paidFees: parseFloat(this.state.edit.paidFees) || 0,
+            balanceBroughtForward: parseFloat(this.state.edit.balanceBroughtForward) || 0
           };
 
-          await _this.props.save(payload);
+          await this.props.save(payload);
           
-          _this.hide();
-          _this.setState({ loading: false });
+          this.hide();
+          this.setState({ loading: false });
         } catch (error) {
-          _this.setState({ loading: false });
+          this.setState({ loading: false });
           if (error) {
             const { message } = error;
             return IErrorMessage.show({ message });
