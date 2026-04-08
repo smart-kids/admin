@@ -331,7 +331,7 @@ var Data = (function () {
         const FRAGMENT_USER_DATA = `fragment UserData on user { name email phone }`;
         const FRAGMENT_SCHOOL_DETAILS = `fragment schoolDetails on school { id name phone email address logo themeColor studentsCount parentsCount gradeOrder }`;
         const FRAGMENT_GRADES_DATA = `fragment GradesData on school {
-            curriculum: grades { 
+            grades { 
                 id name subjectsOrder 
                 subjects { 
                     id name teacher topicsOrder 
@@ -577,7 +577,7 @@ var Data = (function () {
             return target;
         };
 
-        const mergeAndNotify = (response) => {
+       const mergeAndNotify = (response) => {
             const incomingSchools = response?.schools;
             if (!incomingSchools || incomingSchools.length === 0) return;
 
@@ -592,6 +592,15 @@ var Data = (function () {
                     console.log("New School Added to cache:", school.id);
                 }
 
+                // UNIFY: If data comes in as 'curriculum' or 'planning', move it to 'grades'
+                // so deepMergeById combines them into the same objects.
+                if (incomingSchool.curriculum && !incomingSchool.grades) {
+                    incomingSchool.grades = incomingSchool.curriculum;
+                }
+                if (incomingSchool.planning && !incomingSchool.grades) {
+                    incomingSchool.grades = incomingSchool.planning;
+                }
+
                 deepMergeById(school, incomingSchool);
 
                 Object.keys(incomingSchool).forEach(key => {
@@ -600,32 +609,9 @@ var Data = (function () {
                     }
                 });
 
-                // Aliased grade queries ('curriculum', 'planning') should also trigger the grades processing branch
-                if (incomingSchool.curriculum || incomingSchool.planning) {
+                // Trigger grades branch if any hierarchy alias was used
+                if (incomingSchool.curriculum || incomingSchool.planning || incomingSchool.grades) {
                     updatedSubEntities.add('grades');
-                }
-
-                // Check if grades contain planning data (schemes, lessons, records, IEPs)
-                if (incomingSchool.grades) {
-                    const hasPlanningData = incomingSchool.grades.some(grade => 
-                        grade.subjects && grade.subjects.some(subject => 
-                            subject.topics && subject.topics.some(topic => 
-                                (topic.iep_templates && topic.iep_templates.length > 0) ||
-                                (topic.subtopics && topic.subtopics.some(subtopic => 
-                                    (subtopic.scheme_of_works && subtopic.scheme_of_works.length > 0) ||
-                                    (subtopic.lesson_plans && subtopic.lesson_plans.length > 0) ||
-                                    (subtopic.record_of_works && subtopic.record_of_works.length > 0)
-                                ))
-                            )
-                        )
-                    );
-                    if (hasPlanningData) {
-                        updatedSubEntities.add('grades');
-                    }
-                }
-
-                if (incomingSchool.payments) {
-                    console.log(`School ${school.id} update included ${incomingSchool.payments.length} payments`);
                 }
             });
 
@@ -634,14 +620,13 @@ var Data = (function () {
                 localStorage.setItem("school", schoolID);
             }
 
-            // Standardize activeSchool lookup
             const activeSchool = allData.schools.find(s => String(s.id) === String(schoolID));
             if (!activeSchool) {
                 console.warn("No activeSchool found for ID:", schoolID);
                 return;
             }
 
-            // >>> ADD THIS BLOCK: Notify subscribers that the school data has loaded/updated <<<
+            // Notify subscribers that school list/selection updated
             if (Array.isArray(subs.schools)) {
                 subs.schools.forEach(cb => cb({
                     schools: [...allData.schools],
@@ -649,168 +634,91 @@ var Data = (function () {
                 }));
             }
 
-            // Notify flat-list subscribers based on what was updated
+            // Notifier helper for flat lists
             const notifyEntity = (entityName, dataMapper) => {
                 if (updatedSubEntities.has(entityName) && activeSchool[entityName]) {
-                    // Update flat list logic:
-                    // We map the activeSchool's array to a new array to ensure React triggers updates (referential change)
                     const newData = dataMapper ? activeSchool[entityName].map(dataMapper) : activeSchool[entityName];
-
-                    // SAFETY CHECK: If this query returned an empty list for an entity that usually has data, 
-                    // we might want to be careful. But generally, if updatedSubEntities has it, it implies the API returned it.
                     allData[entityName] = newData;
-
                     if (Array.isArray(subs[entityName])) {
                         subs[entityName].forEach(cb => cb({ [entityName]: [...allData[entityName]] }));
                     }
                 }
             };
 
-            // Call notifiers
-            notifyEntity('students', s => {
-                const classObj = s.class?.id ? s.class : (allData.classes.find(c => String(c.id) === String(s.class?.id || s.class)));
-                if (!classObj && s.class) console.warn(`Class not found for student ${s.id}:`, s.class);
-
-                return {
-                    ...s,
-                    parent_name: s.parent?.name,
-                    class_name: classObj?.name,
-                    route_name: s.route?.name
-                };
-            });
+            // Call standard notifiers
+            notifyEntity('students', s => ({
+                ...s,
+                parent_name: s.parent?.name,
+                class_name: s.class?.name || allData.classes.find(c => String(c.id) === String(s.class?.id || s.class))?.name,
+                route_name: s.route?.name
+            }));
             notifyEntity('parents');
             notifyEntity('terms');
             notifyEntity('assessmentTypes');
             notifyEntity('assessmentRubrics');
             notifyEntity('drivers');
             notifyEntity('admins');
-            notifyEntity('buses', b => {
-                const driverId = b.driver?.id || b.driver;
-                const driverObj = allData.drivers.find(d => String(d.id) === String(driverId));
-                return { ...b, driver: driverObj?.names || 'Unassigned' };
-            });
+            notifyEntity('buses');
             notifyEntity('routes');
             notifyEntity('complaints');
             notifyEntity('trips');
-            notifyEntity('schedules', s => {
-                const busId = s.bus?.id || s.bus;
-                const routeId = s.route?.id || s.route;
-                const busObj = allData.buses.find(b => String(b.id) === String(busId));
-                const routeObj = allData.routes.find(r => String(r.id) === String(routeId));
-                return { ...s, bus_make: busObj?.make, route_name: routeObj?.name };
-            });
-
-            // NOTE: Classes are crucial for fees. 
-            notifyEntity('classes', c => {
-                const teacherId = c.teacher?.id || c.teacher;
-                const teacherObj = allData.teachers.find(t => String(t.id) === String(teacherId));
-                return { ...c, student_num: c.students?.length || 0, teacher_name: teacherObj?.name || 'Unassigned' };
-            });
-
             notifyEntity('teachers');
-            notifyEntity('invitations');
-            notifyEntity('smsLogs');
+            notifyEntity('classes');
             notifyEntity('books');
             notifyEntity('chargeTypes');
 
+            // Financials Merge Logic
+            if (updatedSubEntities.has('charges') || updatedSubEntities.has('payments')) {
+                ['charges', 'payments'].forEach(entityName => {
+                    if (updatedSubEntities.has(entityName)) {
+                        const serverItems = activeSchool[entityName] || [];
+                        const existingItems = allData[entityName] || [];
+                        const existingMap = new Map(existingItems.map(p => [String(p.id), p]));
+                        const mergedItems = [];
 
-            // Financials
-            if (updatedSubEntities.has('financial') || updatedSubEntities.has('charges') || updatedSubEntities.has('payments')) {
-                const mergeEntities = (entityName) => {
-                    const serverItems = activeSchool[entityName] || [];
-                    const existingItems = allData[entityName] || [];
-                    const existingMap = new Map(existingItems.map(p => [String(p.id), p]));
-                    const mergedItems = [];
-
-                    serverItems.forEach(serverItem => {
-                        const existingItem = existingMap.get(String(serverItem.id));
-                        if (existingItem) {
-                            mergedItems.push({ ...existingItem, ...serverItem });
+                        serverItems.forEach(serverItem => {
+                            const existingItem = existingMap.get(String(serverItem.id));
+                            mergedItems.push(existingItem ? { ...existingItem, ...serverItem } : serverItem);
                             existingMap.delete(String(serverItem.id));
-                        } else {
-                            mergedItems.push(serverItem);
+                        });
+
+                        mergedItems.push(...existingMap.values());
+                        mergedItems.sort((a, b) => new Date(b.time || b.createdAt) - new Date(a.time || b.createdAt));
+                        allData[entityName] = mergedItems;
+
+                        if (Array.isArray(subs[entityName])) {
+                            subs[entityName].forEach(cb => cb({ [entityName]: [...allData[entityName]] }));
                         }
-                    });
-
-                    mergedItems.push(...existingMap.values());
-                    mergedItems.sort((a, b) => new Date(b.time || b.createdAt) - new Date(a.time || b.createdAt));
-                    allData[entityName] = mergedItems;
-
-                    if (Array.isArray(subs[entityName])) {
-                        subs[entityName].forEach(cb => cb({ [entityName]: [...allData[entityName]] }));
                     }
-                };
-
-                if (updatedSubEntities.has('charges')) mergeEntities('charges');
-                if (updatedSubEntities.has('payments')) mergeEntities('payments');
+                });
             }
 
-            // Grades hierarchy flattening & merging
-            const gradesData = activeSchool.curriculum || activeSchool.planning || activeSchool.grades;
-            if (updatedSubEntities.has('grades') && gradesData) {
-                // If the response contains CURRICULUM, we update the curriculum structure/questions
-                if (activeSchool.curriculum) {
-                    allData.grades = activeSchool.curriculum.filter(g => !g.isDeleted);
-                    allData.subjects = allData.grades.flatMap(g => (g.subjects || []).filter(s => !s.isDeleted).map(s => ({ ...s, grade: g.id })));
-                    allData.topics = allData.subjects.flatMap(s => (s.topics || []).filter(t => !t.isDeleted).map(t => ({ ...t, subject: s.id })));
-                    allData.subtopics = allData.topics.flatMap(t => (t.subtopics || []).filter(st => !st.isDeleted).map(st => ({ ...st, topic: t.id })));
-                    allData.questions = allData.subtopics.flatMap(st => (st.questions || []).filter(q => !q.isDeleted).map(q => ({ ...q, subtopic: st.id })));
+            // UNIFIED HIERARCHY FLATTENING (Grades -> Subjects -> Topics -> Subtopics -> Questions -> Planning)
+            if (updatedSubEntities.has('grades') && activeSchool.grades) {
+                const activeGrades = activeSchool.grades.filter(g => !g.isDeleted);
+                
+                allData.grades = activeGrades;
+                allData.subjects = activeGrades.flatMap(g => (g.subjects || []).filter(s => !s.isDeleted).map(s => ({ ...s, grade: g.id })));
+                allData.topics = allData.subjects.flatMap(s => (s.topics || []).filter(t => !t.isDeleted).map(t => ({ ...t, subject: s.id })));
+                allData.subtopics = allData.topics.flatMap(t => (t.subtopics || []).filter(st => !st.isDeleted).map(st => ({ ...st, topic: t.id })));
+                
+                // Only overwrite questions if we have them in this update
+                const questionsFromTree = allData.subtopics.flatMap(st => (st.questions || []).filter(q => !q.isDeleted).map(q => ({ ...q, subtopic: st.id })));
+                if (questionsFromTree.length > 0) {
+                    allData.questions = questionsFromTree;
                     allData.options = allData.questions.flatMap(q => (q.options || []).filter(o => !o.isDeleted).map(o => ({ ...o, question: q.id })));
                 }
 
-                // If the response contains PLANNING data (under grades), we update the planning records from the tree
-                if (activeSchool.grades) {
-                    const planningGrades = activeSchool.grades.filter(g => !g.isDeleted);
-                    const planningSubjects = planningGrades.flatMap(g => (g.subjects || []).filter(s => !s.isDeleted));
-                    const planningTopics = planningSubjects.flatMap(s => (s.topics || []).filter(t => !t.isDeleted).map(t => ({ ...t })));
-                    const planningSubtopics = planningTopics.flatMap(t => (t.subtopics || []).filter(st => !st.isDeleted).map(st => ({ ...st, topic: t.id })));
+                // Flatten Planning items from Subtopics
+                allData.scheme_of_works = allData.subtopics.flatMap(st => (st.scheme_of_works || []).filter(s => !s.isDeleted));
+                allData.record_of_works = allData.subtopics.flatMap(st => (st.record_of_works || []).filter(r => !r.isDeleted));
+                allData.lesson_plans = allData.subtopics.flatMap(st => (st.lesson_plans || []).filter(l => !l.isDeleted));
+                allData.iep_templates = allData.topics.flatMap(t => (t.iep_templates || []).filter(i => !i.isDeleted));
 
-                    // Also process questions from grades data if curriculum wasn't processed
-                    if (!activeSchool.curriculum) {
-                        allData.grades = planningGrades;
-                        allData.subjects = planningSubjects.map(s => ({ ...s, grade: s.grade || planningGrades.find(g => g.subjects?.includes(s))?.id }));
-                        allData.topics = planningTopics.map(t => ({ ...t, subject: t.subject || planningSubjects.find(s => s.topics?.includes(t))?.id }));
-                        allData.subtopics = planningSubtopics;
-                        allData.questions = planningSubtopics.flatMap(st => (st.questions || []).filter(q => !q.isDeleted).map(q => ({ ...q, subtopic: st.id })));
-                        allData.options = allData.questions.flatMap(q => (q.options || []).filter(o => !o.isDeleted).map(o => ({ ...o, question: q.id })));
-                    }
-
-                    allData.scheme_of_works = planningSubtopics.flatMap(st => 
-                        (st.scheme_of_works || []).filter(s => !s.isDeleted).map(s => ({ 
-                            ...s, 
-                            // Preserve subject and term context from parent levels
-                            subject: s.subject || planningSubjects.find(sub => sub.topics?.some(topic => topic.subtopics?.some(subtopic => subtopic.id === st.id)))?.id,
-                            term: s.term || planningSubjects.find(sub => sub.topics?.some(topic => topic.subtopics?.some(subtopic => subtopic.id === st.id)))?.term?.id
-                        }))
-                    );
-                    allData.record_of_works = planningSubtopics.flatMap(st => 
-                        (st.record_of_works || []).filter(r => !r.isDeleted).map(r => ({ 
-                            ...r, 
-                            // Preserve subject and term context from parent levels
-                            subject: r.subject || planningSubjects.find(sub => sub.topics?.some(topic => topic.subtopics?.some(subtopic => subtopic.id === st.id)))?.id,
-                            term: r.term || planningSubjects.find(sub => sub.topics?.some(topic => topic.subtopics?.some(subtopic => subtopic.id === st.id)))?.term?.id
-                        }))
-                    );
-                    allData.lesson_plans = planningSubtopics.flatMap(st => 
-                        (st.lesson_plans || []).filter(l => !l.isDeleted).map(l => ({ 
-                            ...l, 
-                            // Preserve subject and term context from parent levels
-                            subject: l.subject || planningSubjects.find(sub => sub.topics?.some(topic => topic.subtopics?.some(subtopic => subtopic.id === st.id)))?.id,
-                            term: l.term || planningSubjects.find(sub => sub.topics?.some(topic => topic.subtopics?.some(subtopic => subtopic.id === st.id)))?.term?.id
-                        }))
-                    );
-                    allData.iep_templates = planningTopics.flatMap(t => (t.iep_templates || []).filter(i => !i.isDeleted));
-                }
-
-                // Lesson Attempts & Events (Flattened - always from curriculum/grades structure)
-                if (activeSchool.curriculum || activeSchool.grades) {
-                    allData.lessonAttempts = allData.subjects.flatMap(s => s.lessonAttempts || []);
-                    allData.attemptEvents = allData.lessonAttempts.flatMap(l => l.attemptEvents || []);
-                }
-
-                ['grades', 'subjects', 'topics', 'subtopics', 'questions', 'options', 'lessonAttempts', 'attemptEvents', 'scheme_of_works', 'record_of_works', 'lesson_plans', 'iep_templates'].forEach(entityName => {
-                    if (Array.isArray(subs[entityName])) {
-                        subs[entityName].forEach(cb => cb({ [entityName]: [...allData[entityName]] }));
+                // Notify all tree-based subscribers
+                ['grades', 'subjects', 'topics', 'subtopics', 'questions', 'options', 'scheme_of_works', 'record_of_works', 'lesson_plans', 'iep_templates'].forEach(name => {
+                    if (Array.isArray(subs[name])) {
+                        subs[name].forEach(cb => cb({ [name]: [...allData[name]] }));
                     }
                 });
             }

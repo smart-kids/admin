@@ -1749,11 +1749,16 @@ class CurriculumManagerV5 extends React.Component {
             data.term = this.state.selectedTermId;
             data.school = this.state.school.id;
             
-            // CRITICAL: Use the key 'substrands' to match the entityConfig parentKey
-            data.substrands = this.state.selectedSubtopic; 
-
-            // Keep strand as string description for the table display
-            data.strand = this.state.selectedTopic; 
+            // Context for linking to the tree - handle different entity types
+            if (planningSubTab === 'iep') {
+                // IEP templates use strand as parentKey (matches topics level)
+                data.strand = this.state.selectedTopic; // Parent for IEP
+                data.substrands = this.state.selectedSubtopic; // Child for IEP
+            } else {
+                // Schemes/Lessons/Records use substrands as parentKey (matches subtopics level)
+                data.substrands = this.state.selectedSubtopic; // Parent for Schemes/Lessons/Records
+                data.strand = this.state.selectedTopic; // Child/Display field
+            } 
             
             // Fix: Parse integer fields for GraphQL compatibility
             if (data.week) data.week = parseInt(data.week);
