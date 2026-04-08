@@ -331,7 +331,37 @@ var Data = (function () {
         const FRAGMENT_USER_DATA = `fragment UserData on user { name email phone }`;
         const FRAGMENT_SCHOOL_DETAILS = `fragment schoolDetails on school { id name phone email address logo themeColor studentsCount parentsCount gradeOrder }`;
         const FRAGMENT_GRADES_DATA = `fragment GradesData on school {
-            grades { id name subjectsOrder subjects { id name teacher topicsOrder topics { id name icon subtopicOrder subtopics { id name questionsOrder questions { id name videos type contentOrder attachments optionsOrder } } } } }
+            curriculum: grades { 
+                id name subjectsOrder 
+                subjects { 
+                    id name teacher topicsOrder 
+                    topics { 
+                        id name icon subtopicOrder 
+                        subtopics { 
+                            id name questionsOrder 
+                            questions { id name videos type contentOrder attachments optionsOrder } 
+                        } 
+                    } 
+                } 
+            }
+        }`;
+        const FRAGMENT_PLANNING_DATA = `fragment PlanningData on school {
+            planning: grades { 
+                id name subjectsOrder 
+                subjects { 
+                    id name teacher topicsOrder 
+                    topics { 
+                        id name icon subtopicOrder 
+                        iep_templates { id teacher { id names } student { id names } term { id name } strand learningoutcomes }
+                        subtopics { 
+                            id name questionsOrder 
+                            scheme_of_works { id school subject { id name } term { id name } teacher { id names } week lessonnumber strand substrands learningoutcomes keyenquiringquestions keyscienceconcepts learningresources values corecompetencies }
+                            record_of_works { id school subject { id name } term { id name } teacher { id names } week lessonnumber strand substrands workdone reflection }
+                            lesson_plans { id school subject { id name } term { id name } teacher { id names } lessonnumber strand substrands subtopic learningoutcomes corecompetencies scienceconcepts crosscuttingissues corevalues keysciencequestions learningresources intro body conclusion references }
+                        } 
+                    } 
+                } 
+            }
         }`;
         const FRAGMENT_GRADES_IMAGES_DATA = `fragment GradesImagesData on school {
             grades($id:String!) { id subjects { id teacher topics { id subtopics { id questions { id images } } } } }
@@ -426,22 +456,13 @@ var Data = (function () {
             status
             error
             providerResponse # The raw JSON
+            timestamp
+            messageType
         }
     } 
 }`;
         const FRAGMENT_BOOKS_DATA = `fragment BooksData on school { books { id title author category coverUrl pdfUrl description isDeleted } }`;
-const FRAGMENT_SCHEME_OF_WORKS_DATA = `fragment SchemeOfWorksData on school { 
-    scheme_of_works(limit: 5000) { id school subject { id } term { id } teacher { id } week lessonnumber strand substrands learningoutcomes keyenquiringquestions learningexperience corecompetencies learningresources assessment reflection isDeleted } 
-}`;
-const FRAGMENT_RECORD_OF_WORKS_DATA = `fragment RecordOfWorksData on school { 
-    record_of_works(limit: 5000) { id school subject { id } term { id } teacher { id } week dateofteaching strand substrands learningoutcomes lessoncovered keyactivities assignments isDeleted } 
-}`;
-const FRAGMENT_LESSON_PLANS_DATA = `fragment LessonPlansData on school { 
-    lesson_plans(limit: 5000) { id school subject { id } term { id } teacher { id } strand substrands learningoutcomes keyenquiringquestions learningresources introduction lessondevelopment conclusion extendedactivity reflection isDeleted } 
-}`;
-const FRAGMENT_IEP_TEMPLATES_DATA = `fragment IEPTemplatesData on school { 
-    iep_templates(limit: 5000) { id school student { id names registration } strand substrands strengths needs outcome experience resources methods initiationDate terminationDate reflection isDeleted } 
-}`;
+
         const deepMergeById = (target, source) => {
             for (const key in source) {
                 if (Object.prototype.hasOwnProperty.call(source, key)) {
@@ -503,6 +524,11 @@ const FRAGMENT_IEP_TEMPLATES_DATA = `fragment IEPTemplatesData on school {
                         updatedSubEntities.add(key);
                     }
                 });
+
+                // Aliased grade queries ('curriculum', 'planning') should also trigger the grades processing branch
+                if (incomingSchool.curriculum || incomingSchool.planning) {
+                    updatedSubEntities.add('grades');
+                }
 
                 if (incomingSchool.payments) {
                     console.log(`School ${school.id} update included ${incomingSchool.payments.length} payments`);
@@ -592,10 +618,7 @@ const FRAGMENT_IEP_TEMPLATES_DATA = `fragment IEPTemplatesData on school {
             notifyEntity('smsLogs');
             notifyEntity('books');
             notifyEntity('chargeTypes');
-            notifyEntity('scheme_of_works', s => ({ ...s, subject: s.subject?.id || s.subject, term: s.term?.id || s.term, teacher: s.teacher?.id || s.teacher }));
-            notifyEntity('record_of_works', r => ({ ...r, subject: r.subject?.id || r.subject, term: r.term?.id || r.term, teacher: r.teacher?.id || r.teacher }));
-            notifyEntity('lesson_plans', l => ({ ...l, subject: l.subject?.id || l.subject, term: l.term?.id || l.term, teacher: l.teacher?.id || l.teacher }));
-            notifyEntity('iep_templates', i => ({ ...i, student: i.student?.id || i.student }));
+
             
             // Financials
             if (updatedSubEntities.has('financial') || updatedSubEntities.has('charges') || updatedSubEntities.has('payments')) {
@@ -628,20 +651,39 @@ const FRAGMENT_IEP_TEMPLATES_DATA = `fragment IEPTemplatesData on school {
                 if (updatedSubEntities.has('payments')) mergeEntities('payments');
             }
 
-            // Grades hierarchy flattening
-            if (updatedSubEntities.has('grades') && activeSchool.grades) {
-                allData.grades = activeSchool.grades.filter(g => !g.isDeleted);
-                allData.subjects = allData.grades.flatMap(g => (g.subjects || []).filter(s => !s.isDeleted).map(s => ({ ...s, grade: g.id })));
-                allData.topics = allData.subjects.flatMap(s => (s.topics || []).filter(t => !t.isDeleted));
-                allData.subtopics = allData.topics.flatMap(t => (t.subtopics || []).filter(st => !st.isDeleted));
-                allData.questions = allData.subtopics.flatMap(st => (st.questions || []).filter(q => !q.isDeleted));
-                allData.options = allData.questions.flatMap(q => (q.options || []).filter(o => !o.isDeleted));
-                
-                // Lesson Attempts & Events (Flattened)
-                allData.lessonAttempts = allData.subjects.flatMap(s => s.lessonAttempts || []);
-                allData.attemptEvents = allData.lessonAttempts.flatMap(l => l.attemptEvents || []);
+            // Grades hierarchy flattening & merging
+            const gradesData = activeSchool.curriculum || activeSchool.planning || activeSchool.grades;
+            if (updatedSubEntities.has('grades') && gradesData) {
+                // If the response contains CURRICULUM, we update the curriculum structure/questions
+                if (activeSchool.curriculum) {
+                    allData.grades = activeSchool.curriculum.filter(g => !g.isDeleted);
+                    allData.subjects = allData.grades.flatMap(g => (g.subjects || []).filter(s => !s.isDeleted).map(s => ({ ...s, grade: g.id })));
+                    allData.topics = allData.subjects.flatMap(s => (s.topics || []).filter(t => !t.isDeleted).map(t => ({ ...t, subject: s.id })));
+                    allData.subtopics = allData.topics.flatMap(t => (t.subtopics || []).filter(st => !st.isDeleted).map(st => ({ ...st, topic: t.id })));
+                    allData.questions = allData.subtopics.flatMap(st => (st.questions || []).filter(q => !q.isDeleted).map(q => ({ ...q, subtopic: st.id })));
+                    allData.options = allData.questions.flatMap(q => (q.options || []).filter(o => !o.isDeleted).map(o => ({ ...o, question: q.id })));
+                }
 
-                ['grades', 'subjects', 'topics', 'subtopics', 'questions', 'options', 'lessonAttempts', 'attemptEvents'].forEach(entityName => {
+                // If the response contains PLANNING, we update the planning records from the tree
+                if (activeSchool.planning) {
+                    const planningGrades = activeSchool.planning.filter(g => !g.isDeleted);
+                    const planningSubjects = planningGrades.flatMap(g => (g.subjects || []).filter(s => !s.isDeleted));
+                    const planningTopics = planningSubjects.flatMap(s => (s.topics || []).filter(t => !t.isDeleted).map(t => ({ ...t })));
+                    const planningSubtopics = planningTopics.flatMap(t => (t.subtopics || []).filter(st => !st.isDeleted).map(st => ({ ...st, topic: t.id })));
+
+                    allData.scheme_of_works = planningSubtopics.flatMap(st => (st.scheme_of_works || []).filter(s => !s.isDeleted).map(s => ({ ...s, substrands: st.id, strand: st.topic })));
+                    allData.record_of_works = planningSubtopics.flatMap(st => (st.record_of_works || []).filter(r => !r.isDeleted).map(r => ({ ...r, substrands: st.id, strand: st.topic })));
+                    allData.lesson_plans = planningSubtopics.flatMap(st => (st.lesson_plans || []).filter(l => !l.isDeleted).map(l => ({ ...l, substrands: st.id, strand: st.topic })));
+                    allData.iep_templates = planningTopics.flatMap(t => (t.iep_templates || []).filter(i => !i.isDeleted).map(i => ({ ...i, strand: t.id })));
+                }
+                
+                // Lesson Attempts & Events (Flattened - always from curriculum/grades structure)
+                if (activeSchool.curriculum || activeSchool.grades) {
+                    allData.lessonAttempts = allData.subjects.flatMap(s => s.lessonAttempts || []);
+                    allData.attemptEvents = allData.lessonAttempts.flatMap(l => l.attemptEvents || []);
+                }
+
+                ['grades', 'subjects', 'topics', 'subtopics', 'questions', 'options', 'lessonAttempts', 'attemptEvents', 'scheme_of_works', 'record_of_works', 'lesson_plans', 'iep_templates'].forEach(entityName => {
                     if (Array.isArray(subs[entityName])) {
                         subs[entityName].forEach(cb => cb({ [entityName]: [...allData[entityName]] }));
                     }
@@ -674,6 +716,7 @@ const FRAGMENT_IEP_TEMPLATES_DATA = `fragment IEPTemplatesData on school {
             { query: `query GetTeams { schools { id ...TeamsData } } ${FRAGMENT_TEAMS_DATA}` },
             { query: `query GetInvitations { schools { id ...InvitationsData } } ${FRAGMENT_INVITATIONS_DATA}` },
             { query: `query GetGradesBase { schools { id ...GradesData } } ${FRAGMENT_GRADES_DATA}` },
+            { query: `query GetPlanning { schools { id ...PlanningData } } ${FRAGMENT_PLANNING_DATA}` },
             { query: `query GetGradesOptions { schools { id ...GradesOptionsData } } ${FRAGMENT_GRADES_OPTIONS_DATA}` },
             { query: `query GetLessonAttempts { schools { id ...LessonData } } ${FRAGMENT_LESSON_DATA}` },
             { query: `query GetSmsEvents { schools { id ...SmsEventsData } } ${FRAGMENT_SMS_EVENTS_DATA}` },
@@ -681,10 +724,7 @@ const FRAGMENT_IEP_TEMPLATES_DATA = `fragment IEPTemplatesData on school {
             { query: `query GetTerms { schools { id ...TermsData } } ${FRAGMENT_TERMS_DATA}` },
             { query: `query GetAssessmentTypes { schools { id ...AssessmentTypesData } } ${FRAGMENT_ASSESSMENT_TYPES_DATA}` },
             { query: `query GetAssessmentRubrics { schools { id ...AssessmentRubricsData } } ${FRAGMENT_ASSESSMENT_RUBRICS_DATA}` },
-            { query: `query GetSchemeOfWorks { schools { id ...SchemeOfWorksData } } ${FRAGMENT_SCHEME_OF_WORKS_DATA}` },
-            { query: `query GetRecordOfWorks { schools { id ...RecordOfWorksData } } ${FRAGMENT_RECORD_OF_WORKS_DATA}` },
-            { query: `query GetLessonPlans { schools { id ...LessonPlansData } } ${FRAGMENT_LESSON_PLANS_DATA}` },
-            { query: `query GetIEPTemplates { schools { id ...IEPTemplatesData } } ${FRAGMENT_IEP_TEMPLATES_DATA}` },
+
         ];
 
         queries.forEach(({ query: qStr, variables = {} }) => {
@@ -1219,24 +1259,36 @@ const FRAGMENT_IEP_TEMPLATES_DATA = `fragment IEPTemplatesData on school {
         {
             name: "scheme_of_works",
             singularName: "scheme_of_work",
+            isNested: true,
+            parentEntity: "subtopics",
+            parentKey: "substrands",
             createFields: ['school', 'subject', 'term', 'teacher', 'week', 'lessonnumber', 'strand', 'substrands', 'learningoutcomes', 'keyenquiringquestions', 'learningexperience', 'corecompetencies', 'learningresources', 'assessment', 'reflection'],
             updateFields: ['term', 'teacher', 'week', 'lessonnumber', 'strand', 'substrands', 'learningoutcomes', 'keyenquiringquestions', 'learningexperience', 'corecompetencies', 'learningresources', 'assessment', 'reflection']
         },
         {
             name: "record_of_works",
             singularName: "record_of_work",
+            isNested: true,
+            parentEntity: "subtopics",
+            parentKey: "substrands",
             createFields: ['school', 'subject', 'term', 'teacher', 'week', 'dateofteaching', 'strand', 'substrands', 'learningoutcomes', 'lessoncovered', 'keyactivities', 'assignments'],
             updateFields: ['term', 'teacher', 'week', 'dateofteaching', 'strand', 'substrands', 'learningoutcomes', 'lessoncovered', 'keyactivities', 'assignments']
         },
         {
             name: "lesson_plans",
             singularName: "lesson_plan",
+            isNested: true,
+            parentEntity: "subtopics",
+            parentKey: "substrands",
             createFields: ['school', 'subject', 'term', 'teacher', 'strand', 'substrands', 'learningoutcomes', 'keyenquiringquestions', 'learningresources', 'introduction', 'lessondevelopment', 'conclusion', 'extendedactivity', 'reflection'],
             updateFields: ['term', 'teacher', 'strand', 'substrands', 'learningoutcomes', 'keyenquiringquestions', 'learningresources', 'introduction', 'lessondevelopment', 'conclusion', 'extendedactivity', 'reflection']
         },
         {
             name: "iep_templates",
             singularName: "iep_template",
+            isNested: true,
+            parentEntity: "topics",
+            parentKey: "strand",
             createFields: ['school', 'student', 'strand', 'substrands', 'strengths', 'needs', 'outcome', 'experience', 'resources', 'methods', 'initiationDate', 'terminationDate', 'reflection'],
             updateFields: ['student', 'strand', 'substrands', 'strengths', 'needs', 'outcome', 'experience', 'resources', 'methods', 'initiationDate', 'terminationDate', 'reflection']
         },
