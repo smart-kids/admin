@@ -37,19 +37,6 @@ export default function StudentDataTableV8() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [isPaginating, setIsPaginating] = useState(false);
 
-  // --- MODAL EFFECTS ---
-  useEffect(() => {
-    if (edit) {
-      editModalInstance.show();
-    }
-  }, [edit]);
-
-  useEffect(() => {
-    if (remove) {
-      deleteModalInstance.show();
-    }
-  }, [remove]);
-
   // Search state
   const [searchTerm, setSearchTerm] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
@@ -68,6 +55,19 @@ export default function StudentDataTableV8() {
   const [edit, setEdit] = useState(null);
   const [remove, setRemove] = useState(null);
   const [upgrade, setUpgrade] = useState(null);
+
+  // --- MODAL EFFECTS ---
+  useEffect(() => {
+    if (edit) {
+      editModalInstance.show();
+    }
+  }, [edit]);
+
+  useEffect(() => {
+    if (remove) {
+      deleteModalInstance.show();
+    }
+  }, [remove]);
 
   // --- DATA FETCHING (PAGINATED STUDENTS) ---
   const fetchPageData = useCallback(async (page, limit, search, sort) => {
