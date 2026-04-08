@@ -585,6 +585,25 @@ var Data = (function () {
                     updatedSubEntities.add('grades');
                 }
 
+                // Check if grades contain planning data (schemes, lessons, records, IEPs)
+                if (incomingSchool.grades) {
+                    const hasPlanningData = incomingSchool.grades.some(grade => 
+                        grade.subjects && grade.subjects.some(subject => 
+                            subject.topics && subject.topics.some(topic => 
+                                (topic.iep_templates && topic.iep_templates.length > 0) ||
+                                (topic.subtopics && topic.subtopics.some(subtopic => 
+                                    (subtopic.scheme_of_works && subtopic.scheme_of_works.length > 0) ||
+                                    (subtopic.lesson_plans && subtopic.lesson_plans.length > 0) ||
+                                    (subtopic.record_of_works && subtopic.record_of_works.length > 0)
+                                ))
+                            )
+                        )
+                    );
+                    if (hasPlanningData) {
+                        updatedSubEntities.add('grades');
+                    }
+                }
+
                 if (incomingSchool.payments) {
                     console.log(`School ${school.id} update included ${incomingSchool.payments.length} payments`);
                 }
@@ -719,17 +738,17 @@ var Data = (function () {
                     allData.options = allData.questions.flatMap(q => (q.options || []).filter(o => !o.isDeleted).map(o => ({ ...o, question: q.id })));
                 }
 
-                // If the response contains PLANNING, we update the planning records from the tree
-                if (activeSchool.planning) {
-                    const planningGrades = activeSchool.planning.filter(g => !g.isDeleted);
+                // If the response contains PLANNING data (under grades), we update the planning records from the tree
+                if (activeSchool.grades) {
+                    const planningGrades = activeSchool.grades.filter(g => !g.isDeleted);
                     const planningSubjects = planningGrades.flatMap(g => (g.subjects || []).filter(s => !s.isDeleted));
                     const planningTopics = planningSubjects.flatMap(s => (s.topics || []).filter(t => !t.isDeleted).map(t => ({ ...t })));
                     const planningSubtopics = planningTopics.flatMap(t => (t.subtopics || []).filter(st => !st.isDeleted).map(st => ({ ...st, topic: t.id })));
 
-                    allData.scheme_of_works = planningSubtopics.flatMap(st => (st.scheme_of_works || []).filter(s => !s.isDeleted).map(s => ({ ...s, substrands: st.id, strand: st.topic })));
-                    allData.record_of_works = planningSubtopics.flatMap(st => (st.record_of_works || []).filter(r => !r.isDeleted).map(r => ({ ...r, substrands: st.id, strand: st.topic })));
-                    allData.lesson_plans = planningSubtopics.flatMap(st => (st.lesson_plans || []).filter(l => !l.isDeleted).map(l => ({ ...l, substrands: st.id, strand: st.topic })));
-                    allData.iep_templates = planningTopics.flatMap(t => (t.iep_templates || []).filter(i => !i.isDeleted).map(i => ({ ...i, strand: t.id })));
+                    allData.scheme_of_works = planningSubtopics.flatMap(st => (st.scheme_of_works || []).filter(s => !s.isDeleted).map(s => ({ ...s, subtopicId: st.id, topicId: st.topic })));
+                    allData.record_of_works = planningSubtopics.flatMap(st => (st.record_of_works || []).filter(r => !r.isDeleted).map(r => ({ ...r, subtopicId: st.id, topicId: st.topic })));
+                    allData.lesson_plans = planningSubtopics.flatMap(st => (st.lesson_plans || []).filter(l => !l.isDeleted).map(l => ({ ...l, subtopicId: st.id, topicId: st.topic })));
+                    allData.iep_templates = planningTopics.flatMap(t => (t.iep_templates || []).filter(i => !i.isDeleted).map(i => ({ ...i, topicId: t.id })));
                 }
 
                 // Lesson Attempts & Events (Flattened - always from curriculum/grades structure)
