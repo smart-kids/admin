@@ -10,6 +10,8 @@ import EditModal from "./edit";
 import DeleteModal from "./delete";
 import UpgradeModal from "./upgrade";
 
+const $ = window.$;
+
 const addModalInstance = new AddModal();
 const uploadModalInstance = new UploadModal();
 const editModalInstance = new EditModal();
