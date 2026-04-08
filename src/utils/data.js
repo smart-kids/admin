@@ -349,15 +349,15 @@ var Data = (function () {
             planning: grades { 
                 id name subjectsOrder 
                 subjects { 
-                    id name teacher topicsOrder 
+                    id name teacher { id name: String } topicsOrder 
                     topics { 
                         id name icon subtopicOrder 
-                        iep_templates(limit: 100, offset: 0) { id teacher { id names } student { id names } term { id name } strand learningoutcomes }
+                        iep_templates(limit: 100, offset: 0) { id school { id: String } student { id: String } term { id: String } teacher { id: String } strand: String outcome: String experience: String resources: String methods: String initiationDate: String terminationDate: String reflection: String isDeleted: Boolean }
                         subtopics { 
                             id name questionsOrder 
-                            scheme_of_works(limit: 100, offset: 0) { id school subject { id name } term { id name } teacher { id names } week lessonnumber strand substrands learningoutcomes keyenquiringquestions keyscienceconcepts learningresources values corecompetencies }
-                            record_of_works(limit: 100, offset: 0) { id school subject { id name } term { id name } teacher { id names } week lessonnumber strand substrands workdone reflection }
-                            lesson_plans(limit: 100, offset: 0) { id school subject { id name } term { id name } teacher { id names } lessonnumber strand substrands subtopic learningoutcomes corecompetencies scienceconcepts crosscuttingissues corevalues keysciencequestions learningresources intro body conclusion references }
+                            scheme_of_works(limit: 100, offset: 0) { id school { id: String } subject { id: String } term { id: String } teacher { id: String } week: Int lessonnumber: Int strand: String substrands: String learningoutcomes: String keyenquiringquestions: String learningexperience: String corecompetencies: String valueslearnt: String learningresources: String assessment: String reflection: String createdAt: String updatedAt: String isDeleted: Boolean }
+                            record_of_works(limit: 100, offset: 0) { id school { id: String } subject { id: String } term { id: String } teacher { id: String } week: Int lessonnumber: Int strand: String substrands: String learningoutcomes: String keyenquiringquestions: String learningexperience: String corecompetencies: String valueslearnt: String learningresources: String assessment: String reflection: String createdAt: String updatedAt: String isDeleted: Boolean }
+                            lesson_plans(limit: 100, offset: 0) { id school { id: String } subject { id: String } term { id: String } teacher { id: String } week: Int lessonnumber: Int strand: String substrands: String subtopic: String learningoutcomes: String corecompetencies: String scienceconcepts: String crosscuttingissues: String corevalues: String keyenquiringquestions: String learningresources: String intro: String body: String conclusion: String references: String createdAt: String updatedAt: String isDeleted: Boolean }
                         } 
                     } 
                 } 
