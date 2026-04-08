@@ -130,7 +130,7 @@ const createEntityAPI = (config) => {
 
                 const sanitizedData = filterPayload(payload, createFields);
                 const mutationName = `I${singularName}`;
-                
+
                 // 1. Perform Network Request
                 const response = await mutate(
                     `mutation ($data: ${mutationName}!) { ${name} { create(${singularName}: $data) { id } } }`,
@@ -221,7 +221,7 @@ const createEntityAPI = (config) => {
 
                 const { item: itemInTree } = findItemInTree(id, allData.schools);
                 if (itemInTree) Object.assign(itemInTree, normalizedData);
-                
+
                 if (Array.isArray(allData[name])) {
                     const itemIndexFlat = allData[name].findIndex(item => String(item.id) === String(id));
                     if (itemIndexFlat > -1) {
@@ -247,7 +247,7 @@ const createEntityAPI = (config) => {
                     `mutation ($data: ${mutationName}!) { ${name} { archive(${singularName}: $data) { id } } }`,
                     { data: { id } }
                 );
-                
+
                 // Soft delete: mark as isDeleted instead of filtering out
                 if (Array.isArray(allData[name])) {
                     const flatItem = allData[name].find(item => String(item.id) === String(id));
@@ -278,7 +278,7 @@ const createEntityAPI = (config) => {
                     `mutation ($data: ${mutationName}!) { ${name} { restore(${singularName}: $data) { id } } }`,
                     { data: { id } }
                 );
-                
+
                 // Un-archive
                 if (Array.isArray(allData[name])) {
                     const flatItem = allData[name].find(item => String(item.id) === String(id));
@@ -345,28 +345,79 @@ var Data = (function () {
                 } 
             }
         }`;
-        const FRAGMENT_PLANNING_DATA = `fragment PlanningData on school {
-            planning: grades { 
-                id name subjectsOrder 
-                subjects { 
-                    id name teacher: { id name: String } topicsOrder 
-                    topics { 
-                        id name icon subtopicOrder 
-                        iep_templates(limit: 100, offset: 0) { id school: { id: String } student: { id: String } term: { id: String } teacher: { id: String } strand: String outcome: String experience: String resources: String methods: String initiationDate: String terminationDate: String reflection: String isDeleted: Boolean }
-                        subtopics { 
-                            id name questionsOrder 
-                            scheme_of_works(limit: 100, offset: 0) { id school: { id: String } subject: { id: String } term: { id: String } teacher: { id: String } week: Int lessonnumber: Int strand: String substrands: String learningoutcomes: String keyenquiringquestions: String learningexperience: String corecompetencies: String valueslearnt: String learningresources: String assessment: String reflection: String createdAt: String updatedAt: String isDeleted: Boolean }
-                            record_of_works(limit: 100, offset: 0) { id school: { id: String } subject: { id: String } term: { id: String } teacher: { id: String } week: Int lessonnumber: Int strand: String substrands: String learningoutcomes: String keyenquiringquestions: String learningexperience: String corecompetencies: String valueslearnt: String learningresources: String assessment: String reflection: String createdAt: String updatedAt: String isDeleted: Boolean }
-                            lesson_plans(limit: 100, offset: 0) { 
-                                id school: { id: String } subject: { id: String } term: { id: String } teacher: { id: String } 
-                                lessondevelopment: String strand: String substrands: String introduction: String learningoutcomes: String keyenquiringquestions: String learningresources: String 
-                                lessondevelopment: String conclusion: String extendedactivity: String reflection: String createdAt: String updatedAt: String isDeleted: Boolean 
-                            } 
-                        } 
-                    } 
-                } 
+        const FRAGMENT_PLANNING_DATA = `
+  fragment PlanningData on school {
+    grades {
+      id
+      name
+      subjectsOrder
+      subjects {
+        id
+        name
+        teacher
+        topicsOrder
+        topics {
+          id
+          name
+          icon
+          subtopicOrder
+          iep_templates(limit: 100, offset: 0) {
+            id
+            strand
+            outcome
+            experience
+            resources
+            methods
+            initiationDate
+            terminationDate
+            reflection
+            isDeleted
+            student { id }
+            term { id }
+            teacher { id }
+          }
+          subtopics {
+            id
+            name
+            questionsOrder
+            scheme_of_works(limit: 100, offset: 0) {
+              id
+              week
+              lessonnumber
+              strand
+              substrands
+              learningoutcomes
+              keyenquiringquestions
+              learningexperience
+              corecompetencies
+              valueslearnt
+              learningresources
+              assessment
+              reflection
+              createdAt
+              updatedAt
+              isDeleted
             }
-        }`;
+            lesson_plans(limit: 100, offset: 0) {
+              id
+              strand
+              substrands
+              learningoutcomes
+              keyenquiringquestions
+              learningresources
+              introduction
+              lessondevelopment
+              conclusion
+              extendedactivity
+              reflection
+              isDeleted
+            }
+          }
+        }
+      }
+    }
+  }
+`;
         const FRAGMENT_GRADES_IMAGES_DATA = `fragment GradesImagesData on school {
             grades($id:String!) { id subjects { id teacher topics { id subtopics { id questions { id images } } } } }
         }`;
@@ -429,7 +480,7 @@ var Data = (function () {
         }`;
         const FRAGMENT_COMPLAINTS_DATA = `fragment ComplaintsData on school { complaints { id time content parent { id, name } } }`;
         const FRAGMENT_CHARGE_TYPES_DATA = `fragment ChargeTypesData on school { chargeTypes { id name description amount } }`;
-        const FRAGMENT_STUDENTS_DATA = `fragment StudentsData on school { students(limit: 1000, offset: 0) { id names gender registration class { id, name, teacher { id, name } } route { id, name } parent { id, national_id, name } parent2 { id, national_id, name } } }`;        const FRAGMENT_BUSES_DATA = `fragment BusesData on school { buses { id plate make size driver { id, names } } }`;
+        const FRAGMENT_STUDENTS_DATA = `fragment StudentsData on school { students(limit: 1000, offset: 0) { id names gender registration class { id, name, teacher { id, name } } route { id, name } parent { id, national_id, name } parent2 { id, national_id, name } } }`; const FRAGMENT_BUSES_DATA = `fragment BusesData on school { buses { id plate make size driver { id, names } } }`;
         const FRAGMENT_DRIVERS_DATA = `fragment DriversData on school { drivers { id names phone license_expiry licence_number home } }`;
         const FRAGMENT_ADMINS_DATA = `fragment AdminsData on school { admins { id names email phone } }`;
         const FRAGMENT_PARENTS_DATA = `fragment ParentsData on school { parents(limit: 1000) { id national_id name gender email phone students { id, names, gender, route { id, name } } } }`;
@@ -474,31 +525,31 @@ var Data = (function () {
 
                     if (Array.isArray(sourceVal)) {
                         if (!Array.isArray(targetVal)) { target[key] = []; }
-                        
+
                         sourceVal.forEach(sourceItem => {
                             if (typeof sourceItem === 'object' && sourceItem !== null && sourceItem.id) {
                                 // Compare IDs as strings to handle numeric vs string ID mismatches
                                 const existingItem = target[key].find(t => String(t.id) === String(sourceItem.id));
-                                if (existingItem) { 
-                                    deepMergeById(existingItem, sourceItem); 
-                                } else { 
-                                    target[key].push(sourceItem); 
+                                if (existingItem) {
+                                    deepMergeById(existingItem, sourceItem);
+                                } else {
+                                    target[key].push(sourceItem);
                                 }
-                            } else { 
+                            } else {
                                 if (typeof sourceItem !== 'object' && !target[key].includes(sourceItem)) {
                                     target[key].push(sourceItem);
                                 } else if (typeof sourceItem === 'object') {
-                                     target[key].push(sourceItem);
+                                    target[key].push(sourceItem);
                                 }
                             }
                         });
                     } else if (typeof sourceVal === 'object' && sourceVal !== null) {
-                        if (typeof target[key] !== 'object' || target[key] === null) { 
-                            target[key] = {}; 
+                        if (typeof target[key] !== 'object' || target[key] === null) {
+                            target[key] = {};
                         }
                         deepMergeById(target[key], sourceVal);
-                    } else { 
-                        target[key] = sourceVal; 
+                    } else {
+                        target[key] = sourceVal;
                     }
                 }
             }
@@ -508,9 +559,9 @@ var Data = (function () {
         const mergeAndNotify = (response) => {
             const incomingSchools = response?.schools;
             if (!incomingSchools || incomingSchools.length === 0) return;
-            
+
             const updatedSubEntities = new Set();
-            
+
             incomingSchools.forEach(incomingSchool => {
                 // Use string comparison for school ID
                 let school = allData.schools.find(s => String(s.id) === String(incomingSchool.id));
@@ -519,9 +570,9 @@ var Data = (function () {
                     allData.schools.push(school);
                     console.log("New School Added to cache:", school.id);
                 }
-                
+
                 deepMergeById(school, incomingSchool);
-                
+
                 Object.keys(incomingSchool).forEach(key => {
                     if (incomingSchool[key] !== null) {
                         updatedSubEntities.add(key);
@@ -552,9 +603,9 @@ var Data = (function () {
 
             // >>> ADD THIS BLOCK: Notify subscribers that the school data has loaded/updated <<<
             if (Array.isArray(subs.schools)) {
-                subs.schools.forEach(cb => cb({ 
-                    schools: [...allData.schools], 
-                    selectedSchool: activeSchool 
+                subs.schools.forEach(cb => cb({
+                    schools: [...allData.schools],
+                    selectedSchool: activeSchool
                 }));
             }
 
@@ -564,7 +615,7 @@ var Data = (function () {
                     // Update flat list logic:
                     // We map the activeSchool's array to a new array to ensure React triggers updates (referential change)
                     const newData = dataMapper ? activeSchool[entityName].map(dataMapper) : activeSchool[entityName];
-                    
+
                     // SAFETY CHECK: If this query returned an empty list for an entity that usually has data, 
                     // we might want to be careful. But generally, if updatedSubEntities has it, it implies the API returned it.
                     allData[entityName] = newData;
@@ -579,12 +630,12 @@ var Data = (function () {
             notifyEntity('students', s => {
                 const classObj = s.class?.id ? s.class : (allData.classes.find(c => String(c.id) === String(s.class?.id || s.class)));
                 if (!classObj && s.class) console.warn(`Class not found for student ${s.id}:`, s.class);
-                
-                return { 
-                    ...s, 
-                    parent_name: s.parent?.name, 
+
+                return {
+                    ...s,
+                    parent_name: s.parent?.name,
                     class_name: classObj?.name,
-                    route_name: s.route?.name 
+                    route_name: s.route?.name
                 };
             });
             notifyEntity('parents');
@@ -608,21 +659,21 @@ var Data = (function () {
                 const routeObj = allData.routes.find(r => String(r.id) === String(routeId));
                 return { ...s, bus_make: busObj?.make, route_name: routeObj?.name };
             });
-            
+
             // NOTE: Classes are crucial for fees. 
             notifyEntity('classes', c => {
                 const teacherId = c.teacher?.id || c.teacher;
                 const teacherObj = allData.teachers.find(t => String(t.id) === String(teacherId));
                 return { ...c, student_num: c.students?.length || 0, teacher_name: teacherObj?.name || 'Unassigned' };
             });
-            
+
             notifyEntity('teachers');
             notifyEntity('invitations');
             notifyEntity('smsLogs');
             notifyEntity('books');
             notifyEntity('chargeTypes');
 
-            
+
             // Financials
             if (updatedSubEntities.has('financial') || updatedSubEntities.has('charges') || updatedSubEntities.has('payments')) {
                 const mergeEntities = (entityName) => {
@@ -630,7 +681,7 @@ var Data = (function () {
                     const existingItems = allData[entityName] || [];
                     const existingMap = new Map(existingItems.map(p => [String(p.id), p]));
                     const mergedItems = [];
-                    
+
                     serverItems.forEach(serverItem => {
                         const existingItem = existingMap.get(String(serverItem.id));
                         if (existingItem) {
@@ -640,7 +691,7 @@ var Data = (function () {
                             mergedItems.push(serverItem);
                         }
                     });
-                    
+
                     mergedItems.push(...existingMap.values());
                     mergedItems.sort((a, b) => new Date(b.time || b.createdAt) - new Date(a.time || b.createdAt));
                     allData[entityName] = mergedItems;
@@ -679,7 +730,7 @@ var Data = (function () {
                     allData.lesson_plans = planningSubtopics.flatMap(st => (st.lesson_plans || []).filter(l => !l.isDeleted).map(l => ({ ...l, substrands: st.id, strand: st.topic })));
                     allData.iep_templates = planningTopics.flatMap(t => (t.iep_templates || []).filter(i => !i.isDeleted).map(i => ({ ...i, strand: t.id })));
                 }
-                
+
                 // Lesson Attempts & Events (Flattened - always from curriculum/grades structure)
                 if (activeSchool.curriculum || activeSchool.grades) {
                     allData.lessonAttempts = allData.subjects.flatMap(s => s.lessonAttempts || []);
@@ -719,7 +770,7 @@ var Data = (function () {
             { query: `query GetTeams { schools { id ...TeamsData } } ${FRAGMENT_TEAMS_DATA}` },
             { query: `query GetInvitations { schools { id ...InvitationsData } } ${FRAGMENT_INVITATIONS_DATA}` },
             { query: `query GetGradesBase { schools { id ...GradesData } } ${FRAGMENT_GRADES_DATA}` },
-            { query: `query GetPlanning { schools { id ...PlanningData } } ${FRAGMENT_PLANNING_DATA}`},            { query: `query GetGradesOptions { schools { id ...GradesOptionsData } } ${FRAGMENT_GRADES_OPTIONS_DATA}` },
+            { query: `query GetPlanning { schools { id ...PlanningData } } ${FRAGMENT_PLANNING_DATA}` }, { query: `query GetGradesOptions { schools { id ...GradesOptionsData } } ${FRAGMENT_GRADES_OPTIONS_DATA}` },
             { query: `query GetLessonAttempts { schools { id ...LessonData } } ${FRAGMENT_LESSON_DATA}` },
             { query: `query GetSmsEvents { schools { id ...SmsEventsData } } ${FRAGMENT_SMS_EVENTS_DATA}` },
             { query: `query GetBooks { schools { id ...BooksData } } ${FRAGMENT_BOOKS_DATA}` },
@@ -750,10 +801,10 @@ var Data = (function () {
         { name: "questions", singularName: "question", isNested: true, parentEntity: "subtopics", parentKey: "subtopic", createFields: ['name', 'type', 'subtopic', 'videos', 'attachments', 'images', 'optionsOrder', 'contentOrder'], updateFields: ['name', 'type', 'subtopic', 'videos', 'attachments', 'images', 'optionsOrder', 'contentOrder'], customMethods: (allData, subs, api) => ({ getImages: (id) => new Promise(async (resolve, reject) => { try { const response = await query(`query GetQuestionImages($id: String!) { questionImages(id: $id) }`, { id }); resolve(response.questionImages || []); } catch (e) { console.error(e); resolve([]); } }) }) },
         { name: "options", singularName: "option", isNested: true, parentEntity: "questions", parentKey: "question", createFields: ['value', 'correct', 'question'], updateFields: ['value', 'correct', 'question'] },
         { name: "options", singularName: "option", isNested: true, parentEntity: "questions", parentKey: "question", createFields: ['value', 'correct', 'question'], updateFields: ['value', 'correct', 'question'] },
-        { 
-            name: "assessments", 
-            singularName: "assessment", 
-            createFields: ['student', 'term', 'subject', 'assessmentType', 'score', 'outOf', 'teacher', 'school', 'remarks', 'teachersComment'], 
+        {
+            name: "assessments",
+            singularName: "assessment",
+            createFields: ['student', 'term', 'subject', 'assessmentType', 'score', 'outOf', 'teacher', 'school', 'remarks', 'teachersComment'],
             updateFields: ['score', 'remarks', 'teachersComment'],
             customMethods: (allData, subs, api) => ({
                 getForClass: (classId, termId) => new Promise(async (resolve, reject) => {
@@ -774,13 +825,13 @@ var Data = (function () {
                         `;
                         const response = await query(queryStr, { schoolId, classId, termId });
                         const fetchedAssessments = response.school?.assessments || [];
-                        
+
                         // Merge into local cache
                         const safeList = Array.isArray(allData.assessments) ? allData.assessments : [];
                         // We need to be careful not to duplicate.
                         // Ideally we replace or merge. 
                         // Since this is a fresh fetch for a context, maybe we just upsert.
-                        
+
                         fetchedAssessments.forEach(newAss => {
                             const existingIdx = safeList.findIndex(a => String(a.id) === String(newAss.id));
                             // Normalize references for the flat cache
@@ -794,7 +845,7 @@ var Data = (function () {
                                 term: newAss.term?.id || newAss.term,
                                 assessmentType: newAss.assessmentType?.id || newAss.assessmentType
                             };
-                            
+
                             if (existingIdx > -1) {
                                 safeList[existingIdx] = { ...safeList[existingIdx], ...flatAss };
                             } else {
@@ -802,7 +853,7 @@ var Data = (function () {
                             }
                         });
                         console.log(`Assessments getForClass: fetched ${fetchedAssessments.length}, total in cache ${safeList.length}`);
-                        
+
                         // Update cache ref (if it wasn't already)
                         if (!Array.isArray(allData.assessments)) allData.assessments = safeList;
 
@@ -810,7 +861,7 @@ var Data = (function () {
                         if (Array.isArray(subs.assessments)) {
                             subs.assessments.forEach(cb => cb({ assessments: [...allData.assessments] }));
                         }
-                        
+
                         resolve(fetchedAssessments);
                     } catch (e) {
                         console.error("Failed to fetch assessments:", e);
@@ -849,10 +900,10 @@ var Data = (function () {
 
                         const response = await mutate(mutation, { data: payload });
                         const savedAssessments = response.assessments?.bulkSave || [];
-                        
+
                         // Merge into local cache
                         const safeList = Array.isArray(allData.assessments) ? allData.assessments : [];
-                        
+
                         savedAssessments.forEach(newAss => {
                             const existingIdx = safeList.findIndex(a => String(a.id) === String(newAss.id));
                             const flatAss = {
@@ -865,20 +916,20 @@ var Data = (function () {
                                 term: newAss.term?.id || newAss.term,
                                 assessmentType: newAss.assessmentType?.id || newAss.assessmentType
                             };
-                            
+
                             if (existingIdx > -1) {
                                 safeList[existingIdx] = { ...safeList[existingIdx], ...flatAss };
                             } else {
                                 safeList.push(flatAss);
                             }
                         });
-                        
+
                         if (!Array.isArray(allData.assessments)) allData.assessments = safeList;
 
                         if (Array.isArray(subs.assessments)) {
                             subs.assessments.forEach(cb => cb({ assessments: [...allData.assessments] }));
                         }
-                        
+
                         resolve(savedAssessments);
                     } catch (e) {
                         console.error("Failed to bulk save assessments:", e);
@@ -903,10 +954,10 @@ var Data = (function () {
                         `;
                         const response = await query(queryStr, { schoolId, studentId });
                         const fetchedAssessments = response.school?.assessments || [];
-                        
+
                         // Merge into local cache
                         const safeList = Array.isArray(allData.assessments) ? allData.assessments : [];
-                        
+
                         fetchedAssessments.forEach(newAss => {
                             const existingIdx = safeList.findIndex(a => String(a.id) === String(newAss.id));
                             const flatAss = {
@@ -919,20 +970,20 @@ var Data = (function () {
                                 term: newAss.term?.id || newAss.term,
                                 assessmentType: newAss.assessmentType?.id || newAss.assessmentType
                             };
-                            
+
                             if (existingIdx > -1) {
                                 safeList[existingIdx] = { ...safeList[existingIdx], ...flatAss };
                             } else {
                                 safeList.push(flatAss);
                             }
                         });
-                        
+
                         if (!Array.isArray(allData.assessments)) allData.assessments = safeList;
 
                         if (Array.isArray(subs.assessments)) {
                             subs.assessments.forEach(cb => cb({ assessments: [...allData.assessments] }));
                         }
-                        
+
                         resolve(fetchedAssessments);
                     } catch (e) {
                         console.error("Failed to fetch student assessments:", e);
@@ -941,18 +992,18 @@ var Data = (function () {
                 })
             })
         },
-        { 
-            name: "students", 
-            singularName: "student", 
-            createFields: ['names', 'route', 'gender', 'registration', 'parent', 'school', 'parent2', 'class'], 
-            updateFields: ['names', 'route', 'registration', 'gender', 'parent', 'parent2', 'class'], 
-            customMethods: (allData, subs) => ({ 
-                getPage: async ({ page = 1, limit = 15, search = "" }) => { 
-                    const offset = (page - 1) * limit; 
-                    const response = await query(`query GetStudentPage($limit: Int, $offset: Int, $id: String, $search: String) { school(id: $id) { studentsCount(search: $search) students(limit: $limit, offset: $offset, search: $search) { id names gender registration class{id, name} route{id, name} parent{id, name}  } } }`, { limit, offset, id: localStorage.getItem("school"), search }); 
-                    const processedStudents = response.school?.students?.map(s => ({ ...s, parent_name: s.parent?.name, class_name: s.class?.name })) || []; 
-                    return { students: processedStudents, totalCount: response.school?.studentsCount || 0 }; 
-                }, 
+        {
+            name: "students",
+            singularName: "student",
+            createFields: ['names', 'route', 'gender', 'registration', 'parent', 'school', 'parent2', 'class'],
+            updateFields: ['names', 'route', 'registration', 'gender', 'parent', 'parent2', 'class'],
+            customMethods: (allData, subs) => ({
+                getPage: async ({ page = 1, limit = 15, search = "" }) => {
+                    const offset = (page - 1) * limit;
+                    const response = await query(`query GetStudentPage($limit: Int, $offset: Int, $id: String, $search: String) { school(id: $id) { studentsCount(search: $search) students(limit: $limit, offset: $offset, search: $search) { id names gender registration class{id, name} route{id, name} parent{id, name}  } } }`, { limit, offset, id: localStorage.getItem("school"), search });
+                    const processedStudents = response.school?.students?.map(s => ({ ...s, parent_name: s.parent?.name, class_name: s.class?.name })) || [];
+                    return { students: processedStudents, totalCount: response.school?.studentsCount || 0 };
+                },
                 upgrade: async (studentData) => {
                     try {
                         const { id, ...updateData } = studentData;
@@ -966,18 +1017,18 @@ var Data = (function () {
                             }`,
                             { data: { id, ...updateData } }
                         );
-                        
+
                         // Update local cache
                         const studentIndex = allData.students.findIndex(s => String(s.id) === String(id));
                         if (studentIndex > -1) {
                             Object.assign(allData.students[studentIndex], updateData);
                         }
-                        
+
                         // Notify subscribers
                         if (Array.isArray(subs.students)) {
                             subs.students.forEach(cb => cb({ students: [...allData.students] }));
                         }
-                        
+
                         return response;
                     } catch (error) {
                         console.error('Failed to upgrade student:', error);
@@ -1100,22 +1151,22 @@ var Data = (function () {
                             }
                         `;
                         const response = await mutate(mutation, { orders });
-                        
+
                         // Update cache locally
                         const safeList = Array.isArray(allData.terms) ? allData.terms : [];
                         orders.forEach(({ id, order }) => {
                             const existing = safeList.find(a => String(a.id) === String(id));
                             if (existing) existing.order = order;
                         });
-                        
+
                         allData.terms = [...safeList].sort((a, b) => (a.order || 0) - (b.order || 0));
-                        
+
                         if (Array.isArray(subs.terms)) {
                             subs.terms.forEach(cb => cb({ terms: [...allData.terms] }));
                         }
-                        
+
                         resolve(response);
-                    } catch(e) {
+                    } catch (e) {
                         console.error('Failed to update term orders:', e);
                         reject(e);
                     }
@@ -1145,22 +1196,22 @@ var Data = (function () {
                             }
                         `;
                         const response = await mutate(mutation, { orders });
-                        
+
                         // Update cache locally
                         const safeList = Array.isArray(allData.assessmentTypes) ? allData.assessmentTypes : [];
                         orders.forEach(({ id, order }) => {
                             const existing = safeList.find(a => String(a.id) === String(id));
                             if (existing) existing.order = order;
                         });
-                        
+
                         allData.assessmentTypes = [...safeList].sort((a, b) => (a.order || 0) - (b.order || 0));
-                        
+
                         if (Array.isArray(subs.assessmentTypes)) {
                             subs.assessmentTypes.forEach(cb => cb({ assessmentTypes: [...allData.assessmentTypes] }));
                         }
-                        
+
                         resolve(response);
-                    } catch(e) {
+                    } catch (e) {
                         console.error('Failed to update assessmentType orders:', e);
                         reject(e);
                     }
@@ -1173,11 +1224,11 @@ var Data = (function () {
             createFields: ['label', 'minScore', 'maxScore', 'points', 'teachersComment', 'school'],
             updateFields: ['label', 'minScore', 'maxScore', 'points', 'teachersComment']
         },
-        { 
-            name: "chargeTypes", 
-            singularName: "chargeType", 
-            createFields: ['school', 'name', 'description', 'amount'], 
-            updateFields: ['name', 'description', 'amount'] 
+        {
+            name: "chargeTypes",
+            singularName: "chargeType",
+            createFields: ['school', 'name', 'description', 'amount'],
+            updateFields: ['name', 'description', 'amount']
         },
         {
             name: "institutionalDeposits",
@@ -1189,17 +1240,17 @@ var Data = (function () {
                     try {
                         const { page = 1, limit = 15, sort = { key: 'createdAt', direction: 'descending' } } = params;
                         const schoolId = localStorage.getItem("school");
-                        
+
                         // Use the existing payments from allData (already loaded from initial queries)
                         const allPayments = Data.payments.list() || [];
-                        
+
                         // Filter payments to identify institutional deposits
                         const institutionalDeposits = allPayments.filter(payment => {
                             const metadata = payment.metadata || {};
-                            return metadata.type === 'institutional_deposit' || 
-                                   metadata.purpose === 'institutional_deposit' ||
-                                   payment.type === 'institutional_deposit' ||
-                                   payment.paymentType === 'institutional_deposit';
+                            return metadata.type === 'institutional_deposit' ||
+                                metadata.purpose === 'institutional_deposit' ||
+                                payment.type === 'institutional_deposit' ||
+                                payment.paymentType === 'institutional_deposit';
                         }).map(payment => ({
                             ...payment,
                             depositorName: payment.metadata?.depositorName || 'Institutional Deposit',
@@ -1208,12 +1259,12 @@ var Data = (function () {
                             receiptNumber: payment.mpesaReceiptNumber || `INST-${payment.id}`,
                             status: payment.status === 'COMPLETED' ? 'completed' : 'pending'
                         }));
-                        
+
                         // Apply pagination
                         const startIndex = (page - 1) * limit;
                         const endIndex = startIndex + limit;
                         const paginatedDeposits = institutionalDeposits.slice(startIndex, endIndex);
-                        
+
                         resolve({
                             deposits: paginatedDeposits,
                             totalCount: institutionalDeposits.length
@@ -1227,7 +1278,7 @@ var Data = (function () {
                     try {
                         const schoolId = localStorage.getItem("school");
                         const { amount, phone, depositorName, purpose = 'institutional_deposit' } = depositData;
-                        
+
                         // Use existing M-Pesa payment system with institutional metadata
                         const mpesaResponse = await Data.schools.charge(phone, amount, {
                             type: 'institutional_deposit',
@@ -1235,7 +1286,7 @@ var Data = (function () {
                             purpose,
                             paymentType: 'institutional_deposit'
                         }, schoolId);
-                        
+
                         resolve({
                             mpesaInit: mpesaResponse.payments?.init,
                             metadata: {
@@ -1251,10 +1302,10 @@ var Data = (function () {
                 }),
                 isInstitutionalPayment: (payment) => {
                     const metadata = payment.metadata || {};
-                    return metadata.type === 'institutional_deposit' || 
-                           metadata.purpose === 'institutional_deposit' ||
-                           payment.type === 'institutional_deposit' ||
-                           payment.paymentType === 'institutional_deposit';
+                    return metadata.type === 'institutional_deposit' ||
+                        metadata.purpose === 'institutional_deposit' ||
+                        payment.type === 'institutional_deposit' ||
+                        payment.paymentType === 'institutional_deposit';
                 }
             })
         },
@@ -1390,12 +1441,12 @@ var Data = (function () {
                 const schoolId = forcedSchoolId || instance.schools.getSelected()?.id;
                 if (!schoolId) return Promise.reject("No school selected");
                 return mutate(`mutation ($payment: mpesaStartTxInput!) { payments { init(payment: $payment){ id, CheckoutRequestID, MerchantRequestID } } }`, {
-                    payment: { 
-                        schoolId, 
-                        amount: String(amount), 
+                    payment: {
+                        schoolId,
+                        amount: String(amount),
                         ammount: String(amount), // Also provide the misspelled one just in case
-                        phone, 
-                        metadata 
+                        phone,
+                        metadata
                     }
                 }).then(response => {
                     const initRes = response.payments?.init;
@@ -1474,7 +1525,7 @@ var Data = (function () {
                                 ref: confirmRes.ref,
                                 time: confirmRes.time
                             });
-                            
+
                             // Notify
                             if (Array.isArray(subs.payments)) {
                                 subs.payments.forEach(cb => cb({ payments: [...allData.payments] }));
