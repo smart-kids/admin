@@ -37,6 +37,19 @@ export default function StudentDataTableV8() {
   const [initialLoading, setInitialLoading] = useState(true);
   const [isPaginating, setIsPaginating] = useState(false);
 
+  // --- MODAL EFFECTS ---
+  useEffect(() => {
+    if (edit) {
+      editModalInstance.show();
+    }
+  }, [edit]);
+
+  useEffect(() => {
+    if (remove) {
+      deleteModalInstance.show();
+    }
+  }, [remove]);
+
   // Search state
   const [searchTerm, setSearchTerm] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
@@ -224,15 +237,9 @@ export default function StudentDataTableV8() {
     setSortConfig({ key, direction });
   };
 
-  const handleEdit = (row) => editModalInstance.show(row, async (updateData) => {
-    await Data.students.update(updateData);
-    handleAfterAction();
-  });
+  const handleEdit = (row) => setEdit(row);
 
-  const handleDelete = (row) => deleteModalInstance.show(row, async () => {
-    await Data.students.delete(row);
-    handleAfterAction();
-  });
+  const handleDelete = (row) => setRemove(row);
 
   const handleUpgrade = (row) => {
     upgradeModalInstance.show(row, async (upgradeData) => {
@@ -284,14 +291,16 @@ export default function StudentDataTableV8() {
             routes={routes} 
             parents={parents} 
             classes={classes} 
-            save={async student => { await Data.students.update(student); handleAfterAction(); }} 
+            save={async student => { await Data.students.update(student); handleAfterAction(); setEdit(null); }} 
+            onHide={() => setEdit(null)}
         />
       )}
       
       {remove && (
         <DeleteModal 
             remove={remove} 
-            save={async student => { await Data.students.delete(student); handleAfterAction(); }} 
+            save={async student => { await Data.students.delete(student); handleAfterAction(); setRemove(null); }} 
+            onHide={() => setRemove(null)}
         />
       )}
       
