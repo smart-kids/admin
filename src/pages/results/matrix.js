@@ -92,6 +92,17 @@ class ResultsMatrix extends React.Component {
         }
     }, 500);
 
+    // Fallback timeout to ensure loading is eventually set to false
+    this.loadingTimeout = setTimeout(() => {
+        if (this.state.loading) {
+            console.warn('Loading timeout reached - setting loading to false');
+            this.setState({ loading: false });
+        }
+        if (this.checkAutoSelect) {
+            clearInterval(this.checkAutoSelect);
+        }
+    }, 10000); // 10 seconds timeout
+
     const schoolInfo = Data.schools.getSelected();
     
     let restoredGrade = localStorage.getItem('matrix_selectedGrade');
@@ -208,6 +219,7 @@ class ResultsMatrix extends React.Component {
 
   componentWillUnmount() {
       if (this.checkAutoSelect) clearInterval(this.checkAutoSelect);
+      if (this.loadingTimeout) clearTimeout(this.loadingTimeout);
       if (this.unsubClasses) this.unsubClasses();
       if (this.unsubTerms) this.unsubTerms();
       if (this.unsubGrades) this.unsubGrades();
@@ -235,9 +247,48 @@ class ResultsMatrix extends React.Component {
   };
 
   getFilteredStudents = () => {
-    const { students, selectedClass } = this.state;
-    if (!selectedClass) return [];
-    return students.filter(s => s.class?.id === selectedClass || s.class === selectedClass);
+    const { students, selectedClass, loading } = this.state;
+    
+    // If still loading or no students, return empty array
+    if (loading || !students || students.length === 0) return [];
+    
+    // If no class selected, return all students as fallback
+    if (!selectedClass) return students;
+    
+    // Debug: Log the filtering process
+    console.log('Filtering students for class:', selectedClass);
+    console.log('Total students:', students.length);
+    console.log('Sample student data:', students.slice(0, 3));
+    
+    const filtered = students.filter(s => {
+      // Handle multiple possible data structures for class reference
+      let classId = null;
+      
+      if (s.class && typeof s.class === 'object') {
+        classId = s.class.id;
+      } else if (s.class) {
+        classId = s.class;
+      } else if (s.class_id) {
+        classId = s.class_id;
+      }
+      
+      const match = classId && String(classId) === String(selectedClass);
+      if (!match && students.length <= 10) {
+        console.log('Student not matched:', s.names, 'classId:', classId, 'selected:', selectedClass, 'full student:', s);
+      }
+      return match;
+    });
+    
+    console.log('Filtered students count:', filtered.length);
+    
+    // If filtering results in empty students but there are students overall, 
+    // it might be a data structure issue. Return all students as fallback.
+    if (filtered.length === 0 && students.length > 0) {
+      console.warn('No students matched the selected class, returning all students as fallback');
+      return students;
+    }
+    
+    return filtered;
   };
 
   handleScoreChange = (studentId, subjectId, typeId, val) => {
@@ -713,7 +764,7 @@ class ResultsMatrix extends React.Component {
                     <div className="dropdown dropdown-inline mr-2 d-flex align-items-center">
                         <select className="form-control form-control-sm form-control-solid" value={selectedClass} onChange={e => this.handleClassChange(e.target.value)}>
                             <option value="">Class (Students)...</option>
-                            {availableClasses.map(c => <option key={c.id} value={c.id}>{c.name} ({c.student_num || 0} Students)</option>)}
+                            {availableClasses.map(c => <option key={c.id} value={c.id}>{c.name} ({(c.students && c.students.length) || 0} Students)</option>)}
                         </select>
                         <div className="ml-1 d-flex">
                             <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/classes"} title="Configure Classes">
