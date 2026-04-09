@@ -523,13 +523,14 @@ var Data = (function () {
         recipientCount 
         successCount 
         failureCount 
+        providerResponse
         
-        # The nested relation
+        # The nested relation - individual SMS logs
         logs {
             id
-            event
             recipientName
             recipientPhone
+            compiledMessage
             status
             error
             providerResponse # The raw JSON
