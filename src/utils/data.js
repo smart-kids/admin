@@ -21,6 +21,7 @@ const allData = {
     payments: [],
     charges: [],
     chargeTypes: [],
+    feeStructures: [],
     grades: [],
     subjects: [],
     topics: [],
@@ -1390,6 +1391,12 @@ var Data = (function () {
             singularName: "chargeType",
             createFields: ['school', 'name', 'description', 'amount'],
             updateFields: ['name', 'description', 'amount']
+        },
+        {
+            name: "feeStructures",
+            singularName: "feeStructure",
+            createFields: ['school', 'feeType', 'amount', 'description', 'class', 'term', 'isRequired', 'isActive'],
+            updateFields: ['feeType', 'amount', 'description', 'class', 'term', 'isRequired', 'isActive']
         },
         {
             name: "institutionalDeposits",

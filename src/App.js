@@ -37,6 +37,7 @@ import charges from "./pages/finance/charges"
 import chargeTypes from "./pages/finance/chargeTypes"
 import institutionalDeposits from "./pages/finance/institutional-deposits"
 import admins from "./pages/admins";
+import feeStructures from "./pages/fee-structures";
 
 const PrivateRoute = ({ component: Component, ...rest }) => (
   <Route {...rest} render={(props) => (
@@ -89,6 +90,7 @@ class App extends React.Component {
 
       <PrivateRoute path="/schools" component={schools} />
       <PrivateRoute path="/library" component={library} />
+      <PrivateRoute path="/fee-structures" component={feeStructures} />
       <PrivateRoute path="/terms" component={require("./pages/terms").default} />
       <PrivateRoute path="/assessment-types" component={require("./pages/learning/assessmentTypes").default} />
       <PrivateRoute path="/rubrics" component={require("./pages/learning/rubrics").default} />
