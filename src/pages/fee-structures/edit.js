@@ -32,6 +32,9 @@ class EditModal extends React.Component {
 
   hide = () => {
     $("#editFeeStructureModal").modal("hide");
+    // Ensure backdrop is removed
+    $(".modal-backdrop").remove();
+    $("body").removeClass("modal-open");
     this.setState({
       feeType: "",
       amount: "",

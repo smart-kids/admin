@@ -2,6 +2,7 @@ import React from "react";
 import Data from "../../utils/data";
 
 const $ = window.$;
+const MODAL_ID = "fee-structure-add-modal-" + Math.random().toString().split(".")[1];
 
 class AddModal extends React.Component {
   state = {
@@ -15,11 +16,15 @@ class AddModal extends React.Component {
   };
 
   show = () => {
-    $("#addFeeStructureModal").modal("show");
+    $("#" + MODAL_ID).modal({
+      show: true,
+      backdrop: "static",
+      keyboard: false
+    });
   };
 
   hide = () => {
-    $("#addFeeStructureModal").modal("hide");
+    $("#" + MODAL_ID).modal("hide");
     this.setState({
       feeType: "",
       amount: "",
@@ -210,6 +215,18 @@ class AddModal extends React.Component {
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
           }
+          .modal.fade:not(.show) {
+            display: none !important;
+          }
+          .modal.fade:not(.show) .modal-backdrop {
+            display: none !important;
+          }
+          .modal-backdrop {
+            z-index: 1040;
+          }
+          .modal {
+            z-index: 1050;
+          }
           @keyframes modalSlideIn {
             from {
               opacity: 0;
@@ -242,7 +259,7 @@ class AddModal extends React.Component {
         
         <div
           className="modal fade modern-modal"
-          id="addFeeStructureModal"
+          id={MODAL_ID}
           tabIndex="-1"
           role="dialog"
           aria-labelledby="exampleModalLabel"

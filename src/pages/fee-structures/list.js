@@ -251,19 +251,20 @@ export default function FeeStructureDataTable() {
   return (
     <div className="v8-datatable-container">
       {/* Modals are passed the LIVE data from subscriptions */}
-      <AddModal classes={classes} terms={terms} save={handleCreateFeeStructure} />
-      
-      <EditModal 
+      {edit && <EditModal 
         edit={edit} 
         classes={classes} 
         terms={terms} 
         save={async feeStructure => { await Data.feeStructures.update(feeStructure); handleAfterAction(); setEdit(null); }} 
-      />
+      />}
   
-      <DeleteModal 
+      {remove && <DeleteModal 
           remove={remove} 
           save={async feeStructure => { await Data.feeStructures.delete(feeStructure); handleAfterAction(); setRemove(null); }} 
-      />
+      />}
+      
+      {/* AddModal is always rendered but we'll fix its backdrop issue */}
+      <AddModal classes={classes} terms={terms} save={handleCreateFeeStructure} />
 
       <style>{`
         /* --- V8 STYLING --- */

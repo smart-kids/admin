@@ -10,6 +10,9 @@ class DeleteModal extends React.Component {
 
   hide = () => {
     $("#deleteFeeStructureModal").modal("hide");
+    // Ensure backdrop is removed
+    $(".modal-backdrop").remove();
+    $("body").removeClass("modal-open");
   };
 
   handleDelete = () => {
