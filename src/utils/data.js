@@ -120,9 +120,14 @@ const createEntityAPI = (config) => {
         create: (data) => new Promise(async (resolve, reject) => {
             try {
                 const payload = { ...data };
-                // Ensure amount is string for GraphQL
+                // Ensure amount is string for GraphQL and handle both field variations
                 if (payload.amount !== undefined && typeof payload.amount === 'number' && name !== 'chargeTypes') {
                     payload.amount = String(payload.amount);
+                    payload.ammount = payload.amount; // Include both fields for React Native compatibility
+                }
+                if (payload.ammount !== undefined && typeof payload.ammount === 'number' && name !== 'chargeTypes') {
+                    payload.ammount = String(payload.ammount);
+                    payload.amount = payload.ammount; // Include both fields for React Native compatibility
                 }
                 if (!payload.school && name !== 'schools') {
                     payload.school = localStorage.getItem("school");
@@ -198,9 +203,14 @@ const createEntityAPI = (config) => {
         update: (data) => new Promise(async (resolve, reject) => {
             try {
                 const { id, ...payload } = data;
-                // Ensure amount is string for GraphQL
+                // Ensure amount is string for GraphQL and handle both field variations
                 if (payload.amount !== undefined && typeof payload.amount === 'number' && name !== 'chargeTypes') {
                     payload.amount = String(payload.amount);
+                    payload.ammount = payload.amount; // Include both fields for React Native compatibility
+                }
+                if (payload.ammount !== undefined && typeof payload.ammount === 'number' && name !== 'chargeTypes') {
+                    payload.ammount = String(payload.ammount);
+                    payload.amount = payload.ammount; // Include both fields for React Native compatibility
                 }
                 const sanitizedPayload = filterPayload(payload, updateFields);
                 const mutationName = `U${singularName}`;
@@ -699,15 +709,119 @@ var Data = (function () {
                 const activeGrades = activeSchool.grades.filter(g => !g.isDeleted);
                 
                 allData.grades = activeGrades;
-                allData.subjects = activeGrades.flatMap(g => (g.subjects || []).filter(s => !s.isDeleted).map(s => ({ ...s, grade: g.id })));
-                allData.topics = allData.subjects.flatMap(s => (s.topics || []).filter(t => !t.isDeleted).map(t => ({ ...t, subject: s.id })));
-                allData.subtopics = allData.topics.flatMap(t => (t.subtopics || []).filter(st => !st.isDeleted).map(st => ({ ...st, topic: t.id })));
                 
-                // Only overwrite questions if we have them in this update
-                const questionsFromTree = allData.subtopics.flatMap(st => (st.questions || []).filter(q => !q.isDeleted).map(q => ({ ...q, subtopic: st.id })));
+                // Respect subjectsOrder when creating subjects flat list
+                allData.subjects = activeGrades.flatMap(g => {
+                    const subjects = g.subjects || [];
+                    const subjectsOrder = g.subjectsOrder || [];
+                    const orderedSubjects = [];
+                    
+                    // Add subjects in the specified order
+                    subjectsOrder.forEach(subjectId => {
+                        const subject = subjects.find(s => s.id === subjectId && !s.isDeleted);
+                        if (subject) orderedSubjects.push({ ...subject, grade: g.id });
+                    });
+                    
+                    // Add any remaining subjects not in the order
+                    subjects.forEach(subject => {
+                        if (!subjectsOrder.includes(subject.id) && !subject.isDeleted) {
+                            orderedSubjects.push({ ...subject, grade: g.id });
+                        }
+                    });
+                    
+                    return orderedSubjects;
+                });
+                
+                // Respect topicsOrder when creating topics flat list
+                allData.topics = allData.subjects.flatMap(s => {
+                    const topics = s.topics || [];
+                    const topicsOrder = s.topicsOrder || [];
+                    const orderedTopics = [];
+                    
+                    // Add topics in the specified order
+                    topicsOrder.forEach(topicId => {
+                        const topic = topics.find(t => t.id === topicId && !t.isDeleted);
+                        if (topic) orderedTopics.push({ ...topic, subject: s.id });
+                    });
+                    
+                    // Add any remaining topics not in the order
+                    topics.forEach(topic => {
+                        if (!topicsOrder.includes(topic.id) && !topic.isDeleted) {
+                            orderedTopics.push({ ...topic, subject: s.id });
+                        }
+                    });
+                    
+                    return orderedTopics;
+                });
+                
+                // Respect subtopicOrder when creating subtopics flat list
+                allData.subtopics = allData.topics.flatMap(t => {
+                    const subtopics = t.subtopics || [];
+                    const subtopicOrder = t.subtopicOrder || [];
+                    const orderedSubtopics = [];
+                    
+                    // Add subtopics in the specified order
+                    subtopicOrder.forEach(subtopicId => {
+                        const subtopic = subtopics.find(st => st.id === subtopicId && !st.isDeleted);
+                        if (subtopic) orderedSubtopics.push({ ...subtopic, topic: t.id });
+                    });
+                    
+                    // Add any remaining subtopics not in the order
+                    subtopics.forEach(subtopic => {
+                        if (!subtopicOrder.includes(subtopic.id) && !subtopic.isDeleted) {
+                            orderedSubtopics.push({ ...subtopic, topic: t.id });
+                        }
+                    });
+                    
+                    return orderedSubtopics;
+                });
+                
+                // Respect questionsOrder when creating questions flat list
+                const questionsFromTree = allData.subtopics.flatMap(st => {
+                    const questions = st.questions || [];
+                    const questionsOrder = st.questionsOrder || [];
+                    const orderedQuestions = [];
+                    
+                    // Add questions in the specified order
+                    questionsOrder.forEach(questionId => {
+                        const question = questions.find(q => q.id === questionId && !q.isDeleted);
+                        if (question) orderedQuestions.push({ ...question, subtopic: st.id });
+                    });
+                    
+                    // Add any remaining questions not in the order
+                    questions.forEach(question => {
+                        if (!questionsOrder.includes(question.id) && !question.isDeleted) {
+                            orderedQuestions.push({ ...question, subtopic: st.id });
+                        }
+                    });
+                    
+                    return orderedQuestions;
+                });
+                
                 if (questionsFromTree.length > 0) {
                     allData.questions = questionsFromTree;
-                    allData.options = allData.questions.flatMap(q => (q.options || []).filter(o => !o.isDeleted).map(o => ({ ...o, question: q.id })));
+                    
+                    // Respect optionsOrder when creating options flat list
+                    allData.options = allData.questions.flatMap(q => {
+                        const options = q.options || [];
+                        const optionsOrder = q.optionsOrder || [];
+                        const orderedOptions = [];
+                        
+                        // Add options in the specified order
+                        optionsOrder.forEach(optionId => {
+                            const option = options.find(o => o.id === optionId && !o.isDeleted);
+                            if (option) orderedOptions.push({ ...option, question: q.id });
+                        });
+                        
+                        // Add any remaining options not in the order
+                        options.forEach(option => {
+                            if (!optionsOrder.includes(option.id) && !option.isDeleted) {
+                                orderedOptions.push({ ...option, question: q.id });
+                            }
+                        });
+                        
+                        return orderedOptions;
+                    });
                 }
 
                 // Flatten Planning items from Subtopics
