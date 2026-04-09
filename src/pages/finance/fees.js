@@ -360,6 +360,8 @@ class FeesManagement extends Component {
         // 1. Helper: Get Fees for Class using new FeeStructure
         const getFees = (classId, termId = null) => {
             if (!classId) return 0;
+            if (!feeStructures || !Array.isArray(feeStructures)) return 0;
+            
             const targetClassId = String(classId?.id || classId);
             const targetTermId = termId || selectedTerm;
             
@@ -585,7 +587,7 @@ class FeesManagement extends Component {
             
             // Distribute payments and calculate per-student balances based ONLY on current term payments
             group.students.forEach(student => {
-                const classFee = getFees(student.class?.id || student.class);
+                const classFee = getFees(student.class?.id || student.class, selectedTerm);
                 
                 const studentPayments = relatedPayments.filter(p => {
                     const pStudentId = String(p.student?.id || p.student || p.metadata?.studentId || "");
@@ -624,10 +626,13 @@ class FeesManagement extends Component {
                     return tEnd < dateRange.start && t.id !== selectedTerm;
                 });
 
-                // 1. Previous Class Fees
+                // 1. Previous Class Fees - Calculate for each previous term using fee structures
                 const prevFees = group.students.reduce((sum, s) => {
-                    const fee = getFees(s.class?.id || s.class);
-                    return sum + (fee * previousTerms.length);
+                    const studentPrevFees = previousTerms.reduce((termSum, prevTerm) => {
+                        const termFee = getFees(s.class?.id || s.class, prevTerm.id);
+                        return termSum + termFee;
+                    }, 0);
+                    return sum + studentPrevFees;
                 }, 0);
 
                 // 2. Previous Charges (Not in current term)
