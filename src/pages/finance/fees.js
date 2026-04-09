@@ -164,8 +164,6 @@ class FeesManagement extends Component {
     };
     
     componentDidMount() {
-        console.log("FeesManagement Mounted");
-        
         // Restore selections from localStorage like results management
         let restoredClass = localStorage.getItem('fees_selectedClass');
         let restoredTerm = localStorage.getItem('fees_selectedTerm');
@@ -193,26 +191,20 @@ class FeesManagement extends Component {
             this.updateData({ charges });
         });
         this.unsubTerms = Data.terms?.subscribe(({ terms }) => {
-            console.log("Terms Update:", terms?.length);
             const update = { terms };
             this.updateData(update);
         });
         this.unsubStudents = Data.students.subscribe(({ students }) => {
-            console.log("Students Update:", students?.length);
             this.updateData({ students });
         });
         this.unsubParents = Data.parents.subscribe(({ parents }) => {
-            console.log("Parents Update:", parents?.length);
             this.updateData({ parents });
         });
         
         if (Data.payments) {
             this.unsubPayments = Data.payments.subscribe(({ payments }) => {
-                console.log("Payments Update:", payments?.length);
                 this.updateData({ payments });
             });
-        } else {
-            console.warn("Data.payments is NOT DEFINED");
         }
 
         // Check for defaults as data arrives - like results management
@@ -674,13 +666,6 @@ class FeesManagement extends Component {
             // Search inside students
             return g.students.some(s => s.names?.toLowerCase().includes(termLower));
         });
-
-        // 7. Calculate Grand Totals (Stats) - Removed analytics section
-        // filteredList.forEach(g => {
-        //     grandTotalExpected += g.totalExpected;
-        //     grandTotalPaid += g.totalPaid;
-        //     grandTotalBalance += g.totalBalance;
-        // });
 
         this.setState({ 
             processedParents: filteredList

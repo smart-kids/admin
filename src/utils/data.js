@@ -514,8 +514,7 @@ var Data = (function () {
         const FRAGMENT_BUSES_DATA = `fragment BusesData on school { buses { id plate make size driver { id, names } } }`;
         const FRAGMENT_DRIVERS_DATA = `fragment DriversData on school { drivers { id names phone license_expiry licence_number home } }`;
         const FRAGMENT_ADMINS_DATA = `fragment AdminsData on school { admins { id names email phone } }`;
-        const FRAGMENT_PARENTS_DATA = `fragment ParentsData on school { parents(limit: 1000) { id national_id name gender email phone students { id, names, gender, route { id, name } } } }`;
-        const FRAGMENT_TEACHERS_DATA = `fragment TeachersData on school { teachers { id national_id tsc_number name gender phone email classes { id, name } } }`;
+        const FRAGMENT_PARENTS_DATA = `fragment ParentsData on school { parents(limit: 1000) { id national_id name gender email phone students { id, names, gender, route { id, name } } } }`;        const FRAGMENT_TEACHERS_DATA = `fragment TeachersData on school { teachers { id national_id tsc_number name gender phone email classes { id, name } } }`;
         const FRAGMENT_CLASSES_DATA = `fragment ClassesData on school { classes { id name feeAmount grade students { id, names, gender, parent { id, name, phone }, route { id, name }, feeStatus { balance, balanceFormated } } teacher { id, name } } }`;
         const FRAGMENT_ROUTES_DATA = `fragment RoutesData on school { routes { id name description path { lat lng } } }`;
         const FRAGMENT_SCHEDULES_DATA = `fragment SchedulesData on school { schedules { id message time type end_time name days route { id, name } bus { id, make } } }`;
