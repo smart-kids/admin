@@ -73,169 +73,346 @@ class EditModal extends React.Component {
     const { classes, terms } = this.props;
 
     return (
-      <div
-        className="modal fade"
-        id="editFeeStructureModal"
-        tabIndex="-1"
-        role="dialog"
-        aria-labelledby="exampleModalLabel"
-        aria-hidden="true"
-      >
-        <div className="modal-dialog" role="document">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h5 className="modal-title" id="exampleModalLabel">
-                Edit Fee Structure
-              </h5>
-              <button
-                type="button"
-                className="close"
-                data-dismiss="modal"
-                aria-label="Close"
-                onClick={this.hide}
-              >
-                <span aria-hidden="true">&times;</span>
-              </button>
-            </div>
-            <form onSubmit={this.handleSubmit}>
-              <div className="modal-body">
-                <div className="form-group">
-                  <label htmlFor="feeType">Fee Type *</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="feeType"
-                    name="feeType"
-                    value={this.state.feeType}
-                    onChange={this.handleChange}
-                    required
-                    placeholder="e.g., Tuition, Transport, ICT"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="amount">Amount (KES) *</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    id="amount"
-                    name="amount"
-                    value={this.state.amount}
-                    onChange={this.handleChange}
-                    required
-                    min="0"
-                    step="0.01"
-                    placeholder="e.g., 5000"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="description">Description</label>
-                  <textarea
-                    className="form-control"
-                    id="description"
-                    name="description"
-                    value={this.state.description}
-                    onChange={this.handleChange}
-                    rows="3"
-                    placeholder="Enter fee description..."
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="classId">Class *</label>
-                  <select
-                    className="form-control"
-                    id="classId"
-                    name="classId"
-                    value={this.state.classId}
-                    onChange={this.handleChange}
-                    required
-                  >
-                    <option value="">Select Class</option>
-                    {classes &&
-                      classes.map((cls) => (
-                        <option key={cls.id} value={cls.id}>
-                          {cls.name}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="termId">Term *</label>
-                  <select
-                    className="form-control"
-                    id="termId"
-                    name="termId"
-                    value={this.state.termId}
-                    onChange={this.handleChange}
-                    required
-                  >
-                    <option value="">Select Term</option>
-                    {terms &&
-                      terms.map((term) => (
-                        <option key={term.id} value={term.id}>
-                          {term.name}
-                        </option>
-                      ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <div className="custom-control custom-checkbox">
-                    <input
-                      type="checkbox"
-                      className="custom-control-input"
-                      id="isRequired"
-                      name="isRequired"
-                      checked={this.state.isRequired}
-                      onChange={this.handleChange}
-                    />
-                    <label
-                      className="custom-control-label"
-                      htmlFor="isRequired"
-                    >
-                      Required Fee
-                    </label>
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <div className="custom-control custom-checkbox">
-                    <input
-                      type="checkbox"
-                      className="custom-control-input"
-                      id="isActive"
-                      name="isActive"
-                      checked={this.state.isActive}
-                      onChange={this.handleChange}
-                    />
-                    <label
-                      className="custom-control-label"
-                      htmlFor="isActive"
-                    >
-                      Active
-                    </label>
-                  </div>
-                </div>
-              </div>
-              <div className="modal-footer">
+      <>
+        <style>{`
+          .modern-modal {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
+          }
+          .modern-modal .modal-dialog {
+            max-width: 800px;
+            width: 90%;
+            margin: 0;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease-out;
+          }
+          .modern-modal .modal-content {
+            border: none;
+            border-radius: 16px;
+            background: #ffffff;
+          }
+          .modern-modal .modal-header {
+            border-bottom: 1px solid #e5e7eb;
+            padding: 1.5rem 2rem;
+            background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+            color: white;
+            border-radius: 16px 16px 0 0;
+          }
+          .modern-modal .modal-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+          }
+          .modern-modal .close {
+            color: white;
+            opacity: 0.8;
+            font-size: 1.5rem;
+            transition: opacity 0.2s;
+          }
+          .modern-modal .close:hover {
+            opacity: 1;
+          }
+          .modern-modal .modal-body {
+            padding: 2rem;
+            max-height: 70vh;
+            overflow-y: auto;
+          }
+          .modern-modal .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+          }
+          .modern-modal .form-group {
+            margin-bottom: 0;
+          }
+          .modern-modal .form-group.full-width {
+            grid-column: span 2;
+          }
+          .modern-modal .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.875rem;
+          }
+          .modern-modal .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.2s;
+            background: #ffffff;
+          }
+          .modern-modal .form-control:focus {
+            outline: none;
+            border-color: #f59e0b;
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+          }
+          .modern-modal .form-control::placeholder {
+            color: #9ca3af;
+          }
+          .modern-modal .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 2px solid #e5e7eb;
+            transition: all 0.2s;
+          }
+          .modern-modal .checkbox-group:hover {
+            border-color: #f59e0b;
+            background: #f3f4f6;
+          }
+          .modern-modal .checkbox-input {
+            width: 1.25rem;
+            height: 1.25rem;
+            border: 2px solid #d1d5db;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+          }
+          .modern-modal .checkbox-input:checked {
+            background-color: #f59e0b;
+            border-color: #f59e0b;
+          }
+          .modern-modal .checkbox-label {
+            font-weight: 500;
+            color: #374151;
+            cursor: pointer;
+            user-select: none;
+          }
+          .modern-modal .modal-footer {
+            border-top: 1px solid #e5e7eb;
+            padding: 1.5rem 2rem;
+            background: #f9fafb;
+            border-radius: 0 0 16px 16px;
+          }
+          .modern-modal .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+          }
+          .modern-modal .btn-secondary {
+            background: #6b7280;
+            color: white;
+          }
+          .modern-modal .btn-secondary:hover {
+            background: #4b5563;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+          }
+          .modern-modal .btn-primary {
+            background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+            color: white;
+          }
+          .modern-modal .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+          }
+          @keyframes modalSlideIn {
+            from {
+              opacity: 0;
+              transform: translateY(-50px) scale(0.95);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0) scale(1);
+            }
+          }
+          @media (max-width: 768px) {
+            .modern-modal .form-grid {
+              grid-template-columns: 1fr;
+              gap: 1rem;
+            }
+            .modern-modal .form-group.full-width {
+              grid-column: span 1;
+            }
+            .modern-modal .modal-dialog {
+              width: 95%;
+              margin: 1rem;
+            }
+            .modern-modal .modal-header,
+            .modern-modal .modal-body,
+            .modern-modal .modal-footer {
+              padding: 1.5rem;
+            }
+          }
+        `}</style>
+        
+        <div
+          className="modal fade modern-modal"
+          id="editFeeStructureModal"
+          tabIndex="-1"
+          role="dialog"
+          aria-labelledby="exampleModalLabel"
+          aria-hidden="true"
+        >
+          <div className="modal-dialog" role="document">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title" id="exampleModalLabel">
+                  Edit Fee Structure
+                </h5>
                 <button
                   type="button"
-                  className="btn btn-secondary"
+                  className="close"
+                  data-dismiss="modal"
+                  aria-label="Close"
                   onClick={this.hide}
                 >
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Update Fee Structure
+                  <span aria-hidden="true">&times;</span>
                 </button>
               </div>
-            </form>
+              <form onSubmit={this.handleSubmit}>
+                <div className="modal-body">
+                  <div className="form-grid">
+                    <div className="form-group">
+                      <label htmlFor="feeType" className="form-label">Fee Type *</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        id="feeType"
+                        name="feeType"
+                        value={this.state.feeType}
+                        onChange={this.handleChange}
+                        required
+                        placeholder="e.g., Tuition, Transport, ICT"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="amount" className="form-label">Amount (KES) *</label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        id="amount"
+                        name="amount"
+                        value={this.state.amount}
+                        onChange={this.handleChange}
+                        required
+                        min="0"
+                        step="0.01"
+                        placeholder="e.g., 5000"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="classId" className="form-label">Class *</label>
+                      <select
+                        className="form-control"
+                        id="classId"
+                        name="classId"
+                        value={this.state.classId}
+                        onChange={this.handleChange}
+                        required
+                      >
+                        <option value="">Select Class</option>
+                        {classes &&
+                          classes.map((cls) => (
+                            <option key={cls.id} value={cls.id}>
+                              {cls.name}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="termId" className="form-label">Term *</label>
+                      <select
+                        className="form-control"
+                        id="termId"
+                        name="termId"
+                        value={this.state.termId}
+                        onChange={this.handleChange}
+                        required
+                      >
+                        <option value="">Select Term</option>
+                        {terms &&
+                          terms.map((term) => (
+                            <option key={term.id} value={term.id}>
+                              {term.name}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+
+                    <div className="form-group full-width">
+                      <label htmlFor="description" className="form-label">Description</label>
+                      <textarea
+                        className="form-control"
+                        id="description"
+                        name="description"
+                        value={this.state.description}
+                        onChange={this.handleChange}
+                        rows="3"
+                        placeholder="Enter fee description..."
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <div className="checkbox-group">
+                        <input
+                          type="checkbox"
+                          className="checkbox-input"
+                          id="isRequired"
+                          name="isRequired"
+                          checked={this.state.isRequired}
+                          onChange={this.handleChange}
+                        />
+                        <label htmlFor="isRequired" className="checkbox-label">
+                          Required Fee
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <div className="checkbox-group">
+                        <input
+                          type="checkbox"
+                          className="checkbox-input"
+                          id="isActive"
+                          name="isActive"
+                          checked={this.state.isActive}
+                          onChange={this.handleChange}
+                        />
+                        <label htmlFor="isActive" className="checkbox-label">
+                          Active
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={this.hide}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary">
+                    Update Fee Structure
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
-      </div>
+      </>
     );
   }
 }

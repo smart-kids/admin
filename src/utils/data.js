@@ -122,11 +122,11 @@ const createEntityAPI = (config) => {
             try {
                 const payload = { ...data };
                 // Ensure amount is string for GraphQL and handle both field variations
-                if (payload.amount !== undefined && typeof payload.amount === 'number' && name !== 'chargeTypes') {
+                if (payload.amount !== undefined && typeof payload.amount === 'number' && name !== 'chargeTypes' && !(name === 'feeStructures' && config.keepAmountAsNumber)) {
                     payload.amount = String(payload.amount);
                     payload.ammount = payload.amount; // Include both fields for React Native compatibility
                 }
-                if (payload.ammount !== undefined && typeof payload.ammount === 'number' && name !== 'chargeTypes') {
+                if (payload.ammount !== undefined && typeof payload.ammount === 'number' && name !== 'chargeTypes' && !(name === 'feeStructures' && config.keepAmountAsNumber)) {
                     payload.ammount = String(payload.ammount);
                     payload.amount = payload.ammount; // Include both fields for React Native compatibility
                 }
@@ -205,11 +205,11 @@ const createEntityAPI = (config) => {
             try {
                 const { id, ...payload } = data;
                 // Ensure amount is string for GraphQL and handle both field variations
-                if (payload.amount !== undefined && typeof payload.amount === 'number' && name !== 'chargeTypes') {
+                if (payload.amount !== undefined && typeof payload.amount === 'number' && name !== 'chargeTypes' && !(name === 'feeStructures' && config.keepAmountAsNumber)) {
                     payload.amount = String(payload.amount);
                     payload.ammount = payload.amount; // Include both fields for React Native compatibility
                 }
-                if (payload.ammount !== undefined && typeof payload.ammount === 'number' && name !== 'chargeTypes') {
+                if (payload.ammount !== undefined && typeof payload.ammount === 'number' && name !== 'chargeTypes' && !(name === 'feeStructures' && config.keepAmountAsNumber)) {
                     payload.ammount = String(payload.ammount);
                     payload.amount = payload.ammount; // Include both fields for React Native compatibility
                 }
@@ -1396,7 +1396,8 @@ var Data = (function () {
             name: "feeStructures",
             singularName: "feeStructure",
             createFields: ['school', 'feeType', 'amount', 'description', 'class', 'term', 'isRequired', 'isActive'],
-            updateFields: ['feeType', 'amount', 'description', 'class', 'term', 'isRequired', 'isActive']
+            updateFields: ['feeType', 'amount', 'description', 'class', 'term', 'isRequired', 'isActive'],
+            keepAmountAsNumber: true
         },
         {
             name: "institutionalDeposits",
