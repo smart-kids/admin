@@ -6,6 +6,8 @@ import SmsBalanceModal from './components/SmsBalanceModal';
 import StatementCard from './components/StatementCard';
 import BulkReportSmsModal from "../../components/reports/BulkReportSmsModal";
 import { StatCard, DistributionChart, TrendBarChart, AreaChart, RankingList } from "../../components/analytics/DashboardWidgets";
+import AddTermModal from "../results/components/AddTermModal";
+import AddClassModal from "../classes/add";
 
 // --- HELPER COMPONENTS ---
 
@@ -102,9 +104,9 @@ class FeesManagement extends Component {
         charges: [],
         chargeTypes: [],
         
-        // Filters & Search
-        selectedClass: "",
-        selectedTerm: "",
+        // Filters & Search - with localStorage persistence like results management
+        selectedClass: localStorage.getItem('fees_selectedClass') || "",
+        selectedTerm: localStorage.getItem('fees_selectedTerm') || "",
         searchTerm: "",
         
         // Processed Data (for performance)
@@ -155,10 +157,26 @@ class FeesManagement extends Component {
         bulkSmsRecipients: [],
 
         activeTab: 'accounts', // 'accounts' or 'insights'
+    
+    // Modal states like results management
+    showAddTermModal: false,
+    showAddClassModal: false,
     };
     
     componentDidMount() {
         console.log("FeesManagement Mounted");
+        
+        // Restore selections from localStorage like results management
+        let restoredClass = localStorage.getItem('fees_selectedClass');
+        let restoredTerm = localStorage.getItem('fees_selectedTerm');
+        if (restoredClass === 'null' || restoredClass === 'undefined') restoredClass = "";
+        if (restoredTerm === 'null' || restoredTerm === 'undefined') restoredTerm = "";
+        
+        this.setState({ 
+            selectedClass: restoredClass || "",
+            selectedTerm: restoredTerm || ""
+        });
+
         this.unsubClasses = Data.classes.subscribe(({ classes }) => {
             console.log("Classes Update:", classes?.length);
             this.updateData({ classes, loading: !classes?.length });
@@ -177,7 +195,6 @@ class FeesManagement extends Component {
         this.unsubTerms = Data.terms?.subscribe(({ terms }) => {
             console.log("Terms Update:", terms?.length);
             const update = { terms };
-            // Removed auto-selection of latest term to default to "All Terms"
             this.updateData(update);
         });
         this.unsubStudents = Data.students.subscribe(({ students }) => {
@@ -197,6 +214,14 @@ class FeesManagement extends Component {
         } else {
             console.warn("Data.payments is NOT DEFINED");
         }
+
+        // Check for defaults as data arrives - like results management
+        this.checkAutoSelect = setInterval(() => {
+            if (this.state.classes.length > 0 && this.state.terms.length > 0) {
+                this.autoSelectDefaults();
+                clearInterval(this.checkAutoSelect);
+            }
+        }, 500);
     }
 
     checkReadyState = () => {
@@ -215,7 +240,32 @@ class FeesManagement extends Component {
         if (this.unsubPayments) this.unsubPayments();
         if (this.unsubChargeTypes) this.unsubChargeTypes();
         if (this.unsubCharges) this.unsubCharges();
+        if (this.checkAutoSelect) clearInterval(this.checkAutoSelect);
     }
+
+    // Auto-select defaults like results management
+    autoSelectDefaults = () => {
+        const { selectedClass, selectedTerm, loading } = this.state;
+        const { availableClasses, availableTerms } = this.getAvailableData();
+        let updates = {};
+        let shouldUpdate = false;
+
+        if (!selectedClass && availableClasses?.length > 0) {
+            updates.selectedClass = String(availableClasses[0].id);
+            localStorage.setItem('fees_selectedClass', updates.selectedClass);
+            shouldUpdate = true;
+        }
+
+        if (!selectedTerm && availableTerms?.length > 0) {
+            updates.selectedTerm = String(availableTerms[0].id);
+            localStorage.setItem('fees_selectedTerm', updates.selectedTerm);
+            shouldUpdate = true;
+        }
+
+        if (shouldUpdate && !loading) {
+            this.setState(updates);
+        }
+    };
 
     // Centralized update handler to trigger recalculation
     updateData = (newData) => {
@@ -247,6 +297,53 @@ class FeesManagement extends Component {
 
     handleFilterChange = (key, value) => {
         this.setState({ [key]: value, currentPage: 1 }, this.recalculateFinancials);
+        // Save to localStorage like results management
+        if (key === 'selectedClass') {
+            localStorage.setItem('fees_selectedClass', value);
+        } else if (key === 'selectedTerm') {
+            localStorage.setItem('fees_selectedTerm', value);
+        }
+    };
+
+    // Handle class change like results management
+    handleClassChange = (classId) => {
+        this.setState({ selectedClass: classId, currentPage: 1 }, this.recalculateFinancials);
+        localStorage.setItem('fees_selectedClass', classId);
+    };
+
+    // componentDidUpdate for localStorage persistence like results management
+    componentDidUpdate(prevProps, prevState) {
+        if (this.state.selectedClass !== prevState.selectedClass) {
+            localStorage.setItem('fees_selectedClass', this.state.selectedClass);
+        }
+        if (this.state.selectedTerm !== prevState.selectedTerm) {
+            localStorage.setItem('fees_selectedTerm', this.state.selectedTerm);
+        }
+    }
+
+    // Get available data like results management
+    getAvailableData = () => {
+        const { classes, terms } = this.state;
+        const userData = JSON.parse(localStorage.getItem("user") || "{}");
+        const userRole = localStorage.getItem("userRole");
+        // Check for enhanced user data (parents with teacher details)
+        const enhancedUser = JSON.parse(localStorage.getItem("enhancedUser")) || userData;
+        // Treat all parents as teachers in admin interface
+        const isTeacher = userRole === 'teacher' || userData?.userType === 'teacher' || userData?.role === 'teacher' || userRole === 'parent' || userData?.userType === 'parent' || userData?.role === 'parent';
+        const teacherId = enhancedUser?.teacherDetails?.id || userData?.id;
+
+        let availableClasses = classes || [];
+        let availableTerms = terms || [];
+
+        // Filter classes based on user role like results management
+        if (isTeacher && teacherId) {
+            availableClasses = availableClasses.filter(cls => {
+                const teacherIdFromClass = String(cls.teacher?.id || cls.teacher);
+                return teacherIdFromClass === String(teacherId);
+            });
+        }
+
+        return { availableClasses, availableTerms };
     };
 
     /**
@@ -256,15 +353,6 @@ class FeesManagement extends Component {
     recalculateFinancials = () => {
         const { students, parents, payments, classes, terms, expected, charges, selectedClass, selectedTerm, searchTerm } = this.state;
         
-        console.log("Recalculate Stats:", { 
-            students: students.length, 
-            parents: parents.length, 
-            payments: payments.length, 
-            classes: classes.length,
-            charges: charges?.length || 0,
-            selectedTerm
-        });
-
         // EXIT if any core piece is missing. 
         // We allow payments to be empty, as students might not have paid yet.
         if (!students.length || !parents.length || !classes.length) {
@@ -293,41 +381,85 @@ class FeesManagement extends Component {
         if (selectedClass) {
             const selClsId = String(selectedClass);
             filteredStudents = students.filter(s => String(s.class?.id || s.class) === selClsId);
-            console.log("Filtered by Class Students:", filteredStudents.length);
         }
 
         // 4. Group by Parent
         const parentMap = {};
+        let studentsWithoutParent = 0;
         
         filteredStudents.forEach(student => {
             const pId = String(student.parent?.id || student.parent);
-            if (!pId || pId === "undefined" || pId === "null") return;
+            if (!pId || pId === "undefined" || pId === "null") {
+                studentsWithoutParent++;
+                return;
+            }
 
             if (!parentMap[pId]) {
                 const parentObj = parents.find(p => String(p.id) === pId) || student.parent;
-                if (!parentObj) return;
-                
-                parentMap[pId] = {
-                    id: pId,
-                    parent: { ...parentObj }, // Clone to avoid mutation issues
-                    students: [],
+                if (!parentObj) {
+                    // Create a placeholder parent to still show the student
+                    parentMap[pId] = {
+                        id: pId,
+                        parent: { 
+                            id: pId, 
+                            name: `Parent ${pId}`, 
+                            phone: 'Not assigned',
+                            isPlaceholder: true 
+                        },
+                        students: [],
+                        totalExpected: 0,
+                        totalPaid: 0,
+                        totalBalance: 0,
+                        history: [],
+                        charges: []
+                    };
+                } else {
+                    parentMap[pId] = {
+                        id: pId,
+                        parent: { ...parentObj }, // Clone to avoid mutation issues
+                        students: [],
+                        totalExpected: 0,
+                        totalPaid: 0,
+                        totalBalance: 0,
+                        history: [],
+                        charges: []
+                    };
+
+                    // CRITICAL: If the parent object is missing a phone, try to find it in the flat parents list
+                    if (!parentMap[pId].parent.phone) {
+                        const fullParent = parents.find(p => String(p.id) === pId);
+                        if (fullParent?.phone) parentMap[pId].parent.phone = fullParent.phone;
+                    }
+                }
+            }
+            parentMap[pId].students.push(student);
+        });
+
+        // Create a special group for students without parents
+        if (studentsWithoutParent > 0) {
+            const studentsWithoutParentList = filteredStudents.filter(student => {
+                const pId = String(student.parent?.id || student.parent);
+                return !pId || pId === "undefined" || pId === "null";
+            });
+            
+            if (studentsWithoutParentList.length > 0) {
+                parentMap['no-parent'] = {
+                    id: 'no-parent',
+                    parent: { 
+                        id: 'no-parent', 
+                        name: 'Students Without Parent Assignment', 
+                        phone: 'N/A',
+                        isSpecialGroup: true 
+                    },
+                    students: studentsWithoutParentList,
                     totalExpected: 0,
                     totalPaid: 0,
                     totalBalance: 0,
                     history: [],
                     charges: []
                 };
-
-                // CRITICAL: If the parent object is missing a phone, try to find it in the flat parents list
-                if (!parentMap[pId].parent.phone) {
-                    const fullParent = parents.find(p => String(p.id) === pId);
-                    if (fullParent?.phone) parentMap[pId].parent.phone = fullParent.phone;
-                }
             }
-            parentMap[pId].students.push(student);
-        });
-
-        console.log("Parent Groups Created:", Object.keys(parentMap).length);
+        }
 
         // Map charges to parents (filtered by term if selected)
         if (charges && charges.length > 0) {
@@ -443,10 +575,7 @@ class FeesManagement extends Component {
                 return true;
             });
 
-            if (relatedPayments.length > 0) {
-                console.log(`Parent ${group.parent.name} has ${relatedPayments.length} related payments`);
-            }
-
+            
             // Distribute payments and calculate per-student balances based ONLY on current term payments
             group.students.forEach(student => {
                 const classFee = getFees(student.class?.id || student.class);
@@ -1297,17 +1426,33 @@ class FeesManagement extends Component {
                                 </ul>
 
                                 <div className="card-toolbar d-flex align-items-center">
-                                    <div className="dropdown dropdown-inline mr-2">
+                                    <div className="dropdown dropdown-inline mr-2 d-flex align-items-center">
                                         <select className="form-control form-control-sm form-control-solid" value={selectedTerm} onChange={e => this.handleFilterChange('selectedTerm', e.target.value)}>
                                             <option value="">Term...</option>
-                                            {terms && terms.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                            {this.getAvailableData().availableTerms.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                                         </select>
+                                        <div className="ml-1 d-flex">
+                                            <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/terms"} title="Configure Terms">
+                                                <i className="fa fa-cog font-size-xs"></i>
+                                            </button>
+                                            <button className="btn btn-xs btn-icon btn-light-success" onClick={() => this.setState({ showAddTermModal: true })} title="Add Term">
+                                                <i className="fa fa-plus font-size-xs"></i>
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="dropdown dropdown-inline mr-4">
-                                        <select className="form-control form-control-sm form-control-solid" value={selectedClass} onChange={e => this.handleFilterChange('selectedClass', e.target.value)}>
-                                            <option value="">Class...</option>
-                                            {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                    <div className="dropdown dropdown-inline mr-4 d-flex align-items-center">
+                                        <select className="form-control form-control-sm form-control-solid" value={selectedClass} onChange={e => this.handleClassChange(e.target.value)}>
+                                            <option value="">Class (Students)...</option>
+                                            {this.getAvailableData().availableClasses.map(c => <option key={c.id} value={c.id}>{c.name} ({(c.students && c.students.length) || 0} Students)</option>)}
                                         </select>
+                                        <div className="ml-1 d-flex">
+                                            <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/classes"} title="Configure Classes">
+                                                <i className="fa fa-cog font-size-xs"></i>
+                                            </button>
+                                            <button className="btn btn-xs btn-icon btn-light-success" onClick={() => this.setState({ showAddClassModal: true })} title="Add Class">
+                                                <i className="fa fa-plus font-size-xs"></i>
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <button 
@@ -2044,6 +2189,29 @@ class FeesManagement extends Component {
                     recipients={this.state.bulkSmsRecipients}
                     onSend={this.handleBulkSmsSend}
                     onSavePhone={this.handleSaveParentPhone}
+                />
+            )}
+
+            {/* MODALS - Like results management */}
+            {this.state.showAddTermModal && (
+                <AddTermModal 
+                  show={this.state.showAddTermModal}
+                  onHide={() => this.setState({ showAddTermModal: false })}
+                  onSuccess={() => {
+                    this.setState({ showAddTermModal: false });
+                    // Data will be updated automatically via subscription
+                  }}
+                />
+            )}
+
+            {this.state.showAddClassModal && (
+                <AddClassModal 
+                  show={this.state.showAddClassModal}
+                  onHide={() => this.setState({ showAddClassModal: false })}
+                  onSuccess={() => {
+                    this.setState({ showAddClassModal: false });
+                    // Data will be updated automatically via subscription
+                  }}
                 />
             )}
           </div>
