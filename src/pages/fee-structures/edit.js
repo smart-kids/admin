@@ -87,10 +87,13 @@ class EditModal extends React.Component {
             width: 100%;
             height: 100%;
             background: rgba(0, 0, 0, 0.5);
-            display: flex;
+            display: flex !important;
             align-items: center;
             justify-content: center;
             z-index: 1050;
+          }
+          .modal.show {
+            display: flex !important;
           }
           .modal .modal-dialog {
             max-width: 600px;

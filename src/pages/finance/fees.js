@@ -374,6 +374,7 @@ class FeesManagement extends Component {
             return applicableFees.reduce((total, fs) => total + (parseFloat(fs.amount) || 0), 0);
         };
 
+        
         // 2. Helper: Term Date Range
         const term = terms?.find(t => t.id === selectedTerm);
         let dateRange = null;
@@ -689,6 +690,39 @@ class FeesManagement extends Component {
                 this.setState({ expandedParentId: filteredList[0].id });
             }
         });
+    };
+
+    // --- Helper: Get Fee Structure Breakdown (Component Level) ---
+    getFeeStructureBreakdown = (classId, termId = null) => {
+        const { feeStructures, selectedTerm } = this.state;
+        if (!classId) return [];
+        const targetClassId = String(classId?.id || classId);
+        const targetTermId = termId || selectedTerm;
+        
+        // Get all active fee structures for this class and term
+        const applicableFees = feeStructures.filter(fs => 
+            String(fs.class?.id || fs.class) === targetClassId &&
+            (!targetTermId || String(fs.term?.id || fs.term) === String(targetTermId)) &&
+            fs.isActive === true
+        );
+        
+        // Group by fee type and sum amounts
+        const feeTypeGroups = {};
+        applicableFees.forEach(fs => {
+            const feeType = fs.feeType || 'Other';
+            if (!feeTypeGroups[feeType]) {
+                feeTypeGroups[feeType] = {
+                    feeType,
+                    totalAmount: 0,
+                    count: 0,
+                    description: fs.description || ''
+                };
+            }
+            feeTypeGroups[feeType].totalAmount += parseFloat(fs.amount) || 0;
+            feeTypeGroups[feeType].count += 1;
+        });
+        
+        return Object.values(feeTypeGroups).sort((a, b) => b.totalAmount - a.totalAmount);
     };
 
     // --- Actions ---
@@ -1154,13 +1188,30 @@ class FeesManagement extends Component {
     };
 
     renderInsights = () => {
-        const { payments, charges, students, classes } = this.state;
+        const { payments, charges, students, classes, feeStructures, selectedClass, selectedTerm } = this.state;
         
         const validPayments = (payments || []).filter(p => !p.status || p.status === 'COMPLETED');
         const totalCollected = validPayments.reduce((sum, p) => sum + (parseFloat(p.amount || p.ammount) || 0), 0);
         const totalCharges = (charges || []).reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0);
         const totalArrears = Math.max(0, totalCharges - totalCollected);
         const collectionRate = totalCharges > 0 ? Math.round((totalCollected / totalCharges) * 100) : 0;
+        
+        // Calculate fee structure totals
+        let totalFeeStructureAmount = 0;
+        let totalFeeStructureCount = 0;
+        if (selectedClass && feeStructures) {
+            const targetClassId = String(selectedClass?.id || selectedClass);
+            const targetTermId = selectedTerm;
+            
+            const applicableFees = feeStructures.filter(fs => 
+                String(fs.class?.id || fs.class) === targetClassId &&
+                (!targetTermId || String(fs.term?.id || fs.term) === String(targetTermId)) &&
+                fs.isActive === true
+            );
+            
+            totalFeeStructureAmount = applicableFees.reduce((sum, fs) => sum + (parseFloat(fs.amount) || 0), 0);
+            totalFeeStructureCount = applicableFees.length;
+        }
 
         // 2. Payment Methods split
         const methods = {};
@@ -1214,6 +1265,9 @@ class FeesManagement extends Component {
                     </div>
                     <div className="col-md-3">
                         <StatCard title="Collection Rate" value={`${collectionRate}%`} icon="flaticon2-line-chart" color="#3699ff" trend={3} />
+                    </div>
+                    <div className="col-md-3">
+                        <StatCard title="Fee Structures" value={`${totalFeeStructureCount}`} icon="flaticon2-list" color="#8950fc" subtext={`${totalFeeStructureAmount > 0 ? `KES ${totalFeeStructureAmount.toLocaleString()}` : 'No structures'}`} />
                     </div>
                     <div className="col-md-3">
                         <StatCard title="Fee Targets" value={`KES ${totalCharges.toLocaleString()}`} icon="flaticon2-correct" color="#f6c23e" subtext="Expected revenue" />
@@ -1675,7 +1729,70 @@ class FeesManagement extends Component {
                                                                                         </div>
                                                                                     </div>
 
-                                                                                    {/* 2. Filtered Charges */}
+                                                                                    {/* 2. Fee Structure Breakdown */}
+                                                                                    <div className="col-md-12 mb-6">
+                                                                                        <div className="d-flex justify-content-between align-items-center mb-3">
+                                                                                            <h6 className="font-weight-bold mb-0">Fee Structure Breakdown</h6>
+                                                                                            <span className="badge badge-info badge-pill">
+                                                                {selectedTerm ? terms?.find(t => t.id === selectedTerm)?.name || 'Current Term' : 'All Terms'}
+                                                            </span>
+                                                                                        </div>
+                                                                                        <div style={{maxHeight: '250px', overflowY: 'auto'}} className="border rounded p-3 bg-white">
+                                                                                            {(() => {
+                                                                                                const breakdown = this.getFeeStructureBreakdown(selectedClass, selectedTerm);
+                                                                                                return breakdown.length === 0 ? (
+                                                                                                    <div className="text-muted font-size-sm">
+                                                                                                        No fee structures configured for this class/term.
+                                                                                                    </div>
+                                                                                                ) : (
+                                                                                                    <div className="table-responsive">
+                                                                                                        <table className="table table-sm table-borderless table-vertical-center mb-0">
+                                                                                                            <thead className="thead-light">
+                                                                                                                <tr>
+                                                                                                                    <th className="font-size-xs font-weight-bolder text-uppercase">Fee Type</th>
+                                                                                                                    <th className="font-size-xs font-weight-bolder text-uppercase text-right" style={{ width: '100px'}}>Amount</th>
+                                                                                                                    <th className="font-size-xs font-weight-bolder text-uppercase text-center" style={{ width: '80px'}}>Count</th>
+                                                                                                                </tr>
+                                                                                                            </thead>
+                                                                                                            <tbody>
+                                                                                                                {breakdown.map((fee, index) => (
+                                                                                                                    <tr key={index} className="border-bottom">
+                                                                                                                        <td className="py-3">
+                                                                                                                            <span className="font-weight-bolder text-dark-75 d-block">{fee.feeType}</span>
+                                                                                                                            {fee.description && (
+                                                                                                                                <span className="text-muted font-size-xs">{fee.description}</span>
+                                                                                                                            )}
+                                                                                                                        </td>
+                                                                                                                        <td className="text-right font-weight-bolder text-primary py-3">
+                                                                                                                            KES {fee.totalAmount.toLocaleString()}
+                                                                                                                        </td>
+                                                                                                                        <td className="text-center py-3">
+                                                                                                                            <span className="badge badge-light badge-pill">{fee.count}</span>
+                                                                                                                        </td>
+                                                                                                                    </tr>
+                                                                                                                ))}
+                                                                                                                <tr className="border-top">
+                                                                                                                    <td className="py-3">
+                                                                                                                        <span className="font-weight-bolder text-dark">Total Expected</span>
+                                                                                                                    </td>
+                                                                                                                    <td className="text-right font-weight-bolder text-success py-3">
+                                                                                                                        KES {breakdown.reduce((sum, fee) => sum + fee.totalAmount, 0).toLocaleString()}
+                                                                                                                    </td>
+                                                                                                                    <td className="text-center py-3">
+                                                                                                                        <span className="badge badge-success badge-pill">
+                                                                                                                            {breakdown.reduce((sum, fee) => sum + fee.count, 0)}
+                                                                                                                        </span>
+                                                                                                                    </td>
+                                                                                                                </tr>
+                                                                                                            </tbody>
+                                                                                                        </table>
+                                                                                                    </div>
+                                                                                                );
+                                                                                            })()}
+                                                                                        </div>
+                                                                                    </div>
+
+                                                                                    {/* 3. Filtered Charges */}
                                                                                     <div className="col-md-12">
                                                                                         <div className="d-flex justify-content-between align-items-center mb-3">
                                                                                             <h6 className="font-weight-bold mb-0">Filtered Charges</h6>

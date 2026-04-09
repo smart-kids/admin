@@ -210,20 +210,26 @@ export default function FeeStructureDataTable() {
   };
 
   const handleAdd = () => {
-    addModalRef.current?.show();
+    if (addModalRef.current) {
+      addModalRef.current.show();
+    }
   };
 
   const handleEdit = (row) => {
     setEdit(row);
     setTimeout(() => {
-      editModalRef.current?.show();
+      if (editModalRef.current) {
+        editModalRef.current.show();
+      }
     }, 0);
   };
 
   const handleDelete = (row) => {
     setRemove(row);
     setTimeout(() => {
-      deleteModalRef.current?.show();
+      if (deleteModalRef.current) {
+        deleteModalRef.current.show();
+      }
     }, 0);
   };
 
@@ -373,7 +379,7 @@ export default function FeeStructureDataTable() {
             <div className="value">{initialLoading ? <div className="v8-spinner" style={{width: 20, height: 20}}></div> : totalFeeStructures}</div>
             <div className="label">Total Fee Structures</div>
           </div>
-          <button onClick={() => addModalInstance.show()} className="btn" style={{backgroundColor: 'var(--v8-accent-color)', color: 'white'}}>Add Fee Structure</button>
+          <button onClick={handleAdd} className="btn" style={{backgroundColor: 'var(--v8-accent-color)', color: 'white'}}>Add Fee Structure</button>
         </div>
       </header>
 
@@ -460,7 +466,7 @@ export default function FeeStructureDataTable() {
                             title={activeSearch ? "No fee structures found" : "No Fee Structures Added"}
                             description={activeSearch ? `We couldn't find any fee structure matching "${activeSearch}". Try adjusting your search.` : "Get started by adding your first fee structure to the system."}
                             isSearch={!!activeSearch}
-                            primaryAction={activeSearch ? handleClearSearch : () => addModalInstance.show()}
+                            primaryAction={activeSearch ? handleClearSearch : handleAdd}
                             primaryActionText={activeSearch ? "Clear Search" : "Add Fee Structure"}
                             iconClass={activeSearch ? "la la-search" : "la la-money"}
                         />
