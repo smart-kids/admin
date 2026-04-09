@@ -403,6 +403,24 @@ export default function FeeStructureDataTable() {
                         let value = getNestedValue(row, h.key);
                         if (h.key === 'amount') {
                           value = `KES ${Number(value).toLocaleString()}`;
+                        } else if (h.key === 'class.name') {
+                          // Handle both cases: when class is an object or just an ID
+                          if (typeof row.class === 'string') {
+                            // Find class name from the classes array
+                            const classObj = classes.find(c => c.id === row.class);
+                            value = classObj ? classObj.name : row.class;
+                          } else {
+                            value = getNestedValue(row, h.key) || 'N/A';
+                          }
+                        } else if (h.key === 'term.name') {
+                          // Handle both cases: when term is an object or just an ID
+                          if (typeof row.term === 'string') {
+                            // Find term name from the terms array
+                            const termObj = terms.find(t => t.id === row.term);
+                            value = termObj ? termObj.name : row.term;
+                          } else {
+                            value = getNestedValue(row, h.key) || 'N/A';
+                          }
                         } else if (h.key === 'isRequired' || h.key === 'isActive') {
                           const isActive = value === true || value === 'true';
                           const badgeClass = isActive ? 'v8-badge-success' : 'v8-badge-warning';

@@ -67,103 +67,110 @@ class AddModal extends React.Component {
     return (
       <>
         <style>{`
-          .modern-modal {
+          .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
-            background: rgba(0, 0, 0, 0.5);
+            z-index: 1050;
           }
-          .modern-modal .modal-dialog {
-            max-width: 800px;
+          .modal .modal-dialog {
+            max-width: 600px;
             width: 90%;
             margin: 0;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
             animation: modalSlideIn 0.3s ease-out;
           }
-          .modern-modal .modal-content {
+          .modal .modal-content {
             border: none;
-            border-radius: 16px;
+            border-radius: 8px;
             background: #ffffff;
           }
-          .modern-modal .modal-header {
+          .modal .modal-header {
             border-bottom: 1px solid #e5e7eb;
             padding: 1.5rem 2rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 16px 16px 0 0;
+            background: #ffffff;
+            color: #374151;
+            border-radius: 8px 8px 0 0;
           }
-          .modern-modal .modal-title {
-            font-size: 1.5rem;
+          .modal .modal-title {
+            font-size: 1.25rem;
             font-weight: 600;
             margin: 0;
+            color: #374151;
           }
-          .modern-modal .close {
-            color: white;
+          .modal .close {
+            color: #6b7280;
             opacity: 0.8;
             font-size: 1.5rem;
             transition: opacity 0.2s;
           }
-          .modern-modal .close:hover {
+          .modal .close:hover {
             opacity: 1;
+            color: #374151;
           }
-          .modern-modal .modal-body {
+          .modal .modal-body {
             padding: 2rem;
             max-height: 70vh;
             overflow-y: auto;
           }
-          .modern-modal .form-grid {
+          .modal .form-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 1.5rem;
             margin-bottom: 1.5rem;
           }
-          .modern-modal .form-group {
+          .modal .form-group {
             margin-bottom: 0;
           }
-          .modern-modal .form-group.full-width {
+          .modal .form-group.full-width {
             grid-column: span 2;
           }
-          .modern-modal .form-label {
+          .modal .form-label {
             display: block;
             margin-bottom: 0.5rem;
             font-weight: 600;
             color: #374151;
             font-size: 0.875rem;
           }
-          .modern-modal .form-control {
+          .modal .form-control {
             width: 100%;
             padding: 0.75rem 1rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.875rem;
             transition: all 0.2s;
             background: #ffffff;
           }
-          .modern-modal .form-control:focus {
+          .modal .form-control:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
           }
-          .modern-modal .form-control::placeholder {
+          .modal .form-control::placeholder {
             color: #9ca3af;
           }
-          .modern-modal .checkbox-group {
+          .modal .checkbox-group {
             display: flex;
             align-items: center;
             gap: 0.75rem;
             padding: 1rem;
             background: #f9fafb;
-            border-radius: 8px;
-            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
             transition: all 0.2s;
           }
-          .modern-modal .checkbox-group:hover {
-            border-color: #667eea;
+          .modal .checkbox-group:hover {
+            border-color: #3b82f6;
             background: #f3f4f6;
           }
-          .modern-modal .checkbox-input {
+          .modal .checkbox-input {
             width: 1.25rem;
             height: 1.25rem;
             border: 2px solid #d1d5db;
@@ -171,49 +178,46 @@ class AddModal extends React.Component {
             cursor: pointer;
             transition: all 0.2s;
           }
-          .modern-modal .checkbox-input:checked {
-            background-color: #667eea;
-            border-color: #667eea;
+          .modal .checkbox-input:checked {
+            background-color: #3b82f6;
+            border-color: #3b82f6;
           }
-          .modern-modal .checkbox-label {
+          .modal .checkbox-label {
             font-weight: 500;
             color: #374151;
             cursor: pointer;
             user-select: none;
           }
-          .modern-modal .modal-footer {
+          .modal .modal-footer {
             border-top: 1px solid #e5e7eb;
             padding: 1.5rem 2rem;
-            background: #f9fafb;
-            border-radius: 0 0 16px 16px;
+            background: #ffffff;
+            border-radius: 0 0 8px 8px;
           }
-          .modern-modal .btn {
+          .modal .btn {
             padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            font-weight: 600;
+            border-radius: 6px;
+            font-weight: 500;
             font-size: 0.875rem;
             border: none;
             cursor: pointer;
             transition: all 0.2s;
-            text-transform: uppercase;
-            letter-spacing: 0.025em;
           }
-          .modern-modal .btn-secondary {
-            background: #6b7280;
+          .modal .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+          }
+          .modal .btn-secondary:hover {
+            background: #e5e7eb;
+            color: #111827;
+          }
+          .modal .btn-primary {
+            background: #3b82f6;
             color: white;
           }
-          .modern-modal .btn-secondary:hover {
-            background: #4b5563;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
-          }
-          .modern-modal .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-          }
-          .modern-modal .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+          .modal .btn-primary:hover {
+            background: #2563eb;
           }
           .modal.fade:not(.show) {
             display: none !important;
@@ -258,7 +262,7 @@ class AddModal extends React.Component {
         `}</style>
         
         <div
-          className="modal fade modern-modal"
+          className="modal fade"
           id={MODAL_ID}
           tabIndex="-1"
           role="dialog"

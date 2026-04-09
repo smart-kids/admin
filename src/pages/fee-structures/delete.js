@@ -2,17 +2,19 @@ import React from "react";
 import Data from "../../utils/data";
 
 const $ = window.$;
+const MODAL_ID = "fee-structure-delete-modal-" + Math.random().toString().split(".")[1];
 
 class DeleteModal extends React.Component {
   show = () => {
-    $("#deleteFeeStructureModal").modal("show");
+    $("#" + MODAL_ID).modal({
+      show: true,
+      backdrop: "static",
+      keyboard: false
+    });
   };
 
   hide = () => {
-    $("#deleteFeeStructureModal").modal("hide");
-    // Ensure backdrop is removed
-    $(".modal-backdrop").remove();
-    $("body").removeClass("modal-open");
+    $("#" + MODAL_ID).modal("hide");
   };
 
   handleDelete = () => {
@@ -29,52 +31,53 @@ class DeleteModal extends React.Component {
     return (
       <>
         <style>{`
-          .modern-modal {
+          .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 100vh;
-            background: rgba(0, 0, 0, 0.5);
+            z-index: 1050;
           }
-          .modern-modal .modal-dialog {
-            max-width: 600px;
+          .modal .modal-dialog {
+            max-width: 500px;
             width: 90%;
             margin: 0;
-            border-radius: 16px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
             animation: modalSlideIn 0.3s ease-out;
           }
-          .modern-modal .modal-content {
+          .modal .modal-content {
             border: none;
-            border-radius: 16px;
+            border-radius: 8px;
             background: #ffffff;
           }
-          .modern-modal .modal-header {
+          .modal .modal-header {
             border-bottom: 1px solid #e5e7eb;
             padding: 1.5rem 2rem;
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            color: white;
-            border-radius: 16px 16px 0 0;
+            background: #ffffff;
+            color: #374151;
+            border-radius: 8px 8px 0 0;
           }
-          .modern-modal .modal-title {
-            font-size: 1.5rem;
+          .modal .modal-title {
+            font-size: 1.25rem;
             font-weight: 600;
             margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
+            color: #374151;
           }
-          .modern-modal .modal-title .icon {
-            font-size: 1.75rem;
-          }
-          .modern-modal .close {
-            color: white;
+          .modal .close {
+            color: #6b7280;
             opacity: 0.8;
             font-size: 1.5rem;
             transition: opacity 0.2s;
           }
-          .modern-modal .close:hover {
+          .modal .close:hover {
             opacity: 1;
+            color: #374151;
           }
           .modern-modal .modal-body {
             padding: 2rem;
@@ -239,8 +242,8 @@ class DeleteModal extends React.Component {
         `}</style>
         
         <div
-          className="modal fade modern-modal"
-          id="deleteFeeStructureModal"
+          className="modal fade"
+          id={MODAL_ID}
           tabIndex="-1"
           role="dialog"
           aria-labelledby="exampleModalLabel"
