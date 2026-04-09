@@ -1397,7 +1397,25 @@ var Data = (function () {
             singularName: "feeStructure",
             createFields: ['school', 'feeType', 'amount', 'description', 'class', 'term', 'isRequired', 'isActive'],
             updateFields: ['feeType', 'amount', 'description', 'class', 'term', 'isRequired', 'isActive'],
-            keepAmountAsNumber: true
+            keepAmountAsNumber: true,
+            customMethods: (allData, subs) => ({
+                getPage: async ({ page = 1, limit = 15, search = "" }) => {
+                    const offset = (page - 1) * limit;
+                    const response = await query(`query GetFeeStructurePage($limit: Int, $offset: Int, $id: String, $search: String) { school(id: $id) { feeStructures(limit: $limit, offset: $offset, search: $search) { id feeType amount description isRequired isActive class { id name } term { id name } } } }`, { limit, offset, id: localStorage.getItem("school"), search });
+                    const feeStructures = response.school?.feeStructures || [];
+                    // For pagination, we need to get total count. If there's no count field, we'll fetch all for search or use a reasonable default
+                    let totalCount = feeStructures.length;
+                    if (search) {
+                        // For search, get all results to count them
+                        const allResponse = await query(`query GetAllFeeStructures($id: String, $search: String) { school(id: $id) { feeStructures(search: $search) { id } } }`, { id: localStorage.getItem("school"), search });
+                        totalCount = allResponse.school?.feeStructures?.length || 0;
+                    } else {
+                        // For non-search, estimate based on current page + whether we got full results
+                        totalCount = feeStructures.length < limit ? (page - 1) * limit + feeStructures.length : page * limit + 1;
+                    }
+                    return { feeStructures, totalCount };
+                }
+            })
         },
         {
             name: "institutionalDeposits",
