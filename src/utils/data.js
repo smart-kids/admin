@@ -527,7 +527,7 @@ var Data = (function () {
         # The nested relation
         logs {
             id
-            smsEventId
+            event
             recipientName
             recipientPhone
             status
