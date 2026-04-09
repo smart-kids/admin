@@ -425,4 +425,12 @@ class AddModal extends React.Component {
   }
 }
 
-export default AddModal;
+export default React.forwardRef((props, ref) => {
+  const modalRef = React.useRef();
+  React.useImperativeHandle(ref, () => ({
+    show: () => modalRef.current?.show(),
+    hide: () => modalRef.current?.hide()
+  }));
+  
+  return <AddModal {...props} ref={modalRef} />;
+});

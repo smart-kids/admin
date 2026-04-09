@@ -9,9 +9,6 @@ import EditModal from "./edit";
 import DeleteModal from "./delete";
 
 const $ = window.$;
-const addModalInstance = new AddModal();
-const editModalInstance = new EditModal();
-const deleteModalInstance = new DeleteModal();
 
 // Helper function to safely access nested properties
 const getNestedValue = (obj, path) => {
@@ -20,6 +17,11 @@ const getNestedValue = (obj, path) => {
 };
 
 export default function FeeStructureDataTable() {
+  // --- REFS ---
+  const addModalRef = useRef();
+  const editModalRef = useRef();
+  const deleteModalRef = useRef();
+
   // --- STATE MANAGEMENT ---
   const [feeStructures, setFeeStructures] = useState([]);
   const [totalFeeStructures, setTotalFeeStructures] = useState(0);
@@ -207,14 +209,22 @@ export default function FeeStructureDataTable() {
     setSortConfig({ key, direction });
   };
 
+  const handleAdd = () => {
+    addModalRef.current?.show();
+  };
+
   const handleEdit = (row) => {
     setEdit(row);
-    editModalInstance.show();
+    setTimeout(() => {
+      editModalRef.current?.show();
+    }, 0);
   };
 
   const handleDelete = (row) => {
     setRemove(row);
-    deleteModalInstance.show();
+    setTimeout(() => {
+      deleteModalRef.current?.show();
+    }, 0);
   };
 
   const handleFeeStructureCreated = (newFeeStructure) => {
@@ -252,6 +262,7 @@ export default function FeeStructureDataTable() {
     <div className="v8-datatable-container">
       {/* Modals are passed the LIVE data from subscriptions */}
       {edit && <EditModal 
+        ref={editModalRef}
         edit={edit} 
         classes={classes} 
         terms={terms} 
@@ -259,12 +270,13 @@ export default function FeeStructureDataTable() {
       />}
   
       {remove && <DeleteModal 
+          ref={deleteModalRef}
           remove={remove} 
           save={async feeStructure => { await Data.feeStructures.delete(feeStructure); handleAfterAction(); setRemove(null); }} 
       />}
       
       {/* AddModal is always rendered but we'll fix its backdrop issue */}
-      <AddModal classes={classes} terms={terms} save={handleCreateFeeStructure} />
+      <AddModal ref={addModalRef} classes={classes} terms={terms} save={handleCreateFeeStructure} />
 
       <style>{`
         /* --- V8 STYLING --- */

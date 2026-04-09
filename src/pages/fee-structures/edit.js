@@ -429,4 +429,12 @@ class EditModal extends React.Component {
   }
 }
 
-export default EditModal;
+export default React.forwardRef((props, ref) => {
+  const modalRef = React.useRef();
+  React.useImperativeHandle(ref, () => ({
+    show: () => modalRef.current?.show(),
+    hide: () => modalRef.current?.hide()
+  }));
+  
+  return <EditModal {...props} ref={modalRef} />;
+});

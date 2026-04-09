@@ -354,4 +354,12 @@ class DeleteModal extends React.Component {
   }
 }
 
-export default DeleteModal;
+export default React.forwardRef((props, ref) => {
+  const modalRef = React.useRef();
+  React.useImperativeHandle(ref, () => ({
+    show: () => modalRef.current?.show(),
+    hide: () => modalRef.current?.hide()
+  }));
+  
+  return <DeleteModal {...props} ref={modalRef} />;
+});
