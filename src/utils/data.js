@@ -510,6 +510,7 @@ var Data = (function () {
         }`;
         const FRAGMENT_COMPLAINTS_DATA = `fragment ComplaintsData on school { complaints { id time content parent { id, name } } }`;
         const FRAGMENT_CHARGE_TYPES_DATA = `fragment ChargeTypesData on school { chargeTypes { id name description amount } }`;
+        const FRAGMENT_FEE_STRUCTURES_DATA = `fragment FeeStructuresData on school { feeStructures { id feeType amount description isRequired isActive class { id name } term { id name startDate endDate } } }`;
         const FRAGMENT_STUDENTS_DATA = `fragment StudentsData on school { students(limit: 1000, offset: 0) { id names gender registration class { id, name, teacher { id, name } } route { id, name } parent { id, national_id, name } parent2 { id, national_id, name } } }`; 
         const FRAGMENT_BUSES_DATA = `fragment BusesData on school { buses { id plate make size driver { id, names } } }`;
         const FRAGMENT_DRIVERS_DATA = `fragment DriversData on school { drivers { id names phone license_expiry licence_number home } }`;
@@ -857,6 +858,7 @@ var Data = (function () {
             { query: `query GetRoutes { schools { id ...RoutesData } } ${FRAGMENT_ROUTES_DATA}` },
             { query: `query GetSchedules { schools { id ...SchedulesData } } ${FRAGMENT_SCHEDULES_DATA}` },
             { query: `query GetChargeTypes { schools { id ...ChargeTypesData } } ${FRAGMENT_CHARGE_TYPES_DATA}` },
+            { query: `query GetFeeStructures { schools { id ...FeeStructuresData } } ${FRAGMENT_FEE_STRUCTURES_DATA}` },
             { query: `query GetTrips { schools { id ...TripsData } } ${FRAGMENT_TRIPS_DATA}` },
             { query: `query GetComplaints { schools { id ...ComplaintsData } } ${FRAGMENT_COMPLAINTS_DATA}` },
             { query: `query GetTeachers { schools { id ...TeachersData } } ${FRAGMENT_TEACHERS_DATA}` },
@@ -1211,6 +1213,72 @@ var Data = (function () {
             singularName: "charge",
             createFields: ['school', 'amount', 'reason', 'time', 'parent', 'chargeType', 'term'],
             updateFields: ['amount', 'reason', 'time', 'parent', 'chargeType', 'term']
+        }, {
+            name: "feeStructures",
+            singularName: "feeStructure",
+            createFields: ['school', 'class', 'term', 'feeType', 'amount', 'description', 'isRequired', 'isActive'],
+            updateFields: ['class', 'term', 'feeType', 'amount', 'description', 'isRequired', 'isActive'],
+            customMethods: (allData, subs, api) => ({
+                findByClass: (classId, termId) => new Promise(async (resolve, reject) => {
+                    try {
+                        const schoolId = localStorage.getItem("school");
+                        const response = await api(`
+                            query GetFeeStructuresByClass($schoolId: String!, $classId: String!, $termId: String) {
+                                feeStructures: feeStructures(where: {
+                                    school: $schoolId,
+                                    class: $classId,
+                                    term: $termId
+                                }) {
+                                    id
+                                    feeType
+                                    amount
+                                    description
+                                    isRequired
+                                    isActive
+                                    class { id name }
+                                    term { id name startDate endDate }
+                                }
+                            }
+                        `, {
+                            schoolId,
+                            classId,
+                            termId
+                        });
+                        
+                        resolve(response.feeStructures || []);
+                    } catch (error) {
+                        console.error('Failed to fetch fee structures by class:', error);
+                        reject(error);
+                    }
+                }),
+                bulkCreate: (feeStructuresData) => new Promise(async (resolve, reject) => {
+                    try {
+                        const response = await api(`
+                            mutation BulkCreateFeeStructures($feeStructures: [IfeeStructure!]!) {
+                                feeStructures {
+                                    bulkCreate(feeStructures: $feeStructures) {
+                                        id
+                                        feeType
+                                        amount
+                                        description
+                                        isRequired
+                                        isActive
+                                        class { id name }
+                                        term { id name }
+                                    }
+                                }
+                            }
+                        `, {
+                            feeStructures: feeStructuresData
+                        });
+                        
+                        resolve(response.feeStructures?.bulkCreate || []);
+                    } catch (error) {
+                        console.error('Failed to bulk create fee structures:', error);
+                        reject(error);
+                    }
+                })
+            })
         }, { name: "invitations", singularName: "invitation", createFields: ['school', 'user', 'message', 'phone', 'email'], updateFields: ['school', 'user', 'message', 'phone', 'email'] },
         {
             name: "lessonAttempts",

@@ -103,6 +103,7 @@ class FeesManagement extends Component {
         parents: [],
         charges: [],
         chargeTypes: [],
+        feeStructures: [],
         
         // Filters & Search - with localStorage persistence like results management
         selectedClass: localStorage.getItem('fees_selectedClass') || "",
@@ -190,6 +191,9 @@ class FeesManagement extends Component {
         this.unsubCharges = Data.charges.subscribe(({ charges }) => {
             this.updateData({ charges });
         });
+        this.unsubFeeStructures = Data.feeStructures?.subscribe(({ feeStructures }) => {
+            this.updateData({ feeStructures });
+        });
         this.unsubTerms = Data.terms?.subscribe(({ terms }) => {
             const update = { terms };
             this.updateData(update);
@@ -232,6 +236,7 @@ class FeesManagement extends Component {
         if (this.unsubPayments) this.unsubPayments();
         if (this.unsubChargeTypes) this.unsubChargeTypes();
         if (this.unsubCharges) this.unsubCharges();
+        if (this.unsubFeeStructures) this.unsubFeeStructures();
         if (this.checkAutoSelect) clearInterval(this.checkAutoSelect);
     }
 
@@ -343,7 +348,7 @@ class FeesManagement extends Component {
      * Running this only when data/filters change (not every render) is key for 500+ items.
      */
     recalculateFinancials = () => {
-        const { students, parents, payments, classes, terms, expected, charges, selectedClass, selectedTerm, searchTerm } = this.state;
+        const { students, parents, payments, classes, terms, feeStructures, expected, charges, selectedClass, selectedTerm, searchTerm } = this.state;
         
         // EXIT if any core piece is missing. 
         // We allow payments to be empty, as students might not have paid yet.
@@ -352,12 +357,21 @@ class FeesManagement extends Component {
             return;
         }
 
-        // 1. Helper: Get Fee for Class
-        const getFees = (classId) => {
+        // 1. Helper: Get Fees for Class using new FeeStructure
+        const getFees = (classId, termId = null) => {
             if (!classId) return 0;
-            const targetId = String(classId?.id || classId);
-            const cls = classes.find(c => String(c.id) === targetId);
-            return cls ? (cls.feeAmount || 0) : 0;
+            const targetClassId = String(classId?.id || classId);
+            const targetTermId = termId || selectedTerm;
+            
+            // Get all active fee structures for this class and term
+            const applicableFees = feeStructures.filter(fs => 
+                String(fs.class?.id || fs.class) === targetClassId &&
+                (!targetTermId || String(fs.term?.id || fs.term) === String(targetTermId)) &&
+                fs.isActive === true
+            );
+            
+            // Sum all applicable fees (tuition, transport, etc.)
+            return applicableFees.reduce((total, fs) => total + (parseFloat(fs.amount) || 0), 0);
         };
 
         // 2. Helper: Term Date Range
