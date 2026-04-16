@@ -339,7 +339,7 @@ var Data = (function () {
     var instance;
 
     const init = () => {
-        const FRAGMENT_USER_DATA = `fragment UserData on user { name email phone }`;
+        const FRAGMENT_USER_DATA = `fragment UserData on user { names email phone }`;
         const FRAGMENT_SCHOOL_DETAILS = `fragment schoolDetails on school { id name phone email address logo themeColor studentsCount parentsCount gradeOrder }`;
         const FRAGMENT_GRADES_DATA = `fragment GradesData on school {
             grades { 
