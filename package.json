@@ -43,8 +43,7 @@
     "yarn": "^1.22.22"
   },
   "resolutions": {
-    "@babel/core": "^7.16.0",
-    "babel-core": "^7.16.0"
+    "@babel/core": "^7.16.0"
   },
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=--openssl-legacy-provider npx react-app-rewired start",
