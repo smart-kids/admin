@@ -12,7 +12,7 @@
     "deep-equal": "^1.1.0",
     "draft-js": "^0.11.7",
     "draft-js-export-html": "^1.4.1",
-    "fuse.js": "^7.1.0",
+    "fuse.js": "^6.6.2",
     "google-map-react": "^1.1.5",
     "google-maps-react": "^2.0.2",
     "jquery": "^3.5.1",
@@ -42,10 +42,14 @@
     "read-excel-file": "^4.0.5",
     "yarn": "^1.22.22"
   },
+  "resolutions": {
+    "@babel/core": "^7.16.0",
+    "babel-core": "^7.16.0"
+  },
   "scripts": {
     "dev": "cross-env NODE_OPTIONS=--openssl-legacy-provider npx react-app-rewired start",
     "start": "npx serve -s build -l $PORT",
-    "build": "cross-env npx react-app-rewired build",
+    "build": "cross-env NODE_OPTIONS=--openssl-legacy-provider npx react-app-rewired build",
     "test": "cross-env NODE_OPTIONS=--openssl-legacy-provider npx react-app-rewired test",
     "test:finance": "cross-env NODE_OPTIONS=--openssl-legacy-provider npx jest src/test/finance-frontend.test.js --verbose",
     "test:backend": "cd ../graph && npm test -- --grep 'Fee Structure Calculations'",
@@ -70,17 +74,16 @@
     ]
   },
   "devDependencies": {
-    "@babel/plugin-proposal-optional-chaining": "^7.7.4",
-    "@babel/preset-env": "^7.29.2",
-    "@babel/preset-react": "^7.28.5",
+    "@babel/core": "^7.16.0",
+    "@babel/plugin-proposal-optional-chaining": "^7.16.0",
+    "@babel/preset-env": "^7.16.0",
+    "@babel/preset-react": "^7.16.0",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^12.1.5",
     "@testing-library/user-event": "^13.5.0",
-    "babel-jest": "^27.5.1",
     "cross-env": "^7.0.3",
     "customize-cra": "^0.9.1",
     "identity-obj-proxy": "^3.0.0",
-    "jest": "^27.5.1",
     "react-app-rewired": "^2.1.6",
     "serve": "^11.3.2"
   }
