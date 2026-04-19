@@ -97,7 +97,7 @@ class FeesManagement extends Component {
     state = {
         // Raw Data
         classes: [],
-        terms: [],
+        terms: Data.terms || [],
         students: [],
         payments: [],
         parents: [],
@@ -133,6 +133,7 @@ class FeesManagement extends Component {
         statementGroup: null, // NEW
         statementTab: 'statement', // 'statement' or 'sms'
         statementSmsMessage: '',
+        statementSelectedTerm: localStorage.getItem('statement_selectedTerm') || "", // NEW
         paymentStudent: null,
         paymentAmount: 0, // Kept this as it was in the original state, not explicitly removed by instruction
         parentPhone: "",
@@ -195,9 +196,10 @@ class FeesManagement extends Component {
             console.log("Fee Structures Update:", feeStructures?.length);
             this.updateData({ feeStructures });
         });
-        this.unsubTerms = Data.terms?.subscribe(({ terms }) => {
-            const update = { terms };
-            this.updateData(update);
+        
+        this.unsubTerms = Data.terms.subscribe(({ terms }) => {
+            console.log("Terms Update:", terms?.length);
+            this.updateData({ terms });
         });
         this.unsubStudents = Data.students.subscribe(({ students }) => {
             this.updateData({ students });
@@ -267,6 +269,9 @@ class FeesManagement extends Component {
 
     // Pre-process payments to optimize performance
     preprocessPayments = (payments, terms, students) => {
+        // Ensure terms is an array
+        const safeTerms = Array.isArray(terms) ? terms : [];
+        
         return payments.map(p => {
             let metadata = p.metadata;
             // 1. Ensure metadata is an object
@@ -287,11 +292,11 @@ class FeesManagement extends Component {
             const pTime = new Date(p.time || p.createdAt || p.transactionDate).getTime();
 
             if (assignedTermId) {
-                const term = terms.find(t => String(t.id) === String(assignedTermId));
+                const term = safeTerms.find(t => String(t.id) === String(assignedTermId));
                 if (term) assignedTermName = term.name;
             } else if (!isNaN(pTime)) {
                 // Automatic date-based assignment fallback
-                const matchingTerm = terms.find(t => {
+                const matchingTerm = safeTerms.find(t => {
                     const start = new Date(t.startDate).getTime();
                     const end = new Date(t.endDate).getTime();
                     return pTime >= start && pTime <= end;
@@ -353,14 +358,17 @@ class FeesManagement extends Component {
         }
     };
 
-    handleFilterChange = (key, value) => {
-        this.setState({ [key]: value, currentPage: 1 }, this.recalculateFinancials);
-        // Save to localStorage like results management
-        if (key === 'selectedClass') {
-            localStorage.setItem('fees_selectedClass', value);
-        } else if (key === 'selectedTerm') {
-            localStorage.setItem('fees_selectedTerm', value);
-        }
+    handleFilterChange = (filterName, value) => {
+        this.setState({ [filterName]: value }, () => {
+            localStorage.setItem(`fees_${filterName}`, value);
+            this.recalculateFinancials();
+        });
+    };
+    
+    handleStatementTermChange = (value) => {
+        this.setState({ statementSelectedTerm: value }, () => {
+            localStorage.setItem('statement_selectedTerm', value);
+        });
     };
 
     // Handle class change like results management
@@ -390,8 +398,8 @@ class FeesManagement extends Component {
         const isTeacher = userRole === 'teacher' || userData?.userType === 'teacher' || userData?.role === 'teacher' || userRole === 'parent' || userData?.userType === 'parent' || userData?.role === 'parent';
         const teacherId = enhancedUser?.teacherDetails?.id || userData?.id;
 
-        let availableClasses = classes || [];
-        let availableTerms = terms || [];
+        let availableClasses = Array.isArray(classes) ? classes : [];
+        let availableTerms = Array.isArray(terms) ? terms : [];
 
         // Filter classes based on user role like results management
         if (isTeacher && teacherId) {
@@ -1390,7 +1398,18 @@ class FeesManagement extends Component {
                                 totalValidExpected={totalValidExpected} 
                                 totalValidPaid={totalValidPaid} 
                                 totalValidBalance={totalValidBalance} 
+                                feeStructures={this.state.feeStructures}
+                                selectedTerm={this.state.statementSelectedTerm}
+                                terms={this.state.terms}
                             />
+                            {/* Debug info */}
+                            <div style={{ display: 'none' }}>
+                                Debug Info:
+                                FeeStructures: {this.state.feeStructures?.length}
+                                SelectedTerm: {this.state.selectedTerm}
+                                ValidStudents: {validStudentsData?.length}
+                                PrintGroup: {JSON.stringify(printGroup, null, 2)}
+                            </div>
                         </div>
                     </div>
                   </div>
@@ -2173,9 +2192,25 @@ class FeesManagement extends Component {
                             
                             <div className="modal-footer bg-light p-3">
                                 <button className="btn btn-secondary" onClick={() => this.setState({ showStatementModal: false, statementGroup: null })}>Close</button>
-                                {this.state.statementTab === 'statement' ? (
-                                    <button className="btn btn-info" onClick={this.executePrintStatement}><i className="flaticon2-printer mr-2"></i> Print Official Statement</button>
-                                ) : (
+                                {this.state.statementTab === 'statement' && (
+                                    <div className="d-flex align-items-center">
+                                        <select 
+                                            className="form-control form-control-sm mr-3" 
+                                            style={{ width: '200px' }}
+                                            value={this.state.statementSelectedTerm} 
+                                            onChange={e => this.handleStatementTermChange(e.target.value)}
+                                        >
+                                            <option value="">Select Term...</option>
+                                            {this.getAvailableData().availableTerms.map(t => (
+                                                <option key={t.id} value={t.id}>{t.name}</option>
+                                            ))}
+                                        </select>
+                                        <button className="btn btn-info" onClick={this.executePrintStatement}>
+                                            <i className="flaticon2-printer mr-2"></i> Print Official Statement
+                                        </button>
+                                    </div>
+                                )}
+                                {this.state.statementTab === 'sms' && (
                                     <button className="btn btn-primary" onClick={this.sendStatementSms} disabled={this.state.sendingSms}>
                                         <i className="flaticon2-paper-plane mr-2"></i> {this.state.sendingSms ? "Sending..." : "Send SMS"}
                                     </button>
