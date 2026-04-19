@@ -191,7 +191,8 @@ class FeesManagement extends Component {
         this.unsubCharges = Data.charges.subscribe(({ charges }) => {
             this.updateData({ charges });
         });
-        this.unsubFeeStructures = Data.feeStructures?.subscribe(({ feeStructures }) => {
+        this.unsubFeeStructures = Data.feeStructures.subscribe(({ feeStructures }) => {
+            console.log("Fee Structures Update:", feeStructures?.length);
             this.updateData({ feeStructures });
         });
         this.unsubTerms = Data.terms?.subscribe(({ terms }) => {
@@ -264,6 +265,54 @@ class FeesManagement extends Component {
         }
     };
 
+    // Pre-process payments to optimize performance
+    preprocessPayments = (payments, terms, students) => {
+        return payments.map(p => {
+            let metadata = p.metadata;
+            // 1. Ensure metadata is an object
+            if (typeof metadata === 'string' && metadata.trim().startsWith('{')) {
+                try { metadata = JSON.parse(metadata); } catch (e) { metadata = {}; }
+            } else if (!metadata) {
+                metadata = {};
+            }
+
+            // 2. Identify Student Name
+            const pStudentId = String(p.student?.id || p.student || metadata?.studentId || "");
+            const student = students.find(s => String(s.id) === pStudentId);
+            const studentName = student ? student.names : 'Unallocated';
+
+            // 3. Assign Term
+            let assignedTermName = "Unknown Term";
+            let assignedTermId = metadata.termId || null;
+            const pTime = new Date(p.time || p.createdAt || p.transactionDate).getTime();
+
+            if (assignedTermId) {
+                const term = terms.find(t => String(t.id) === String(assignedTermId));
+                if (term) assignedTermName = term.name;
+            } else if (!isNaN(pTime)) {
+                // Automatic date-based assignment fallback
+                const matchingTerm = terms.find(t => {
+                    const start = new Date(t.startDate).getTime();
+                    const end = new Date(t.endDate).getTime();
+                    return pTime >= start && pTime <= end;
+                });
+                if (matchingTerm) {
+                    assignedTermName = matchingTerm.name;
+                    assignedTermId = matchingTerm.id;
+                }
+            }
+
+            return { 
+                ...p, 
+                metadata, 
+                assignedTerm: assignedTermName, 
+                assignedTermId, 
+                studentName,
+                processedAmount: parseFloat(p.amount || p.ammount || 0)
+            };
+        });
+    };
+
     // Centralized update handler to trigger recalculation
     updateData = (newData) => {
         console.log("Updating State with keys:", Object.keys(newData));
@@ -285,9 +334,21 @@ class FeesManagement extends Component {
 
         if (Object.keys(cleanData).length > 0) {
             this.setState(cleanData, () => {
-                console.log("State updated, recalculating financials...");
-                this.recalculateFinancials();
-                this.checkReadyState();
+                // If payments, terms, or students updated, pre-process the payments
+                if (newData.payments || newData.terms || newData.students) {
+                    const processedPayments = this.preprocessPayments(
+                        this.state.payments, 
+                        this.state.terms, 
+                        this.state.students
+                    );
+                    this.setState({ payments: processedPayments }, () => {
+                        this.recalculateFinancials();
+                        this.checkReadyState();
+                    });
+                } else {
+                    this.recalculateFinancials();
+                    this.checkReadyState();
+                }
             });
         }
     };
@@ -377,13 +438,8 @@ class FeesManagement extends Component {
         };
 
         
-        // 2. Helper: Term Date Range
-        const term = terms?.find(t => t.id === selectedTerm);
-        let dateRange = null;
-        if (term?.startDate && term?.endDate) {
-            dateRange = { start: new Date(term.startDate).getTime(), end: new Date(term.endDate).getTime() };
-            console.log("Using Date Range:", term.name, dateRange);
-        }
+        // 2. Helper: Get Selected Term
+        const selectedTermData = terms?.find(t => t.id === selectedTerm);
 
         // 3. Filter Students first
         let filteredStudents = students;
@@ -479,14 +535,7 @@ class FeesManagement extends Component {
                     if (selectedTerm) {
                         const chargeTermId = String(charge.term?.id || charge.term || "");
                         if (chargeTermId && chargeTermId !== String(selectedTerm)) {
-                            // Only filter out if it HAS a termId that doesn't match. 
-                            // If it has NO termId, check date range fallback.
-                            if (chargeTermId) return; 
-
-                            if (dateRange) {
-                                const chargeTime = new Date(charge.time || charge.createdAt).getTime();
-                                if (chargeTime < dateRange.start || chargeTime > dateRange.end) return;
-                            }
+                            return; // Only include charges for selected term
                         }
                     }
                     parentMap[parentId].charges.push(charge);
@@ -504,7 +553,7 @@ class FeesManagement extends Component {
             const normParentPhone = normalizePhone(group.parent.phone);
             const isSingleChild = group.students.length === 1;
 
-            // Gather all relevant payments for this parent
+            // Gather all relevant payments for this parent (now using pre-processed payments)
             const allParentPayments = payments.filter(p => {
                 const paymentStudentId = String(p.student?.id || p.student || p.metadata?.studentId || "");
                 const belongsToMyStudent = group.students.some(s => String(s.id) === paymentStudentId);
@@ -512,49 +561,17 @@ class FeesManagement extends Component {
                 return belongsToMyStudent || isParentPhoneMatch;
             });
 
-            // Assign terms to all payments based on terms configuration
+            // Use pre-processed payments - no need for heavy processing here
             const processedAllPayments = allParentPayments.map(p => {
-                let metadata = p.metadata;
-                if (typeof metadata === 'string' && metadata.trim().startsWith('{')) {
-                    try {
-                        metadata = JSON.parse(metadata);
-                    } catch (e) {
-                        console.error("Failed to parse metadata string:", metadata, e);
-                    }
-                } else if (metadata && typeof metadata === 'object' && metadata.manual) {
-                    // It's already an object, likely from a local update or a smart backend
-                }
-
-                let pTerm = "Unknown Term";
-                const pTime = new Date(p.time || p.createdAt || p.transactionDate).getTime();
-                
-                // 1. First check if a manual term was explicitly assigned
-                if (metadata && metadata.termId) {
-                    const explicitTerm = terms?.find(t => String(t.id) === String(metadata.termId));
-                    if (explicitTerm) pTerm = explicitTerm.name;
-                } else if (!isNaN(pTime)) {
-                    // 2. Fallback to automatic date-based assignment
-                    const matchingTerm = terms?.find(t => {
-                        const start = new Date(t.startDate).getTime();
-                        const end = new Date(t.endDate).getTime();
-                        return pTime >= start && pTime <= end;
-                    });
-                    if (matchingTerm) pTerm = matchingTerm.name;
-                }
-                
-                // Also assign studentName
-                const pStudentId = String(p.student?.id || p.student || metadata?.studentId || "");
-                const matchingStudent = group.students.find(s => String(s.id) === pStudentId);
-                let studentName = matchingStudent ? matchingStudent.names : 'Unallocated';
-                
-                if (isSingleChild && (studentName === 'Unallocated' || !pStudentId || pStudentId === "undefined")) {
+                // Handle single child assignment for studentName
+                let studentName = p.studentName || 'Unallocated';
+                if (isSingleChild && (studentName === 'Unallocated' || !p.student?.id || p.student?.id === "undefined")) {
                     studentName = group.students[0].names;
                 }
+                return { ...p, studentName };
+            }).sort((a,b) => new Date(b.time || b.createdAt) - new Date(a.time || b.createdAt));
 
-                return { ...p, metadata, assignedTerm: pTerm, studentName };
-            }).sort((a,b) => new Date(b.time || b.createdAt) - new Date(a.time || a.createdAt));
-
-            // Filter for term History based on dateRange OR explicit termId
+            // Filter for term History using assignedTermId only
             // And exclude failed transactions to reduce noise in active term views
             const relatedPayments = processedAllPayments.filter(p => {
                 const isFailed = p.status === 'FAILED' || p.status === 'FAILED_ON_CALLBACK';
@@ -564,24 +581,8 @@ class FeesManagement extends Component {
                 // If "All Terms" is selected, we show everything (that isn't failed)
                 if (!selectedTerm) return true;
 
-                // If a specific term is selected:
-                // 1. If the payment has an explicitly mapped term, trust that
-                if (p.metadata?.termId) {
-                    return String(p.metadata.termId) === String(selectedTerm);
-                }
-
-                // 2. Otherwise, use the Time filter fallback
-                if (dateRange) {
-                    const rawDate = p.time || p.createdAt || p.transactionDate;
-                    if (!rawDate) return true; 
-                    const t = new Date(rawDate).getTime();
-                    if (t < dateRange.start || t > dateRange.end) return false;
-                }
-                
-                // If we have a selectedTerm but no dateRange and no termId, 
-                // we'll keep it just in case, but usually we filter it out.
-                // However, the above logic covers most cases.
-                return true;
+                // Use our pre-calculated assignedTermId for performance
+                return p.assignedTermId && String(p.assignedTermId) === String(selectedTerm);
             });
 
             
@@ -600,7 +601,7 @@ class FeesManagement extends Component {
 
                 const paid = studentPayments.reduce((sum, p) => {
                     const isValidStatus = p.status === 'COMPLETED' || p.status === 'PENDING';
-                    return isValidStatus ? sum + parseFloat(p.amount || p.ammount || 0) : sum;
+                    return isValidStatus ? sum + (p.processedAmount || 0) : sum;
                 }, 0);
                 
                 student.finances = { expected: classFee, paid, balance: classFee - paid, history: studentPayments };
@@ -608,7 +609,7 @@ class FeesManagement extends Component {
             });
 
             const allValidPayments = relatedPayments.filter(p => p.status === 'COMPLETED' || p.status === 'PENDING');
-            group.totalPaid = allValidPayments.reduce((sum, p) => sum + parseFloat(p.amount || p.ammount || 0), 0);
+            group.totalPaid = allValidPayments.reduce((sum, p) => sum + (p.processedAmount || 0), 0);
             
             // Add custom charges to total expected
             const additionalCharges = group.charges.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
@@ -619,12 +620,9 @@ class FeesManagement extends Component {
 
             // 5b. Calculate Balance Brought Forward (Previous Terms)
             let balanceBroughtForward = 0;
-            if (selectedTerm && dateRange && terms.length > 0) {
-                // Find all terms that ended BEFORE the current term started
-                const previousTerms = terms.filter(t => {
-                    const tEnd = new Date(t.endDate).getTime();
-                    return tEnd < dateRange.start && t.id !== selectedTerm;
-                });
+            if (selectedTerm && terms.length > 0) {
+                // Find all terms that are not the current term
+                const previousTerms = terms.filter(t => t.id !== selectedTerm);
 
                 // 1. Previous Class Fees - Calculate for each previous term using fee structures
                 const prevFees = group.students.reduce((sum, s) => {
@@ -643,8 +641,7 @@ class FeesManagement extends Component {
                     if (cTermId) {
                         return previousTerms.some(pt => String(pt.id) === cTermId);
                     }
-                    const cTime = new Date(c.time || c.createdAt).getTime();
-                    return cTime < dateRange.start;
+                    return false; // Only include charges with explicit termId
                 }).reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
 
                 // 3. Previous Payments (Not in current term)
@@ -653,14 +650,8 @@ class FeesManagement extends Component {
                     const isPendingMpesa = p.status === 'PENDING' && p.type === 'mpesa_init';
                     if (isFailed || isPendingMpesa) return false;
 
-                    if (p.metadata?.termId) {
-                        return previousTerms.some(pt => String(pt.id) === String(p.metadata.termId));
-                    }
-                    const rawDate = p.time || p.createdAt || p.transactionDate;
-                    if (!rawDate) return false;
-                    const t = new Date(rawDate).getTime();
-                    return t < dateRange.start;
-                }).reduce((sum, p) => sum + parseFloat(p.amount || p.ammount || 0), 0);
+                    return p.assignedTermId && previousTerms.some(pt => String(pt.id) === String(p.assignedTermId));
+                }).reduce((sum, p) => sum + (p.processedAmount || 0), 0);
 
                 balanceBroughtForward = (prevFees + prevChargesSum) - prevPaymentsSum;
             }
@@ -700,16 +691,37 @@ class FeesManagement extends Component {
     // --- Helper: Get Fee Structure Breakdown (Component Level) ---
     getFeeStructureBreakdown = (classId, termId = null) => {
         const { feeStructures, selectedTerm } = this.state;
-        if (!classId) return [];
+        console.log('[FEES] Getting fee structure breakdown for class:', classId, ', term:', termId, feeStructures);
+        if (!classId) {
+            console.log('[FEES] Invalid class ID, returning empty array');
+            return [];
+        }
         const targetClassId = String(classId?.id || classId);
         const targetTermId = termId || selectedTerm;
         
         // Get all active fee structures for this class and term
-        const applicableFees = feeStructures.filter(fs => 
-            String(fs.class?.id || fs.class) === targetClassId &&
-            (!targetTermId || String(fs.term?.id || fs.term) === String(targetTermId)) &&
-            fs.isActive === true
-        );
+        console.log('[FEES] Available fee structures:', feeStructures?.length, feeStructures);
+        console.log('[FEES] Target Class ID:', targetClassId);
+        console.log('[FEES] Target Term ID:', targetTermId);
+        
+        const applicableFees = feeStructures.filter(fs => {
+            const classMatch = String(fs.class?.id || fs.class) === targetClassId;
+            const termMatch = !targetTermId || String(fs.term?.id || fs.term) === String(targetTermId);
+            const isActive = fs.isActive === true;
+            
+            console.log('[FEES] Fee structure match:', {
+                feeId: fs.id,
+                classMatch,
+                termMatch,
+                isActive,
+                fsClass: fs.class?.id || fs.class,
+                fsTerm: fs.term?.id || fs.term,
+                fsAmount: fs.amount,
+                fsFeeType: fs.feeType
+            });
+            
+            return classMatch && termMatch && isActive;
+        });
         
         // Group by fee type and sum amounts
         const feeTypeGroups = {};
@@ -727,6 +739,7 @@ class FeesManagement extends Component {
             feeTypeGroups[feeType].count += 1;
         });
         
+        console.log('[FEES] Fee structure breakdown:', Object.values(feeTypeGroups));
         return Object.values(feeTypeGroups).sort((a, b) => b.totalAmount - a.totalAmount);
     };
 
@@ -1044,6 +1057,11 @@ class FeesManagement extends Component {
 
             const studentNames = students.map(s => s.names).join(", ");
 
+            // Check for unallocated payments
+            const unallocatedSum = (history || [])
+                .filter(h => h.studentName === 'Unallocated' && h.status === 'COMPLETED')
+                .reduce((sum, h) => sum + (h.processedAmount || 0), 0);
+
             // Build comprehensive statement message
             let message = `--- FEE STATEMENT ---\n`;
             message += `Parent: ${parent.name || 'Parent'}\n`;
@@ -1078,6 +1096,12 @@ class FeesManagement extends Component {
             }
 
             message += `\nTotal Balance: KES ${totalBalance.toLocaleString()}\n`;
+            
+            // Add unallocated funds warning if applicable
+            if (unallocatedSum > 0) {
+                message += `\nNote: You have KES ${unallocatedSum.toLocaleString()} unallocated funds.`;
+            }
+            
             message += `Please clear your balance. Contact the school for inquiries.`;
 
             return {

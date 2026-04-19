@@ -845,6 +845,14 @@ var Data = (function () {
                     subs.smsEvents.forEach(cb => cb({ smsEvents: [...allData.smsEvents] }));
                 }
             }
+
+            if (updatedSubEntities.has('feeStructures') && activeSchool.feeStructures) {
+                allData.feeStructures = activeSchool.feeStructures;
+                if (Array.isArray(subs.feeStructures)) {
+                    subs.feeStructures.forEach(cb => cb({ feeStructures: [...allData.feeStructures] }));
+                }
+            }
+
         };
 
         const queries = [
@@ -1647,7 +1655,10 @@ var Data = (function () {
                             merchantRequestID: initRes.MerchantRequestID,
                             checkoutRequestID: initRes.CheckoutRequestID,
                             createdAt: new Date().toISOString(),
-                            metadata: metadata,
+                            metadata: {
+                                ...metadata,
+                                termId: metadata.termId || localStorage.getItem('fees_selectedTerm') // Persist current term context
+                            },
                             type: 'mpesa_init',
                             student: metadata.studentId
                         };
