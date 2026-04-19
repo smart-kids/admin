@@ -508,36 +508,52 @@ class CurriculumManagerV5 extends React.Component {
     }
 
     refreshPlanningFilters = () => {
-        const { schemesOfWork, recordsOfWork, lessonPlans, iepTemplates, selectedSubject, selectedTermId, selectedTopic, selectedSubtopic, terms } = this.state;
-        if (!selectedSubject) return;
+        const { 
+            schemesOfWork, recordsOfWork, lessonPlans, iepTemplates, 
+            selectedSubject, selectedTermId, selectedTopic, selectedSubtopic, terms 
+        } = this.state;
 
+        // Use current selectedTermId or fallback to the first term found
         let activeTermId = selectedTermId;
         if (!activeTermId && terms.length > 0) {
             const term1 = terms.find(t => t.name.toLowerCase().includes('term 1')) || terms[0];
             activeTermId = term1.id;
         }
 
+        // Helper to extract ID from either an object or a string
+        const getAttrId = (val) => (val && typeof val === 'object' ? val.id : val);
+
         const filterFn = (item) => {
-            // 1. Match Subject: Check subject object, subject ID string, or use lenient fallback
-            const itemSubjectId = item.subject?.id || item.subject;
-            const matchesSubject = !itemSubjectId || String(itemSubjectId) === String(selectedSubject);
+            // 1. Match Subject
+            const itemSubjectId = getAttrId(item.subject);
+            const matchesSubject = !selectedSubject || String(itemSubjectId) === String(selectedSubject);
 
             // 2. Match Term
-            const itemTermId = item.term?.id || item.term;
-            let matchesTerm = true;
-            if (itemTermId && activeTermId) {
-                matchesTerm = String(itemTermId) === String(activeTermId);
-            } else if (!itemTermId && terms.length > 0) {
-                const term1 = terms.find(t => t.name.toLowerCase().includes('term 1')) || terms[0];
-                if (String(activeTermId) === String(term1.id)) matchesTerm = true;
-            }
+            const itemTermId = getAttrId(item.term);
+            const matchesTerm = !activeTermId || String(itemTermId) === String(activeTermId);
 
-            // 3. Match Topic/Subtopic (Strands)
-            // Use raw ID stored in strand/substrands, handle both string and object cases
-            const matchesTopic = !selectedTopic || String(item.strand?.id || item.strand) === String(selectedTopic);
-            const matchesSubtopic = !selectedSubtopic || String(item.substrands?.id || item.substrands) === String(selectedSubtopic);
+            // 3. Match Hierarchy (Topic/Subtopic)
+            // Note: In your Data.js flattening:
+            // Schemes/Records/Lessons are grouped by subtopic (substrands)
+            // IEPs are grouped by topic (strand)
+            const itemStrandId = getAttrId(item.strand);
+            const itemSubstrandId = getAttrId(item.substrands);
+
+            const matchesTopic = !selectedTopic || String(itemStrandId) === String(selectedTopic);
+            const matchesSubtopic = !selectedSubtopic || String(itemSubstrandId) === String(selectedSubtopic);
 
             return matchesSubject && matchesTerm && matchesTopic && matchesSubtopic && !item.isDeleted;
+        };
+
+        // Separate filter for IEPs because they don't necessarily require a subtopic selected
+        const iepFilterFn = (item) => {
+            const itemSubjectId = getAttrId(item.subject);
+            const itemStrandId = getAttrId(item.strand);
+            
+            const matchesSubject = !selectedSubject || String(itemSubjectId) === String(selectedSubject);
+            const matchesTopic = !selectedTopic || String(itemStrandId) === String(selectedTopic);
+            
+            return matchesSubject && matchesTopic && !item.isDeleted;
         };
 
         const resolveNames = (item) => ({
@@ -550,27 +566,27 @@ class CurriculumManagerV5 extends React.Component {
             filteredSchemes: schemesOfWork.filter(filterFn).map(resolveNames),
             filteredRecords: recordsOfWork.filter(filterFn).map(resolveNames),
             filteredLessonPlans: lessonPlans.filter(filterFn).map(resolveNames),
-            filteredIepTemplates: iepTemplates.filter(item => {
-                const matchesSubject = !selectedSubject || String(item.subject?.id || item.subject) === String(selectedSubject);
-                const matchesTopic = !selectedTopic || String(item.strand) === String(selectedTopic);
-                return matchesSubject && matchesTopic;
-            }).map(resolveNames)
+            filteredIepTemplates: iepTemplates.filter(iepFilterFn).map(resolveNames)
         });
     }
 
     getTopicName = (id) => {
+        const rawId = id && typeof id === 'object' ? id.id : id;
         const { selectedGrade, selectedSubject, _masterGradesList } = this.state;
-        const grade = _masterGradesList.find(g => g.id === selectedGrade);
-        const subject = grade?.subjects?.find(s => s.id === selectedSubject);
-        return subject?.topics?.find(t => t.id === id)?.name || id;
+        const grade = _masterGradesList.find(g => String(g.id) === String(selectedGrade));
+        const subject = grade?.subjects?.find(s => String(s.id) === String(selectedSubject));
+        const topic = subject?.topics?.find(t => String(t.id) === String(rawId));
+        return topic ? topic.name : "Unknown Strand";
     }
 
     getSubtopicName = (id) => {
+        const rawId = id && typeof id === 'object' ? id.id : id;
         const { selectedGrade, selectedSubject, selectedTopic, _masterGradesList } = this.state;
-        const grade = _masterGradesList.find(g => g.id === selectedGrade);
-        const subject = grade?.subjects?.find(s => s.id === selectedSubject);
-        const topic = subject?.topics?.find(t => t.id === selectedTopic);
-        return topic?.subtopics?.find(st => st.id === id)?.name || id;
+        const grade = _masterGradesList.find(g => String(g.id) === String(selectedGrade));
+        const subject = grade?.subjects?.find(s => String(s.id) === String(selectedSubject));
+        const topic = subject?.topics?.find(t => String(t.id) === String(selectedTopic));
+        const subtopic = topic?.subtopics?.find(st => String(st.id) === String(rawId));
+        return subtopic ? subtopic.name : "Unknown Sub-strand";
     }
 
     handlePlanningSubTabChange = (tab) => {
@@ -675,14 +691,14 @@ class CurriculumManagerV5 extends React.Component {
         data.week = parseInt(data.week) || 0;
 
         try {
-            const { selectedTermId } = this.state;
+            const { selectedTermId, selectedTopic, selectedSubtopic } = this.state;
             if (recordToEdit?.id) {
                 await Data.record_of_works.update({ 
                     ...data, 
                     id: recordToEdit.id,
                     term: selectedTermId,
-                    strand: this.getTopicName(this.state.selectedTopic),
-                    substrands: this.getSubtopicName(this.state.selectedSubtopic)
+                    strand: selectedTopic,      // Topic ID
+                    substrands: selectedSubtopic // Subtopic ID
                 });
                 toastr.success("Record updated!");
             } else {
@@ -691,8 +707,8 @@ class CurriculumManagerV5 extends React.Component {
                     subject: selectedSubject, 
                     school: school.id,
                     term: selectedTermId,
-                    strand: this.getTopicName(this.state.selectedTopic),
-                    substrands: this.getSubtopicName(this.state.selectedSubtopic),
+                    strand: selectedTopic,      // Topic ID
+                    substrands: selectedSubtopic, // Subtopic ID
                     teacher: JSON.parse(localStorage.getItem("user"))?.id
                 });
                 toastr.success("Record created!");
@@ -1731,16 +1747,10 @@ class CurriculumManagerV5 extends React.Component {
             data.term = this.state.selectedTermId;
             data.school = this.state.school.id;
             
-            // Context for linking to the tree - handle different entity types
-            if (planningSubTab === 'iep') {
-                // IEP templates use strand as parentKey (matches topics level)
-                data.strand = this.state.selectedTopic; // Parent for IEP
-                data.substrands = this.state.selectedSubtopic; // Child for IEP
-            } else {
-                // Schemes/Lessons/Records use substrands as parentKey (matches subtopics level)
-                data.substrands = this.state.selectedSubtopic; // Parent for Schemes/Lessons/Records
-                data.strand = this.state.selectedTopic; // Child/Display field
-            } 
+            // Always save the correct IDs for strand and substrands
+            // All planning items need both topic (strand) and subtopic (substrands) IDs
+            data.strand = this.state.selectedTopic;      // Topic ID
+            data.substrands = this.state.selectedSubtopic; // Subtopic ID 
             
             // Fix: Parse integer fields for GraphQL compatibility
             if (data.week) data.week = parseInt(data.week);

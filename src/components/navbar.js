@@ -46,7 +46,7 @@ class Navbar extends React.Component {
     selectedSchool: {},
     availableSchools: Data.schools.list(),
     userRole: "",
-    fetchingSchools: false,
+    fetchingSchools: Data.schools.list().length === 0,
     topNavbarHeight: 75,
     mobileTopBarHeight: 60,
     secondaryNavbarEffectiveHeight: 65,
@@ -61,18 +61,28 @@ class Navbar extends React.Component {
     const userData = JSON.parse(localStorage.getItem("user")) || {};
     const schools = Data.schools.list() || [];
     
+    console.log("Navbar - initial schools:", schools.length);
+    
+    // If schools are already loaded, don't show loading spinner
+    const shouldShowInitialLoading = schools.length === 0;
+    
     this.setState({ 
       schools,
-      fetchingSchools: schools.length === 0,
+      fetchingSchools: shouldShowInitialLoading,
       userRole: userData.userType || userData.role
     });
 
     Data.schools.subscribe(({ schools, selectedSchool }) => {
       const schoolsArray = schools || [];
+      console.log("Navbar - subscription callback:", { schoolsArray: schoolsArray.length, selectedSchool });
+      
+      // Force fetchingSchools to false if we have schools data
+      const shouldShowLoading = schoolsArray.length === 0;
+      
       this.setState({
         availableSchools: schoolsArray,
         selectedSchool,
-        fetchingSchools: schoolsArray.length === 0 // Only show loading when no schools are loaded
+        fetchingSchools: shouldShowLoading
       }, () => {
         if (selectedSchool && selectedSchool.id) {
           localStorage.setItem("school", selectedSchool.id);
@@ -82,6 +92,25 @@ class Navbar extends React.Component {
         this.initDesktopMenu();
       });
     });
+
+    // Add an immediate check for schools data and update state if available
+    const checkAndForceLoadingState = () => {
+      const currentSchools = Data.schools.list() || [];
+      if (currentSchools.length > 0 && this.state.fetchingSchools) {
+        console.log("Navbar - forcing loading state to false, schools found:", currentSchools.length);
+        this.setState({ 
+          fetchingSchools: false,
+          availableSchools: currentSchools 
+        });
+      }
+    };
+
+    // Check immediately
+    checkAndForceLoadingState();
+    
+    // Also check after a delay in case data is still loading
+    setTimeout(checkAndForceLoadingState, 1000);
+    setTimeout(checkAndForceLoadingState, 3000);
 
     // Fallback: Hide loading indicator after 10 seconds max to prevent it from getting stuck
     this.loadingTimeout = setTimeout(() => {
