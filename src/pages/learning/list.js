@@ -322,6 +322,7 @@ class CurriculumManagerV5 extends React.Component {
         window.addEventListener('beforeunload', this.saveStateToLocalStorage);
         this._schoolSubscription = Data.schools.subscribe(this.processDataUpdate);
         
+        // Keep individual subscriptions for real-time CRUD operations
         this._schemesSubscription = Data.scheme_of_works.subscribe(({ scheme_of_works }) => {
             this.setState({ schemesOfWork: scheme_of_works }, this.refreshPlanningFilters);
         });
@@ -386,6 +387,15 @@ class CurriculumManagerV5 extends React.Component {
         if (!activeSchool) { this.setState({ isLoading: false, school: null, _masterGradesList: [] }); return; }
         const masterGradesList = activeSchool.grades || [];
         
+        // Only extract planning data from nested hierarchy if flat arrays are empty
+        // This preserves real-time updates from individual subscriptions
+        const planningData = (this.state.schemesOfWork.length === 0 && 
+                             this.state.recordsOfWork.length === 0 && 
+                             this.state.lessonPlans.length === 0 && 
+                             this.state.iepTemplates.length === 0) 
+            ? this.extractPlanningDataFromHierarchy(activeSchool) 
+            : {};
+        
         // Refined loading logic: Stay "loading" if we have placeholder grades (no names yet)
         const isDataReady = masterGradesList.length === 0 || masterGradesList.some(g => g.name);
         
@@ -395,7 +405,8 @@ class CurriculumManagerV5 extends React.Component {
         this.setState({ 
             ...validatedState, 
             school: activeSchool, 
-            _masterGradesList: masterGradesList, 
+            _masterGradesList: masterGradesList,
+            ...planningData, // Add extracted planning data only if needed
             isLoading: this.state.isLoading ? !isDataReady : false
         }, () => {
             this.refreshCurrentSelectionsAndFilters();
@@ -411,7 +422,86 @@ class CurriculumManagerV5 extends React.Component {
                 }, 100);
             }
         });
-    }
+    };
+
+    extractPlanningDataFromHierarchy = (school) => {
+        const schemesOfWork = [];
+        const recordsOfWork = [];
+        const lessonPlans = [];
+        const iepTemplates = [];
+
+        if (!school || !school.grades) {
+            return { schemesOfWork, recordsOfWork, lessonPlans, iepTemplates };
+        }
+
+        school.grades.forEach(grade => {
+            if (!grade.subjects) return;
+            
+            grade.subjects.forEach(subject => {
+                if (!subject.topics) return;
+                
+                subject.topics.forEach(topic => {
+                    // Extract IEP templates from topics
+                    if (topic.iep_templates) {
+                        topic.iep_templates.forEach(iep => {
+                            iepTemplates.push({
+                                ...iep,
+                                subject: { id: subject.id },
+                                term: iep.term,
+                                strand: topic.id,
+                                substrands: null
+                            });
+                        });
+                    }
+                    
+                    if (!topic.subtopics) return;
+                    
+                    topic.subtopics.forEach(subtopic => {
+                        // Extract schemes of work from subtopics
+                        if (subtopic.scheme_of_works) {
+                            subtopic.scheme_of_works.forEach(scheme => {
+                                schemesOfWork.push({
+                                    ...scheme,
+                                    subject: { id: subject.id },
+                                    term: scheme.term,
+                                    strand: topic.id,
+                                    substrands: subtopic.id
+                                });
+                            });
+                        }
+                        
+                        // Extract lesson plans from subtopics
+                        if (subtopic.lesson_plans) {
+                            subtopic.lesson_plans.forEach(lesson => {
+                                lessonPlans.push({
+                                    ...lesson,
+                                    subject: { id: subject.id },
+                                    term: lesson.term,
+                                    strand: topic.id,
+                                    substrands: subtopic.id
+                                });
+                            });
+                        }
+                        
+                        // Extract records of work from subtopics
+                        if (subtopic.record_of_works) {
+                            subtopic.record_of_works.forEach(record => {
+                                recordsOfWork.push({
+                                    ...record,
+                                    subject: { id: subject.id },
+                                    term: record.term,
+                                    strand: topic.id,
+                                    substrands: subtopic.id
+                                });
+                            });
+                        }
+                    });
+                });
+            });
+        });
+
+        return { schemesOfWork, recordsOfWork, lessonPlans, iepTemplates };
+    };
 
     getValidatedState = (sourceState, masterGradesList) => {
         const validated = { 
