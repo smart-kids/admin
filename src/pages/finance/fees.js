@@ -691,37 +691,17 @@ class FeesManagement extends Component {
     // --- Helper: Get Fee Structure Breakdown (Component Level) ---
     getFeeStructureBreakdown = (classId, termId = null) => {
         const { feeStructures, selectedTerm } = this.state;
-        console.log('[FEES] Getting fee structure breakdown for class:', classId, ', term:', termId, feeStructures);
-        if (!classId) {
-            console.log('[FEES] Invalid class ID, returning empty array');
-            return [];
-        }
+        if (!classId) return [];
+        
         const targetClassId = String(classId?.id || classId);
         const targetTermId = termId || selectedTerm;
         
         // Get all active fee structures for this class and term
-        console.log('[FEES] Available fee structures:', feeStructures?.length, feeStructures);
-        console.log('[FEES] Target Class ID:', targetClassId);
-        console.log('[FEES] Target Term ID:', targetTermId);
-        
-        const applicableFees = feeStructures.filter(fs => {
-            const classMatch = String(fs.class?.id || fs.class) === targetClassId;
-            const termMatch = !targetTermId || String(fs.term?.id || fs.term) === String(targetTermId);
-            const isActive = fs.isActive === true;
-            
-            console.log('[FEES] Fee structure match:', {
-                feeId: fs.id,
-                classMatch,
-                termMatch,
-                isActive,
-                fsClass: fs.class?.id || fs.class,
-                fsTerm: fs.term?.id || fs.term,
-                fsAmount: fs.amount,
-                fsFeeType: fs.feeType
-            });
-            
-            return classMatch && termMatch && isActive;
-        });
+        const applicableFees = feeStructures.filter(fs => 
+            String(fs.class?.id || fs.class) === targetClassId &&
+            (!targetTermId || String(fs.term?.id || fs.term) === String(targetTermId)) &&
+            fs.isActive === true
+        );
         
         // Group by fee type and sum amounts
         const feeTypeGroups = {};
@@ -739,12 +719,9 @@ class FeesManagement extends Component {
             feeTypeGroups[feeType].count += 1;
         });
         
-        console.log('[FEES] Fee structure breakdown:', Object.values(feeTypeGroups));
         return Object.values(feeTypeGroups).sort((a, b) => b.totalAmount - a.totalAmount);
     };
-
-    // --- Actions ---
-
+    
     toggleRow = (parentId) => {
         this.setState(prev => ({ expandedParentId: prev.expandedParentId === parentId ? null : parentId }));
     };

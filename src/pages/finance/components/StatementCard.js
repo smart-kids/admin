@@ -49,59 +49,205 @@ const StatementCard = ({ group, school, validStudentsData, totalValidExpected, t
                 </div>
             </div>
 
-            {/* Summary Table (Fees + Charges) */}
+            {/* Balance Brought Forward Section */}
+            {group.balanceBroughtForward !== undefined && (
+                <div style={{ marginBottom: '0.8cm', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '15px', backgroundColor: '#fef3c7' }}>
+                    <h4 style={{ margin: '0 0 10px 0', fontSize: '0.9rem', fontWeight: 700, color: '#92400e' }}>
+                        Balance Brought Forward (Previous Terms)
+                    </h4>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.85rem', color: '#451a03' }}>Outstanding balance from previous terms:</span>
+                        <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#92400e' }}>
+                            KES {Math.abs(group.balanceBroughtForward || 0).toLocaleString()}
+                        </span>
+                    </div>
+                </div>
+            )}
+
+            {/* Fee Breakdown Summary */}
             <div style={{ marginBottom: '0.8cm', border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                         <tr style={{ backgroundColor: themeColor }}>
-                            <th style={{ padding: '12px 18px', textAlign: 'left', color: 'white', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', width: '40%' }}>Student / Charge Component</th>
-                            <th style={{ padding: '12px 10px', textAlign: 'right', color: 'white', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase' }}>Expected (Fees + Charges)</th>
-                            <th style={{ padding: '12px 10px', textAlign: 'right', color: 'white', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase' }}>Paid (KES)</th>
-                            <th style={{ padding: '12px 18px', textAlign: 'right', color: 'white', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase' }}>Balance (KES)</th>
+                            <th style={{ padding: '12px 18px', textAlign: 'left', color: 'white', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase', width: '40%' }}>Student / Charge</th>
+                            <th style={{ padding: '12px 10px', textAlign: 'right', color: 'white', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase' }}>Amount (KES)</th>
+                            <th style={{ padding: '12px 10px', textAlign: 'right', color: 'white', fontSize: '0.8rem', fontWeight: 700, textTransform: 'uppercase' }}>Status</th>
                         </tr>
                     </thead>
                     <tbody>
                         {/* Class Fees */}
                         {validStudentsData.map((s, idx) => (
                             <tr key={'s-'+idx} style={{ backgroundColor: '#fff', borderBottom: '1px solid #f3f4f6' }}>
-                                <td style={{ padding: '10px 18px', fontWeight: 700, fontSize: '0.9rem', color: '#374151' }}>
-                                    Class Fee: {s.names}
+                                <td style={{ padding: '10px 18px', fontWeight: 600, fontSize: '0.9rem', color: '#374151' }}>
+                                    <div>{s.names}</div>
+                                    <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '4px' }}>
+                                        Class Fee • {s.finances?.expected?.toLocaleString() || '0'} KES
+                                    </div>
                                 </td>
-                                <td style={{ padding: '10px 10px', textAlign: 'right', fontSize: '0.85rem' }}>{s.expected.toLocaleString()}</td>
-                                <td style={{ padding: '10px 10px', textAlign: 'right', fontSize: '0.85rem' }}>{s.paid.toLocaleString()}</td>
-                                <td style={{ padding: '10px 18px', textAlign: 'right', fontSize: '0.85rem', fontWeight: 700 }}>{s.balance.toLocaleString()}</td>
+                                <td style={{ padding: '10px 10px', textAlign: 'right', fontSize: '0.85rem', fontWeight: 700 }}>
+                                    {s.finances?.expected?.toLocaleString() || '0'}
+                                </td>
+                                <td style={{ padding: '10px 18px', textAlign: 'right', fontSize: '0.85rem' }}>
+                                    <span style={{ 
+                                        padding: '2px 8px', 
+                                        borderRadius: '12px', 
+                                        fontSize: '0.7rem', 
+                                        fontWeight: 600,
+                                        backgroundColor: s.finances?.balance > 0 ? '#fef2f2' : '#dc2626',
+                                        color: s.finances?.balance > 0 ? '#dc2626' : '#059669'
+                                    }}>
+                                        {s.finances?.balance > 0 ? 'OUTSTANDING' : 'PAID'}
+                                    </span>
+                                </td>
                             </tr>
                         ))}
 
                         {/* Charges */}
-                        {group.charges && group.charges.map((c, idx) => (
+                        {group.charges && group.charges.length > 0 && group.charges.map((c, idx) => (
                             <tr key={'c-'+idx} style={{ backgroundColor: '#fafafa', borderBottom: '1px solid #f3f4f6' }}>
                                 <td style={{ padding: '10px 18px', fontWeight: 600, fontSize: '0.9rem', color: '#6b7280' }}>
-                                    Charge: {c.chargeType?.name || c.reason}
+                                    <div>Charge: {c.chargeType?.name || c.reason}</div>
+                                    <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '4px' }}>
+                                        {c.term?.name || 'Current term'}
+                                    </div>
                                 </td>
-                                <td style={{ padding: '10px 10px', textAlign: 'right', fontSize: '0.85rem', color: '#6b7280' }}>{parseFloat(c.amount || 0).toLocaleString()}</td>
-                                <td style={{ padding: '10px 10px', textAlign: 'right', fontSize: '0.85rem', color: '#6b7280' }}>-</td>
-                                <td style={{ padding: '10px 18px', textAlign: 'right', fontSize: '0.85rem', color: '#6b7280' }}>-</td>
+                                <td style={{ padding: '10px 10px', textAlign: 'right', fontSize: '0.85rem', fontWeight: 700 }}>
+                                    {parseFloat(c.amount || 0).toLocaleString()}
+                                </td>
+                                <td style={{ padding: '10px 18px', textAlign: 'right', fontSize: '0.85rem' }}>
+                                    <span style={{ 
+                                        padding: '2px 8px', 
+                                        borderRadius: '12px', 
+                                        fontSize: '0.7rem', 
+                                        fontWeight: 600,
+                                        backgroundColor: '#fef3c7',
+                                        color: '#92400e'
+                                    }}>
+                                        OUTSTANDING
+                                    </span>
+                                </td>
                             </tr>
                         ))}
                     </tbody>
                     <tfoot>
+                        {/* Balance Brought Forward */}
+                        {group.balanceBroughtForward !== undefined && (
+                            <tr style={{ backgroundColor: '#fef3c7' }}>
+                                <td colSpan="3" style={{ padding: '12px 18px', fontWeight: 700, fontSize: '0.85rem', color: '#92400e' }}>
+                                    Balance Brought Forward (Previous Terms)
+                                </td>
+                                <td style={{ padding: '12px 18px', textAlign: 'right', fontSize: '1.1rem', fontWeight: 700, color: '#92400e' }}>
+                                    KES {Math.abs(group.balanceBroughtForward || 0).toLocaleString()}
+                                </td>
+                            </tr>
+                        )}
+
+                        {/* Current Term Summary */}
                         <tr style={{ backgroundColor: '#f3f4f6' }}>
-                            <td style={{ padding: '14px 18px', fontWeight: 900, fontSize: '0.9rem', color: '#111827' }}>
-                                GRAND TOTAL
+                            <td colSpan="3" style={{ padding: '14px 18px', fontWeight: 800, fontSize: '0.85rem', color: '#374151' }}>
+                                Current Term Summary
                             </td>
-                            <td style={{ padding: '14px 10px', textAlign: 'right', fontWeight: 800, fontSize: '0.95rem', color: '#374151' }}>
+                        </tr>
+                        <tr style={{ backgroundColor: '#f9fafb' }}>
+                            <td style={{ padding: '8px 18px', fontSize: '0.8rem', color: '#6b7280' }}>
+                                Fee Structures Total
+                            </td>
+                            <td style={{ padding: '8px 10px', textAlign: 'right', fontSize: '0.9rem', fontWeight: 700 }}>
                                 {totalValidExpected.toLocaleString()}
                             </td>
-                            <td style={{ padding: '14px 10px', textAlign: 'right', fontWeight: 800, fontSize: '0.95rem', color: '#10b981' }}>
+                            <td style={{ padding: '8px 18px', textAlign: 'right', fontSize: '0.9rem', fontWeight: 700 }}>
                                 {totalValidPaid.toLocaleString()}
                             </td>
-                            <td style={{ padding: '14px 18px', textAlign: 'right', fontWeight: 900, fontSize: '1.2rem', color: themeColor }}>
-                                {totalValidBalance.toLocaleString()}
+                        </tr>
+                        <tr style={{ backgroundColor: '#f9fafb' }}>
+                            <td style={{ padding: '8px 18px', fontSize: '0.8rem', color: '#6b7280' }}>
+                                Charges Total
+                            </td>
+                            <td style={{ padding: '8px 10px', textAlign: 'right', fontSize: '0.9rem', fontWeight: 700 }}>
+                                {group.charges?.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0).toLocaleString()}
+                            </td>
+                            <td style={{ padding: '8px 18px', textAlign: 'right', fontSize: '0.9rem', fontWeight: 700 }}>
+                                -
+                            </td>
+                        </tr>
+                        <tr style={{ backgroundColor: themeColor, borderTop: '2px solid #1f2937' }}>
+                            <td style={{ padding: '12px 18px', fontSize: '0.9rem', fontWeight: 800, color: 'white' }}>
+                                <strong>Total Outstanding Balance</strong>
+                            </td>
+                            <td colSpan="2" style={{ padding: '12px 18px', textAlign: 'right', fontSize: '1.3rem', fontWeight: 900, color: 'white' }}>
+                                KES {totalValidBalance.toLocaleString()}
                             </td>
                         </tr>
                     </tfoot>
                 </table>
+            </div>
+
+            {/* Final Summary Section */}
+            <div style={{ marginBottom: '0.8cm', border: '2px solid #1f2937', borderRadius: '12px', padding: '15px', backgroundColor: '#f8fafc' }}>
+                <h4 style={{ margin: '0 0 10px 0', fontSize: '1.0rem', fontWeight: 700, color: '#1f2937' }}>
+                    Account Summary
+                </h4>
+                
+                {/* Balance Brought Forward */}
+                {group.balanceBroughtForward !== undefined && (
+                    <div style={{ marginBottom: '15px', padding: '12px', backgroundColor: '#fef3c7', borderRadius: '8px', border: '1px solid #f59e0b' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div style={{ fontSize: '0.9rem', color: '#92400e' }}>
+                                <strong>Balance Brought Forward:</strong>
+                            </div>
+                            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: group.balanceBroughtForward < 0 ? '#dc2626' : '#059669' }}>
+                                KES {Math.abs(group.balanceBroughtForward || 0).toLocaleString()}
+                            </div>
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: '#6b7280', marginTop: '8px' }}>
+                            Outstanding balance from previous terms
+                        </div>
+                    </div>
+                )}
+
+                {/* Current Term Summary */}
+                <div style={{ marginBottom: '15px', padding: '12px', backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                        <div>
+                            <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '4px' }}>Fee Structures</div>
+                            <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#374151' }}>
+                                KES {totalValidExpected.toLocaleString()}
+                            </div>
+                        </div>
+                        <div>
+                            <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '4px' }}>Charges</div>
+                            <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#374151' }}>
+                                KES {group.charges?.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0).toLocaleString()}
+                            </div>
+                        </div>
+                        <div>
+                            <div style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '4px' }}>Current Term Balance</div>
+                            <div style={{ fontSize: '1.3rem', fontWeight: 700, color: (totalValidExpected - totalValidPaid) < 0 ? '#dc2626' : '#059669' }}>
+                                KES {(totalValidExpected - totalValidPaid).toLocaleString()}
+                            </div>
+                        </div>
+                    </div>
+                    <div style={{ marginTop: '12px', fontSize: '0.8rem', color: '#6b7280' }}>
+                        Current Term: Fee Structures + Charges - Paid
+                    </div>
+                </div>
+
+                {/* Final Balance */}
+                <div style={{ padding: '12px', backgroundColor: themeColor, borderRadius: '8px', border: '1px solid #1f2937' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'white' }}>
+                        <div>
+                            <div style={{ fontSize: '1.0rem', fontWeight: 700 }}>
+                                <strong>Total Outstanding Balance</strong>
+                            </div>
+                            <div style={{ fontSize: '1.4rem', fontWeight: 800 }}>
+                                KES {totalValidBalance.toLocaleString()}
+                            </div>
+                        </div>
+                        <div style={{ fontSize: '0.8rem', textAlign: 'right' }}>
+                            Current Term + Balance Brought Forward
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Transaction History Table */}
@@ -154,11 +300,30 @@ const StatementCard = ({ group, school, validStudentsData, totalValidExpected, t
             <div style={{ display: 'flex', gap: '20px', marginBottom: '1.0cm' }}>
                 <div style={{ flex: 1, border: '2px solid #f3f4f6', padding: '15px', borderRadius: '16px', backgroundColor: '#ffffff' }}>
                     <h5 style={{ margin: '0 0 8px 0', fontSize: '0.85rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                        Account Status
+                        Account Status & Payment Instructions
                     </h5>
-                    <p style={{ margin: 0, fontSize: '0.8rem', color: '#6b7280', lineHeight: 1.4 }}>
-                        The total outstanding balance for this account (including <strong>Class Fees</strong> and <strong>Extra Charges</strong>) is <strong>KES {totalValidBalance.toLocaleString()}</strong>. 
-                        Please ensure timely payments to avoid interruptions. All payments should be made directly to the school's authorized collection points or digital paybills.
+                    <div style={{ marginBottom: '12px' }}>
+                        <p style={{ margin: '0 0 8px 0', fontSize: '0.8rem', color: '#6b7280', lineHeight: 1.4 }}>
+                            <strong>Final Outstanding Balance:</strong> KES {totalValidBalance.toLocaleString()}
+                        </p>
+                        {group.balanceBroughtForward !== undefined && (
+                            <p style={{ margin: '0 0 8px 0', fontSize: '0.75rem', color: '#9ca3af', lineHeight: 1.3 }}>
+                                Includes KES {Math.abs(group.balanceBroughtForward || 0).toLocaleString()} balance brought forward from previous terms
+                            </p>
+                        )}
+                    </div>
+                    <div style={{ padding: '12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                        <h6 style={{ margin: '0 0 8px 0', fontSize: '0.8rem', fontWeight: 700, color: '#1f2937' }}>
+                            Payment Methods Accepted:
+                        </h6>
+                        <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '0.75rem', color: '#374151', lineHeight: 1.5 }}>
+                            <li style={{ marginBottom: '4px' }}>M-Pesa Paybill: <strong>123456</strong></li>
+                            <li style={{ marginBottom: '4px' }}>Bank Deposit: <strong>Account #001234567</strong> at Equity Bank</li>
+                            <li style={{ marginBottom: '4px' }}>School Office: <strong>Cash payments accepted</strong> during school hours</li>
+                        </ul>
+                    </div>
+                    <p style={{ margin: '12px 0 0 0', fontSize: '0.8rem', color: '#6b7280', lineHeight: 1.4, fontStyle: 'italic' }}>
+                        Please ensure timely payments to avoid service interruptions. For any inquiries about this statement, contact the school finance office.
                     </p>
                 </div>
             </div>
