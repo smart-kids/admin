@@ -412,6 +412,17 @@ class FeesManagement extends Component {
         return { availableClasses, availableTerms };
     };
 
+    stopPolling = () => {
+        if (this.pollingInterval) {
+            clearInterval(this.pollingInterval);
+            this.pollingInterval = null;
+        }
+        if (this.pollingTimeout) {
+            clearTimeout(this.pollingTimeout);
+            this.pollingTimeout = null;
+        }
+    };
+
     /**
      * CORE LOGIC: Converts raw flat lists into Grouped Parents with calculated balances.
      * Running this only when data/filters change (not every render) is key for 500+ items.
@@ -882,9 +893,7 @@ class FeesManagement extends Component {
         const pollPayment = async () => {
             try {
                 const result = await Data.schools.verifyTx(initData);
-                if (result?.errors || !result?.payments?.confirm) return;
-
-                const { status: txStatus, message } = result.payments.confirm;
+                const { txStatus, message } = result;
                 
                 if (txStatus === 'COMPLETED') {
                     this.setState({ paymentStatus: 'SUCCESS' });
@@ -913,62 +922,7 @@ class FeesManagement extends Component {
             if (this.state.paymentStatus === 'PROCESSING') {
                 this.setState({ paymentStatus: 'ERROR', paymentErrorMessage: 'Payment timed out. Please check your phone.' });
             }
-        }, 180000);
-    };
-    
-    recordManualPayment = async () => {
-        const { paymentAmount, parentPhone, manualPaymentMethod, manualPaymentNotes, manualPaymentTermId, selectedStudentId } = this.state;
-        if (!parentPhone) return window.toastr && window.toastr.error("Parent phone required");
-        
-        this.setState({ processingPayment: true });
-        try {
-            await Data.payments.create({
-                school: localStorage.getItem('school'),
-                phone: parentPhone,
-                amount: String(paymentAmount),
-                status: 'COMPLETED',
-                type: 'fees_manual',
-                paymentType: manualPaymentMethod,
-                student: selectedStudentId,
-                time: new Date().toISOString(),
-                ref: manualPaymentNotes || 'Manual Entry',
-                resultDesc: `Manual: ${manualPaymentMethod}`,
-                metadata: { 
-                    manual: true, 
-                    studentId: selectedStudentId, 
-                    method: manualPaymentMethod,
-                    termId: manualPaymentTermId || undefined,
-                    studentName: this.state.paymentStudent?.names 
-                }
-            });
-            if(window.toastr) window.toastr.success("Recorded successfully!");
-            this.setState({ showManualPaymentModal: false });
-            this.recalculateFinancials();
-        } catch (e) {
-            if(window.toastr) window.toastr.error(e.message || "Failed");
-        } finally {
-            this.setState({ processingPayment: false });
-        }
-    };
-
-    openEditPaymentModal = (payment) => {
-        let parsedMetadata = payment.metadata || {};
-        if (typeof parsedMetadata === 'string') {
-            try {
-                parsedMetadata = JSON.parse(parsedMetadata);
-            } catch (e) {
-                console.error("Failed to parse metadata in edit modal", e);
-                parsedMetadata = {};
-            }
-        }
-        
-        this.setState({
-            showEditPaymentModal: true,
-            editPaymentData: { 
-                ...payment,
-                metadata: parsedMetadata 
-            }
-        });
+        }, 180000); // 3 minutes
     };
 
     updatePayment = async () => {
@@ -1941,63 +1895,186 @@ class FeesManagement extends Component {
             {/* MODALS (Reused from V1 structure) */}
             {this.state.showPaymentModal && (
                 <div className="modal fade show" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.5)'}}>
-                    <div className="modal-dialog modal-dialog-centered">
-                        <div className="modal-content">
-                            <div className="modal-header">
-                                <h5 className="modal-title">M-Pesa Push</h5>
-                                <button type="button" className="close" onClick={() => this.setState({ showPaymentModal: false })}><span>&times;</span></button>
+                    <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: '500px' }}>
+                        <div className="modal-content border-0 shadow-lg">
+                            <div className="modal-header text-white border-0" style={{ backgroundColor: '#00C853' }}>
+                                <div className="d-flex align-items-center">
+                                    <div className="symbol symbol-40px mr-3">
+                                        <div className="symbol-label bg-white">
+                                            <i className="fas fa-mobile-alt" style={{ color: '#00C853' }}></i>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h5 className="modal-title mb-0">M-Pesa</h5>
+                                        <small className="opacity-75">The Mobile Money</small>
+                                    </div>
+                                </div>
+                                <button type="button" className="close text-white" onClick={() => { this.stopPolling(); this.setState({ showPaymentModal: false, paymentStatus: 'IDLE' }); }}>
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
                             </div>
-                            <div className="modal-body">
+                            <div className="modal-body p-4">
                                 {this.state.paymentStatus === 'IDLE' && (
-                                    <>
-                                        <p>Initiating payment for <strong>{this.state.paymentStudent?.names}</strong></p>
-                                        <div className="form-group"><label>Parent Phone</label><input type="text" className="form-control" value={this.state.parentPhone} disabled /></div>
-                                        <div className="form-group"><label>Amount (KES)</label><input type="number" className="form-control" value={this.state.paymentAmount} onChange={e => this.setState({ paymentAmount: e.target.value })} /></div>
-                                    </>
+                                    <div className="text-center">
+                                        {/* Student Info Card */}
+                                        <div className="card border-light bg-light mb-4">
+                                            <div className="card-body p-4">
+                                                <div className="d-flex align-items-center mb-3">
+                                                    <div className="symbol symbol-50px mr-3">
+                                                        <div className="symbol-label bg-white" style={{ border: '2px solid #00C853' }}>
+                                                            <i className="fas fa-user" style={{ color: '#00C853' }}></i>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <h6 className="mb-1 font-weight-bold text-dark">Initiating payment for</h6>
+                                                        <p className="mb-0 font-size-h4 font-weight-bolder" style={{ color: '#00C853' }}>{this.state.paymentStudent?.names}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Payment Details */}
+                                        <div className="mb-4">
+                                            <div className="form-group mb-3">
+                                                <label className="form-label font-weight-bold text-dark">Parent Phone</label>
+                                                <div className="input-group input-group-lg">
+                                                    <div className="input-group-prepend">
+                                                        <span className="input-group-text bg-light">
+                                                            <i className="fas fa-phone" style={{ color: '#00C853' }}></i>
+                                                        </span>
+                                                    </div>
+                                                    <input 
+                                                        type="text" 
+                                                        className="form-control bg-light" 
+                                                        value={this.state.parentPhone} 
+                                                        disabled 
+                                                        style={{ fontSize: '1.1rem', fontWeight: '600' }}
+                                                    />
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="form-group">
+                                                <label className="form-label font-weight-bold text-dark">Amount (KES)</label>
+                                                <div className="input-group input-group-lg">
+                                                    <div className="input-group-prepend">
+                                                        <span className="input-group-text bg-light">
+                                                            <i className="fas fa-money-bill-wave" style={{ color: '#00C853' }}></i>
+                                                        </span>
+                                                    </div>
+                                                    <input 
+                                                        type="number" 
+                                                        className="form-control bg-light" 
+                                                        value={this.state.paymentAmount} 
+                                                        onChange={e => this.setState({ paymentAmount: e.target.value })}
+                                                        style={{ fontSize: '1.2rem', fontWeight: '700', color: '#00C853' }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Security Note */}
+                                        <div className="alert alert-custom d-flex align-items-center p-3" style={{ backgroundColor: '#E8F5E9', border: '1px solid #00C853' }}>
+                                            <div className="alert-icon mr-3">
+                                                <i className="fas fa-shield-alt" style={{ color: '#00C853' }}></i>
+                                            </div>
+                                            <div className="alert-text">
+                                                <strong>Secure Payment:</strong> You'll receive an M-Pesa prompt to enter your PIN
+                                            </div>
+                                        </div>
+                                    </div>
                                 )}
 
                                 {this.state.paymentStatus === 'INITIATING' && (
                                     <div className="text-center py-5">
-                                        <div className="spinner spinner-primary spinner-lg mb-4"></div>
-                                        <p className="font-weight-bold">Sending STK Push...</p>
-                                        <p className="text-muted">Connecting to M-Pesa</p>
+                                        <div className="spinner spinner-lg mb-4" style={{ color: '#00C853' }}></div>
+                                        <h4 className="font-weight-bold mb-2" style={{ color: '#00C853' }}>Sending STK Push...</h4>
+                                        <p className="text-muted mb-4">Connecting to M-Pesa servers</p>
+                                        <div className="progress" style={{ height: '4px' }}>
+                                            <div className="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style={{ width: '60%', backgroundColor: '#00C853' }}></div>
+                                        </div>
                                     </div>
                                 )}
 
                                 {this.state.paymentStatus === 'PROCESSING' && (
                                     <div className="text-center py-5">
-                                        <div className="spinner spinner-success spinner-lg mb-4"></div>
-                                        <p className="font-weight-bold mb-1">Check your phone!</p>
-                                        <p className="text-muted mb-4">An M-Pesa prompt has been sent to <strong>{this.state.parentPhone}</strong>. Enter your PIN to complete the payment.</p>
-                                        <div className="alert alert-light-primary mb-0" role="alert">
-                                            <div className="alert-text">Waiting for confirmation...</div>
+                                        <div className="mb-4">
+                                            <div className="spinner spinner-lg" style={{ color: '#00C853' }}></div>
+                                        </div>
+                                        <h4 className="font-weight-bold mb-2" style={{ color: '#00C853' }}>Check your phone!</h4>
+                                        <p className="text-muted mb-4">
+                                            An M-Pesa prompt has been sent to <br/>
+                                            <span className="font-weight-bold" style={{ color: '#00C853' }}>{this.state.parentPhone}</span>
+                                        </p>
+                                        <div className="alert alert-custom d-flex align-items-center justify-content-center p-3" style={{ backgroundColor: '#E8F5E9', border: '1px solid #00C853' }}>
+                                            <div className="alert-icon mr-3">
+                                                <i className="fas fa-mobile-alt" style={{ color: '#00C853' }}></i>
+                                            </div>
+                                            <div className="alert-text">
+                                                <strong>Enter your M-Pesa PIN</strong> to complete the payment
+                                            </div>
+                                        </div>
+                                        <div className="mt-4">
+                                            <small className="text-muted">Waiting for confirmation...</small>
+                                            <div className="spinner spinner-sm ml-2" style={{ color: '#00C853' }}></div>
                                         </div>
                                     </div>
                                 )}
 
                                 {this.state.paymentStatus === 'SUCCESS' && (
                                     <div className="text-center py-5">
-                                        <div className="text-success mb-4"><i className="fa fa-check-circle icon-3x"></i></div>
-                                        <h4 className="font-weight-bold mb-1">Payment Successful!</h4>
-                                        <p className="text-muted">The payment has been confirmed and recorded.</p>
+                                        <div className="mb-4">
+                                            <div className="symbol symbol-80px">
+                                                <div className="symbol-label" style={{ backgroundColor: '#00C853' }}>
+                                                    <i className="fas fa-check text-white icon-4x"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <h4 className="font-weight-bold mb-2" style={{ color: '#00C853' }}>Payment Successful!</h4>
+                                        <p className="text-muted mb-4">
+                                            KES {this.state.paymentAmount?.toLocaleString()} has been <br/>
+                                            successfully paid and recorded
+                                        </p>
+                                        <div className="alert alert-custom d-flex align-items-center justify-content-center p-3" style={{ backgroundColor: '#E8F5E9', border: '1px solid #00C853' }}>
+                                            <div className="alert-icon mr-3">
+                                                <i className="fas fa-check-circle" style={{ color: '#00C853' }}></i>
+                                            </div>
+                                            <div className="alert-text">
+                                                <strong>Transaction Completed</strong>
+                                            </div>
+                                        </div>
                                     </div>
                                 )}
 
                                 {this.state.paymentStatus === 'ERROR' && (
                                     <div className="text-center py-5">
-                                        <div className="text-danger mb-4"><i className="fa fa-exclamation-circle icon-3x"></i></div>
-                                        <h4 className="font-weight-bold mb-1">Payment Failed</h4>
-                                        <p className="text-muted mb-4">{this.state.paymentErrorMessage || "The payment could not be completed at this time."}</p>
-                                        <button className="btn btn-outline-danger btn-sm" onClick={() => this.setState({ paymentStatus: 'IDLE' })}>Try Again</button>
+                                        <div className="mb-4">
+                                            <div className="symbol symbol-80px">
+                                                <div className="symbol-label bg-danger">
+                                                    <i className="fas fa-times text-white icon-4x"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <h4 className="font-weight-bold mb-2 text-danger">Payment Failed</h4>
+                                        <p className="text-muted mb-4">
+                                            {this.state.paymentErrorMessage || "The payment could not be completed at this time."}
+                                        </p>
+                                        <button className="btn btn-outline-danger btn-lg" onClick={() => this.setState({ paymentStatus: 'IDLE' })}>
+                                            <i className="fas fa-redo mr-2"></i>Try Again
+                                        </button>
                                     </div>
                                 )}
                             </div>
-                            <div className="modal-footer">
-                                <button className="btn btn-secondary" onClick={() => { this.stopPolling(); this.setState({ showPaymentModal: false, paymentStatus: 'IDLE' }); }}>{this.state.paymentStatus === 'SUCCESS' ? "Close" : "Cancel"}</button>
-                                {this.state.paymentStatus === 'IDLE' && (
-                                    <button className="btn btn-primary" disabled={this.state.processingPayment} onClick={this.initiatePayment}>{this.state.processingPayment ? "Sending..." : "Send Request"}</button>
-                                )}
-                            </div>
+                            {this.state.paymentStatus === 'IDLE' && (
+                                <div className="modal-footer bg-light border-0">
+                                    <button className="btn btn-secondary btn-lg" onClick={() => { this.stopPolling(); this.setState({ showPaymentModal: false, paymentStatus: 'IDLE' }); }}>
+                                        Cancel
+                                    </button>
+                                    <button className="btn btn-lg" disabled={this.state.processingPayment} onClick={this.initiatePayment} style={{ backgroundColor: '#00C853', borderColor: '#00C853', color: 'white' }}>
+                                        <i className="fas fa-paper-plane mr-2"></i>
+                                        {this.state.processingPayment ? "Sending..." : "Send Payment Request"}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -2194,17 +2271,20 @@ class FeesManagement extends Component {
                                 <button className="btn btn-secondary" onClick={() => this.setState({ showStatementModal: false, statementGroup: null })}>Close</button>
                                 {this.state.statementTab === 'statement' && (
                                     <div className="d-flex align-items-center">
-                                        <select 
-                                            className="form-control form-control-sm mr-3" 
-                                            style={{ width: '200px' }}
-                                            value={this.state.statementSelectedTerm} 
-                                            onChange={e => this.handleStatementTermChange(e.target.value)}
-                                        >
-                                            <option value="">Select Term...</option>
-                                            {this.getAvailableData().availableTerms.map(t => (
-                                                <option key={t.id} value={t.id}>{t.name}</option>
-                                            ))}
-                                        </select>
+                                        <div className="mr-3">
+                                            <label className="font-weight-bold text-dark mb-1" style={{ fontSize: '0.85rem' }}>Select Term:</label>
+                                            <select 
+                                                className="form-control" 
+                                                style={{ width: '250px', fontSize: '0.9rem', fontWeight: '600' }}
+                                                value={this.state.statementSelectedTerm} 
+                                                onChange={e => this.handleStatementTermChange(e.target.value)}
+                                            >
+                                                <option value="">Choose Term...</option>
+                                                {this.getAvailableData().availableTerms.map(t => (
+                                                    <option key={t.id} value={t.id}>{t.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
                                         <button className="btn btn-info" onClick={this.executePrintStatement}>
                                             <i className="flaticon2-printer mr-2"></i> Print Official Statement
                                         </button>

@@ -140,7 +140,7 @@ const StatementCard = ({ group, school, validStudentsData, totalValidExpected, t
             </div>
 
             {/* Balance Brought Forward Section */}
-            {group.balanceBroughtForward !== undefined && (
+            {group.balanceBroughtForward !== undefined && group.balanceBroughtForward !== 0 && (
                 <div style={{ marginBottom: '0.8cm', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '15px', backgroundColor: '#fef3c7' }}>
                     <h4 style={{ margin: '0 0 10px 0', fontSize: '0.9rem', fontWeight: 700, color: '#92400e' }}>
                         Balance Brought Forward (Previous Terms)
@@ -321,28 +321,62 @@ const StatementCard = ({ group, school, validStudentsData, totalValidExpected, t
                 </div>
             </div>
 
+            {/* Totals Summary Table */}
+            <div style={{ marginBottom: '0.6cm', border: '2px solid #1f2937', borderRadius: '8px', overflow: 'hidden' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
+                    <thead>
+                        <tr style={{ backgroundColor: themeColor }}>
+                            <th style={{ padding: '8px 12px', textAlign: 'left', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Summary</th>
+                            <th style={{ padding: '8px 12px', textAlign: 'right', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Amount (KES)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr style={{ backgroundColor: '#f9fafb' }}>
+                            <td style={{ padding: '6px 12px', fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>
+                                Total Expected
+                            </td>
+                            <td style={{ padding: '6px 12px', textAlign: 'right', fontSize: '0.85rem', fontWeight: 700, color: '#374151' }}>
+                                {totalValidExpected.toLocaleString()}
+                            </td>
+                        </tr>
+                        <tr style={{ backgroundColor: '#f9fafb' }}>
+                            <td style={{ padding: '6px 12px', fontSize: '0.75rem', color: '#6b7280', fontWeight: 600 }}>
+                                Amount Paid
+                            </td>
+                            <td style={{ padding: '6px 12px', textAlign: 'right', fontSize: '0.85rem', fontWeight: 700, color: '#059669' }}>
+                                {totalValidPaid.toLocaleString()}
+                            </td>
+                        </tr>
+                        {group.balanceBroughtForward !== undefined && group.balanceBroughtForward !== 0 && (
+                            <tr style={{ backgroundColor: '#fef3c7' }}>
+                                <td style={{ padding: '6px 12px', fontSize: '0.75rem', color: '#92400e', fontWeight: 600 }}>
+                                    Balance Brought Forward
+                                </td>
+                                <td style={{ padding: '6px 12px', textAlign: 'right', fontSize: '0.85rem', fontWeight: 700, color: '#92400e' }}>
+                                    {Math.abs(group.balanceBroughtForward || 0).toLocaleString()}
+                                </td>
+                            </tr>
+                        )}
+                        <tr style={{ backgroundColor: themeColor, borderTop: '2px solid #1f2937' }}>
+                            <td style={{ padding: '8px 12px', fontSize: '0.8rem', fontWeight: 700, color: 'white' }}>
+                                <strong>Total Outstanding Balance</strong>
+                            </td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right', fontSize: '1.1rem', fontWeight: 900, color: 'white' }}>
+                                KES {totalValidBalance.toLocaleString()}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
             {/* Payment Instructions / Disclaimer Block */}
             <div style={{ marginBottom: '0.6cm' }}>
                 <div style={{ border: '2px solid #f3f4f6', padding: '10px', borderRadius: '8px', backgroundColor: '#ffffff' }}>
                     <h5 style={{ margin: '0 0 6px 0', fontSize: '0.75rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                         Payment Instructions
                     </h5>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '8px' }}>
-                        <div>
-                            <div style={{ fontSize: '0.7rem', color: '#6b7280', marginBottom: '2px' }}>M-Pesa Paybill</div>
-                            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#374151' }}>123456</div>
-                        </div>
-                        <div>
-                            <div style={{ fontSize: '0.7rem', color: '#6b7280', marginBottom: '2px' }}>Bank Account</div>
-                            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#374151' }}>#001234567</div>
-                        </div>
-                        <div>
-                            <div style={{ fontSize: '0.7rem', color: '#6b7280', marginBottom: '2px' }}>School Office</div>
-                            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#374151' }}>Cash Accepted</div>
-                        </div>
-                    </div>
-                    <div style={{ marginTop: '8px', padding: '6px', backgroundColor: '#f8fafc', borderRadius: '4px', fontSize: '0.7rem', color: '#6b7280', fontStyle: 'italic' }}>
-                        Please ensure timely payments to avoid service interruptions. Contact school finance office for inquiries.
+                    <div style={{ padding: '8px', backgroundColor: '#f8fafc', borderRadius: '4px', fontSize: '0.8rem', color: '#374151', textAlign: 'center', fontWeight: 600 }}>
+                        Please login to the application to make payment or send paybill
                     </div>
                 </div>
             </div>
