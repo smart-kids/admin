@@ -29,7 +29,7 @@
     "react-dnd-html5-backend": "^16.0.1",
     "react-dom": "^16.9.0",
     "react-draft-wysiwyg": "^1.15.0",
-    "react-error-boundary": "^6.0.0",
+    "react-error-boundary": "^3.1.4",
     "react-pace-progress": "^2.0.0",
     "react-quill": "^2.0.0",
     "react-router": "^5.0.1",
