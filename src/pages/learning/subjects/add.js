@@ -8,7 +8,6 @@ import Data from "../../../utils/data"; // Adjust path if necessary
 const IErrorMessage = new ErrorMessage();
 
 const $ = window.$; // For jQuery interactions
-let selectedGrade = null; // Might be related to parent context
 
 // Unique ID for modal and form to avoid conflicts
 const modalInstanceId = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);

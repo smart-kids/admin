@@ -74,7 +74,7 @@ class CurriculumManagerV5 extends React.Component {
         gradeToEdit: {}, gradeToDelete: {}, subjectToEdit: {}, subjectToDelete: {}, topicToEdit: {}, topicToDelete: {},
         subtopicToEdit: {}, subtopicToDelete: {}, questionToEdit: {}, questionToDelete: {}, optionToEdit: {}, optionToDelete: {},
         gradeSearchTerm: '', subjectSearchTerm: '', topicSearchTerm: '', subtopicSearchTerm: '', questionSearchTerm: '', optionSearchTerm: '',
-        activeTab: 'content', allLessonAttempts: [], subjectLessonAttempts: [], usersWithAttempts: [],
+        activeTab: 'planning', allLessonAttempts: [], subjectLessonAttempts: [], usersWithAttempts: [],
         selectedUserId: null, selectedAttemptId: null,
         questionImagesMap: {}, // Cache for fetched question images
         
@@ -428,7 +428,7 @@ class CurriculumManagerV5 extends React.Component {
             optionSearchTerm: sourceState.optionSearchTerm || '', 
             questionSearchTerm: sourceState.questionSearchTerm || '', 
             optionSearchTerm: sourceState.optionSearchTerm || '', 
-            activeTab: sourceState.activeTab || 'content',
+            activeTab: sourceState.activeTab || 'planning',
             planningSubTab: sourceState.planningSubTab || 'scheme',
             selectedTermId: sourceState.selectedTermId || null,
             scrollLeft: sourceState.scrollLeft || 0
@@ -793,7 +793,7 @@ class CurriculumManagerV5 extends React.Component {
             }
         }); 
     };
-    clearSelectionsAndDataFromLevel = (levelName) => { const newState = {}; const levels = ['grade', 'subject', 'topic', 'subtopic', 'question', 'option']; const startIndex = levels.indexOf(levelName); if (startIndex === -1) return {}; if (startIndex <= 1) { newState.activeTab = 'content'; newState.selectedUserId = null; newState.selectedAttemptId = null; } for (let i = startIndex; i < levels.length; i++) { const level = levels[i]; const capitalizedLevel = level.charAt(0).toUpperCase() + level.slice(1); newState[`selected${capitalizedLevel}`] = null; const childIndex = i + 1; if (childIndex < levels.length) { const childLevel = levels[childIndex]; const capitalizedChildLevel = childLevel.charAt(0).toUpperCase() + childLevel.slice(1); newState[`filtered${capitalizedChildLevel}s`] = []; } } return newState; };
+    clearSelectionsAndDataFromLevel = (levelName) => { const newState = {}; const levels = ['grade', 'subject', 'topic', 'subtopic', 'question', 'option']; const startIndex = levels.indexOf(levelName); if (startIndex === -1) return {}; if (startIndex <= 1) { newState.activeTab = 'planning'; newState.selectedUserId = null; newState.selectedAttemptId = null; } for (let i = startIndex; i < levels.length; i++) { const level = levels[i]; const capitalizedLevel = level.charAt(0).toUpperCase() + level.slice(1); newState[`selected${capitalizedLevel}`] = null; const childIndex = i + 1; if (childIndex < levels.length) { const childLevel = levels[childIndex]; const capitalizedChildLevel = childLevel.charAt(0).toUpperCase() + childLevel.slice(1); newState[`filtered${capitalizedChildLevel}s`] = []; } } return newState; };
     
     // --- Event Handlers (CRUD, Select, Search) ---
     onEntityCreated = (entityName) => { toastr.success(`${entityName} CREATED successfully!`); }
@@ -1360,23 +1360,7 @@ class CurriculumManagerV5 extends React.Component {
     renderTeacherPlanningTab() {
         const { planningSubTab, filteredSchemes, filteredRecords, filteredTopics, selectedTopic, filteredSubtopics, selectedSubtopic, topicSearchTerm, subtopicSearchTerm } = this.state;
         
-        if (!selectedTopic) {
-            return (
-                <div className="tab-inner-scroller d-flex align-items-center justify-content-center" style={{ minHeight: '400px' }}>
-                    <div className="text-center p-5 bg-white shadow-sm" style={{ borderRadius: '24px', maxWidth: '500px' }}>
-                        <div className="mb-4" style={{ fontSize: '4.5rem' }}>🎯</div>
-                        <h3 className="mb-3 font-weight-bold">Start Your Planning</h3>
-                        <p className="text-muted mb-4">Select a <strong>Grade</strong> and <strong>Subject</strong> from the sidebar, then choose a <strong>Strand</strong> to begin managing your schemes and records of work.</p>
-                        <div className="d-flex justify-content-center gap-3">
-                            <button className="btn btn-primary px-4 py-2" style={{ borderRadius: '12px' }} onClick={() => this.setState({ activeTab: 'content' })}>
-                                <i className="la la-book mr-2"></i> View Content & Strands
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            );
-        }
-
+        
         return (
             <div className="tab-inner-scroller">
                 {/* Strands Column */}
@@ -1481,14 +1465,12 @@ class CurriculumManagerV5 extends React.Component {
                         </div>
                     </div>
                 ) : (
-                    selectedTopic && (
-                        <div className="flex-grow-1 d-flex align-items-center justify-content-center text-muted p-5">
-                            <div className="text-center">
-                                <i className="la la-arrow-left mb-3" style={{ fontSize: '3rem', opacity: 0.1 }}></i>
-                                <p>Select a sub-strand to view and manage planning.</p>
-                            </div>
+                    <div className="flex-grow-1 d-flex align-items-center justify-content-center text-muted p-5">
+                        <div className="text-center">
+                            <i className="la la-arrow-left mb-3" style={{ fontSize: '3rem', opacity: 0.1 }}></i>
+                            <p>Select a {selectedTopic ? 'sub-strand' : 'strand'} to view and manage planning.</p>
                         </div>
-                    )
+                    </div>
                 )}
                 
                 {this.renderPlanningModal()}

@@ -96,16 +96,11 @@ class EditQuestionModal extends React.Component {
 
   // --- Replace it with this corrected version ---
   componentDidUpdate(prevProps) {
-    // Only proceed if the component has received a valid question with an ID.
-    if (this.props.question && this.props.question.id) {
-        // Check if the new question's ID is different from the ID currently in our state.
-        // This is the most reliable way to know if we need to re-initialize.
-        console.log(this.props.question.id, this.state.questionId, this.props.question.id != this.state.questionId);
-        if (this.props.question.id != this.state.questionId) {
-            this.initializeFromProps(this.props.question);
-        }
+    // Rely on prop changes from the parent, rather than state ID mismatch, to re-initialize safely
+    if (this.props.question && prevProps.question && this.props.question.id !== prevProps.question.id) {
+        this.initializeFromProps(this.props.question);
     }
-}
+  }
 
 // onPropsChange = (prevProps) => {
 //   if (this.props.question && this.props.question.id && this.props.question.id != this.state.questionId) {
@@ -127,7 +122,10 @@ class EditQuestionModal extends React.Component {
     }
   };
 
-  show = () => $(`#${modalId}`).modal({ show: true, backdrop: "static", keyboard: false });
+  show = () => {
+    this.initializeFromProps(this.props.question);
+    $(`#${modalId}`).modal({ show: true, backdrop: "static", keyboard: false });
+  };
   hide = () => $(`#${modalId}`).modal("hide");
 
   resetState = () => {

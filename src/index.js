@@ -18,7 +18,7 @@ Bugsnag.start({
   apiKey: '05fe04ebc304ae56dcdc160914d06c1c', // Your actual Bugsnag API key
   plugins: [new BugsnagPluginReact()],
   // You can add other configurations here, like releaseStage, appVersion, etc.
-  // releaseStage: process.env.NODE_ENV, 
+  // releaseStage: process.env?.NODE_ENV, 
 });
 
 // Start performance monitoring separately
@@ -125,7 +125,7 @@ ReactDOM.render(
       <App />
       
       {/* This ensures the crash-testing button only appears during development */}
-      {process.env.NODE_ENV === 'development' && <CrashingComponent />}
+      {process.env?.NODE_ENV === 'development' && <CrashingComponent />}
 
     </ErrorBoundary>
   </React.StrictMode>,

@@ -101,20 +101,17 @@ export default props => {
       >
         <thead className="thead-light"> {/* Added a light theme for header */}
           <tr>
-            {headers.map(header => (
-              <th key={header.key || header.label} title={header.tooltip || header.label}>
-                {header.label}
-              </th>
-            ))}
+              {headers.map(header => (
+                <th key={header.key || header.label} title={header.tooltip || header.label}>{header.label}</th>
+              ))}
             {hasActions && <th key="actions-header" style={{minWidth: '150px'}}>Actions</th>}
           </tr>
         </thead>
         <tbody>
-          {data.map((row, rowIndex) => (
-            <tr key={row.id || `row-${rowIndex}`}> {/* Ensure row.id is unique if possible */}
+          {data.map((row, rowIndex) => (<tr key={row.id || `row-${rowIndex}`}>
               {headers.map(header => (
                 <td key={`${header.key || header.label}-${row.id || rowIndex}`}>
-                  {row[header.key]}
+                  {typeof row[header.key] === 'object' ? JSON.stringify(row[header.key]) : row[header.key]}
                 </td>
               ))}
 

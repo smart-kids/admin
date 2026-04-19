@@ -7,7 +7,6 @@ import EditModal from "./edit";
 import DeleteModal from "./delete";
 import Data from "../../utils/data";
 
-const $ = window.$;
 const addModalInstance = new AddModal();
 const uploadModalInstance = new UploadModal();
 const editModalInstance = new EditModal();
@@ -156,7 +155,7 @@ class BasicTable extends React.Component {
                   }
                 ]}
                 data={this.state.filteredSchedules.map(schedule => {
-                  const { route = {}, bus = {}, days = [] } = schedule;
+                  const { route = {}, bus = {} } = schedule;
                   return Object.assign({}, schedule, {
                     route_name: route ? route.name : "",
                     bus_make: bus ? bus.make : "",
@@ -164,7 +163,6 @@ class BasicTable extends React.Component {
                   });
                 })}
                 edit={schedule => {
-                  schedule.days = schedule.days
                   this.setState({ edit: schedule }, () => {
                     editModalInstance.show();
                   });

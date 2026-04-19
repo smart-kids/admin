@@ -7,7 +7,6 @@ import EditModal from "./edit";
 import DeleteModal from "./delete";
 import Data from "../../utils/data";
 
-const $ = window.$;
 const addModalInstance = new AddModal();
 const uploadModalInstance = new UploadModal();
 const editModalInstance = new EditModal();

@@ -84,7 +84,7 @@ class Navbar extends React.Component {
     });
 
     // Fallback: Hide loading indicator after 10 seconds max to prevent it from getting stuck
-    setTimeout(() => {
+    this.loadingTimeout = setTimeout(() => {
       if (this.state.fetchingSchools) {
         this.setState({ fetchingSchools: false });
       }
@@ -107,6 +107,9 @@ class Navbar extends React.Component {
 
   componentWillUnmount() {
     window.removeEventListener('resize', this.handleResize);
+    if (this.loadingTimeout) {
+      clearTimeout(this.loadingTimeout);
+    }
   }
   
   componentDidUpdate(prevProps, prevState) {
