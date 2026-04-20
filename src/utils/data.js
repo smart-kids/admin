@@ -1312,7 +1312,7 @@ var Data = (function () {
                     try {
                         // Query to get lesson attempts across all schools based on parent phone numbers
                         const queryStr = `
-                            query GetCrossSchoolLessonAttempts($phoneNumbers: [String!], $subjectId: String!) {
+                            query GetCrossSchoolLessonAttempts($phoneNumbers: [String!]!, $subjectId: String!) {
                                 crossSchoolLessonAttempts(phoneNumbers: $phoneNumbers, subjectId: $subjectId) {
                                     id
                                     lessonId
