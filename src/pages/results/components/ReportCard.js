@@ -79,6 +79,14 @@ const ReportCard = ({ student, term, assessments, subjects, rubrics, assessmentT
     const weightedSubjectsCount = subjectRows.filter(r => r.hasAnyScore).length;
     const totalWeightedPercentage = weightedSubjectsCount > 0 ? subjectRows.reduce((sum, row) => sum + row.overallScore, 0) : 0;
 
+    // Calculate Total Pts by summing rubric points (same logic as ResultsGrid)
+    let totalPoints = 0;
+    subjectRows.forEach(row => {
+        if (row.overallRubric?.points) {
+            totalPoints += parseFloat(row.overallRubric.points);
+        }
+    });
+
     return (
         <div className="report-card-container" style={{ 
             padding: '1.0cm 1.5cm', 
@@ -184,10 +192,10 @@ const ReportCard = ({ student, term, assessments, subjects, rubrics, assessmentT
                     <tfoot>
                         <tr style={{ backgroundColor: '#f3f4f6' }}>
                             <td style={{ padding: '14px 18px', fontWeight: 900, fontSize: '0.9rem', color: '#111827' }} colSpan={1 + (sortedAssessmentTypes?.length || 0)}>
-                                TOTAL WEIGHTED SCORE
+                                Total Pts
                             </td>
                             <td style={{ padding: '14px 10px', textAlign: 'center', fontWeight: 900, fontSize: '1.3rem', color: themeColor }} colSpan={2}>
-                                {totalWeightedPercentage.toFixed(1)}%
+                                {totalPoints || '-'}
                             </td>
                         </tr>
                     </tfoot>
@@ -202,8 +210,8 @@ const ReportCard = ({ student, term, assessments, subjects, rubrics, assessmentT
                     </h5>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '6px', borderBottom: '1px dashed #f3f4f6' }}>
-                            <span style={{ fontSize: '0.8rem', color: '#6b7280', fontWeight: 500 }}>Overall Weighted Score:</span>
-                            <span style={{ fontWeight: 800, color: themeColor, fontSize: '0.95rem' }}>{totalWeightedPercentage.toFixed(1)}%</span>
+                            <span style={{ fontSize: '0.8rem', color: '#6b7280', fontWeight: 500 }}>Total Points:</span>
+                            <span style={{ fontWeight: 800, color: themeColor, fontSize: '0.95rem' }}>{totalPoints || '-'}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '6px', borderBottom: '1px dashed #f3f4f6' }}>
                             <span style={{ fontSize: '0.8rem', color: '#6b7280', fontWeight: 500 }}>Learning Areas Graded:</span>
