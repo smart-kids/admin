@@ -831,8 +831,14 @@ var Data = (function () {
                 allData.lesson_plans = allData.subtopics.flatMap(st => (st.lesson_plans || []).filter(l => !l.isDeleted));
                 allData.iep_templates = allData.topics.flatMap(t => (t.iep_templates || []).filter(i => !i.isDeleted));
 
+                // ADD THIS LINE HERE:
+                allData.lessonAttempts = allData.subjects.flatMap(s => s.lessonAttempts || []);
+                
+                // Flatten attemptEvents from lessonAttempts
+                allData.attemptEvents = allData.lessonAttempts.flatMap(la => la.attemptEvents || []);
+
                 // Notify all tree-based subscribers
-                ['grades', 'subjects', 'topics', 'subtopics', 'questions', 'options', 'scheme_of_works', 'record_of_works', 'lesson_plans', 'iep_templates'].forEach(name => {
+                ['grades', 'subjects', 'topics', 'subtopics', 'questions', 'options', 'scheme_of_works', 'record_of_works', 'lesson_plans', 'iep_templates', 'lessonAttempts', 'attemptEvents'].forEach(name => {
                     if (Array.isArray(subs[name])) {
                         subs[name].forEach(cb => cb({ [name]: [...allData[name]] }));
                     }
@@ -841,8 +847,15 @@ var Data = (function () {
 
             if (updatedSubEntities.has('smsEvents') && activeSchool.smsEvents) {
                 allData.smsEvents = activeSchool.smsEvents;
+                
+                // Flatten smsLogs from smsEvents
+                allData.smsLogs = allData.smsEvents.flatMap(se => se.logs || []);
+                
                 if (Array.isArray(subs.smsEvents)) {
                     subs.smsEvents.forEach(cb => cb({ smsEvents: [...allData.smsEvents] }));
+                }
+                if (Array.isArray(subs.smsLogs)) {
+                    subs.smsLogs.forEach(cb => cb({ smsLogs: [...allData.smsLogs] }));
                 }
             }
 
@@ -1293,7 +1306,55 @@ var Data = (function () {
             name: "lessonAttempts",
             singularName: "lessonAttempt",
             createFields: ['lessonId', 'userId', 'startedAt', 'completedAt', 'status', 'finalScore', 'deviceInfo', 'school'],
-            updateFields: ['id', 'lessonId', 'userId', 'startedAt', 'completedAt', 'status', 'finalScore', 'deviceInfo', 'school']
+            updateFields: ['id', 'lessonId', 'userId', 'startedAt', 'completedAt', 'status', 'finalScore', 'deviceInfo', 'school'],
+            customMethods: (allData, subs, api) => ({
+                getCrossSchoolAttemptsByPhone: async (phoneNumbers, subjectId) => {
+                    try {
+                        // Query to get lesson attempts across all schools based on parent phone numbers
+                        const queryStr = `
+                            query GetCrossSchoolLessonAttempts($phoneNumbers: [String!], $subjectId: String!) {
+                                crossSchoolLessonAttempts(phoneNumbers: $phoneNumbers, subjectId: $subjectId) {
+                                    id
+                                    lessonId
+                                    userId
+                                    startedAt
+                                    completedAt
+                                    status
+                                    finalScore
+                                    deviceInfo
+                                    school {
+                                        id
+                                        name
+                                    }
+                                    attemptEvents {
+                                        id
+                                        questionId
+                                        eventType
+                                        eventTimestamp
+                                        userAnswer
+                                        isCorrect
+                                    }
+                                    parent {
+                                        id
+                                        name
+                                        phone
+                                        school {
+                                            id
+                                            name
+                                        }
+                                    }
+                                }
+                            }
+                        `;
+                        
+                        const response = await query(queryStr, { phoneNumbers, subjectId });
+                        return response.crossSchoolLessonAttempts || [];
+                    } catch (error) {
+                        console.error('Error fetching cross-school lesson attempts:', error);
+                        return [];
+                    }
+                }
+            })
         },
         {
             name: "attemptEvents",

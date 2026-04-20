@@ -352,9 +352,9 @@ class CurriculumManagerV5 extends React.Component {
         
         if (Data.lessonAttempts && typeof Data.lessonAttempts.subscribe === 'function') {
             this._attemptsSubscription = Data.lessonAttempts.subscribe(({ lessonAttempts }) => {
-                this.setState({ allLessonAttempts: lessonAttempts }, () => {
+                this.setState({ allLessonAttempts: lessonAttempts }, async () => {
                     if (this.state.selectedSubject) {
-                        this.processLessonAttemptsForSubject(this.state.selectedSubject);
+                        await this.processLessonAttemptsForSubject(this.state.selectedSubject);
                     }
                 });
             });
@@ -408,10 +408,10 @@ class CurriculumManagerV5 extends React.Component {
             _masterGradesList: masterGradesList,
             ...planningData, // Add extracted planning data only if needed
             isLoading: this.state.isLoading ? !isDataReady : false
-        }, () => {
+        }, async () => {
             this.refreshCurrentSelectionsAndFilters();
             this.refreshPlanningFilters(); // Explicitly refresh planning data once names are resolved
-            if (this.state.selectedSubject) this.processLessonAttemptsForSubject(this.state.selectedSubject);
+            if (this.state.selectedSubject) await this.processLessonAttemptsForSubject(this.state.selectedSubject);
             
             // Restore scroll position once data is ready and rendered
             if (isDataReady && stateSource.scrollLeft !== undefined) {
@@ -580,7 +580,7 @@ class CurriculumManagerV5 extends React.Component {
         })); 
     };
 
-    componentDidUpdate(prevProps, prevState) { 
+    async componentDidUpdate(prevProps, prevState) { 
         const persistedStateKeys = ['selectedGrade', 'selectedSubject', 'selectedTopic', 'selectedSubtopic', 'selectedQuestion', 'gradeSearchTerm', 'subjectSearchTerm', 'topicSearchTerm', 'subtopicSearchTerm', 'questionSearchTerm', 'optionSearchTerm', 'activeTab', 'planningSubTab', 'selectedTermId']; 
         const hasPersistedStateChanged = persistedStateKeys.some(key => JSON.stringify(prevState[key]) !== JSON.stringify(this.state[key])); 
         if (hasPersistedStateChanged) { 
@@ -589,7 +589,7 @@ class CurriculumManagerV5 extends React.Component {
         
         const { selectedSubject, selectedTermId, selectedTopic, selectedSubtopic } = this.state;
         if (prevState.selectedSubject !== selectedSubject && selectedSubject) { 
-            this.processLessonAttemptsForSubject(selectedSubject); 
+            await this.processLessonAttemptsForSubject(selectedSubject); 
             this.refreshPlanningFilters();
         } 
         if (prevState.selectedTermId !== selectedTermId || prevState.selectedTopic !== selectedTopic || prevState.selectedSubtopic !== selectedSubtopic || prevState._masterGradesList !== this.state._masterGradesList) {
@@ -912,7 +912,7 @@ class CurriculumManagerV5 extends React.Component {
     onQuestionSearch = e => { this.setState({ questionSearchTerm: e.target.value }, this.refreshCurrentSelectionsAndFilters); }
     onOptionSearch = e => { this.setState({ optionSearchTerm: e.target.value }, this.refreshCurrentSelectionsAndFilters); }
     handleGradeSelect = (gradeId) => { this.setState({ ...this.clearSelectionsAndDataFromLevel('grade'), selectedGrade: gradeId }, () => { this.refreshCurrentSelectionsAndFilters(); this.scrollBy(400); }); }
-    handleSubjectSelect = (subjectId) => { this.setState({ ...this.clearSelectionsAndDataFromLevel('subject'), selectedSubject: subjectId }, () => { this.refreshCurrentSelectionsAndFilters(); if (subjectId) this.processLessonAttemptsForSubject(subjectId); this.scrollBy(1000); }); }
+    handleSubjectSelect = async (subjectId) => { this.setState({ ...this.clearSelectionsAndDataFromLevel('subject'), selectedSubject: subjectId }, async () => { this.refreshCurrentSelectionsAndFilters(); if (subjectId) await this.processLessonAttemptsForSubject(subjectId); this.scrollBy(1000); }); }
     handleTopicSelect = (topicId) => { this.setState({ ...this.clearSelectionsAndDataFromLevel('topic'), selectedTopic: topicId }, () => { this.refreshCurrentSelectionsAndFilters(); this.scrollToSub(400); }); }
     handleSubtopicSelect = (subtopicId) => { this.setState({ ...this.clearSelectionsAndDataFromLevel('subtopic'), selectedSubtopic: subtopicId }, () => { this.refreshCurrentSelectionsAndFilters(); this.scrollToSub(800); }); }
     handleQuestionSelect = (questionId) => { this.setState({ selectedQuestion: questionId }, () => { this.refreshCurrentSelectionsAndFilters(); this.scrollToSub(1200); }); }
@@ -926,17 +926,80 @@ class CurriculumManagerV5 extends React.Component {
     scrollToEnd = () => { if (this.scrollContainerRef.current) this.scrollContainerRef.current.scrollTo({ left: this.scrollContainerRef.current.scrollWidth, behavior: 'smooth' }); }
     
     // --- Attempts Tab Logic ---
-    processLessonAttemptsForSubject = (subjectId) => {
+    processLessonAttemptsForSubject = async (subjectId) => {
         const { _masterGradesList, selectedGrade, allLessonAttempts } = this.state;
-        const grade = _masterGradesList.find(g => g.id === selectedGrade);
-        const subject = (grade?.subjects || []).find(s => s.id === subjectId);
-        if (!subject) { this.setState({ subjectLessonAttempts: [], usersWithAttempts: [] }); return; }
-        const subtopicIdsInSubject = new Set((subject.topics || []).flatMap(t => (t.subtopics || []).map(st => st.id)));
-        const attemptsForSubject = allLessonAttempts.filter(attempt => subtopicIdsInSubject.has(attempt.lessonId));
+        const grade = _masterGradesList.find(g => String(g.id) === String(selectedGrade));
+        const subject = (grade?.subjects || []).find(s => String(s.id) === String(subjectId));
+        
+        if (!subject) { 
+            this.setState({ subjectLessonAttempts: [], usersWithAttempts: [] }); 
+            return; 
+        }
+
+        // Identify which subtopics belong to this subject
+        const subtopicIdsInSubject = new Set(
+            (subject.topics || []).flatMap(t => 
+                (t.subtopics || []).map(st => String(st.id))
+            )
+        );
+
+        // Filter attempts that match the subtopics in this subject (from current school)
+        const localAttemptsForSubject = allLessonAttempts.filter(attempt => 
+            subtopicIdsInSubject.has(String(attempt.lessonId))
+        );
+
+        // Get phone numbers from current school parents to find cross-school attempts
+        const currentSchoolParents = Data.parents.list();
+        const phoneNumbers = currentSchoolParents
+            .map(p => p.phone)
+            .filter(phone => phone && phone.trim() !== '');
+
+        let crossSchoolAttempts = [];
+        if (phoneNumbers.length > 0) {
+            try {
+                // Fetch cross-school attempts using the new API
+                crossSchoolAttempts = await Data.lessonAttempts.getCrossSchoolAttemptsByPhone(phoneNumbers, subjectId);
+            } catch (error) {
+                console.error('Error fetching cross-school attempts:', error);
+            }
+        }
+
+        // Combine local and cross-school attempts
+        const allAttemptsForSubject = [...localAttemptsForSubject, ...crossSchoolAttempts];
+
         const parentMap = new Map();
         const users = Data.parents.list();
-        attemptsForSubject.forEach(attempt => { if (!parentMap.has(attempt.userId)) { const user = users.find(p => p.id === attempt.userId); if (user) { parentMap.set(user.id, { id: user.id, name: user.name || `User ${user.id.substring(0, 5)}`, students: user.students || [], }); } } });
-        this.setState({ subjectLessonAttempts: attemptsForSubject, usersWithAttempts: Array.from(parentMap.values()), selectedUserId: null, selectedAttemptId: null });
+
+        allAttemptsForSubject.forEach(attempt => { 
+            const userKey = attempt.userId;
+            if (!parentMap.has(userKey)) { 
+                // First try to find user in current school
+                let user = users.find(p => String(p.id) === String(userKey));
+                
+                // If not found and this is a cross-school attempt, use the parent data from the attempt
+                if (!user && attempt.parent) {
+                    user = attempt.parent;
+                }
+                
+                if (user) { 
+                    parentMap.set(userKey, { 
+                        id: user.id, 
+                        name: user.name || `User ${user.id.substring(0, 5)}`, 
+                        phone: user.phone,
+                        students: user.students || [], 
+                        isCrossSchool: !!attempt.school && attempt.school !== localStorage.getItem("school"),
+                        schoolName: attempt.school?.name || null
+                    }); 
+                } 
+            } 
+        });
+
+        this.setState({ 
+            subjectLessonAttempts: allAttemptsForSubject, 
+            usersWithAttempts: Array.from(parentMap.values()), 
+            selectedUserId: null, 
+            selectedAttemptId: null 
+        });
     }
 
     handleDeleteAttempt = async (attempt) => { if (!window.confirm(`Are you sure you want to delete this attempt? This action cannot be undone.`)) return; try { await Data.lessonAttempts.delete({ id: attempt.id }); toastr.success("Session deleted successfully!"); if (this.state.selectedAttemptId === attempt.id) { this.setState({ selectedAttemptId: null }); } } catch (e) { toastr.error("Failed to delete attempt."); console.error("Delete attempt error:", e); } };
@@ -1232,8 +1295,36 @@ class CurriculumManagerV5 extends React.Component {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                                 <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: selectedUserId === user.id ? '#fff' : '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b', fontSize: '0.8rem' }}>{user.name.charAt(0)}</div>
                                 <div>
-                                    <div style={{ fontSize: '0.9rem', color: selectedUserId === user.id ? '#1e293b' : '#334155', fontWeight: selectedUserId === user.id ? 700 : 500 }}>{user.name}</div>
+                                    <div style={{ fontSize: '0.9rem', color: selectedUserId === user.id ? '#1e293b' : '#334155', fontWeight: selectedUserId === user.id ? 700 : 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        {user.name}
+                                        {user.isCrossSchool && (
+                                            <span style={{ 
+                                                background: '#f0f9ff', 
+                                                color: '#0369a1', 
+                                                padding: '2px 6px', 
+                                                borderRadius: '4px', 
+                                                fontSize: '0.7rem', 
+                                                fontWeight: 600,
+                                                border: '1px solid #bae6fd'
+                                            }}>
+                                                <i className="la la-exchange-alt" style={{ fontSize: '0.6rem', marginRight: '2px' }}></i>
+                                                Cross-School
+                                            </span>
+                                        )}
+                                    </div>
                                     <div className="student-list-metadata" style={{ marginTop: '4px' }}>
+                                        {user.phone && (
+                                            <div className="student-sub-item" style={{ marginBottom: '4px' }}>
+                                                <i className="la la-phone" style={{ fontSize: '0.8rem' }}></i>
+                                                <span>{user.phone}</span>
+                                            </div>
+                                        )}
+                                        {user.schoolName && (
+                                            <div className="student-sub-item" style={{ marginBottom: '4px' }}>
+                                                <i className="la la-school" style={{ fontSize: '0.8rem' }}></i>
+                                                <span>{user.schoolName}</span>
+                                            </div>
+                                        )}
                                         {user.students && user.students.map(student => (
                                             <div key={student.id} className="student-sub-item">
                                                 <i className="la la-user-graduate" style={{ fontSize: '0.8rem' }}></i>
@@ -1253,7 +1344,23 @@ class CurriculumManagerV5 extends React.Component {
                         <div key={attempt.id} className={`list-group-item ${selectedAttemptId === attempt.id ? 'active' : ''}`} onClick={() => this.handleAttemptSelect(attempt.id)}>
                             <div className="attempt-list-item-content">
                                 <div>
-                                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: selectedAttemptId === attempt.id ? 'var(--cm-primary-color)' : '#1e293b' }}>Submission {attemptsForSelectedUser.length - index}</div>
+                                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: selectedAttemptId === attempt.id ? 'var(--cm-primary-color)' : '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                        Submission {attemptsForSelectedUser.length - index}
+                                        {attempt.school && attempt.school !== localStorage.getItem("school") && (
+                                            <span style={{ 
+                                                background: '#fef3c7', 
+                                                color: '#92400e', 
+                                                padding: '2px 6px', 
+                                                borderRadius: '4px', 
+                                                fontSize: '0.65rem', 
+                                                fontWeight: 600,
+                                                border: '1px solid #fde68a'
+                                            }}>
+                                                <i className="la la-building" style={{ fontSize: '0.6rem', marginRight: '2px' }}></i>
+                                                {attempt.school?.name || 'Other School'}
+                                            </span>
+                                        )}
+                                    </div>
                                     <div style={{ fontSize: '0.75rem', opacity: 0.7, marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}><i className="la la-calendar"></i> {moment(attempt.startedAt).format('MMM D, h:mm a')}</div>
                                     <div style={{ fontSize: '0.75rem', marginTop: '6px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
                                         <i className="la la-book-open" style={{ color: 'var(--cm-primary-color)' }}></i>
