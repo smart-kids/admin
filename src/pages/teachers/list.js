@@ -35,7 +35,9 @@ export default function TeachersDirectory() {
 
   const fetchTeachers = () => {
     const data = Data.teachers.list() || [];
-    setTeachers(data);
+    // Filter out deleted teachers
+    const activeTeachers = data.filter(teacher => !teacher.isDeleted);
+    setTeachers(activeTeachers);
     setLoading(false);
   };
 

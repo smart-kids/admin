@@ -1,0 +1,336 @@
+/* OTP Box Input Styles */
+.otp-box-container {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin: 1.5rem 0;
+  padding: 0.5rem;
+  background: rgba(102, 126, 234, 0.02);
+  border-radius: 12px;
+  border: 1px solid rgba(102, 126, 234, 0.1);
+}
+
+.otp-input-wrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.otp-box {
+  width: 52px;
+  height: 64px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', monospace;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  background: white;
+  color: #2d3748;
+  letter-spacing: 0.05em;
+  position: relative;
+  z-index: 1;
+}
+
+.otp-box:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+  transform: scale(1.05);
+}
+
+.otp-box:hover:not(:disabled) {
+  border-color: #cbd5e0;
+  transform: translateY(-2px);
+}
+
+.otp-box.filled {
+  border-color: #667eea;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.08) 0%, rgba(118, 75, 162, 0.08) 100%);
+  color: #667eea;
+  font-weight: 800;
+}
+
+.otp-box.focused {
+  border-color: #667eea;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(102, 126, 234, 0.05);
+  }
+}
+
+.otp-box:disabled {
+  background: #f7fafc;
+  color: #a0aec0;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.otp-box:disabled:hover {
+  transform: none;
+  border-color: #e2e8f0;
+}
+
+/* Underline animation */
+.otp-box-underline {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 2px;
+  background: #667eea;
+  border-radius: 1px;
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.otp-box.filled ~ .otp-box-underline {
+  opacity: 1;
+  width: 30px;
+}
+
+.otp-box.focused ~ .otp-box-underline {
+  opacity: 1;
+  width: 40px;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    width: 0;
+    opacity: 0;
+  }
+  to {
+    width: 40px;
+    opacity: 1;
+  }
+}
+
+/* Success state for all boxes filled */
+.otp-box-container.all-filled .otp-box {
+  border-color: #48bb78;
+  background: linear-gradient(135deg, rgba(72, 187, 120, 0.08) 0%, rgba(56, 161, 105, 0.08) 100%);
+  color: #48bb78;
+  animation: successPulse 0.6s ease;
+}
+
+.otp-box-container.all-filled .otp-box-underline {
+  background: #48bb78;
+}
+
+@keyframes successPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Error state */
+.otp-box-container.error .otp-box {
+  border-color: #e53e3e;
+  background: rgba(229, 62, 62, 0.05);
+  color: #e53e3e;
+  animation: shake 0.5s ease;
+}
+
+.otp-box-container.error .otp-box-underline {
+  background: #e53e3e;
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-2px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(2px);
+  }
+}
+
+/* Loading state */
+.otp-box-container.loading .otp-box {
+  border-color: #ed8936;
+  background: rgba(237, 137, 54, 0.05);
+  color: #ed8936;
+}
+
+.otp-box-container.loading .otp-box-underline {
+  background: #ed8936;
+  animation: loadingPulse 1.5s infinite;
+}
+
+@keyframes loadingPulse {
+  0%, 100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Screen reader only content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .otp-box-container {
+    gap: 8px;
+    padding: 0.375rem;
+    margin: 1rem 0;
+  }
+  
+  .otp-box {
+    width: 44px;
+    height: 56px;
+    font-size: 1.25rem;
+  }
+  
+  .otp-box-underline {
+    bottom: 6px;
+    width: 16px;
+  }
+  
+  .otp-box.filled ~ .otp-box-underline {
+    width: 24px;
+  }
+  
+  .otp-box.focused ~ .otp-box-underline {
+    width: 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  .otp-box-container {
+    gap: 6px;
+  }
+  
+  .otp-box {
+    width: 40px;
+    height: 52px;
+    font-size: 1.125rem;
+  }
+  
+  .otp-box-underline {
+    bottom: 5px;
+    width: 14px;
+  }
+  
+  .otp-box.filled ~ .otp-box-underline {
+    width: 20px;
+  }
+  
+  .otp-box.focused ~ .otp-box-underline {
+    width: 28px;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .otp-box {
+    border-width: 3px;
+    font-weight: 800;
+  }
+  
+  .otp-box-underline {
+    height: 3px;
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .otp-box,
+  .otp-box-underline {
+    transition: none;
+  }
+  
+  .otp-box.focused {
+    animation: none;
+  }
+  
+  .otp-box-container.all-filled .otp-box {
+    animation: none;
+  }
+  
+  .otp-box-container.error .otp-box {
+    animation: none;
+  }
+  
+  .otp-box-container.loading .otp-box-underline {
+    animation: none;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .otp-box {
+    background: #2d3748;
+    color: #f7fafc;
+    border-color: #4a5568;
+  }
+  
+  .otp-box:focus {
+    border-color: #667eea;
+    background: #374151;
+  }
+  
+  .otp-box.filled {
+    background: rgba(102, 126, 234, 0.15);
+  }
+  
+  .otp-box-container {
+    background: rgba(102, 126, 234, 0.05);
+    border-color: rgba(102, 126, 234, 0.2);
+  }
+}
+
+/* Focus Management */
+.otp-box-container:focus-within {
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+  border-radius: 12px;
+}
+
+/* Animation for box appearance */
+.otp-box {
+  animation: boxAppear 0.3s ease forwards;
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.otp-box:nth-child(1) { animation-delay: 0.05s; }
+.otp-box:nth-child(2) { animation-delay: 0.1s; }
+.otp-box:nth-child(3) { animation-delay: 0.15s; }
+.otp-box:nth-child(4) { animation-delay: 0.2s; }
+.otp-box:nth-child(5) { animation-delay: 0.25s; }
+
+@keyframes boxAppear {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

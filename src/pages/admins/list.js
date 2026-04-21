@@ -52,7 +52,9 @@ export default function AdminsDirectory() {
       
       const adminData = await Data.admins.list() || [];
       const schoolData = await Data.schools.list() || [];
-      setAdmins(adminData);
+      // Filter out deleted admins
+      const activeAdmins = adminData.filter(admin => !admin.isDeleted);
+      setAdmins(activeAdmins);
       setSchools(schoolData);
       setLoading(false);
     } catch (e) {
@@ -64,7 +66,11 @@ export default function AdminsDirectory() {
   useEffect(() => {
     fetchAdminsAndSchools();
     const unsub = Data.admins.subscribe(({ admins: freshAdmins }) => {
-      if (freshAdmins) setAdmins(freshAdmins);
+      if (freshAdmins) {
+        // Filter out deleted admins
+        const activeAdmins = freshAdmins.filter(admin => !admin.isDeleted);
+        setAdmins(activeAdmins);
+      }
     });
     return () => {
       if (unsub) unsub();

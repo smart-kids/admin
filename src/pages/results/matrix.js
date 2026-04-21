@@ -230,6 +230,9 @@ class ResultsMatrix extends React.Component {
       if (this.unsubAssessments) this.unsubAssessments();
       if (this.unsubAssessmentTypes) this.unsubAssessmentTypes();
       if (this.unsubAssessmentRubrics) this.unsubAssessmentRubrics();
+      if (this.unsubLessonAttempts) this.unsubLessonAttempts();
+      if (this.unsubTeachers) this.unsubTeachers();
+      if (this.unsubAttemptEvents) this.unsubAttemptEvents();
       if (this.unsubSchools) this.unsubSchools();
   }
 

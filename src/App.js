@@ -26,7 +26,7 @@ import schoolSettings from "./pages/settings/school"
 
 import communications from "./pages/communications"
 
-import login from "./pages/auth/login";
+import login from "./pages/auth/login-new";
 import website from "./pages/website";
 
 import recover from "./pages/auth/recover";

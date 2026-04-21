@@ -72,7 +72,7 @@ class Navbar extends React.Component {
       userRole: userData.userType || userData.role
     });
 
-    Data.schools.subscribe(({ schools, selectedSchool }) => {
+    this.schoolsSubscription = Data.schools.subscribe(({ schools, selectedSchool }) => {
       const schoolsArray = schools || [];
       console.log("Navbar - subscription callback:", { schoolsArray: schoolsArray.length, selectedSchool });
       
@@ -138,6 +138,9 @@ class Navbar extends React.Component {
     window.removeEventListener('resize', this.handleResize);
     if (this.loadingTimeout) {
       clearTimeout(this.loadingTimeout);
+    }
+    if (this.schoolsSubscription) {
+      this.schoolsSubscription();
     }
   }
   
