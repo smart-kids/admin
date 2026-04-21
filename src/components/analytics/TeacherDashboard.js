@@ -29,12 +29,6 @@ const TeacherDashboard = () => {
       atRiskStudents: 0,
       topPerformers: 0,
       averageImprovement: 0
-    },
-    workloadMetrics: {
-      gradingEfficiency: 0,
-      lessonPreparationTime: 0,
-      parentCommunicationRate: 0,
-      resourceUtilization: 0
     }
   });
 
@@ -155,16 +149,12 @@ const TeacherDashboard = () => {
     // Calculate student progress
     const studentProgress = calculateStudentProgress(filteredStudents, filteredAssessments);
 
-    // Calculate workload metrics
-    const workloadMetrics = calculateWorkloadMetrics(filteredAssessments, teacherSubjects);
-
     setMetrics({
       myClasses: teacherClasses,
       classOverview,
       streamComparison,
       subjectPerformance,
-      studentProgress,
-      workloadMetrics
+      studentProgress
     });
   };
 
@@ -331,27 +321,7 @@ const TeacherDashboard = () => {
     };
   };
 
-  const calculateWorkloadMetrics = (assessments, subjects) => {
-    // Simulate grading efficiency (time per assessment)
-    const gradingEfficiency = assessments.length > 0 ? 85 + Math.random() * 15 : 0;
-
-    // Simulate lesson preparation time
-    const lessonPreparationTime = subjects.length > 0 ? 2.5 + Math.random() * 2 : 0;
-
-    // Simulate parent communication rate
-    const parentCommunicationRate = 65 + Math.random() * 25;
-
-    // Simulate resource utilization
-    const resourceUtilization = 70 + Math.random() * 20;
-
-    return {
-      gradingEfficiency,
-      lessonPreparationTime,
-      parentCommunicationRate,
-      resourceUtilization
-    };
-  };
-
+  
   const streamComparisonColumns = [
     {
       title: 'Class',

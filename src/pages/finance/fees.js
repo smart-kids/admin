@@ -1206,19 +1206,64 @@ class FeesManagement extends Component {
         }
 
         // Class performance analysis
+        const getFees = (classId, termId = null) => {
+            if (!classId || !feeStructures || !Array.isArray(feeStructures)) return 0;
+            
+            const targetClassId = String(classId?.id || classId);
+            const targetTermId = termId || selectedTerm;
+            
+            // Get all active fee structures for this class and term
+            const applicableFees = feeStructures.filter(fs =>
+                String(fs.class?.id || fs.class) === targetClassId &&
+                (!targetTermId || String(fs.term?.id || fs.term) === String(targetTermId)) &&
+                fs.isActive === true
+            );
+            
+            // Sum all applicable fees (tuition, transport, etc.)
+            return applicableFees.reduce((total, fs) => total + (parseFloat(fs.amount) || 0), 0);
+        };
+
         const classPerformance = (classes || []).map(cls => {
             const classStudents = (students || []).filter(s => s.class?.id === cls.id || s.class === cls.id);
             const classStudentIds = new Set(classStudents.map(s => s.id));
             const classPaid = validPayments.filter(p => classStudentIds.has(p.student?.id || p.student)).reduce((sum, p) => sum + (parseFloat(p.amount || p.ammount) || 0), 0);
-            const classExpected = (charges || []).filter(c => classStudentIds.has(c.student?.id || c.student)).reduce((sum, c) => sum + parseFloat(c.amount), 0);
-            const collectionRate = classExpected > 0 ? (classPaid / classExpected) * 100 : 0;
+            
+            // Use fee structures for expected amounts instead of charges
+            const classFeePerStudent = getFees(cls.id, selectedTerm);
+            const classExpected = classFeePerStudent * classStudents.length;
+            
+            // Add custom charges for this class
+            const classCharges = (charges || []).filter(c => {
+                const chargeStudentId = String(c.student?.id || c.student);
+                return classStudentIds.has(chargeStudentId);
+            }).reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+            
+            const totalExpected = classExpected + classCharges;
+            const collectionRate = totalExpected > 0 ? (classPaid / totalExpected) * 100 : 0;
+            
+            // Debug logging for first class
+            if (cls.id === (classes?.[0]?.id)) {
+                console.log('Class Performance Debug:', {
+                    className: cls.name,
+                    classStudentsCount: classStudents.length,
+                    classFeePerStudent,
+                    classExpected,
+                    classCharges,
+                    totalExpected,
+                    classPaid,
+                    collectionRate,
+                    feeStructuresCount: feeStructures?.length || 0,
+                    selectedTerm,
+                    validPaymentsCount: validPayments.length
+                });
+            }
             
             return {
                 className: cls.name || `Class ${cls.id}`,
                 studentCount: classStudents.length,
                 totalCollected: classPaid,
-                totalExpected: classExpected,
-                balance: classExpected - classPaid,
+                totalExpected,
+                balance: totalExpected - classPaid,
                 collectionRate,
                 performance: collectionRate >= 80 ? 'Excellent' : collectionRate >= 60 ? 'Good' : collectionRate >= 40 ? 'Fair' : 'Poor'
             };
@@ -2362,7 +2407,7 @@ class FeesManagement extends Component {
                                                 this.renderAdvancedInsights()
                                             ) : null
     }
-                                    })
+                                    )}
                                         </>
                        ) }
                         </div>

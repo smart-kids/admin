@@ -45,7 +45,7 @@ const AnalyticsDashboard = () => {
       case 'predictive':
         return <PredictiveInsights />;
       case 'teacher':
-        return userRole === 'teacher' || userRole === 'admin' || userRole === 'super_admin' || userRole === 'sAdmin' ? <TeacherDashboard /> : <AccessDenied />;
+        return <TeacherDashboard />;
       default:
         return <div>Tab not found</div>;
     }
@@ -97,7 +97,7 @@ const AnalyticsDashboard = () => {
         </span>
       ),
     },
-    ...(userRole === 'teacher' || userRole === 'admin' || userRole === 'super_admin' || userRole === 'sAdmin' ? [{
+    {
       key: 'teacher',
       label: (
         <span>
@@ -105,7 +105,7 @@ const AnalyticsDashboard = () => {
           Teacher Dashboard
         </span>
       ),
-    }] : [])
+    }
   ];
 
   return (

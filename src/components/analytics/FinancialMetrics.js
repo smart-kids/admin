@@ -423,10 +423,10 @@ const FinancialMetrics = () => {
         </Col>
       </Row>
 
-      {/* Aging Analysis */}
+      {/* Payment Aging */}
       <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
         <Col span={24}>
-          <Card title="Aging Analysis" style={{ height: '300px' }}>
+          <Card title="Payment Aging" style={{ height: '300px' }}>
             <ReactECharts
               option={{
                 xAxis: {

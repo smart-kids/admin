@@ -90,10 +90,15 @@ export const StreamRadarChart = ({
           const actualValue = getMetricValue(stream, metric);
           const normalizedValue = params.value;
           
+          // Validate normalizedValue before calling toFixed
+          const normalizedPercentage = (typeof normalizedValue === 'number' && !isNaN(normalizedValue)) 
+            ? normalizedValue.toFixed(1) 
+            : '0.0';
+          
           return `
             <div style="font-weight: bold; margin-bottom: 8px;">${params.name} - ${getMetricLabel(metric)}</div>
             <div>Actual Value: ${formatMetricValue(metric, actualValue)}</div>
-            <div>Normalized: ${normalizedValue.toFixed(1)}%</div>
+            <div>Normalized: ${normalizedPercentage}%</div>
             <div>Rank: ${getMetricRank(metric, actualValue, data)} of ${data.length}</div>
           `;
         }
