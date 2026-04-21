@@ -14,15 +14,18 @@ import FinancialMetrics from '../../components/analytics/FinancialMetrics';
 import AcademicMetrics from '../../components/analytics/AcademicMetrics';
 import RealTimeAnalytics from '../../components/analytics/RealTimeAnalytics';
 import PredictiveInsights from '../../components/analytics/PredictiveInsights';
+import TeacherDashboard from '../../components/analytics/TeacherDashboard';
 
 const AnalyticsDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [userRole, setUserRole] = useState('admin');
 
   React.useEffect(() => {
-    // Determine user role from localStorage
+    // Determine user role from localStorage - check both userRole and userType
     const role = localStorage.getItem('userRole') || 'admin';
-    setUserRole(role);
+    const userData = JSON.parse(localStorage.getItem('user') || '{}');
+    const userType = userData.userType || userData.role || role;
+    setUserRole(userType);
   }, []);
 
   const handleTabChange = (key) => {
@@ -41,6 +44,8 @@ const AnalyticsDashboard = () => {
         return <RealTimeAnalytics />;
       case 'predictive':
         return <PredictiveInsights />;
+      case 'teacher':
+        return userRole === 'teacher' || userRole === 'admin' || userRole === 'super_admin' || userRole === 'sAdmin' ? <TeacherDashboard /> : <AccessDenied />;
       default:
         return <div>Tab not found</div>;
     }
@@ -92,6 +97,15 @@ const AnalyticsDashboard = () => {
         </span>
       ),
     },
+    ...(userRole === 'teacher' || userRole === 'admin' || userRole === 'super_admin' || userRole === 'sAdmin' ? [{
+      key: 'teacher',
+      label: (
+        <span>
+          <UserOutlined />
+          Teacher Dashboard
+        </span>
+      ),
+    }] : [])
   ];
 
   return (

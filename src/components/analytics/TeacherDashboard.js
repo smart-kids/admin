@@ -92,10 +92,10 @@ const TeacherDashboard = () => {
     });
 
     return () => {
-      unsubAssessments?.unsubscribe();
-      unsubStudents?.unsubscribe();
-      unsubClasses?.unsubscribe();
-      unsubSubjects?.unsubscribe();
+      if (unsubAssessments) unsubAssessments.unsubscribe();
+      if (unsubStudents) unsubStudents.unsubscribe();
+      if (unsubClasses) unsubClasses.unsubscribe();
+      if (unsubSubjects) unsubSubjects.unsubscribe();
     };
   }, []);
 
