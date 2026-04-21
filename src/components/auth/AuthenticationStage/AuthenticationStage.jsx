@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import Data from '../../../utils/data';
 import OTPBoxInput from '../SharedComponents/OTPBoxInput';
 import './AuthenticationStage.css';
 
@@ -64,13 +65,20 @@ const AuthenticationStage = ({
 
     const handleSendOTP = async () => {
         try {
-            // In real implementation, this would call your OTP sending API
-            // For now, we'll simulate it
-            setOtpSent(true);
-            startResendTimer();
-            setCredentials({ ...credentials, otpSent: true });
+            // Use centralized API from data.js
+            const result = await Data.communication.sms.sendOTP(userIdentifier);
+            
+            if (result.success) {
+                setOtpSent(true);
+                startResendTimer();
+                setCredentials({ ...credentials, otpSent: true });
+                console.log('OTP sent successfully to:', userIdentifier);
+            } else {
+                throw new Error(result.message || "Failed to send OTP code.");
+            }
         } catch (error) {
             console.error('Failed to send OTP:', error);
+            // You might want to show error to user here
         }
     };
 
@@ -92,8 +100,23 @@ const AuthenticationStage = ({
         setCredentials({ ...credentials, password });
     };
 
-    const handleAuthenticate = (method, creds) => {
-        onAuthenticate(method, creds);
+    const handleAuthenticate = async (method, creds) => {
+        try {
+            if (method === 'otp') {
+                const result = await Data.communication.sms.verifyOTP(userIdentifier, creds.otp);
+                if (!result.success) {
+                    throw new Error(result.message);
+                }
+                // Call parent callback with success
+                onAuthenticate(method, creds);
+            } else {
+                // Password authentication - call parent directly
+                onAuthenticate(method, creds);
+            }
+        } catch (error) {
+            console.error('Authentication error:', error);
+            // You might want to show error to user here
+        }
     };
 
     const handleSubmit = (e) => {

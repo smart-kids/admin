@@ -1,5 +1,7 @@
 import emitize from "./emitize";
 import { query, mutate } from "./requests";
+import axios from "axios";
+import { API } from "./requests";
 
 // Centralized cache for all data entities, both flat and nested.
 const allData = {
@@ -1639,7 +1641,46 @@ var Data = (function () {
                         }
                         }
                     }
-                }`, { sms })
+                }`, { sms }),
+                sendOTP: async (phoneNumber) => {
+                    try {
+                        const response = await axios.post(`${API}/auth/otp/send`, { 
+                            user: phoneNumber 
+                        });
+                        return {
+                            success: response.data && (response.data.success || response.status < 300),
+                            message: response.data?.message || "OTP sent successfully",
+                            data: response.data
+                        };
+                    } catch (error) {
+                        console.error('Failed to send OTP:', error);
+                        return {
+                            success: false,
+                            message: error.response?.data?.message || error.message || "Failed to send OTP",
+                            error: error
+                        };
+                    }
+                },
+                verifyOTP: async (phoneNumber, otpCode) => {
+                    try {
+                        const response = await axios.post(`${API}/auth/verify/sms`, { 
+                            user: phoneNumber,
+                            password: otpCode
+                        });
+                        return {
+                            success: response.data && (response.data.success || response.status < 300),
+                            message: response.data?.message || "OTP verified successfully",
+                            data: response.data
+                        };
+                    } catch (error) {
+                        console.error('Failed to verify OTP:', error);
+                        return {
+                            success: false,
+                            message: error.response?.data?.message || error.message || "Failed to verify OTP",
+                            error: error
+                        };
+                    }
+                }
             }
         },
         schools: {
