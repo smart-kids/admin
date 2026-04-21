@@ -7,7 +7,8 @@ import AddSubjectModal from "../learning/subjects/add";
 import AddClassModal from "../classes/add";
 import AddGradeModal from "../learning/grades/add";
 import AddTermModal from "./components/AddTermModal";
-import { StatCard, DistributionChart, TrendBarChart, AreaChart, RankingList } from "../../components/analytics/DashboardWidgets";
+import ResultsInsightsDashboard from '../insights/ResultsInsightsDashboard';
+import { StatCard, DistributionChart, TrendBarChart, AreaChart, RankingList } from '../../components/analytics/DashboardWidgets';
 
 class ResultsMatrix extends React.Component {
   state = {
@@ -22,6 +23,7 @@ class ResultsMatrix extends React.Component {
 
     selectedClass: "",
     selectedTerm: "",
+    selectedSubject: "",
     
     assessmentTypes: [],
     assessmentRubrics: [],
@@ -655,7 +657,7 @@ class ResultsMatrix extends React.Component {
   render() {
     const { 
         classes, terms, subjects, assessmentTypes, assessmentRubrics, 
-        selectedClass, selectedTerm, assessments, 
+        selectedClass, selectedTerm, selectedSubject, assessments, 
         showPrintView, schoolInfo, edits, fetchingAssessments, saving, 
         showBulkModal, printingStudentId, activeTab, loading 
     } = this.state;
@@ -827,7 +829,19 @@ class ResultsMatrix extends React.Component {
                         onSendSms={this.handleSmsClick} 
                     />
                 ) : <div className="alert alert-light-primary text-center py-10">Select Term and Class to view results</div>
-            ) : this.renderInsights()}
+            ) : <ResultsInsightsDashboard 
+                                classes={classes}
+                                assessments={assessments}
+                                subjects={subjects}
+                                students={students}
+                                terms={terms}
+                                assessmentTypes={assessmentTypes}
+                                assessmentRubrics={assessmentRubrics}
+                                selectedClass={selectedClass}
+                                selectedTerm={selectedTerm}
+                                selectedSubject={selectedSubject || ""}
+                                onFilterChange={(filter, value) => this.setState({ [filter]: value })}
+                            />}
         </div>
         
         {showBulkModal && <BulkReportSmsModal show={showBulkModal} title="Bulk Results SMS" onClose={() => this.setState({ showBulkModal: false })} recipients={this.state.bulkSmsRecipients} onSend={this.handleBulkSmsSend} onSavePhone={this.handleSaveParentPhone} />}

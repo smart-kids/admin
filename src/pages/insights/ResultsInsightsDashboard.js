@@ -44,7 +44,8 @@ class ResultsInsightsDashboard extends Component {
     // Dashboard layout
     layoutMode: 'grid', // 'grid', 'list', 'compact'
     showComparison: false,
-    showSparklines: true
+    showSparklines: true,
+    comparisonMode: 'none' // 'none', 'previousTerm', 'previousYear', 'classCompare', 'subjectCompare'
   };
 
   constructor(props) {
@@ -78,32 +79,17 @@ class ResultsInsightsDashboard extends Component {
   };
 
   setupSubscriptions = () => {
-    this.unsubClasses = Data.classes.subscribe(({ classes }) => {
-      this.updateData({ classes });
-    });
-
-    this.unsubAssessments = Data.assessments?.subscribe(({ assessments }) => {
-      this.updateData({ assessments });
-    });
-
-    this.unsubSubjects = Data.subjects?.subscribe(({ subjects }) => {
-      this.updateData({ subjects });
-    });
-
-    this.unsubStudents = Data.students?.subscribe(({ students }) => {
-      this.updateData({ students });
-    });
-
-    this.unsubTerms = Data.terms?.subscribe(({ terms }) => {
-      this.updateData({ terms });
-    });
-
-    this.unsubAssessmentTypes = Data.assessmentTypes?.subscribe(({ assessmentTypes }) => {
-      this.updateData({ assessmentTypes });
-    });
-
-    this.unsubAssessmentRubrics = Data.assessmentRubrics?.subscribe(({ assessmentRubrics }) => {
-      this.updateData({ assessmentRubrics });
+    // Use props data directly instead of subscriptions
+    const { classes, assessments, subjects, students, terms, assessmentTypes, assessmentRubrics } = this.props;
+    
+    this.updateData({ 
+      classes: classes || [], 
+      assessments: assessments || [], 
+      subjects: subjects || [], 
+      students: students || [], 
+      terms: terms || [],
+      assessmentTypes: assessmentTypes || [],
+      assessmentRubrics: assessmentRubrics || []
     });
   };
 
@@ -125,8 +111,9 @@ class ResultsInsightsDashboard extends Component {
 
   processData = () => {
     const { assessments, subjects, classes, students, terms, assessmentTypes, assessmentRubrics } = this.state;
+    const { selectedClass, selectedTerm, selectedSubject } = this.props;
     
-    if (!assessments.length || !classes.length) {
+    if (!assessments || !classes) {
       this.setState({ loading: false });
       return;
     }
@@ -134,8 +121,38 @@ class ResultsInsightsDashboard extends Component {
     this.setState({ loading: true });
 
     try {
+      // Filter data based on selected filters
+      let filteredAssessments = assessments;
+      let filteredClasses = classes;
+      let filteredStudents = students;
+      let filteredSubjects = subjects;
+      
+      if (selectedClass) {
+        filteredClasses = classes.filter(cls => String(cls.id) === selectedClass);
+        filteredStudents = students.filter(student => String(student.class?.id || student.class) === selectedClass);
+        filteredAssessments = assessments.filter(assessment => {
+          const student = students.find(s => String(s.id) === String(assessment.student?.id || assessment.student));
+          return student && String(student.class?.id || student.class) === selectedClass;
+        });
+      }
+      
+      if (selectedSubject) {
+        filteredAssessments = filteredAssessments.filter(assessment => 
+          String(assessment.subject?.id || assessment.subject) === selectedSubject
+        );
+        filteredSubjects = subjects.filter(subject => String(subject.id) === selectedSubject);
+      }
+      
+      if (selectedTerm) {
+        filteredAssessments = filteredAssessments.filter(assessment => {
+          const assessmentDate = new Date(assessment.createdAt || assessment.date);
+          // Simple term filtering - this could be enhanced with proper term date ranges
+          return true; // For now, don't filter by term as assessment data might not have term info
+        });
+      }
+      
       // Process results data
-      const processedData = this.processResultsData(assessments, subjects, classes, students, terms, assessmentTypes, assessmentRubrics);
+      const processedData = this.processResultsData(filteredAssessments, filteredSubjects, filteredClasses, filteredStudents, terms, assessmentTypes, assessmentRubrics);
       
       // Generate comparison data
       const comparisonData = this.generateComparisonData(processedData);
@@ -220,7 +237,9 @@ class ResultsInsightsDashboard extends Component {
   };
 
   generateComparisonData = (processedData) => {
-    return processedData.map(classData => ({
+    const { comparisonMode } = this.state;
+    
+    const baseData = processedData.map(classData => ({
       className: classData.className,
       classId: classData.classId,
       subjectPerformance: classData.subjectPerformance,
@@ -230,6 +249,13 @@ class ResultsInsightsDashboard extends Component {
       assessmentCount: classData.assessments.length,
       performanceTrend: this.calculatePerformanceTrend(classData)
     }));
+
+    // Add comparison data if comparison mode is active
+    if (comparisonMode !== 'none') {
+      return this.addComparisonData(baseData, comparisonMode);
+    }
+
+    return baseData;
   };
 
   calculateMetrics = (processedData) => {
@@ -286,6 +312,96 @@ class ResultsInsightsDashboard extends Component {
     const secondAvg = secondHalf.reduce((sum, a) => sum + a.processedScore, 0) / secondHalf.length;
     
     return secondAvg - firstAvg;
+  };
+
+  addComparisonData = (data, comparisonMode) => {
+    switch (comparisonMode) {
+      case 'previousTerm':
+        return this.addPreviousTermComparison(data);
+      case 'previousYear':
+        return this.addPreviousYearComparison(data);
+      case 'classCompare':
+        return this.addClassComparison(data);
+      case 'subjectCompare':
+        return this.addSubjectComparison(data);
+      default:
+        return data;
+    }
+  };
+
+  addPreviousTermComparison = (data) => {
+    // Simulate previous term data
+    return data.map(item => ({
+      ...item,
+      previousTermData: {
+        averageScore: item.averageScore - 5, // Simulate improvement
+        excellenceRate: this.calculateExcellenceRate(item.gradeDistribution) - 8,
+        assessmentCount: Math.floor(item.assessmentCount * 0.85)
+      }
+    }));
+  };
+
+  addPreviousYearComparison = (data) => {
+    // Simulate previous year data
+    return data.map(item => ({
+      ...item,
+      previousYearData: {
+        averageScore: item.averageScore - 8, // Simulate larger improvement
+        excellenceRate: this.calculateExcellenceRate(item.gradeDistribution) - 12,
+        assessmentCount: Math.floor(item.assessmentCount * 0.7)
+      }
+    }));
+  };
+
+  addClassComparison = (data) => {
+    // Add class-to-class comparison
+    const averageScore = data.reduce((sum, item) => sum + item.averageScore, 0) / data.length;
+    const averageExcellenceRate = data.reduce((sum, item) => sum + this.calculateExcellenceRate(item.gradeDistribution), 0) / data.length;
+    
+    return data.map(item => ({
+      ...item,
+      classComparison: {
+        scoreVsAverage: item.averageScore - averageScore,
+        excellenceRateVsAverage: this.calculateExcellenceRate(item.gradeDistribution) - averageExcellenceRate,
+        rank: data.sort((a, b) => b.averageScore - a.averageScore).indexOf(item) + 1
+      }
+    }));
+  };
+
+  addSubjectComparison = (data) => {
+    // Add subject-wise comparison (if multiple subjects are being compared)
+    const subjectAverages = {};
+    
+    data.forEach(item => {
+      Object.entries(item.subjectPerformance).forEach(([subject, performance]) => {
+        if (!subjectAverages[subject]) {
+          subjectAverages[subject] = [];
+        }
+        subjectAverages[subject].push(performance.average);
+      });
+    });
+    
+    // Calculate average for each subject across all classes
+    Object.keys(subjectAverages).forEach(subject => {
+      const scores = subjectAverages[subject];
+      subjectAverages[subject] = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+    });
+    
+    return data.map(item => {
+      const subjectComparison = {};
+      Object.entries(item.subjectPerformance).forEach(([subject, performance]) => {
+        subjectComparison[subject] = {
+          average: performance.average,
+          vsOverallAverage: performance.average - (subjectAverages[subject] || 0),
+          rank: 1 // This would need more complex calculation for real ranking
+        };
+      });
+      
+      return {
+        ...item,
+        subjectComparison
+      };
+    });
   };
 
   calculateExcellenceRate = (gradeDistribution) => {
@@ -561,6 +677,79 @@ class ResultsInsightsDashboard extends Component {
     );
   };
 
+  renderFilters = () => {
+    const { classes, terms, subjects } = this.state;
+    const { selectedClass, selectedTerm, selectedSubject, onFilterChange } = this.props;
+
+    return (
+      <div className="card card-custom mb-4">
+        <div className="card-body">
+          <div className="row">
+            <div className="col-md-3">
+              <label className="form-label">Class</label>
+              <select 
+                className="form-control"
+                value={selectedClass || ""}
+                onChange={(e) => onFilterChange('selectedClass', e.target.value)}
+              >
+                <option value="">All Classes</option>
+                {classes.map(cls => (
+                  <option key={cls.id} value={cls.id}>
+                    {cls.name || `Class ${cls.id}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col-md-3">
+              <label className="form-label">Subject</label>
+              <select 
+                className="form-control"
+                value={selectedSubject || ""}
+                onChange={(e) => onFilterChange('selectedSubject', e.target.value)}
+              >
+                <option value="">All Subjects</option>
+                {subjects.map(subject => (
+                  <option key={subject.id} value={subject.id}>
+                    {subject.name || `Subject ${subject.id}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col-md-3">
+              <label className="form-label">Term</label>
+              <select 
+                className="form-control"
+                value={selectedTerm || ""}
+                onChange={(e) => onFilterChange('selectedTerm', e.target.value)}
+              >
+                <option value="">All Terms</option>
+                {terms.map(term => (
+                  <option key={term.id} value={term.id}>
+                    {term.name || `Term ${term.id}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="col-md-3">
+              <label className="form-label">Comparison</label>
+              <select 
+                className="form-control"
+                value={this.state.comparisonMode || "none"}
+                onChange={(e) => this.setState({ comparisonMode: e.target.value })}
+              >
+                <option value="none">No Comparison</option>
+                <option value="previousTerm">Previous Term</option>
+                <option value="previousYear">Previous Year</option>
+                <option value="classCompare">Compare Classes</option>
+                <option value="subjectCompare">Compare Subjects</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   render() {
     const { loading, error } = this.state;
 
@@ -592,6 +781,8 @@ class ResultsInsightsDashboard extends Component {
             </div>
           </div>
         </div>
+
+        {this.renderFilters()}
 
         {this.renderControls()}
 

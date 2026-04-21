@@ -512,12 +512,12 @@ var Data = (function () {
         const FRAGMENT_COMPLAINTS_DATA = `fragment ComplaintsData on school { complaints { id time content parent { id, name } } }`;
         const FRAGMENT_CHARGE_TYPES_DATA = `fragment ChargeTypesData on school { chargeTypes { id name description amount } }`;
         const FRAGMENT_FEE_STRUCTURES_DATA = `fragment FeeStructuresData on school { feeStructures { id feeType amount description isRequired isActive class { id name } term { id name startDate endDate } } }`;
-        const FRAGMENT_STUDENTS_DATA = `fragment StudentsData on school { students(limit: 1000, offset: 0) { id names gender registration class { id, name, teacher { id, name } } route { id, name } parent { id, national_id, name } parent2 { id, national_id, name } } }`; 
+        const FRAGMENT_STUDENTS_DATA = `fragment StudentsData on school { students(limit: 1000, offset: 0) { id names gender registration class { id, name, teacher { id, name } } route { id, name } parent { id, national_id, name } parent2 { id, national_id, name } balanceBroughtForward } }`; 
         const FRAGMENT_BUSES_DATA = `fragment BusesData on school { buses { id plate make size driver { id, names } } }`;
         const FRAGMENT_DRIVERS_DATA = `fragment DriversData on school { drivers { id names phone license_expiry licence_number home } }`;
         const FRAGMENT_ADMINS_DATA = `fragment AdminsData on school { admins { id names email phone } }`;
-        const FRAGMENT_PARENTS_DATA = `fragment ParentsData on school { parents(limit: 1000) { id national_id name gender email phone students { id, names, gender, route { id, name } } } }`;        const FRAGMENT_TEACHERS_DATA = `fragment TeachersData on school { teachers { id national_id tsc_number name gender phone email classes { id, name } } }`;
-        const FRAGMENT_CLASSES_DATA = `fragment ClassesData on school { classes { id name feeAmount grade students { id, names, gender, parent { id, name, phone }, route { id, name }, feeStatus { balance, balanceFormated } } teacher { id, name } } }`;
+        const FRAGMENT_PARENTS_DATA = `fragment ParentsData on school { parents(limit: 1000) { id national_id name gender email phone students { id, names, gender, route { id, name }, balanceBroughtForward } } }`;        const FRAGMENT_TEACHERS_DATA = `fragment TeachersData on school { teachers { id national_id tsc_number name gender phone email classes { id, name } } }`;
+        const FRAGMENT_CLASSES_DATA = `fragment ClassesData on school { classes { id name feeAmount grade students { id, names, gender, parent { id, name, phone }, route { id, name }, feeStatus { balance, balanceFormated }, balanceBroughtForward } teacher { id, name } } }`;
         const FRAGMENT_ROUTES_DATA = `fragment RoutesData on school { routes { id name description path { lat lng } } }`;
         const FRAGMENT_SCHEDULES_DATA = `fragment SchedulesData on school { schedules { id message time type end_time name days route { id, name } bus { id, make } } }`;
         const FRAGMENT_TRIPS_DATA = `fragment TripsData on school { trips { id startedAt isCancelled completedAt schedule { name id time end_time, route { id, name, students { id } } } bus { id, make, plate } driver { id, names } locReports { id time loc { lat lng } } events { time, type, student { id, names } } } }`;
@@ -662,7 +662,8 @@ var Data = (function () {
                 ...s,
                 parent_name: s.parent?.name,
                 class_name: s.class?.name || allData.classes.find(c => String(c.id) === String(s.class?.id || s.class))?.name,
-                route_name: s.route?.name
+                route_name: s.route?.name,
+                balanceBroughtForward: s.balanceBroughtForward
             }));
             notifyEntity('parents');
             notifyEntity('terms');
@@ -1113,11 +1114,11 @@ var Data = (function () {
             name: "students",
             singularName: "student",
             createFields: ['names', 'route', 'gender', 'registration', 'parent', 'school', 'parent2', 'class'],
-            updateFields: ['names', 'route', 'registration', 'gender', 'parent', 'parent2', 'class'],
+            updateFields: ['names', 'route', 'registration', 'gender', 'parent', 'parent2', 'class', 'balanceBroughtForward'],
             customMethods: (allData, subs) => ({
                 getPage: async ({ page = 1, limit = 15, search = "" }) => {
                     const offset = (page - 1) * limit;
-                    const response = await query(`query GetStudentPage($limit: Int, $offset: Int, $id: String, $search: String) { school(id: $id) { studentsCount(search: $search) students(limit: $limit, offset: $offset, search: $search) { id names gender registration class{id, name} route{id, name} parent{id, name}  } } }`, { limit, offset, id: localStorage.getItem("school"), search });
+                    const response = await query(`query GetStudentPage($limit: Int, $offset: Int, $id: String, $search: String) { school(id: $id) { studentsCount(search: $search) students(limit: $limit, offset: $offset, search: $search) { id names gender registration class{id, name} route{id, name} parent{id, name} balanceBroughtForward  } } }`, { limit, offset, id: localStorage.getItem("school"), search });
                     const processedStudents = response.school?.students?.map(s => ({ ...s, parent_name: s.parent?.name, class_name: s.class?.name })) || [];
                     return { students: processedStudents, totalCount: response.school?.studentsCount || 0 };
                 },

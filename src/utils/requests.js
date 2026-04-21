@@ -4,8 +4,8 @@ let API;
 
 // API endpoint logic remains the same.
 if (window.location.href.includes('localhost')) {
-    API = `http://localhost:4001`;
-    // API = `https://cloud.shuleplus.co.ke/api`;
+    //API = `http://localhost:4001`;
+     API = `https://cloud.shuleplus.co.ke/api`;
 } else {
     API = `https://cloud.shuleplus.co.ke/api`;
 }
