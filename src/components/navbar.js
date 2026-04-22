@@ -4,6 +4,7 @@ import app from "../scripts.bundle"; // Assuming this is Metronic's app bundle
 import Data from "../utils/data";
 import { withRouter } from "react-router";
 import Pace from 'react-pace-progress';
+import { useTheme } from "../contexts/ThemeContext";
 const toastr = window.toastr;
 
 // Keep the Metronic JS initializers for things like dropdowns and the profile offcanvas
@@ -26,20 +27,21 @@ const SvgParentsIcon = ({ style }) => ( <svg style={style} xmlns="http://www.w3.
 const SvgSettingsIcon = ({ style }) => ( <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"> <circle cx="12" cy="12" r="3"></circle> <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1-2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path> </svg> );
 const SvgLibraryIcon = ({ style }) => ( <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"> <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path> <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path> </svg> );
 const SvgResultsIcon = ({ style }) => ( <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"> <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path> <path d="M22 12A10 10 0 0 0 12 2v10z"></path> </svg> );
+const SvgTimeTablesIcon = ({ style }) => ( <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"> <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect> <line x1="16" y1="2" x2="16" y2="6"></line> <line x1="8" y1="2" x2="8" y2="6"></line> <line x1="3" y1="10" x2="21" y2="10"></line> </svg> );
 const SvgFinanceIcon = ({ style }) => ( <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"> <line x1="12" y1="1" x2="12" y2="23"></line> <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path> </svg> );
 
 
-const DEFAULT_TOP_NAV_BG_COLOR = '#FFFFFF';
-const DEFAULT_TOP_NAV_TEXT_COLOR = '#212529'; // Dark color for text
-const DEFAULT_TOP_NAV_ICON_COLOR = '#212529'; // Dark color for icons
+const DEFAULT_TOP_NAV_BG_COLOR = 'var(--bg-secondary)';
+const DEFAULT_TOP_NAV_TEXT_COLOR = 'var(--text-primary)'; // Dark color for text
+const DEFAULT_TOP_NAV_ICON_COLOR = 'var(--text-primary)'; // Dark color for icons
 
-const BOTTOM_NAV_BG_COLOR = '#ffffff';
-const BOTTOM_NAV_TEXT_COLOR = '#212529';
-const BOTTOM_NAV_ICON_COLOR = '#212529';
+const BOTTOM_NAV_BG_COLOR = 'var(--bg-secondary)';
+const BOTTOM_NAV_TEXT_COLOR = 'var(--text-primary)';
+const BOTTOM_NAV_ICON_COLOR = 'var(--text-primary)';
 
-const LIGHT_GREY_HOVER_BG = 'rgba(0, 0, 0, 0.03)'; // Subtle hover
+const LIGHT_GREY_HOVER_BG = 'var(--hover-bg)'; // Subtle hover
 const GLASS_BACKDROP = 'blur(10px) saturate(180%)';
-const GLASS_BG = 'rgba(255, 255, 255, 0.75)';
+const GLASS_BG = 'var(--glass-bg)';
 
 class Navbar extends React.Component {
   state = {
@@ -127,6 +129,9 @@ class Navbar extends React.Component {
     }
     this.setState({ userRole: role });
 
+    // Initialize dark mode
+    this.initializeDarkMode();
+
     app.init();
     this.initProfileOffcanvas();
     // Initial menu setup
@@ -198,6 +203,53 @@ class Navbar extends React.Component {
     }
   }
 
+  initializeDarkMode = () => {
+    // Check localStorage first
+    const stored = localStorage.getItem('darkMode');
+    let isDarkMode = false;
+    
+    if (stored !== null) {
+      isDarkMode = JSON.parse(stored);
+    } else if (typeof window !== 'undefined' && window.matchMedia) {
+      // Check system preference
+      isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    
+    // Apply theme
+    if (isDarkMode) {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      document.body.classList.add('dark-mode');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'light');
+      document.body.classList.remove('dark-mode');
+    }
+    
+    // Update icon
+    this.updateDarkModeIcon(isDarkMode);
+    
+    // Listen for system theme changes
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      const handleChange = (e) => {
+        const stored = localStorage.getItem('darkMode');
+        if (stored === null) {
+          const newDarkMode = e.matches;
+          document.documentElement.setAttribute('data-theme', newDarkMode ? 'dark' : 'light');
+          document.body.classList.toggle('dark-mode', newDarkMode);
+          this.updateDarkModeIcon(newDarkMode);
+        }
+      };
+      mediaQuery.addEventListener('change', handleChange);
+    }
+  }
+
+  updateDarkModeIcon = (isDarkMode) => {
+    const icon = document.getElementById('dark-mode-icon');
+    if (icon) {
+      icon.className = isDarkMode ? 'la la-sun-o' : 'la la-moon-o';
+    }
+  }
+
   switchSchools = (newSchool) => {
     this.setState({ selectedSchool: newSchool, fetchingSchools: false, isMobileMenuOpen: false });
     localStorage.setItem("school", newSchool.id);
@@ -254,12 +306,12 @@ class Navbar extends React.Component {
 
     const mobileMenuStyle = {
       position: 'fixed', top: 0, left: 0, width: '280px', maxWidth: '85%', height: 'calc(100% - 20px)', margin: '10px',
-      borderRadius: '16px', backgroundColor: 'rgba(255, 255, 255, 0.95)', zIndex: 1005,
+      borderRadius: '16px', backgroundColor: 'var(--glass-bg)', zIndex: 1005,
       backdropFilter: GLASS_BACKDROP,
       transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(-110%)',
       transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)', 
-      boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
-      overflowY: 'auto', padding: '25px', color: '#333'
+      boxShadow: 'var(--shadow-heavy)',
+      overflowY: 'auto', padding: '25px', color: 'var(--text-primary)'
     };
     const overlayStyle = {
       position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
@@ -271,7 +323,7 @@ class Navbar extends React.Component {
     };
     const buttonStyle = {
       display: 'flex', alignItems: 'center', padding: '12px 15px', textDecoration: 'none',
-      color: '#333', borderRadius: '6px', fontWeight: 500, width: '100%',
+      color: 'var(--text-primary)', borderRadius: '6px', fontWeight: 500, width: '100%',
       border: 'none', background: 'none', textAlign: 'left', cursor: 'pointer',
     };
     const linkStyle = { ...buttonStyle }; // Link will be styled like a button
@@ -282,14 +334,14 @@ class Navbar extends React.Component {
       <>
         <div style={overlayStyle} onClick={this.toggleMobileMenu}></div>
         <div style={mobileMenuStyle}>
-            <div style={{ padding: '0 5px 20px 5px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '0 5px 20px 5px', borderBottom: '1px solid var(--border-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     {selectedSchool?.logo ? (
                         <img src={selectedSchool.logo} alt={selectedSchool.name} style={{ height: '32px', width: 'auto', borderRadius: '4px' }} />
                     ) : null}
-                    <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#1e293b' }}>{selectedSchool?.name || 'Shule Plus'}</span>
+                    <span style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}>{selectedSchool?.name || 'Shule Plus'}</span>
                 </div>
-                <button onClick={this.toggleMobileMenu} style={{ border: 'none', background: '#f8fafc', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
+                <button onClick={this.toggleMobileMenu} style={{ border: 'none', background: 'var(--bg-tertiary)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
                     <i className="la la-close"></i>
                 </button>
             </div>
@@ -307,7 +359,7 @@ class Navbar extends React.Component {
                         <i className="la la-refresh" style={{ marginRight: '12px', fontSize: '1.2rem' }}></i> 
                         <strong>Sync Data Now</strong>
                     </button>
-                    <div style={{ height: '1px', background: '#f1f5f9', margin: '10px 15px' }}></div>
+                    <div style={{ height: '1px', background: 'var(--border-primary)', margin: '10px 15px' }}></div>
                 </li>
                 {/* School Switcher */}
                 <li>
@@ -315,7 +367,7 @@ class Navbar extends React.Component {
                         {selectedSchool?.name || "Select School"} <i className={`la la-angle-${openMobileSubmenu === 'schools' ? 'down' : 'right'}`} style={{marginLeft: 'auto'}}></i>
                     </button>
                     {openMobileSubmenu === 'schools' && (
-                        <ul style={{listStyle: 'none', padding: 0, margin: '0 0 10px 0', backgroundColor: '#f9f9f9'}}>
+                        <ul style={{listStyle: 'none', padding: 0, margin: '0 0 10px 0', backgroundColor: 'var(--bg-tertiary)'}}>
                             {availableSchools.map(schoolItem => (
                                 <li key={schoolItem.id}>
                                     <button onClick={() => this.switchSchools(schoolItem)} style={subButtonStyle}>{schoolItem.name}</button>
@@ -325,18 +377,19 @@ class Navbar extends React.Component {
                     )}
                 </li>
                 {/* Main Links */}
-                {!isTeacher && <li><Link to="/home" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-dashboard" style={{marginRight: '12px', fontSize: '1.2rem', color: '#94a3b8'}}></i> Reports</Link></li>}
-                <li><Link to="/comms" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-bullhorn" style={{marginRight: '12px', fontSize: '1.2rem', color: '#94a3b8'}}></i> SMS & Email</Link></li>
-                <li><Link to="/learning" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-graduation-cap" style={{marginRight: '12px', fontSize: '1.2rem', color: '#94a3b8'}}></i> Learning</Link></li>
-                <li><Link to="/results" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-bar-chart" style={{marginRight: '12px', fontSize: '1.2rem', color: '#94a3b8'}}></i> Results</Link></li>
-                <li><Link to="/library" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-book" style={{marginRight: '12px', fontSize: '1.2rem', color: '#94a3b8'}}></i> Library</Link></li>
+                {!isTeacher && <li><Link to="/home" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-dashboard" style={{marginRight: '12px', fontSize: '1.2rem', color: 'var(--text-tertiary)'}}></i> Reports</Link></li>}
+                <li><Link to="/comms" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-bullhorn" style={{marginRight: '12px', fontSize: '1.2rem', color: 'var(--text-tertiary)'}}></i> SMS & Email</Link></li>
+                <li><Link to="/learning" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-graduation-cap" style={{marginRight: '12px', fontSize: '1.2rem', color: 'var(--text-tertiary)'}}></i> Learning</Link></li>
+                <li><Link to="/results" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-bar-chart" style={{marginRight: '12px', fontSize: '1.2rem', color: 'var(--text-tertiary)'}}></i> Results</Link></li>
+                <li><Link to="/time-tables" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-calendar" style={{marginRight: '12px', fontSize: '1.2rem', color: 'var(--text-tertiary)'}}></i> Time Tables</Link></li>
+                <li><Link to="/library" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-book" style={{marginRight: '12px', fontSize: '1.2rem', color: 'var(--text-tertiary)'}}></i> Library</Link></li>
                  {/* Manage Data */}
                  {!isTeacher && (
                     <li>
                         <button onClick={() => this.toggleMobileSubmenu('manage')} style={buttonStyle}>
-                            <i className="la la-database" style={{marginRight: '12px', fontSize: '1.2rem', color: '#94a3b8'}}></i> Manage Data <i className={`la la-angle-${openMobileSubmenu === 'manage' ? 'down' : 'right'}`} style={{marginLeft: 'auto', fontSize: '0.8rem', opacity: 0.5}}></i>
+                            <i className="la la-database" style={{marginRight: '12px', fontSize: '1.2rem', color: 'var(--text-tertiary)'}}></i> Manage Data <i className={`la la-angle-${openMobileSubmenu === 'manage' ? 'down' : 'right'}`} style={{marginLeft: 'auto', fontSize: '0.8rem', opacity: 0.5}}></i>
                         </button>
-                        <div style={{ maxHeight: openMobileSubmenu === 'manage' ? '600px' : '0', overflow: 'hidden', transition: 'all 0.4s ease-in-out', backgroundColor: '#fdfdfd', borderRadius: '8px', margin: '0 10px' }}>
+                        <div style={{ maxHeight: openMobileSubmenu === 'manage' ? '600px' : '0', overflow: 'hidden', transition: 'all 0.4s ease-in-out', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', margin: '0 10px' }}>
                             <ul style={{listStyle: 'none', padding: '5px 0', margin: 0 }}>
                                 {manageDataItems.map(item => (
                                     <li key={item.path}><Link to={item.path} style={subLinkStyle} onClick={this.toggleMobileMenu}>{item.label}</Link></li>
@@ -349,9 +402,9 @@ class Navbar extends React.Component {
                  {!isTeacher && (
                     <li>
                         <button onClick={() => this.toggleMobileSubmenu('finance')} style={buttonStyle}>
-                            <i className="la la-money" style={{marginRight: '12px', fontSize: '1.2rem', color: '#94a3b8'}}></i> SMS Balance {showLowBalanceIndicator && <span className="balance-dot" title="Low Balance Notice"></span>} <i className={`la la-angle-${openMobileSubmenu === 'finance' ? 'down' : 'right'}`} style={{marginLeft: 'auto', fontSize: '0.8rem', opacity: 0.5}}></i>
+                            <i className="la la-money" style={{marginRight: '12px', fontSize: '1.2rem', color: 'var(--text-tertiary)'}}></i> SMS Balance {showLowBalanceIndicator && <span className="balance-dot" title="Low Balance Notice"></span>} <i className={`la la-angle-${openMobileSubmenu === 'finance' ? 'down' : 'right'}`} style={{marginLeft: 'auto', fontSize: '0.8rem', opacity: 0.5}}></i>
                         </button>
-                        <div style={{ maxHeight: openMobileSubmenu === 'finance' ? '200px' : '0', overflow: 'hidden', transition: 'all 0.4s ease-in-out', backgroundColor: '#fdfdfd', borderRadius: '8px', margin: '0 10px' }}>
+                        <div style={{ maxHeight: openMobileSubmenu === 'finance' ? '200px' : '0', overflow: 'hidden', transition: 'all 0.4s ease-in-out', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', margin: '0 10px' }}>
                             <ul style={{listStyle: 'none', padding: '5px 0', margin: 0 }}>
                                 {financeItems.map(item => (
                                     <li key={item.path}><Link to={item.path} style={subLinkStyle} onClick={this.toggleMobileMenu}>{item.label}</Link></li>
@@ -416,6 +469,7 @@ class Navbar extends React.Component {
       { path: "/finance/fees", label: "Payment", IconComponent: SvgFinanceIcon },
       { path: "/finance/charge-types", label: "Charge Types", IconComponent: SvgFinanceIcon },
       { path: "/results", label: "Results", IconComponent: SvgResultsIcon },
+      { path: "/time-tables", label: "Time Tables", IconComponent: SvgTimeTablesIcon },
       { path: "/terms", label: "Terms", IconComponent: SvgSchedulesIcon },
       { path: "/assessment-types", label: "Assessment Types", IconComponent: SvgSettingsIcon },
       { path: "/rubrics", label: "Rubrics", IconComponent: SvgSettingsIcon },
@@ -555,6 +609,26 @@ class Navbar extends React.Component {
           </div>
           
           <div className="kt-header__topbar">
+            {/* Dark Mode Toggle Button */}
+            <div className="kt-header__topbar-item" style={{ marginRight: '15px' }}>
+              <div 
+                className="kt-header__topbar-wrapper" 
+                onClick={() => {
+                  const isDarkMode = document.documentElement.getAttribute('data-theme') === 'dark';
+                  const newTheme = isDarkMode ? 'light' : 'dark';
+                  document.documentElement.setAttribute('data-theme', newTheme);
+                  document.body.classList.toggle('dark-mode', newTheme === 'dark');
+                  localStorage.setItem('darkMode', JSON.stringify(newTheme === 'dark'));
+                  this.updateDarkModeIcon(newTheme === 'dark');
+                  if (window.toastr) window.toastr.info(`${newTheme === 'dark' ? 'Dark' : 'Light'} mode enabled`);
+                }}
+                style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px', display: 'flex', alignItems: 'center' }}
+                title="Toggle Dark Mode"
+              >
+                <i className="la la-moon-o" id="dark-mode-icon" style={{ color: effectiveTopBarTextColor, fontSize: '1.4rem' }}></i>
+              </div>
+            </div>
+
             {/* Sync Data Button */}
             <div className="kt-header__topbar-item" style={{ marginRight: '15px' }}>
               <div 
@@ -582,10 +656,10 @@ class Navbar extends React.Component {
 
         {/* MOBILE TOP NAVBAR (Remains Fixed) */}
         {}
-        <div id="kt_header_mobile" className="kt-header-mobile kt-header-mobile--fixed d-lg-none" style={{ backgroundColor: useSchoolTheme ? effectiveTopBarBgColor : GLASS_BG, backdropFilter: GLASS_BACKDROP, height: `${mobileTopBarHeight}px`, top: `${gapBetweenNavbars}px`, left: `${secondaryNavbarHorizontalMargin}px`, right: `${secondaryNavbarHorizontalMargin}px`, borderRadius: '12px', boxShadow: '0 8px 30px rgba(0, 0, 0, 0.1)', zIndex: 1002, padding: '0 15px', border: '1px solid rgba(255, 255, 255, 0.3)' }}>
+        <div id="kt_header_mobile" className="kt-header-mobile kt-header-mobile--fixed d-lg-none" style={{ backgroundColor: useSchoolTheme ? effectiveTopBarBgColor : GLASS_BG, backdropFilter: GLASS_BACKDROP, height: `${mobileTopBarHeight}px`, top: `${gapBetweenNavbars}px`, left: `${secondaryNavbarHorizontalMargin}px`, right: `${secondaryNavbarHorizontalMargin}px`, borderRadius: '12px', boxShadow: 'var(--shadow-medium)', zIndex: 1002, padding: '0 15px', border: '1px solid var(--glass-border)' }}>
           <div className="kt-header-mobile__toolbar" style={{ padding: 0, width: '40px' }}>
             <button className="kt-header-mobile__toolbar-toggler kt-header-mobile__toolbar-toggler--left" onClick={this.toggleMobileMenu} style={{ marginLeft: 0 }}>
-              <span style={{backgroundColor: useSchoolTheme ? '#fff' : '#1e293b'}} />
+              <span style={{backgroundColor: useSchoolTheme ? '#fff' : 'var(--text-primary)'}} />
             </button>
           </div>
           <div className="kt-header-mobile__logo" style={{ flexGrow: 1, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -596,7 +670,7 @@ class Navbar extends React.Component {
           </div>
           <div className="kt-header-mobile__toolbar" style={{ padding: 0, width: '40px', justifyContent: 'flex-end' }}>
             <button className="kt-header-mobile__toolbar-topbar-toggler" id="kt_header_mobile_topbar_toggler" style={{ marginRight: 0 }}>
-              <img alt="User" src={storedUser?.avatar || `https://picsum.photos/30/30?random=${storedUser?.id || 1027}`} style={{ width: '32px', height: '32px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.5)' }}/>
+              <img alt="User" src={storedUser?.avatar || `https://picsum.photos/30/30?random=${storedUser?.id || 1027}`} style={{ width: '32px', height: '32px', borderRadius: '50%', border: '2px solid var(--glass-border)'}}/>
             </button>
           </div>
         </div>
@@ -604,10 +678,10 @@ class Navbar extends React.Component {
         <div style={{ height: `${(fixedContentSpacerHeight-60)}px` }} />
 
         {/* SECONDARY NAVBAR (Scrolling) */}
-        <div id="kt_header_secondary" className="d-none d-lg-flex" style={{ backgroundColor: GLASS_BG, backdropFilter: GLASS_BACKDROP, justifyContent: 'space-between', alignItems: 'center', height: `${secondaryNavbarEffectiveHeight}px`, position: 'relative', marginLeft: `${secondaryNavbarHorizontalMargin}px`, marginRight: `${secondaryNavbarHorizontalMargin}px`, marginBottom: `${gapBetweenNavbars}px`, borderRadius: '16px', boxShadow: '0 8px 30px rgba(0, 0, 0, 0.06)', padding: '0 30px', border: '1px solid rgba(255, 255, 255, 0.4)', }}>
+        <div id="kt_header_secondary" className="d-none d-lg-flex" style={{ backgroundColor: GLASS_BG, backdropFilter: GLASS_BACKDROP, justifyContent: 'space-between', alignItems: 'center', height: `${secondaryNavbarEffectiveHeight}px`, position: 'relative', marginLeft: `${secondaryNavbarHorizontalMargin}px`, marginRight: `${secondaryNavbarHorizontalMargin}px`, marginBottom: `${gapBetweenNavbars}px`, borderRadius: '16px', boxShadow: 'var(--shadow-light)', padding: '0 30px', border: '1px solid var(--glass-border)', }}>
             <div style={{ display: 'flex', alignItems: 'center' }}>
                 <Link to="/home" style={{ textDecoration: 'none' }}>
-                    <span style={{ fontSize: '1.1rem', fontWeight: 600, color: '#1e293b', whiteSpace: 'nowrap' }}>{selectedSchool?.name || 'Shule Plus'}</span>
+                    <span style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{selectedSchool?.name || 'Shule Plus'}</span>
                 </Link>
             </div>
             <div id="kt_bottom_nav_menu_container" className="kt-header-menu-wrapper" style={{ display: 'flex', justifyContent: 'flex-end' }}>

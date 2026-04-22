@@ -1,10 +1,9 @@
 import React from "react";
 import Navbar from "../../components/navbar";
 import Subheader from "../../components/subheader";
-// import Footer from "../../components/footer";
-import ResultsMatrix from "./matrix";
+import TimeTableMatrix from "./matrix";
 
-class ResultsIndex extends React.Component {
+class TimeTablesIndex extends React.Component {
   render() {
     return (
       <div className="kt-grid__item kt-grid__item--fluid kt-grid kt-grid--ver kt-page">
@@ -20,14 +19,13 @@ class ResultsIndex extends React.Component {
             id="kt_content"
           >
             <div className="kt-container kt-grid__item kt-grid__item--fluid pt-0">
-              <ResultsMatrix />
+              <TimeTableMatrix />
             </div>
           </div>
-          {/* <Footer /> */}
         </div>
       </div>
     );
   }
 }
 
-export default ResultsIndex;
+export default TimeTablesIndex;

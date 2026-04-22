@@ -7,8 +7,7 @@ import AddSubjectModal from "../learning/subjects/add";
 import AddClassModal from "../classes/add";
 import AddGradeModal from "../learning/grades/add";
 import AddTermModal from "./components/AddTermModal";
-import ResultsInsightsDashboard from '../insights/ResultsInsightsDashboard';
-import { StatCard, DistributionChart, TrendBarChart, AreaChart, RankingList } from '../../components/analytics/DashboardWidgets';
+import { StatCard, DistributionChart, TrendBarChart, AreaChart, RankingList } from "../../components/analytics/DashboardWidgets";
 
 class ResultsMatrix extends React.Component {
   state = {
@@ -23,7 +22,6 @@ class ResultsMatrix extends React.Component {
 
     selectedClass: "",
     selectedTerm: "",
-    selectedSubject: "",
     
     assessmentTypes: [],
     assessmentRubrics: [],
@@ -230,9 +228,6 @@ class ResultsMatrix extends React.Component {
       if (this.unsubAssessments) this.unsubAssessments();
       if (this.unsubAssessmentTypes) this.unsubAssessmentTypes();
       if (this.unsubAssessmentRubrics) this.unsubAssessmentRubrics();
-      if (this.unsubLessonAttempts) this.unsubLessonAttempts();
-      if (this.unsubTeachers) this.unsubTeachers();
-      if (this.unsubAttemptEvents) this.unsubAttemptEvents();
       if (this.unsubSchools) this.unsubSchools();
   }
 
@@ -660,7 +655,7 @@ class ResultsMatrix extends React.Component {
   render() {
     const { 
         classes, terms, subjects, assessmentTypes, assessmentRubrics, 
-        selectedClass, selectedTerm, selectedSubject, assessments, 
+        selectedClass, selectedTerm, assessments, 
         showPrintView, schoolInfo, edits, fetchingAssessments, saving, 
         showBulkModal, printingStudentId, activeTab, loading 
     } = this.state;
@@ -832,19 +827,7 @@ class ResultsMatrix extends React.Component {
                         onSendSms={this.handleSmsClick} 
                     />
                 ) : <div className="alert alert-light-primary text-center py-10">Select Term and Class to view results</div>
-            ) : <ResultsInsightsDashboard 
-                                classes={classes}
-                                assessments={assessments}
-                                subjects={subjects}
-                                students={students}
-                                terms={terms}
-                                assessmentTypes={assessmentTypes}
-                                assessmentRubrics={assessmentRubrics}
-                                selectedClass={selectedClass}
-                                selectedTerm={selectedTerm}
-                                selectedSubject={selectedSubject || ""}
-                                onFilterChange={(filter, value) => this.setState({ [filter]: value })}
-                            />}
+            ) : this.renderInsights()}
         </div>
         
         {showBulkModal && <BulkReportSmsModal show={showBulkModal} title="Bulk Results SMS" onClose={() => this.setState({ showBulkModal: false })} recipients={this.state.bulkSmsRecipients} onSend={this.handleBulkSmsSend} onSavePhone={this.handleSaveParentPhone} />}

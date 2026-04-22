@@ -114,86 +114,95 @@ class Modal extends React.Component {
                 </div>
                 <div className="modal-body">
                   <div className="kt-portlet__body">
-                    <div className="form-group row">
-                      <div className="col-lg-6">
-                        <label>Class Name:</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          id="fullname"
-                          name="fullname"
-                          minLength="2"
-                          value={this.state.name}
-                          onChange={(e) => this.setState({
-                            name: e.target.value
-                          })}
-                          required
-                        />
+                    <div className="row">
+                      <div className="col-md-6">
+                        <div className="form-group">
+                          <label>Class Name:</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="fullname"
+                            name="fullname"
+                            minLength="2"
+                            value={this.state.name || ''}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              this.setState({ name: value });
+                            }}
+                            required
+                          />
+                        </div>
                       </div>
-                      <div className="col-lg-6">
-                        <label>Fee Amount:</label>
-                        <input
-                          type="number"
-                          className="form-control"
-                          name="feeAmount"
-                          value={this.state.feeAmount}
-                          onChange={(e) => this.setState({
-                            feeAmount: e.target.value
-                          })}
-                          required
-                        />
+                      <div className="col-md-6">
+                        <div className="form-group">
+                          <label>Fee Amount:</label>
+                          <input
+                            type="number"
+                            className="form-control"
+                            name="feeAmount"
+                            value={this.state.feeAmount || ''}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              this.setState({ feeAmount: value });
+                            }}
+                            required
+                          />
+                        </div>
                       </div>
-                      <div className="col-lg-6 mt-3">
-
-                        <div className="row">
-                          <div className="col-lg-8">
-                            <label htmlFor="exampleSelect1">Teacher:</label>
-                            <Select
-                              name="driver"
-                              value={this.state.setTeacher}
-                              options={this.props.teachers?.map(({ id: value, name: label }) => ({ value, label }))}
-                              onChange={({ value, label }) => this.setState({
-                                teacher: value,
-                                setTeacher: { value, label }
-                              })}
-                            />
-                          </div>
-                          <div className="col-lg-4">
-                            <label htmlFor="exampleSelect1">↓</label>
-                            <br></br>
-                            <button
-                              className="btn btn-outline-brand"
-                              type="button"
-                              onClick={() => {
-                                console.log("adding")
-                                this.hide()
-                                addTeacherModal.show()
-                              }}
-                            >
-                              Add a Teacher
-                            </button>
+                      <div className="col-md-6">
+                        <div className="form-group">
+                          <label>Teacher:</label>
+                          <div className="row">
+                            <div className="col-8">
+                              <Select
+                                name="teacher"
+                                value={this.state.setTeacher}
+                                options={this.props.teachers?.map(({ id: value, name: label }) => ({ value, label }))}
+                                onChange={({ value, label }) => this.setState({
+                                  teacher: value,
+                                  setTeacher: { value, label }
+                                })}
+                              />
+                            </div>
+                            <div className="col-4 pl-0">
+                              <label>&nbsp;</label>
+                              <div>
+                                <button
+                                  className="btn btn-outline-brand btn-sm btn-block"
+                                  type="button"
+                                  onClick={() => {
+                                    console.log("adding")
+                                    this.hide()
+                                    addTeacherModal.show()
+                                  }}
+                                >
+                                  Add Teacher
+                                </button>
+                              </div>
+                            </div>
                           </div>
                         </div>
-
-
                       </div>
-                      <div className="col-lg-6 mt-3">
-                        <label>Grade Association:</label>
-                        <select
-                          name="grade"
-                          className="form-control"
-                          value={this.state.grade}
-                          onChange={(e) => this.setState({
-                            grade: e.target.value
-                          })}
-                          required
-                        >
-                          <option value="">Select Grade (Linking to Curriculum)</option>
-                          {this.state.grades && this.state.grades.map(grade => (
-                            <option key={grade.id} value={grade.id}>{grade.name || `Unnamed Level (${grade.id?.substring(0, 5)})`}</option>
-                          ))}
-                        </select>
-                        <p className="text-muted small mt-1">This links the class to a specific level in the learning module to show the correct subjects/results.</p>
+                      <div className="col-md-6">
+                        <div className="form-group">
+                          <label>Grade Association:</label>
+                          <select
+                            name="grade"
+                            className="form-control"
+                            value={this.state.grade || ''}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              this.setState({ grade: value });
+                            }}
+                            required
+                          >
+                            <option value="">Select Grade (Linking to Curriculum)</option>
+                            {this.state.grades && this.state.grades.map(grade => (
+                              <option key={grade.id} value={grade.id}>{grade.name || `Unnamed Level (${grade.id?.substring(0, 5)})`}</option>
+                            ))}
+                          </select>
+                          <small className="text-muted">This links the class to a specific level in the learning module to show the correct subjects/results.</small>
+                        </div>
                       </div>
                     </div>
                   </div>

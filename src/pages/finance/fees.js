@@ -16,21 +16,21 @@ import SmsBalanceModal from "./components/SmsBalanceModal";
 const SkeletonLoader = () => (
     <div className="p-7">
         <div className="d-flex justify-content-between mb-8">
-            <div className="skeleton-line rounded" style={{ width: '250px', height: '30px', backgroundColor: '#f3f6f9' }}></div>
+            <div className="skeleton-line rounded" style={{ width: '250px', height: '30px', backgroundColor: 'var(--bg-tertiary)' }}></div>
             <div className="d-flex justify-content-end">
-                <div className="skeleton-line rounded mr-2" style={{ width: '120px', height: '30px', backgroundColor: '#f3f6f9' }}></div>
-                <div className="skeleton-line rounded" style={{ width: '120px', height: '30px', backgroundColor: '#f3f6f9' }}></div>
+                <div className="skeleton-line rounded mr-2" style={{ width: '120px', height: '30px', backgroundColor: 'var(--bg-tertiary)' }}></div>
+                <div className="skeleton-line rounded" style={{ width: '120px', height: '30px', backgroundColor: 'var(--bg-tertiary)' }}></div>
             </div>
         </div>
         {[1, 2, 3, 4, 5].map(i => (
             <div key={i} className="d-flex justify-content-between py-6 border-bottom mb-2 align-items-center">
-                <div className="skeleton-line rounded" style={{ width: '18%', height: '40px', backgroundColor: '#f3f6f9' }}></div>
-                <div className="skeleton-line rounded" style={{ width: '15%', height: '20px', backgroundColor: '#f3f6f9' }}></div>
-                <div className="skeleton-line rounded" style={{ width: '10%', height: '20px', backgroundColor: '#f3f6f9' }}></div>
-                <div className="skeleton-line rounded" style={{ width: '10%', height: '20px', backgroundColor: '#f3f6f9' }}></div>
-                <div className="skeleton-line rounded" style={{ width: '10%', height: '30px', backgroundColor: '#f3f6f9' }}></div>
-                <div className="skeleton-line rounded" style={{ width: '15%', height: '20px', backgroundColor: '#f3f6f9' }}></div>
-                <div className="skeleton-line rounded" style={{ width: '12%', height: '30px', backgroundColor: '#f3f6f9' }}></div>
+                <div className="skeleton-line rounded" style={{ width: '18%', height: '40px', backgroundColor: 'var(--bg-tertiary)' }}></div>
+                <div className="skeleton-line rounded" style={{ width: '15%', height: '20px', backgroundColor: 'var(--bg-tertiary)' }}></div>
+                <div className="skeleton-line rounded" style={{ width: '10%', height: '20px', backgroundColor: 'var(--bg-tertiary)' }}></div>
+                <div className="skeleton-line rounded" style={{ width: '10%', height: '20px', backgroundColor: 'var(--bg-tertiary)' }}></div>
+                <div className="skeleton-line rounded" style={{ width: '10%', height: '30px', backgroundColor: 'var(--bg-tertiary)' }}></div>
+                <div className="skeleton-line rounded" style={{ width: '15%', height: '20px', backgroundColor: 'var(--bg-tertiary)' }}></div>
+                <div className="skeleton-line rounded" style={{ width: '12%', height: '30px', backgroundColor: 'var(--bg-tertiary)' }}></div>
             </div>
         ))}
         <style>{`

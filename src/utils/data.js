@@ -1837,6 +1837,117 @@ var Data = (function () {
                 });
             },
         },
+        timeTables: {
+            getAll: async () => {
+                const schoolId = localStorage.getItem("school");
+                const response = await query(`query GetTimeTables($schoolId: String!) {
+                    school(id: $schoolId) {
+                        timeTables {
+                            id
+                            class { id name }
+                            day
+                            time
+                            subject { id name }
+                            teacher { id name }
+                            createdAt
+                            updatedAt
+                        }
+                    }
+                }`, { schoolId });
+                return response.school?.timeTables || [];
+            },
+            getByClass: async (classId) => {
+                const schoolId = localStorage.getItem("school");
+                const response = await query(`query GetClassTimeTable($schoolId: String!, $classId: String!) {
+                    school(id: $schoolId) {
+                        timeTables(class: $classId) {
+                            id
+                            class { id name }
+                            day
+                            time
+                            subject { id name }
+                            teacher { id name }
+                            createdAt
+                            updatedAt
+                        }
+                    }
+                }`, { schoolId, classId });
+                
+                const timeTableData = {};
+                const timeTables = response.school?.timeTables || [];
+                timeTables.forEach(tt => {
+                    const key = `${tt.day}-${tt.time}`;
+                    timeTableData[key] = {
+                        subject: tt.subject,
+                        teacher: tt.teacher,
+                        class: tt.class,
+                        day: tt.day,
+                        time: tt.time,
+                        id: tt.id
+                    };
+                });
+                return timeTableData;
+            },
+            save: async (classId, timeTableData) => {
+                const schoolId = localStorage.getItem("school");
+                
+                // Convert timeTableData object to array for mutation
+                const allocations = Object.entries(timeTableData).map(([key, allocation]) => ({
+                    class: classId,
+                    day: allocation.day,
+                    time: allocation.time,
+                    subject: allocation.subject.id,
+                    teacher: allocation.teacher.id,
+                    school: schoolId
+                }));
+                
+                const response = await mutate(`mutation SaveTimeTable($allocations: [TimeTableInput]!) {
+                    timeTables {
+                        bulkSave(allocations: $allocations) {
+                            id
+                            success
+                        }
+                    }
+                }`, { allocations });
+                
+                return response.timeTables?.bulkSave || [];
+            },
+            getTeacherAvailability: async (teacherId, day, time) => {
+                const schoolId = localStorage.getItem("school");
+                const response = await query(`query GetTeacherAvailability($schoolId: String!, $teacherId: String!, $day: String!, $time: String!) {
+                    school(id: $schoolId) {
+                        teacherAvailability(teacherId: $teacherId, day: $day, time: $time) {
+                            available
+                            conflict {
+                                id
+                                class { id name }
+                                day
+                                time
+                                subject { id name }
+                            }
+                        }
+                    }
+                }`, { schoolId, teacherId, day, time });
+                
+                return response.school?.teacherAvailability || { available: true };
+            },
+            getTeacherAllocations: async (teacherId) => {
+                const schoolId = localStorage.getItem("school");
+                const response = await query(`query GetTeacherAllocations($schoolId: String!, $teacherId: String!) {
+                    school(id: $schoolId) {
+                        teacherAllocations(teacherId: $teacherId) {
+                            id
+                            class { id name }
+                            day
+                            time
+                            subject { id name }
+                        }
+                    }
+                }`, { schoolId, teacherId });
+                
+                return response.school?.teacherAllocations || [];
+            }
+        },
     };
 
     return {

@@ -3,6 +3,7 @@ import { useHistory } from 'react-router-dom';
 import axios from 'axios';
 import { API } from '../../../utils/requests';
 import Data from '../../../utils/data';
+import { useTheme } from '../../../contexts/ThemeContext';
 import './LoginContainer.css';
 
 // Import stage components
@@ -14,6 +15,7 @@ import ErrorDisplay from '../SharedComponents/ErrorDisplay';
 const LoginContainer = () => {
     const history = useHistory();
     const isMountedRef = useRef(true);
+    const { isDarkMode, toggleDarkMode } = useTheme();
     
     // Authentication state
     const [loginStage, setLoginStage] = useState('identity');
@@ -23,6 +25,7 @@ const LoginContainer = () => {
     const [schoolMeta, setSchoolMeta] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [isNetworkRequest, setIsNetworkRequest] = useState(false);
     
     // Session data
     const [sessionData, setSessionData] = useState(null);
@@ -146,6 +149,7 @@ const LoginContainer = () => {
 
     const handleIdentitySubmit = async (identifier) => {
         setIsLoading(true);
+        setIsNetworkRequest(true);
         setError(null);
         
         try {
@@ -171,57 +175,60 @@ const LoginContainer = () => {
             setError(err.response?.data?.message || 'Identity verification failed');
         } finally {
             setIsLoading(false);
+            setIsNetworkRequest(false);
         }
     };
 
     const handleAuthentication = async (method, credentials) => {
         setIsLoading(true);
+        setIsNetworkRequest(true);
         setError(null);
         
         try {
-            console.log('🔐 Starting authentication with method:', method);
+            console.log('?? Starting authentication with method:', method);
             let response;
             
             if (method === 'otp') {
-                console.log('📱 Sending OTP request to:', `${API}/auth/verify/sms`);
+                console.log('?? Sending OTP request to:', `${API}/auth/verify/sms`);
                 response = await axios.post(`${API}/auth/verify/sms`, {
                     user: userIdentifier,
                     password: credentials.otp
                 });
             } else if (method === 'password') {
-                console.log('🔑 Sending password request to:', `${API}/auth/login`);
+                console.log('?? Sending password request to:', `${API}/auth/login`);
                 response = await axios.post(`${API}/auth/login`, {
                     user: userIdentifier,
                     password: credentials.password
                 });
             }
             
-            console.log('📥 Server response:', response);
-            console.log('📥 Response data:', response.data);
+            console.log('?? Server response:', response);
+            console.log('?? Response data:', response.data);
             
             const { token, data: userData } = response.data;
             
-            console.log('🔍 Extracted token:', token);
-            console.log('🔍 Extracted user data:', userData);
+            console.log('?? Extracted token:', token);
+            console.log('?? Extracted user data:', userData);
             
             if (!token || !userData) {
-                console.error('❌ Missing token or user data in response');
+                console.error('?? Missing token or user data in response');
                 throw new Error('Invalid response from server');
             }
             
-            console.log('💾 Saving session...');
+            console.log('?? Saving session...');
             // Save session
             await saveSession(userData, method);
             
-            console.log('✅ Handling login success...');
+            console.log('?? Handling login success...');
             // Handle login success
             await handleLoginSuccess(token, userData);
             
         } catch (err) {
-            console.error('❌ Authentication error:', err);
+            console.error('?? Authentication error:', err);
             const errorMsg = err.response?.data?.message || err.message || 'Authentication failed';
             setError(errorMsg);
             setIsLoading(false);
+            setIsNetworkRequest(false);
         }
     };
 
@@ -384,6 +391,27 @@ const LoginContainer = () => {
     return (
         <div className="login-container">
             <div className="login-card">
+                {/* Dark Mode Switcher */}
+                <button 
+                    className="dark-mode-switcher"
+                    onClick={toggleDarkMode}
+                    aria-label="Toggle dark mode"
+                >
+                    <div className="icon">
+                        {isDarkMode ? (
+                            <div className="moon-icon">
+                                <div className="moon-circle"></div>
+                                <div className="moon-crescent"></div>
+                            </div>
+                        ) : (
+                            <div className="sun-icon">
+                                <div className="sun-center"></div>
+                                <div className="sun-rays"></div>
+                            </div>
+                        )}
+                    </div>
+                </button>
+                
                 {/* Left side - Name and Instructions */}
                 <div className="login-info-panel">
                     <div>
@@ -411,6 +439,27 @@ const LoginContainer = () => {
 
                 {/* Right side - Login flow */}
                 <div className="login-form-panel">
+                    {/* Padlock Icon */}
+                    <div className={`padlock-container ${isNetworkRequest ? 'animating' : ''}`}>
+                        <div className="padlock-icon">
+                            <div className="padlock-body">
+                                <div className="padlock-shackle"></div>
+                                <div className="padlock-keyhole"></div>
+                            </div>
+                        </div>
+                        <div className="padlock-text">
+                            {isNetworkRequest ? 'Securing connection...' : 'Secure Login'}
+                        </div>
+                    </div>
+                    
+                    {/* Error Display */}
+                    {error && (
+                        <ErrorDisplay 
+                            error={error} 
+                            onDismiss={() => setError(null)}
+                        />
+                    )}
+                    
                     {/* Stage content */}
                     {loginStage === 'identity' && (
                         <IdentityStage

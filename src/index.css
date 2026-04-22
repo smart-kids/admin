@@ -1,3 +1,46 @@
+/* CSS Variables for Theme System */
+:root {
+  /* Light Theme Colors */
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f5f9;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-tertiary: #94a3b8;
+  --border-primary: #e2e8f0;
+  --border-secondary: #cbd5e1;
+  --shadow-light: rgba(0, 0, 0, 0.05);
+  --shadow-medium: rgba(0, 0, 0, 0.1);
+  --shadow-heavy: rgba(0, 0, 0, 0.15);
+  --glass-bg: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.3);
+  --hover-bg: rgba(0, 0, 0, 0.03);
+  --active-bg: rgba(0, 0, 0, 0.06);
+  --scroll-gradient-start: rgba(248, 250, 252, 0);
+  --scroll-gradient-end: #f8fafc;
+}
+
+[data-theme="dark"] {
+  /* Dark Theme Colors */
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-tertiary: #94a3b8;
+  --border-primary: #334155;
+  --border-secondary: #475569;
+  --shadow-light: rgba(0, 0, 0, 0.3);
+  --shadow-medium: rgba(0, 0, 0, 0.5);
+  --shadow-heavy: rgba(0, 0, 0, 0.7);
+  --glass-bg: rgba(30, 41, 59, 0.75);
+  --glass-border: rgba(71, 85, 105, 0.3);
+  --hover-bg: rgba(255, 255, 255, 0.05);
+  --active-bg: rgba(255, 255, 255, 0.08);
+  --scroll-gradient-start: rgba(15, 23, 42, 0);
+  --scroll-gradient-end: #0f172a;
+}
+
 body {
   margin: 0;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
@@ -5,8 +48,9 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f8fafc;
-  color: #1e293b;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 code {
@@ -19,7 +63,7 @@ code {
 /* V8 Typography & Structure Additions */
 .v8-header-desc {
     font-size: 0.9rem;
-    color: #7E8299;
+    color: var(--text-secondary);
     font-weight: 500;
     margin-top: 0.25rem;
     margin-bottom: 0;
@@ -78,20 +122,22 @@ code {
 .card-custom, .kt-portlet {
   border: none !important;
   border-radius: 16px !important;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important;
-  transition: transform 0.2s ease, box-shadow 0.2s ease !important;
+  box-shadow: 0 4px 6px -1px var(--shadow-light), 0 2px 4px -1px var(--shadow-light) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.3s ease !important;
+  background-color: var(--bg-secondary) !important;
 }
 
 .card-custom:hover {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04) !important;
+  box-shadow: 0 10px 15px -3px var(--shadow-medium), 0 4px 6px -2px var(--shadow-light) !important;
 }
 
 /* Glassmorphism Utilities */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.7) !important;
+  background: var(--glass-bg) !important;
   backdrop-filter: blur(12px) saturate(180%) !important;
   -webkit-backdrop-filter: blur(12px) saturate(180%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  border: 1px solid var(--glass-border) !important;
+  transition: background-color 0.3s ease, border-color 0.3s ease !important;
 }
 
 /* Page Transitions */
@@ -116,7 +162,7 @@ code {
   right: 0;
   bottom: 0;
   width: 40px;
-  background: linear-gradient(to right, rgba(248, 250, 252, 0), #f8fafc);
+  background: linear-gradient(to right, var(--scroll-gradient-start), var(--scroll-gradient-end));
   pointer-events: none;
   z-index: 2;
 }
@@ -130,14 +176,189 @@ code {
 
 .form-control {
   border-radius: 8px !important;
-  border: 1px solid #e2e8f0 !important;
+  border: 1px solid var(--border-primary) !important;
   padding: 0.6rem 1rem !important;
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  transition: border-color 0.3s ease, background-color 0.3s ease, color 0.3s ease !important;
 }
 
 .form-control:focus {
   border-color: #6366f1 !important;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1) !important;
 }
+
+/* --- Dark Mode Specific Styles --- */
+[data-theme="dark"] .kt-header,
+[data-theme="dark"] .kt-header-mobile,
+[data-theme="dark"] .kt-portlet,
+[data-theme="dark"] .card-custom {
+  background-color: var(--bg-secondary) !important;
+  border-color: var(--border-primary) !important;
+}
+
+[data-theme="dark"] .kt-menu__link {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .kt-menu__link:hover {
+  background-color: var(--hover-bg) !important;
+}
+
+[data-theme="dark"] .kt-menu__submenu {
+  background-color: var(--bg-secondary) !important;
+  border-color: var(--border-primary) !important;
+}
+
+[data-theme="dark"] .form-control {
+  background-color: var(--bg-secondary) !important;
+  border-color: var(--border-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .btn {
+  background-color: var(--bg-tertiary) !important;
+  border-color: var(--border-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .btn-primary {
+  background-color: #6366f1 !important;
+  border-color: #6366f1 !important;
+  color: white !important;
+}
+
+[data-theme="dark"] .kt-offcanvas-panel {
+  background-color: var(--bg-secondary) !important;
+  border-color: var(--border-primary) !important;
+}
+
+[data-theme="dark"] .kt-offcanvas-panel__title {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .kt-user-card-v3__name {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .kt-user-card-v3__desc {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .kt-user-card-v3__item {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .kt-user-card-v3__tag {
+  color: var(--text-secondary) !important;
+  background-color: var(--bg-tertiary) !important;
+}
+
+/* Dark mode tooltips */
+[data-theme="dark"] .v8-tooltip-text {
+  background-color: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-primary) !important;
+}
+
+[data-theme="dark"] .v8-tooltip-text::after {
+  border-color: var(--bg-tertiary) transparent transparent transparent !important;
+}
+
+/* Dark mode scrollbar */
+[data-theme="dark"] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: var(--bg-tertiary);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: var(--border-secondary);
+  border-radius: 4px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
+
+/* Comprehensive Global Dark Mode Styles */
+[data-theme="dark"] {
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] * {
+  color: inherit !important;
+}
+
+[data-theme="dark"] body,
+[data-theme="dark"] html,
+[data-theme="dark"] #root {
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .kt-wrapper,
+[data-theme="dark"] .kt-page,
+[data-theme="dark"] .kt-content,
+[data-theme="dark"] .kt-container {
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] div:not([class*="login"]):not([class*="alert"]):not([class*="modal"]):not([class*="dropdown"]) {
+  background-color: inherit !important;
+  color: inherit !important;
+}
+
+/* Force dark mode for all common elements */
+[data-theme="dark"] .card,
+[data-theme="dark"] .portlet,
+[data-theme="dark"] .panel,
+[data-theme="dark"] .well,
+[data-theme="dark"] .jumbotron {
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-primary) !important;
+}
+
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6 {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] p,
+[data-theme="dark"] span,
+[data-theme="dark"] div,
+[data-theme="dark"] td,
+[data-theme="dark"] th,
+[data-theme="dark"] li {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .text-muted,
+[data-theme="dark"] .text-secondary {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .bg-white,
+[data-theme="dark"] .bg-light {
+  background-color: var(--bg-secondary) !important;
+}
+
+[data-theme="dark"] .bg-dark {
+  background-color: var(--bg-tertiary) !important;
+}
+
+/* Import comprehensive dark mode styles */
+@import './styles/dark-mode.css';
 
 /* --- Print Optimizations --- */
 @media print {
@@ -208,5 +429,339 @@ code {
   .report-card-container:first-child {
     page-break-before: avoid !important;
     margin-top: 0 !important;
+  }
+}
+
+/* Ultra-aggressive dark mode override - MUST come after everything */
+@media screen {
+  html[data-theme="dark"] body,
+  html[data-theme="dark"],
+  body[data-theme="dark"],
+  [data-theme="dark"] body.kt-quick-panel--right.kt-demo-panel--right.kt-offcanvas-panel--right.kt-header--fixed.kt-header-mobile--fixed.kt-aside--enabled.kt-aside--left.kt-aside--fixed.kt-aside--offcanvas-default,
+  [data-theme="dark"] html.kt-quick-panel--right.kt-demo-panel--right.kt-offcanvas-panel--right.kt-header--fixed.kt-header-mobile--fixed.kt-aside--enabled.kt-aside--left.kt-aside--fixed.kt-aside--offcanvas-default {
+    background-color: #0f172a !important;
+    background-image: none !important;
+    color: #f1f5f9 !important;
+  }
+
+  [data-theme="dark"] #root,
+  [data-theme="dark"] .kt-grid,
+  [data-theme="dark"] .kt-grid--hor,
+  [data-theme="dark"] .kt-grid--root,
+  [data-theme="dark"] .kt-wrapper,
+  [data-theme="dark"] .kt-page,
+  [data-theme="dark"] .kt-content,
+  [data-theme="dark"] .kt-container {
+    background-color: #0f172a !important;
+    color: #f1f5f9 !important;
+  }
+
+  /* Override any inline styles */
+  [data-theme="dark"] body[style*="background"],
+  [data-theme="dark"] html[style*="background"] {
+    background-color: #0f172a !important;
+    background-image: none !important;
+  }
+
+  /* Force dark mode for all elements */
+  [data-theme="dark"] * {
+    background-color: transparent !important;
+    color: inherit !important;
+  }
+
+  [data-theme="dark"] body *,
+  [data-theme="dark"] html * {
+    color: #f1f5f9 !important;
+  }
+
+  /* Specific overrides for common containers */
+  [data-theme="dark"] div,
+  [data-theme="dark"] section,
+  [data-theme="dark"] main,
+  [data-theme="dark"] article {
+    background-color: transparent !important;
+  }
+
+  /* Override any white backgrounds */
+  [data-theme="dark"] [style*="background: white"],
+  [data-theme="dark"] [style*="background-color: white"],
+  [data-theme="dark"] [style*="background: #fff"],
+  [data-theme="dark"] [style*="background-color: #fff"] {
+    background-color: #1e293b !important;
+  }
+
+  /* Comprehensive text color overrides for dark mode */
+  [data-theme="dark"] body,
+  [data-theme="dark"] html,
+  [data-theme="dark"] * {
+    color: #f1f5f9 !important;
+  }
+
+  /* Headings */
+  [data-theme="dark"] h1,
+  [data-theme="dark"] h2,
+  [data-theme="dark"] h3,
+  [data-theme="dark"] h4,
+  [data-theme="dark"] h5,
+  [data-theme="dark"] h6 {
+    color: #f8fafc !important;
+  }
+
+  /* Links */
+  [data-theme="dark"] a,
+  [data-theme="dark"] a:hover,
+  [data-theme="dark"] a:focus,
+  [data-theme="dark"] a:visited {
+    color: #60a5fa !important;
+  }
+
+  [data-theme="dark"] a:hover {
+    color: #93c5fd !important;
+  }
+
+  /* Text utilities */
+  [data-theme="dark"] .text-muted,
+  [data-theme="dark"] .text-secondary,
+  [data-theme="dark"] .text-light,
+  [data-theme="dark"] .text-info {
+    color: #94a3b8 !important;
+  }
+
+  [data-theme="dark"] .text-primary,
+  [data-theme="dark"] .text-dark {
+    color: #f1f5f9 !important;
+  }
+
+  [data-theme="dark"] .text-success {
+    color: #86efac !important;
+  }
+
+  [data-theme="dark"] .text-warning {
+    color: #fcd34d !important;
+  }
+
+  [data-theme="dark"] .text-danger,
+  [data-theme="dark"] .text-error {
+    color: #fca5a5 !important;
+  }
+
+  /* Form elements */
+  [data-theme="dark"] input,
+  [data-theme="dark"] textarea,
+  [data-theme="dark"] select,
+  [data-theme="dark"] .form-control {
+    color: #f1f5f9 !important;
+    background-color: #334155 !important;
+  }
+
+  [data-theme="dark"] input::placeholder,
+  [data-theme="dark"] textarea::placeholder {
+    color: #94a3b8 !important;
+  }
+
+  /* Buttons */
+  [data-theme="dark"] .btn,
+  [data-theme="dark"] button {
+    color: #f1f5f9 !important;
+  }
+
+  [data-theme="dark"] .btn-primary,
+  [data-theme="dark"] .btn-primary:hover,
+  [data-theme="dark"] .btn-primary:focus {
+    color: #ffffff !important;
+  }
+
+  /* Tables */
+  [data-theme="dark"] table,
+  [data-theme="dark"] td,
+  [data-theme="dark"] th {
+    color: #f1f5f9 !important;
+  }
+
+  /* Lists */
+  [data-theme="dark"] ul,
+  [data-theme="dark"] ol,
+  [data-theme="dark"] li {
+    color: #f1f5f9 !important;
+  }
+
+  /* Specific element types */
+  [data-theme="dark"] p,
+  [data-theme="dark"] span,
+  [data-theme="dark"] div,
+  [data-theme="dark"] section,
+  [data-theme="dark"] article,
+  [data-theme="dark"] main,
+  [data-theme="dark"] aside,
+  [data-theme="dark"] header,
+  [data-theme="dark"] footer,
+  [data-theme="dark"] nav {
+    color: #f1f5f9 !important;
+  }
+
+  /* Override inline text colors */
+  [data-theme="dark"] [style*="color: black"],
+  [data-theme="dark"] [style*="color: #000"],
+  [data-theme="dark"] [style*="color: #333"],
+  [data-theme="dark"] [style*="color: #333333"],
+  [data-theme="dark"] [style*="color: rgb(0,0,0)"],
+  [data-theme="dark"] [style*="color: rgb(51,51,51)"] {
+    color: #f1f5f9 !important;
+  }
+
+  [data-theme="dark"] [style*="color: white"],
+  [data-theme="dark"] [style*="color: #fff"],
+  [data-theme="dark"] [style*="color: #ffffff"],
+  [data-theme="dark"] [style*="color: rgb(255,255,255)"] {
+    color: #f1f5f9 !important;
+  }
+
+  /* Icons */
+  [data-theme="dark"] .fa,
+  [data-theme="dark"] .fas,
+  [data-theme="dark"] .far,
+  [data-theme="dark"] .fal,
+  [data-theme="dark"] .fad,
+  [data-theme="dark"] .fab,
+  [data-theme="dark"] .mdi,
+  [data-theme="dark"] .material-icons,
+  [data-theme="dark"] .glyphicon {
+    color: #f1f5f9 !important;
+  }
+
+  /* Labels and badges */
+  [data-theme="dark"] .label,
+  [data-theme="dark"] .badge {
+    color: #f1f5f9 !important;
+  }
+
+  /* Tooltips */
+  [data-theme="dark"] .tooltip,
+  [data-theme="dark"] .tooltip-inner {
+    color: #f1f5f9 !important;
+  }
+
+  /* Fix text on bright/green backgrounds in dark mode */
+  [data-theme="dark"] .alert-success,
+  [data-theme="dark"] .bg-success,
+  [data-theme="dark"] .badge-success,
+  [data-theme="dark"] .label-success {
+    background-color: #059669 !important;
+    color: #ffffff !important;
+  }
+
+  [data-theme="dark"] .alert-success *,
+  [data-theme="dark"] .bg-success *,
+  [data-theme="dark"] .badge-success *,
+  [data-theme="dark"] .label-success * {
+    color: #ffffff !important;
+  }
+
+  /* Green backgrounds with white text */
+  [data-theme="dark"] [style*="background: green"],
+  [data-theme="dark"] [style*="background-color: green"],
+  [data-theme="dark"] [style*="background: #28a745"],
+  [data-theme="dark"] [style*="background-color: #28a745"],
+  [data-theme="dark"] [style*="background: #34bfa3"],
+  [data-theme="dark"] [style*="background-color: #34bfa3"] {
+    background-color: #059669 !important;
+    color: #ffffff !important;
+  }
+
+  /* Success/secure connection text */
+  [data-theme="dark"] .text-success *,
+  [data-theme="dark"] [class*="success"] *,
+  [data-theme="dark"] [class*="secure"] *,
+  [data-theme="dark"] [class*="protected"] * {
+    color: #ffffff !important;
+  }
+
+  /* Bright backgrounds that need dark text */
+  [data-theme="dark"] .alert-info,
+  [data-theme="dark"] .bg-info,
+  [data-theme="dark"] .badge-info,
+  [data-theme="dark"] .label-info {
+    background-color: #0284c7 !important;
+    color: #ffffff !important;
+  }
+
+  [data-theme="dark"] .alert-info *,
+  [data-theme="dark"] .bg-info *,
+  [data-theme="dark"] .badge-info *,
+  [data-theme="dark"] .label-info * {
+    color: #ffffff !important;
+  }
+
+  /* Warning backgrounds */
+  [data-theme="dark"] .alert-warning,
+  [data-theme="dark"] .bg-warning,
+  [data-theme="dark"] .badge-warning,
+  [data-theme="dark"] .label-warning {
+    background-color: #d97706 !important;
+    color: #ffffff !important;
+  }
+
+  [data-theme="dark"] .alert-warning *,
+  [data-theme="dark"] .bg-warning *,
+  [data-theme="dark"] .badge-warning *,
+  [data-theme="dark"] .label-warning * {
+    color: #ffffff !important;
+  }
+
+  /* Primary/brand backgrounds */
+  [data-theme="dark"] .alert-primary,
+  [data-theme="dark"] .bg-primary,
+  [data-theme="dark"] .badge-primary,
+  [data-theme="dark"] .label-primary {
+    background-color: #1d4ed8 !important;
+    color: #ffffff !important;
+  }
+
+  [data-theme="dark"] .alert-primary *,
+  [data-theme="dark"] .bg-primary *,
+  [data-theme="dark"] .badge-primary *,
+  [data-theme="dark"] .label-primary * {
+    color: #ffffff !important;
+  }
+
+  /* Light backgrounds that need dark text */
+  [data-theme="dark"] .alert-light,
+  [data-theme="dark"] .bg-light,
+  [data-theme="dark"] .badge-light,
+  [data-theme="dark"] .label-light {
+    background-color: #374151 !important;
+    color: #f1f5f9 !important;
+  }
+
+  [data-theme="dark"] .alert-light *,
+  [data-theme="dark"] .bg-light *,
+  [data-theme="dark"] .badge-light *,
+  [data-theme="dark"] .label-light * {
+    color: #f1f5f9 !important;
+  }
+
+  /* Any element with bright background colors */
+  [data-theme="dark"] [style*="background: #f8f9fa"],
+  [data-theme="dark"] [style*="background-color: #f8f9fa"],
+  [data-theme="dark"] [style*="background: #e9ecef"],
+  [data-theme="dark"] [style*="background-color: #e9ecef"],
+  [data-theme="dark"] [style*="background: #dee2e6"],
+  [data-theme="dark"] [style*="background-color: #dee2e6"] {
+    background-color: #374151 !important;
+    color: #f1f5f9 !important;
+  }
+
+  /* Secure connection and protection badges */
+  [data-theme="dark"] [class*="secure"],
+  [data-theme="dark"] [class*="protection"],
+  [data-theme="dark"] [class*="encrypted"] {
+    background-color: #059669 !important;
+    color: #ffffff !important;
+  }
+
+  [data-theme="dark"] [class*="secure"] *,
+  [data-theme="dark"] [class*="protection"] *,
+  [data-theme="dark"] [class*="encrypted"] * {
+    color: #ffffff !important;
   }
 }

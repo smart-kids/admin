@@ -106,6 +106,16 @@ class CurriculumManagerV5 extends React.Component {
         const customStyles = `
             :root { --cm-primary-color: #5867dd; --cm-primary-bg-light: #f0f3ff; --cm-border-color: #e2e8f0; --cm-text-main: #1e293b; --cm-text-secondary: #64748b; --cm-bg-main: #f7f8fa; --cm-danger-color: #ef4444; }
             
+            [data-theme="dark"] { 
+                --cm-primary-color: #60a5fa; 
+                --cm-primary-bg-light: rgba(96, 165, 250, 0.1); 
+                --cm-border-color: #334155; 
+                --cm-text-main: #f8fafc; 
+                --cm-text-secondary: #cbd5e1; 
+                --cm-bg-main: #1e293b; 
+                --cm-danger-color: #f87171; 
+            }
+            
             .cm-container {
                 background-color: var(--cm-bg-main);
                 padding: 1.5rem;
@@ -128,7 +138,7 @@ class CurriculumManagerV5 extends React.Component {
             .cm-column { 
                 flex: 0 0 auto; 
                 width: 320px; 
-                background: #fff; 
+                background: var(--cm-bg-main); 
                 border: 1px solid var(--cm-border-color); 
                 border-radius: 16px; 
                 display: flex; 
@@ -150,25 +160,25 @@ class CurriculumManagerV5 extends React.Component {
                 flex-shrink: 0;
                 display: flex;
                 flex-direction: column;
-                border-right: 1px solid #f1f5f9;
+                border-right: 1px solid var(--cm-border-color);
                 height: 100%;
             }
             .cm-sub-column:last-child { border-right: none; }
             
-            .cm-column-header { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; border-bottom: 1px solid #f1f5f9; background-color: #fafbfd; }
-            .cm-column-header h5 { margin: 0; font-size: 0.95rem; font-weight: 600; color: #1e293b; letter-spacing: 0.3px; }
-            .cm-add-btn { background: #f1f5f9; border: none; cursor: pointer; color: #64748b; width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+            .cm-column-header { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--cm-border-color); background-color: var(--cm-bg-main); }
+            .cm-column-header h5 { margin: 0; font-size: 0.95rem; font-weight: 600; color: var(--cm-text-main); letter-spacing: 0.3px; }
+            .cm-add-btn { background: var(--cm-border-color); border: none; cursor: pointer; color: var(--cm-text-secondary); width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
             .cm-add-btn:hover { background: var(--cm-primary-color); color: #fff; transform: scale(1.1); }
             .cm-add-btn i { font-size: 0.9rem; }
             
             .cm-column-body { padding: 1.25rem; flex-grow: 1; display: flex; flex-direction: column; overflow-y: auto; }
             .cm-search-wrapper { position: relative; margin-bottom: 1.25rem; flex-shrink: 0; }
-            .cm-search-input { padding-left: 2.5rem; border-radius: 10px; border: 1px solid #e2e8f0; background: #f8fafc; font-size: 0.85rem; height: 40px; }
-            .cm-search-input:focus { background: #fff; }
-            .search-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 1rem; }
+            .cm-search-input { padding-left: 2.5rem; border-radius: 10px; border: 1px solid var(--cm-border-color); background: var(--cm-bg-main); font-size: 0.85rem; height: 40px; }
+            .cm-search-input:focus { background: var(--cm-bg-main); }
+            .search-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--cm-text-secondary); font-size: 1rem; }
             
-            .cm-tab-header { display: flex; gap: 2.5rem; padding: 0 2rem; border-bottom: 2px solid #f1f5f9; background-color: #fcfdfe; flex-shrink: 0; box-shadow: inset 0 -1px 0 #e2e8f0; }
-            .cm-tab-btn { background: none; border: none; padding: 1.25rem 0; cursor: pointer; color: #94a3b8; font-weight: 700; position: relative; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s; }
+            .cm-tab-header { display: flex; gap: 2.5rem; padding: 0 2rem; border-bottom: 2px solid var(--cm-border-color); background-color: var(--cm-bg-main); flex-shrink: 0; box-shadow: inset 0 -1px 0 var(--cm-border-color); }
+            .cm-tab-btn { background: none; border: none; padding: 1.25rem 0; cursor: pointer; color: var(--cm-text-secondary); font-weight: 700; position: relative; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.2s; }
             .cm-tab-btn:hover { color: var(--cm-primary-color); }
             .cm-tab-btn.active { color: var(--cm-primary-color); }
             .cm-tab-btn.active::after { content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 3px; background-color: var(--cm-primary-color); border-radius: 4px 4px 0 0; box-shadow: 0 -1px 4px rgba(88, 103, 221, 0.2); }
@@ -176,24 +186,24 @@ class CurriculumManagerV5 extends React.Component {
             .tab-content { flex-grow: 1; display: flex; flex-direction: column; overflow: hidden; }
             .tab-pane { display: none; flex-grow: 1; height: 100%; }
             .tab-pane.active { display: flex; flex-direction: column; }
-            .tab-inner-scroller { display: flex; flex-wrap: nowrap; flex-grow: 1; overflow-x: auto; background: #fff; height: 100%; }
+            .tab-inner-scroller { display: flex; flex-wrap: nowrap; flex-grow: 1; overflow-x: auto; background: var(--cm-bg-main); height: 100%; }
             .tab-inner-scroller::-webkit-scrollbar { height: 4px; }
             
             .draggable-generic-list-item.selected { border-left: 4px solid var(--cm-primary-color) !important; background-color: var(--cm-primary-bg-light) !important; font-weight: 500; }
             
             /* Student Attempts Tab Styles */
-            .attempts-grid { display: grid; grid-template-columns: 1fr 1fr 450px; gap: 0; flex-grow: 1; height: 100%; border-top: 1px solid #f1f5f9; }
-            .attempts-column { border-right: 1px solid #f1f5f9; display: flex; flex-direction: column; background: #fff; overflow: hidden; min-width: 0; }
-            .attempts-column:last-child { border-right: none; background: #f8fafc; flex-grow: 1; }
+            .attempts-grid { display: grid; grid-template-columns: 1fr 1fr 450px; gap: 0; flex-grow: 1; height: 100%; border-top: 1px solid var(--cm-border-color); }
+            .attempts-column { border-right: 1px solid var(--cm-border-color); display: flex; flex-direction: column; background: var(--cm-bg-main); overflow: hidden; min-width: 0; }
+            .attempts-column:last-child { border-right: none; background: var(--cm-bg-main); flex-grow: 1; }
             .attempts-column .list-group { border: none; padding: 1rem; overflow-y: auto; flex-grow: 1; }
             .attempts-column .list-group-item { border: 1px solid transparent; border-radius: 10px; margin-bottom: 8px; transition: all 0.2s ease; cursor: pointer; padding: 1rem; position: relative; }
-            .attempts-column .list-group-item:hover { background-color: #f1f5f9; }
-            .attempts-column .list-group-item.active { background-color: var(--cm-primary-bg-light); border-color: var(--cm-primary-color); color: #1e293b; box-shadow: 0 2px 4px rgba(88, 103, 221, 0.1); }
-            .attempts-column h6 { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px; padding: 1.25rem 1.5rem 0.5rem; margin: 0; flex-shrink: 0; border-bottom: 1px solid #f1f5f9; background: #fff; }
+            .attempts-column .list-group-item:hover { background-color: var(--cm-border-color); }
+            .attempts-column .list-group-item.active { background-color: var(--cm-primary-bg-light); border-color: var(--cm-primary-color); color: var(--cm-text-main); box-shadow: 0 2px 4px rgba(88, 103, 221, 0.1); }
+            .attempts-column h6 { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; color: var(--cm-text-secondary); letter-spacing: 0.5px; padding: 1.25rem 1.5rem 0.5rem; margin: 0; flex-shrink: 0; border-bottom: 1px solid var(--cm-border-color); background: var(--cm-bg-main); }
             
             .user-list-item.active { font-weight: 600; }
-            .student-sub-item { font-size: 0.75rem; color: #64748b; margin-top: 4px; display: flex; align-items: center; gap: 4px; }
-            .student-reg-badge { font-size: 10px; background: #f1f5f9; color: #64748b; padding: 0px 6px; border-radius: 4px; font-weight: 600; border: 1px solid #e2e8f0; }
+            .student-sub-item { font-size: 0.75rem; color: var(--cm-text-secondary); margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+            .student-reg-badge { font-size: 10px; background: var(--cm-border-color); color: var(--cm-text-secondary); padding: 0px 6px; border-radius: 4px; font-weight: 600; border: 1px solid var(--cm-border-color); }
             
             .attempt-list-item-content { display: flex; justify-content: space-between; align-items: center; width: 100%; }
             .attempt-score-badge { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: 700; box-shadow: 0 2px 8px rgba(0,0,0,0.05); flex-shrink: 0; }
@@ -201,29 +211,29 @@ class CurriculumManagerV5 extends React.Component {
             .attempt-score-badge.high-score { background-color: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
             
             .attempt-details-container { width: 100%; padding: 1.5rem; overflow-y: auto; flex-grow: 1; }
-            .attempt-details-card { width: 100%; margin-bottom: 1.5rem; border: 1px solid #e2e8f0; border-radius: 16px; background: #fff; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); }
-            .attempt-events-timeline { padding: 0 1.5rem 1.5rem; border-top: 1px solid #f1f5f9; background: #fcfdfe; }
+            .attempt-details-card { width: 100%; margin-bottom: 1.5rem; border: 1px solid var(--cm-border-color); border-radius: 16px; background: var(--cm-bg-main); overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.03); }
+            .attempt-events-timeline { padding: 0 1.5rem 1.5rem; border-top: 1px solid var(--cm-border-color); background: var(--cm-bg-main); }
             .attempt-event-item { transition: transform 0.2s; display: flex; gap: 1rem; padding: 1rem 0; }
             .attempt-event-item:hover { transform: translateX(5px); }
 
             /* Answer Displays */
-            .answer-details { padding: 8px 1.5rem; background: #fff; }
-            .option-display { padding: 10px 12px; border-radius: 8px; margin-bottom: 6px; border: 1px solid #f1f5f9; display: flex; align-items: center; gap: 10px; font-size: 0.85rem; color: #64748b; }
+            .answer-details { padding: 8px 1.5rem; background: var(--cm-bg-main); }
+            .option-display { padding: 10px 12px; border-radius: 8px; margin-bottom: 6px; border: 1px solid var(--cm-border-color); display: flex; align-items: center; gap: 10px; font-size: 0.85rem; color: var(--cm-text-secondary); }
             .option-display i { font-size: 1rem; }
             .option-display.selected-correct { background-color: #f0fdf4; border-color: #bbf7d0; color: #16a34a; font-weight: 600; }
             .option-display.selected-incorrect { background-color: #fff1f2; border-color: #fecaca; color: #e11d48; font-weight: 600; }
             .option-display.correct { border-style: dashed; border-color: #16a34a; color: #16a34a; }
             
-            .text-answer { padding: 1rem; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0; }
-            .image-answer img { max-width: 100%; border-radius: 12px; border: 1px solid #e2e8f0; cursor: zoom-in; margin-top: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+            .text-answer { padding: 1rem; border-radius: 12px; background: var(--cm-bg-main); border: 1px solid var(--cm-border-color); }
+            .image-answer img { max-width: 100%; border-radius: 12px; border: 1px solid var(--cm-border-color); cursor: zoom-in; margin-top: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
             
             .attempt-event-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; flex-shrink: 0; }
             .attempt-event-icon.correct { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
             .attempt-event-icon.incorrect { background: #fff1f2; color: #e11d48; border: 1px solid #fecaca; }
             .attempt-event-details { flex-grow: 1; }
             .attempt-event-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
-            .attempt-event-title { font-weight: 600; font-size: 0.85rem; color: #334155; }
-            .attempt-event-meta { font-size: 0.7rem; color: #94a3b8; display: flex; flex-direction: column; align-items: flex-end; }
+            .attempt-event-title { font-weight: 600; font-size: 0.85rem; color: var(--cm-text-main); }
+            .attempt-event-meta { font-size: 0.7rem; color: var(--cm-text-secondary); display: flex; flex-direction: column; align-items: flex-end; }
             .attempt-event-points { color: var(--cm-primary-color); font-weight: 700; margin-bottom: 2px; }
             .attempt-event-icon { flex-shrink: 0; width: 24px; text-align: center; }
             .attempt-event-icon.correct { color: #16a34a; }
@@ -239,24 +249,24 @@ class CurriculumManagerV5 extends React.Component {
             .option-display.selected-correct { background-color: #dcfce7; border-color: #86efac; color: #15803d; font-weight: 600; }
             
             /* Teacher Planning Styles */
-            .planning-header { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem; background: #fff; border-bottom: 1px solid #f1f5f9; }
+            .planning-header { display: flex; justify-content: space-between; align-items: center; padding: 1.5rem; background: var(--cm-bg-main); border-bottom: 1px solid var(--cm-border-color); }
             .planning-sub-tabs { display: flex; gap: 1rem; }
-            .planning-sub-tab { padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #64748b; transition: all 0.2s; }
+            .planning-sub-tab { padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid var(--cm-border-color); background: var(--cm-bg-main); cursor: pointer; font-size: 0.85rem; font-weight: 600; color: var(--cm-text-secondary); transition: all 0.2s; }
             .planning-sub-tab.active { background: var(--cm-primary-color); color: #fff; border-color: var(--cm-primary-color); }
             
             .planning-content { padding: 1.5rem; overflow-y: auto; flex-grow: 1; }
-            .planning-table-container { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow-x: auto; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); }
+            .planning-table-container { background: var(--cm-bg-main); border: 1px solid var(--cm-border-color); border-radius: 12px; overflow-x: auto; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1); }
             .planning-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-            .planning-table th { background: #fafbfd; padding: 1rem; text-align: left; font-weight: 700; color: #475569; border-bottom: 2px solid #f1f5f9; white-space: nowrap; }
-            .planning-table td { padding: 1rem; border-bottom: 1px solid #f1f5f9; color: #334155; vertical-align: top; }
-            .planning-table tr:hover { background: #fcfdfe; }
+            .planning-table th { background: var(--cm-bg-main); padding: 1rem; text-align: left; font-weight: 700; color: var(--cm-text-secondary); border-bottom: 2px solid var(--cm-border-color); white-space: nowrap; }
+            .planning-table td { padding: 1rem; border-bottom: 1px solid var(--cm-border-color); color: var(--cm-text-main); vertical-align: top; }
+            .planning-table tr:hover { background: var(--cm-bg-main); }
             
             .planning-actions { display: flex; gap: 0.5rem; }
-            .planning-btn { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; border: 1px solid #e2e8f0; background: #fff; cursor: pointer; transition: all 0.2s; }
-            .planning-btn:hover { background: #f1f5f9; color: var(--cm-primary-color); }
+            .planning-btn { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--cm-border-color); background: var(--cm-bg-main); cursor: pointer; transition: all 0.2s; }
+            .planning-btn:hover { background: var(--cm-border-color); color: var(--cm-primary-color); }
             .planning-btn.btn-danger:hover { color: #ef4444; }
             
-            .rich-content-cell { max-width: 300px; max-height: 150px; overflow-y: auto; line-height: 1.5; color: #64748b; }
+            .rich-content-cell { max-width: 300px; max-height: 150px; overflow-y: auto; line-height: 1.5; color: var(--cm-text-secondary); }
             .rich-content-cell p { margin-bottom: 0.5rem; }
             
             /* Print Styles */
@@ -309,8 +319,8 @@ class CurriculumManagerV5 extends React.Component {
                 }
                 
                 .planning-table-container { border: none; box-shadow: none; }
-                .planning-table th { background: #f1f5f9 !important; border: 1px solid #e2e8f0 !important; -webkit-print-color-adjust: exact; }
-                .planning-table td { border: 1px solid #e2e8f0 !important; }
+                .planning-table th { background: var(--cm-border-color) !important; border: 1px solid var(--cm-border-color) !important; -webkit-print-color-adjust: exact; }
+                .planning-table td { border: 1px solid var(--cm-border-color) !important; }
                 .rich-content-cell { max-width: none; max-height: none; overflow: visible; }
             }
         `;

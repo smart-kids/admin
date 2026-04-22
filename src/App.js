@@ -1,5 +1,6 @@
 import React from "react";
 import { Route, HashRouter, useHistory, Redirect } from "react-router-dom";
+import { ThemeProvider } from "./contexts/ThemeContext";
 
 import home from "./pages/home";
 import students from "./pages/students";
@@ -20,6 +21,7 @@ import invitations from "./pages/invitations"
 import members from "./pages/members"
 import schools from "./pages/schools"
 import library from "./pages/library"
+import timeTables from "./pages/time-tables"
 
 import userSettings from "./pages/settings/user"
 import schoolSettings from "./pages/settings/school"
@@ -50,7 +52,9 @@ const PrivateRoute = ({ component: Component, ...rest }) => (
 class App extends React.Component {
   render() {
 
-    return (<HashRouter>
+    return (
+      <ThemeProvider>
+        <HashRouter>
       {/* overal stuff */}
       <Route exact path="/" component={login} />
       <Route exact path="/register" component={register} />
@@ -90,6 +94,7 @@ class App extends React.Component {
 
       <PrivateRoute path="/schools" component={schools} />
       <PrivateRoute path="/library" component={library} />
+      <PrivateRoute path="/time-tables" component={timeTables} />
       <PrivateRoute path="/fee-structures" component={feeStructures} />
       <PrivateRoute path="/terms" component={require("./pages/terms").default} />
       <PrivateRoute path="/assessment-types" component={require("./pages/learning/assessmentTypes").default} />
@@ -105,7 +110,9 @@ class App extends React.Component {
 
 
       {/* 3rd party admin routes */}
-    </HashRouter>)
+        </HashRouter>
+      </ThemeProvider>
+    )
 
   }
 }
