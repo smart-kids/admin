@@ -39,7 +39,7 @@
     "react-quill": "^2.0.0",
     "react-router": "^5.0.1",
     "react-router-dom": "^5.0.1",
-    "react-scripts": "3.1.1",
+    "react-scripts": "5.0.1",
     "react-select": "^5.3.0",
     "react-select-2": "^2.0.11",
     "react-simple-wysiwyg": "^3.2.2",
@@ -52,15 +52,15 @@
     "@babel/core": "^7.16.0"
   },
   "scripts": {
-    "dev": "cross-env NODE_OPTIONS=--openssl-legacy-provider npx react-app-rewired start",
+    "dev": "npx react-app-rewired start",
     "start": "npx serve -s build -l $PORT",
-    "build": "cross-env NODE_OPTIONS=--openssl-legacy-provider npx react-app-rewired build",
-    "test": "cross-env NODE_OPTIONS=--openssl-legacy-provider npx react-app-rewired test",
-    "test:finance": "cross-env NODE_OPTIONS=--openssl-legacy-provider npx jest src/test/finance-frontend.test.js --verbose",
+    "build": "npx react-app-rewired build",
+    "test": "npx react-app-rewired test",
+    "test:finance": "npx jest src/test/finance-frontend.test.js --verbose",
     "test:backend": "cd ../graph && npm test -- --grep 'Fee Structure Calculations'",
     "test:all": "npm run test:finance && npm run test:backend",
-    "test:coverage": "cross-env NODE_OPTIONS=--openssl-legacy-provider npx jest --coverage",
-    "test:watch": "cross-env NODE_OPTIONS=--openssl-legacy-provider npx jest --watch",
+    "test:coverage": "npx jest --coverage",
+    "test:watch": "npx jest --watch",
     "eject": "npx react-scripts eject"
   },
   "eslintConfig": {
