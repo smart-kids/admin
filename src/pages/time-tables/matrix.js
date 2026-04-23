@@ -563,13 +563,7 @@ const TimeTableMatrix = () => {
         <div className="card-body p-5">
           <div className="d-flex align-items-center justify-content-between flex-wrap" style={{ gap: '20px' }}>
             {(() => {
-              const { availableClasses, availableGrades, availableSubjects } = getAvailableData();
-              const filteredSubjectsList = availableSubjects.filter(s => {
-                if (!s) return false;
-                const sGradeId = s.grade?.id || s.grade;
-                // If no grade selected, show all. If grade selected, must match.
-                return !selectedGrade || String(sGradeId) === String(selectedGrade);
-              });
+              const { availableClasses, availableGrades } = getAvailableData();
 
               return (
                 <>
@@ -582,8 +576,8 @@ const TimeTableMatrix = () => {
                         handleGradeChange(e.target.value);
                       }}
                     >
-                      <option value="">Grade (Subjects)...</option>
-                      {availableGrades.map(g => <option key={g.id} value={g.id}>{g.name} ({(filteredSubjectsList || []).length} Subjects)</option>)}
+                      <option value="">Grade...</option>
+                      {availableGrades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
                     </select>
                     <div className="ml-1 d-flex">
                       <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/learning"} title="Configure Grades">
@@ -602,17 +596,15 @@ const TimeTableMatrix = () => {
                       value={selectedClass?.id || ''} 
                       onChange={e => handleClassChange(e.target.value)}
                     >
-                      <option value="">Class (Students)...</option>
-                      {availableClasses
-                        .filter(cls => !selectedGrade || String(cls.grade?.id || cls.grade) === selectedGrade)
-                        .map(cls => {
-                          const studentCount = students?.filter(student => student.class === cls.id).length || 0;
-                          return (
-                            <option key={cls.id} value={cls.id}>
-                              {cls.name} ({studentCount} Students)
-                            </option>
-                          );
-                        })}
+                      <option value="">Class...</option>
+                      {availableClasses.map(c => {
+                        const studentCount = students?.filter(student => student.class === c.id).length || 0;
+                        return (
+                          <option key={c.id} value={c.id}>
+                            {c.name} ({studentCount} Students)
+                          </option>
+                        );
+                      })}
                     </select>
                     <div className="ml-1 d-flex">
                       <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/classes"} title="Configure Classes">
