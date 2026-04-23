@@ -1,0 +1,617 @@
+/* Glassmorphism Modal Backdrop System */
+/* Modern modal backgrounds with glassmorphism effects */
+
+/* CSS Variables for Glassmorphism Modals */
+:root {
+  /* Modal Backdrop Variables */
+  --modal-backdrop-bg: rgba(0, 0, 0, 0.2);
+  --modal-backdrop-blur: 30px;
+  --modal-backdrop-saturate: 120%;
+  --modal-backdrop-transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Modal Content Variables */
+  --modal-glass-bg: rgba(255, 255, 255, 0.12);
+  --modal-glass-border: rgba(255, 255, 255, 0.4);
+  --modal-glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+  --modal-glass-border-radius: 16px;
+  
+  /* Modal Animation Variables */
+  --modal-enter-scale: 0.85;
+  --modal-enter-opacity: 0;
+  --modal-active-scale: 1;
+  --modal-active-opacity: 1;
+}
+
+[data-theme="dark"] {
+  /* Dark Mode Modal Backdrop */
+  --modal-backdrop-bg: rgba(0, 0, 0, 0.4);
+  --modal-glass-bg: rgba(30, 41, 59, 0.9);
+  --modal-glass-border: rgba(71, 85, 105, 0.5);
+  --modal-glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* Base Glassmorphism Modal Backdrop */
+.modal-glass-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: var(--modal-backdrop-bg);
+  backdrop-filter: blur(var(--modal-backdrop-blur)) saturate(var(--modal-backdrop-saturate));
+  -webkit-backdrop-filter: blur(var(--modal-backdrop-blur)) saturate(var(--modal-backdrop-saturate));
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: var(--modal-backdrop-transition);
+  will-change: opacity, backdrop-filter;
+  overflow: hidden;
+}
+
+/* Enhanced backdrop blur effect */
+.modal-glass-backdrop::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.05) 50%, 
+    rgba(255, 255, 255, 0.1) 100%);
+  backdrop-filter: blur(40px) saturate(120%) brightness(1.1);
+  -webkit-backdrop-filter: blur(40px) saturate(120%) brightness(1.1);
+  z-index: -1;
+}
+
+[data-theme="dark"] .modal-glass-backdrop::before {
+  background: linear-gradient(135deg, 
+    rgba(30, 41, 59, 0.2) 0%, 
+    rgba(30, 41, 59, 0.1) 50%, 
+    rgba(30, 41, 59, 0.2) 100%);
+  backdrop-filter: blur(40px) saturate(120%) brightness(0.9);
+  -webkit-backdrop-filter: blur(40px) saturate(120%) brightness(0.9);
+}
+
+.modal-glass-backdrop.show {
+  opacity: 1;
+}
+
+/* Glassmorphism Modal Content */
+.modal-glass-content {
+  background: var(--modal-glass-bg);
+  border: 1px solid var(--modal-glass-border);
+  border-radius: var(--modal-glass-border-radius);
+  box-shadow: var(--modal-glass-shadow);
+  backdrop-filter: blur(var(--modal-backdrop-blur)) saturate(var(--modal-backdrop-saturate));
+  -webkit-backdrop-filter: blur(var(--modal-backdrop-blur)) saturate(var(--modal-backdrop-saturate));
+  transform: scale(var(--modal-enter-scale));
+  opacity: var(--modal-enter-opacity);
+  transition: var(--modal-backdrop-transition);
+  will-change: transform, opacity, backdrop-filter;
+  max-height: 90vh;
+  overflow-y: auto;
+  outline: none;
+  position: relative;
+}
+
+/* Enhanced glass effect for modal content */
+.modal-glass-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.1) 0%, 
+    rgba(255, 255, 255, 0.05) 100%);
+  border-radius: inherit;
+  backdrop-filter: blur(10px) saturate(150%);
+  -webkit-backdrop-filter: blur(10px) saturate(150%);
+  z-index: -1;
+}
+
+[data-theme="dark"] .modal-glass-content::before {
+  background: linear-gradient(135deg, 
+    rgba(255, 255, 255, 0.05) 0%, 
+    rgba(255, 255, 255, 0.02) 100%);
+}
+
+.modal-glass-backdrop.show .modal-glass-content {
+  transform: scale(var(--modal-active-scale));
+  opacity: var(--modal-active-opacity);
+}
+
+/* Modal Dialog Variants */
+.modal-glass-backdrop .modal-dialog {
+  margin: 0;
+  max-width: 90vw;
+  width: auto;
+}
+
+.modal-glass-backdrop.modal-sm .modal-dialog {
+  max-width: 400px;
+}
+
+.modal-glass-backdrop.modal-md .modal-dialog {
+  max-width: 600px;
+}
+
+.modal-glass-backdrop.modal-lg .modal-dialog {
+  max-width: 800px;
+}
+
+.modal-glass-backdrop.modal-xl .modal-dialog {
+  max-width: 1200px;
+}
+
+.modal-glass-backdrop.modal-fullscreen .modal-dialog {
+  max-width: 100vw;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+}
+
+/* Modal Header with Glassmorphism */
+.modal-glass-header {
+  background: var(--modal-glass-bg);
+  border-bottom: 1px solid var(--modal-glass-border);
+  border-radius: var(--modal-glass-border-radius) var(--modal-glass-border-radius) 0 0;
+  padding: 1.5rem;
+  backdrop-filter: blur(var(--modal-backdrop-blur)) saturate(var(--modal-backdrop-saturate));
+  -webkit-backdrop-filter: blur(var(--modal-backdrop-blur)) saturate(var(--modal-backdrop-saturate));
+}
+
+/* Modal Body with Glassmorphism */
+.modal-glass-body {
+  background: var(--modal-glass-bg);
+  padding: 1.5rem;
+  backdrop-filter: blur(var(--modal-backdrop-blur)) saturate(var(--modal-backdrop-saturate));
+  -webkit-backdrop-filter: blur(var(--modal-backdrop-blur)) saturate(var(--modal-backdrop-saturate));
+}
+
+/* Modal Footer with Glassmorphism */
+.modal-glass-footer {
+  background: var(--modal-glass-bg);
+  border-top: 1px solid var(--modal-glass-border);
+  border-radius: 0 0 var(--modal-glass-border-radius) var(--modal-glass-border-radius);
+  padding: 1rem 1.5rem;
+  backdrop-filter: blur(var(--modal-backdrop-blur)) saturate(var(--modal-backdrop-saturate));
+  -webkit-backdrop-filter: blur(var(--modal-backdrop-blur)) saturate(var(--modal-backdrop-saturate));
+}
+
+/* Fallback for browsers without backdrop-filter support */
+@supports not (backdrop-filter: blur(1px)) {
+  .modal-glass-backdrop {
+    background: rgba(0, 0, 0, 0.8);
+  }
+  
+  .modal-glass-content {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+  
+  [data-theme="dark"] .modal-glass-backdrop {
+    background: rgba(0, 0, 0, 0.9);
+  }
+  
+  [data-theme="dark"] .modal-glass-content {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .modal-glass-backdrop,
+  .modal-glass-content {
+    transition: none;
+  }
+  
+  .modal-glass-backdrop {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  
+  .modal-glass-content {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  .modal-glass-backdrop {
+    background: rgba(0, 0, 0, 0.9);
+  }
+  
+  .modal-glass-content {
+    background: var(--bg-secondary);
+    border: 2px solid var(--text-primary);
+    box-shadow: none;
+  }
+  
+  .modal-glass-header,
+  .modal-glass-body,
+  .modal-glass-footer {
+    background: var(--bg-secondary);
+    border-color: var(--text-primary);
+  }
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  .modal-glass-backdrop {
+    padding: 1rem;
+  }
+  
+  .modal-glass-backdrop .modal-dialog {
+    max-width: 100%;
+    width: 100%;
+  }
+  
+  .modal-glass-content {
+    border-radius: 12px;
+    max-height: 85vh;
+  }
+  
+  .modal-glass-header,
+  .modal-glass-body,
+  .modal-glass-footer {
+    padding: 1rem;
+  }
+}
+
+/* Performance Optimizations */
+.modal-glass-backdrop {
+  contain: layout style paint;
+}
+
+.modal-glass-content {
+  contain: layout style paint;
+}
+
+/* Focus Management for Accessibility */
+.modal-glass-backdrop.show {
+  outline: none;
+}
+
+.modal-glass-content:focus {
+  outline: 2px solid var(--text-primary);
+  outline-offset: 2px;
+}
+
+/* Button Styling in Glassmorphism Modals */
+.modal-glass-footer .btn {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid var(--modal-glass-border);
+}
+
+/* Form Controls in Glassmorphism Modals */
+.modal-glass-body .form-control {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--modal-glass-border);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+[data-theme="dark"] .modal-glass-body .form-control {
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid var(--modal-glass-border);
+}
+
+/* Loading States in Glassmorphism Modals */
+.modal-glass-content.loading {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.modal-glass-content.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--modal-glass-border);
+  border-top: 2px solid var(--text-primary);
+  border-radius: 50%;
+  animation: modal-spin 1s linear infinite;
+}
+
+@keyframes modal-spin {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Print Styles */
+@media print {
+  .modal-glass-backdrop {
+    display: none !important;
+  }
+  
+  .modal-glass-content {
+    background: white !important;
+    border: 1px solid black !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
+/* Skeleton Loader Styles */
+.skeleton-loader {
+  padding: 1rem;
+}
+
+.skeleton-item {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 1rem;
+  border: 1px solid var(--border-primary);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.skeleton-cell {
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-cell::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3) 50%,
+    transparent
+  );
+  animation: skeleton-shimmer 1.5s infinite;
+}
+
+[data-theme="dark"] .skeleton-cell::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent
+  );
+}
+
+.skeleton-checkbox {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+}
+
+.skeleton-handle {
+  width: 30px;
+  height: 20px;
+  min-width: 30px;
+}
+
+.skeleton-text {
+  flex: 1;
+  height: 16px;
+  border-radius: 4px;
+}
+
+.skeleton-text-lg {
+  height: 18px;
+  flex: 2;
+}
+
+.skeleton-text-md {
+  height: 16px;
+  flex: 1.5;
+}
+
+.skeleton-number {
+  width: 80px;
+  height: 16px;
+  border-radius: 4px;
+}
+
+.skeleton-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.skeleton-button {
+  height: 28px;
+  border-radius: 4px;
+  width: 32px;
+}
+
+.skeleton-button-sm {
+  height: 24px;
+  border-radius: 4px;
+  width: 28px;
+}
+
+/* Skeleton Animation */
+@keyframes skeleton-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Student List Skeleton Loader */
+.student-skeleton {
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  border: 1px solid var(--border-primary);
+}
+
+.student-skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.student-skeleton-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  position: relative;
+  overflow: hidden;
+}
+
+.student-skeleton-avatar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent
+  );
+  animation: skeleton-shimmer 1.5s infinite;
+}
+
+[data-theme="dark"] .student-skeleton-avatar::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent
+  );
+}
+
+.student-skeleton-info {
+  flex: 1;
+}
+
+.student-skeleton-name {
+  height: 16px;
+  width: 150px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.student-skeleton-name::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent
+  );
+  animation: skeleton-shimmer 1.5s infinite;
+}
+
+[data-theme="dark"] .student-skeleton-name::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent
+  );
+}
+
+.student-skeleton-details {
+  height: 12px;
+  width: 100px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.student-skeleton-details::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent
+  );
+  animation: skeleton-shimmer 1.5s infinite;
+}
+
+[data-theme="dark"] .student-skeleton-details::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent
+  );
+}
+
+.student-skeleton-action {
+  width: 32px;
+  height: 32px;
+  background: var(--bg-tertiary);
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+}
+
+.student-skeleton-action::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent
+  );
+  animation: skeleton-shimmer 1.5s infinite;
+}
+
+[data-theme="dark"] .student-skeleton-action::after {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.05) 50%,
+    transparent
+  );
+}

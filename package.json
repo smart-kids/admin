@@ -16,6 +16,7 @@
     "draft-js-export-html": "^1.4.1",
     "echarts": "^5.4.3",
     "echarts-for-react": "^3.0.2",
+    "finance": "^0.0.1",
     "fuse.js": "^6.6.2",
     "google-map-react": "^1.1.5",
     "google-maps-react": "^2.0.2",

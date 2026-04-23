@@ -1213,7 +1213,45 @@ var Data = (function () {
         { name: "buses", singularName: "bus", createFields: ['make', 'plate', 'size', 'school', 'driver'], updateFields: ['make', 'plate', 'size', 'driver'] },
         { name: "routes", singularName: "route", createFields: ['name', 'description', 'school', 'students', 'path'], updateFields: ['name', 'description', 'students', 'path'] },
         { name: "schedules", singularName: "schedule", createFields: ['name', 'message', 'time', 'end_time', 'school', 'route', 'type', 'days', 'bus', 'driver', 'actions'], updateFields: ['name', 'message', 'time', 'end_time', 'type', 'days', 'route', 'bus', 'driver', 'actions'] },
-        { name: "classes", singularName: "class", createFields: ['name', 'teacher', 'school', 'feeAmount'], updateFields: ['name', 'teacher', 'feeAmount'] },
+        { 
+            name: "classes", 
+            singularName: "class", 
+            createFields: ['name', 'teacher', 'school', 'feeAmount', 'order'], 
+            updateFields: ['name', 'teacher', 'feeAmount', 'order'],
+            customMethods: (allData, subs, api) => ({
+                updateOrder: (orders) => new Promise(async (resolve, reject) => {
+                    if (!orders || orders.length === 0) return resolve(true);
+                    try {
+                        const mutation = `
+                            mutation UpdateClassOrder($orders: [ClassOrderInput]!) {
+                                classes {
+                                    updateOrder(orders: $orders)
+                                }
+                            }
+                        `;
+                        const response = await mutate(mutation, { orders });
+
+                        // Update cache locally
+                        const safeList = Array.isArray(allData.classes) ? allData.classes : [];
+                        orders.forEach(({ id, order }) => {
+                            const existing = safeList.find(c => String(c.id) === String(id));
+                            if (existing) existing.order = order;
+                        });
+
+                        allData.classes = [...safeList].sort((a, b) => (a.order || 0) - (b.order || 0));
+
+                        if (Array.isArray(subs.classes)) {
+                            subs.classes.forEach(cb => cb({ classes: [...allData.classes] }));
+                        }
+
+                        resolve(response);
+                    } catch (e) {
+                        console.error('Failed to update class orders:', e);
+                        reject(e);
+                    }
+                })
+            })
+        },
         { name: "teachers", singularName: "teacher", createFields: ['name', 'national_id', 'tsc_number', 'phone', 'email', 'school', 'gender', 'password'], updateFields: ['national_id', 'tsc_number', 'name', 'phone', 'email', 'gender', 'password'], customMethods: (allData, subs) => ({ invite: (data) => new Promise(async (resolve) => { const response = await mutate(`mutation ($data: Iinvite!) { teachers { invite(teacher: $data) { id phone message } } }`, { data }); const invitation = response.teachers.invite; allData.invitations.push(invitation); if (Array.isArray(subs.invitations)) subs.invitations.forEach(cb => cb({ invitations: [...allData.invitations] })); resolve(invitation); }) }) },
         { name: "teams", singularName: "team", createFields: ['name', 'school'], updateFields: ['name', 'school'], customMethods: (allData, subs) => ({ invite: (data) => new Promise(async (resolve) => { const response = await mutate(`mutation ($data: Iinvite!) { teams { invite(team: $data) { id phone message } } }`, { data }); const invitation = response.teams.invite; allData.invitations.push(invitation); if (Array.isArray(subs.invitations)) subs.invitations.forEach(cb => cb({ invitations: [...allData.invitations] })); resolve(invitation); }) }) },
         { name: "team_members", singularName: "team_member", createFields: ['team', 'user'], updateFields: ['team', 'user'] },

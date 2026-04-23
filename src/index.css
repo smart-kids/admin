@@ -360,6 +360,9 @@ code {
 /* Import comprehensive dark mode styles */
 @import './styles/dark-mode.css';
 
+/* Import glassmorphism modal styles */
+@import './styles/glassmorphism-modals.css';
+
 /* --- Print Optimizations --- */
 @media print {
   @page {

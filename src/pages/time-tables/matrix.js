@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import TimeTableGrid from './components/TimeTableGrid';
 import TimeTableConfig from './components/TimeTableConfig';
 import AllocationModal from './components/AllocationModal';
+import TimeTablePrintReview from './components/TimeTablePrintReview';
 import Data from "../../utils/data";
 
 const TimeTableMatrix = () => {
@@ -13,6 +14,7 @@ const TimeTableMatrix = () => {
   const [grades, setGrades] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [teachers, setTeachers] = useState([]);
+  const [students, setStudents] = useState([]);
   const [timeTableData, setTimeTableData] = useState({});
   const [config, setConfig] = useState({
     lessonLength: 45,
@@ -35,6 +37,9 @@ const TimeTableMatrix = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showPrintView, setShowPrintView] = useState(false);
+  const [schoolInfo, setSchoolInfo] = useState(null);
+  const [allTimeTablesData, setAllTimeTablesData] = useState({});
 
   // Generate time slots based on configuration
   const timeSlots = useMemo(() => {
@@ -129,16 +134,85 @@ const TimeTableMatrix = () => {
       setSelectedGrade(savedGrade);
     }
     
-    loadData();
+    // Load school info
+    const schoolInfo = Data.schools.getSelected();
+    setSchoolInfo(schoolInfo);
   }, []);
 
+  // Set up subscriptions like results management
+  useEffect(() => {
+    // Subscribe to data changes
+    const unsubClasses = Data.classes.subscribe(({ classes }) => setClasses(classes || []));
+    const unsubTerms = Data.terms?.subscribe(({ terms }) => setTerms(terms || []));
+    const unsubGrades = Data.grades?.subscribe(({ grades }) => setGrades(grades || []));
+    const unsubSubjects = Data.subjects?.subscribe(({ subjects }) => setSubjects(subjects || []));
+    const unsubTeachers = Data.teachers?.subscribe(({ teachers }) => setTeachers(teachers || []));
+    const unsubStudents = Data.students?.subscribe(({ students }) => setStudents(students || []));
+    const unsubSchools = Data.schools?.subscribe(({ selectedSchool }) => {
+      setSchoolInfo(selectedSchool);
+    });
+
+    // Check for defaults as data arrives
+    const checkAutoSelect = setInterval(() => {
+      if (classes.length > 0 && terms.length > 0) {
+        autoSelectDefaults(classes, terms, grades);
+        clearInterval(checkAutoSelect);
+      }
+    }, 500);
+
+    // Cleanup
+    return () => {
+      if (unsubClasses) unsubClasses();
+      if (unsubTerms) unsubTerms();
+      if (unsubGrades) unsubGrades();
+      if (unsubSubjects) unsubSubjects();
+      if (unsubTeachers) unsubTeachers();
+      if (unsubStudents) unsubStudents();
+      if (unsubSchools) unsubSchools();
+      clearInterval(checkAutoSelect);
+    };
+  }, [classes, terms, grades]);
+
+  const getAvailableData = () => {
+    const userData = JSON.parse(localStorage.getItem("user") || "{}");
+    const userRole = localStorage.getItem("userRole");
+    // Check for enhanced user data (parents with teacher details)
+    const enhancedUser = JSON.parse(localStorage.getItem("enhancedUser")) || userData;
+    // Treat all parents as teachers in admin interface
+    const isTeacher = userRole === 'teacher' || userData?.userType === 'teacher' || userData?.role === 'teacher' || userRole === 'parent' || userData?.userType === 'parent' || userData?.role === 'parent';
+    const teacherId = enhancedUser?.teacherDetails?.id || userData?.id;
+
+    let availableSubjects = subjects || [];
+    let availableGrades = grades || [];
+    let availableClasses = classes || [];
+
+    if (isTeacher && teacherId) {
+        // Teacher can only see their assigned subjects
+        availableSubjects = availableSubjects.filter(s => s.teacher === teacherId || s.teacher?.id === teacherId);
+        
+        // Grades containing those subjects
+        const teacherGradeIds = [...new Set(availableSubjects.map(s => s.grade?.id || s.grade))].map(String);
+        availableGrades = availableGrades.filter(g => teacherGradeIds.includes(String(g.id)));
+
+        // Classes belonging to those grades OR where teacher is class teacher
+        availableClasses = availableClasses.filter(c => {
+            const gradeMatch = teacherGradeIds.includes(String(c.grade?.id || c.grade));
+            const teacherMatch = (c.teacher?.id || c.teacher) === teacherId;
+            return gradeMatch || teacherMatch;
+        });
+    }
+
+    return { availableSubjects, availableGrades, availableClasses, terms };
+  };
+
   const autoSelectDefaults = (classesData, termsData, gradesData) => {
+    const { availableClasses, availableGrades } = getAvailableData();
     let shouldUpdate = false;
     let updates = {};
 
     // Auto-select first class if none selected
-    if (!selectedClass && classesData?.length > 0) {
-      const firstClass = classesData[0];
+    if (!selectedClass && availableClasses?.length > 0) {
+      const firstClass = availableClasses[0];
       updates.selectedClass = firstClass;
       localStorage.setItem('timeTables_selectedClass', JSON.stringify(firstClass));
       shouldUpdate = true;
@@ -152,10 +226,10 @@ const TimeTableMatrix = () => {
     }
 
     // Auto-select grade based on selected class
-    if (!selectedGrade && gradesData?.length > 0) {
+    if (!selectedGrade && availableGrades?.length > 0) {
       const classToUse = updates.selectedClass || selectedClass;
       if (classToUse) {
-        const currentClass = classesData.find(c => c.id === classToUse.id);
+        const currentClass = availableClasses.find(c => c.id === classToUse.id);
         const gradeId = currentClass?.grade?.id || currentClass?.grade;
         if (gradeId) {
           updates.selectedGrade = String(gradeId);
@@ -165,8 +239,8 @@ const TimeTableMatrix = () => {
       }
       
       // Fallback to first grade
-      if (!updates.selectedGrade && gradesData.length > 0) {
-        updates.selectedGrade = String(gradesData[0].id);
+      if (!updates.selectedGrade && availableGrades.length > 0) {
+        updates.selectedGrade = String(availableGrades[0].id);
         localStorage.setItem('timeTables_selectedGrade', updates.selectedGrade);
         shouldUpdate = true;
       }
@@ -176,60 +250,6 @@ const TimeTableMatrix = () => {
       if (updates.selectedClass) setSelectedClass(updates.selectedClass);
       if (updates.selectedTerm) setSelectedTerm(updates.selectedTerm);
       if (updates.selectedGrade) setSelectedGrade(updates.selectedGrade);
-    }
-  };
-
-  const loadData = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      console.log('Loading Time Tables data...');
-      
-      // Load classes, terms, grades
-      const [classesData, termsData, gradesData] = await Promise.all([
-        Data.classes.getAll(),
-        Data.terms.getAll(),
-        Data.grades.getAll()
-      ]);
-      
-      console.log('Classes loaded:', classesData?.length || 0);
-      console.log('Terms loaded:', termsData?.length || 0);
-      console.log('Grades loaded:', gradesData?.length || 0);
-      
-      setTerms(termsData || []);
-      setGrades(gradesData || []);
-      
-      // Load all students once and get counts for each class
-      const allStudents = await Data.students.getAll();
-      const classesWithCounts = (classesData || []).map(classItem => {
-        const studentCount = allStudents?.filter(student => student.class === classItem.id).length || 0;
-        return {
-          ...classItem,
-          studentCount
-        };
-      });
-      
-      setClasses(classesWithCounts);
-      
-      // Auto-select defaults like Results
-      autoSelectDefaults(classesWithCounts, termsData, gradesData);
-      
-      // Load subjects
-      const subjectsData = await Data.subjects.getAll();
-      console.log('Subjects loaded:', subjectsData?.length || 0);
-      setSubjects(subjectsData || []);
-      
-      // Load teachers
-      const teachersData = await Data.teachers.getAll();
-      console.log('Teachers loaded:', teachersData?.length || 0);
-      setTeachers(teachersData || []);
-      
-      console.log('Time Tables data loading completed');
-    } catch (error) {
-      console.error('Error loading Time Tables data:', error);
-      setError('Failed to load Time Tables data. Please try again.');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -256,8 +276,10 @@ const TimeTableMatrix = () => {
   };
 
   // Handle class selection
-  const handleClassChange = useCallback((classData) => {
-    setSelectedClass(classData);
+  const handleClassChange = useCallback((classId) => {
+    const { availableClasses, availableGrades } = getAvailableData();
+    const classData = availableClasses.find(c => String(c.id) === String(classId));
+    setSelectedClass(classData || null);
     if (classData) {
       localStorage.setItem('timeTables_selectedClass', JSON.stringify(classData));
       
@@ -270,7 +292,7 @@ const TimeTableMatrix = () => {
     } else {
       localStorage.removeItem('timeTables_selectedClass');
     }
-  }, []);
+  }, [getAvailableData]);
 
   // Handle term selection
   const handleTermChange = useCallback((termId) => {
@@ -341,14 +363,34 @@ const TimeTableMatrix = () => {
       .map(([key, allocation]) => ({ key, ...allocation }));
   }, [timeTableData]);
 
+  // Load all time tables data for print all functionality
+  const loadAllTimeTablesData = useCallback(async () => {
+    if (!classes.length) return;
+    
+    try {
+      const allData = {};
+      for (const classItem of classes) {
+        const classTimeTable = await Data.timeTables.getByClass(classItem.id);
+        allData[classItem.id] = classTimeTable || {};
+      }
+      setAllTimeTablesData(allData);
+    } catch (error) {
+      console.error('Error loading all time tables data:', error);
+    }
+  }, [classes]);
+
+  // Toggle print view
+  const togglePrintView = useCallback(() => {
+    if (!showPrintView) {
+      loadAllTimeTablesData();
+    }
+    setShowPrintView(prev => !prev);
+  }, [showPrintView, loadAllTimeTablesData]);
+
   // Handle print
   const handlePrint = useCallback(() => {
-    const printWindow = window.open('', '_blank');
-    const printContent = generatePrintContent();
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-    printWindow.print();
-  }, [selectedClass, timeTableData, config]);
+    window.print();
+  }, []);
 
   const generatePrintContent = () => {
     const days = config.workingDays;
@@ -420,6 +462,50 @@ const TimeTableMatrix = () => {
     `;
   };
 
+  // Handle print all
+  const handlePrintAll = useCallback(() => {
+    setShowPrintView(true);
+  }, []);
+
+  // Handle print single class
+  const handlePrintSingle = useCallback(() => {
+    setShowPrintView(true);
+  }, []);
+
+  if (showPrintView) {
+    return (
+      <div className="p-10 min-h-100vh" style={{ backgroundColor: '#f3f4f6' }}>
+        <div className="d-print-none p-4 border-bottom mb-4 d-flex justify-content-between align-items-center bg-white rounded shadow-sm">
+          <button className="btn btn-secondary font-weight-bold" onClick={togglePrintView}>
+            <i className="fa fa-arrow-left"></i> Back to Time Tables
+          </button>
+          <div>
+            <h4 className="m-0 font-weight-bold">Time Table Preview</h4>
+          </div>
+          <div>
+            <button className="btn btn-primary font-weight-bold" onClick={handlePrint}>
+              <i className="fa fa-print mr-2"></i> Print Time Tables
+            </button>
+          </div>
+        </div>
+        <div id="print-area">
+          <TimeTablePrintReview
+            classes={classes}
+            selectedClass={selectedClass}
+            selectedTerm={terms.find(t => t.id === selectedTerm)}
+            timeTableData={selectedClass ? { [selectedClass.id]: timeTableData } : allTimeTablesData}
+            config={config}
+            timeSlots={timeSlots}
+            subjects={subjects}
+            teachers={teachers}
+            school={schoolInfo}
+            printAll={!selectedClass}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="time-tables-container">
       {/* Header */}
@@ -437,8 +523,16 @@ const TimeTableMatrix = () => {
             Settings
           </button>
           <button 
+            className="btn btn-success btn-sm"
+            onClick={handlePrintAll}
+            disabled={!classes.length}
+          >
+            <i className="flaticon2-printer mr-2"></i>
+            Print All
+          </button>
+          <button 
             className="btn btn-primary btn-sm"
-            onClick={handlePrint}
+            onClick={handlePrintSingle}
             disabled={!selectedClass}
           >
             <i className="flaticon2-printer mr-2"></i>
@@ -468,80 +562,111 @@ const TimeTableMatrix = () => {
       <div className="card card-custom mb-6" style={{ borderRadius: '8px', border: '1px solid #ebedf3' }}>
         <div className="card-body p-5">
           <div className="d-flex align-items-center justify-content-between flex-wrap" style={{ gap: '20px' }}>
-            {/* Grade Selection */}
-            <div style={{ minWidth: '200px' }}>
-              <label className="font-weight-boldest text-dark font-size-sm mb-2">Select Grade</label>
-              <select 
-                className="form-control form-control-solid"
-                value={selectedGrade || ''}
-                onChange={(e) => handleGradeChange(e.target.value)}
-              >
-                <option value="">Choose grade...</option>
-                {grades.map(grade => (
-                  <option key={grade.id} value={grade.id}>
-                    {grade.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {(() => {
+              const { availableClasses, availableGrades, availableSubjects } = getAvailableData();
+              const filteredSubjectsList = availableSubjects.filter(s => {
+                if (!s) return false;
+                const sGradeId = s.grade?.id || s.grade;
+                // If no grade selected, show all. If grade selected, must match.
+                return !selectedGrade || String(sGradeId) === String(selectedGrade);
+              });
 
-            {/* Class Selection */}
-            <div style={{ minWidth: '200px' }}>
-              <label className="font-weight-boldest text-dark font-size-sm mb-2">Select Class</label>
-              <select 
-                className="form-control form-control-solid"
-                value={selectedClass?.id || ''}
-                onChange={(e) => {
-                  const classData = classes.find(c => c.id === e.target.value);
-                  handleClassChange(classData || null);
-                }}
-              >
-                <option value="">Choose a class...</option>
-                {classes
-                  .filter(cls => !selectedGrade || String(cls.grade?.id || cls.grade) === selectedGrade)
-                  .map(cls => (
-                    <option key={cls.id} value={cls.id}>
-                      {cls.name} {cls.studentCount !== undefined ? `(${cls.studentCount} students)` : ''}
-                    </option>
-                  ))}
-              </select>
-            </div>
+              return (
+                <>
+                  {/* Grade Selection */}
+                  <div className="dropdown dropdown-inline d-flex align-items-center" style={{ minWidth: '200px' }}>
+                    <select 
+                      className="form-control form-control-sm form-control-solid" 
+                      value={selectedGrade || ''} 
+                      onChange={e => {
+                        handleGradeChange(e.target.value);
+                      }}
+                    >
+                      <option value="">Grade (Subjects)...</option>
+                      {availableGrades.map(g => <option key={g.id} value={g.id}>{g.name} ({(filteredSubjectsList || []).length} Subjects)</option>)}
+                    </select>
+                    <div className="ml-1 d-flex">
+                      <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/learning"} title="Configure Grades">
+                        <i className="fa fa-cog font-size-xs"></i>
+                      </button>
+                      <button className="btn btn-xs btn-icon btn-light-success" onClick={() => window.location.hash = "#/grades/add"} title="Add Grade">
+                        <i className="fa fa-plus font-size-xs"></i>
+                      </button>
+                    </div>
+                  </div>
 
-            {/* Term Selection */}
-            <div style={{ minWidth: '200px' }}>
-              <label className="font-weight-boldest text-dark font-size-sm mb-2">Select Term</label>
-              <select 
-                className="form-control form-control-solid"
-                value={selectedTerm || ''}
-                onChange={(e) => handleTermChange(e.target.value)}
-              >
-                <option value="">Choose term...</option>
-                {terms.map(term => (
-                  <option key={term.id} value={term.id}>
-                    {term.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+                  {/* Class Selection */}
+                  <div className="dropdown dropdown-inline d-flex align-items-center" style={{ minWidth: '200px' }}>
+                    <select 
+                      className="form-control form-control-sm form-control-solid" 
+                      value={selectedClass?.id || ''} 
+                      onChange={e => handleClassChange(e.target.value)}
+                    >
+                      <option value="">Class (Students)...</option>
+                      {availableClasses
+                        .filter(cls => !selectedGrade || String(cls.grade?.id || cls.grade) === selectedGrade)
+                        .map(cls => {
+                          const studentCount = students?.filter(student => student.class === cls.id).length || 0;
+                          return (
+                            <option key={cls.id} value={cls.id}>
+                              {cls.name} ({studentCount} Students)
+                            </option>
+                          );
+                        })}
+                    </select>
+                    <div className="ml-1 d-flex">
+                      <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/classes"} title="Configure Classes">
+                        <i className="fa fa-cog font-size-xs"></i>
+                      </button>
+                      <button className="btn btn-xs btn-icon btn-light-success" onClick={() => window.location.hash = "#/classes/add"} title="Add Class">
+                        <i className="fa fa-plus font-size-xs"></i>
+                      </button>
+                    </div>
+                  </div>
 
-            {/* Current Selection Display */}
-            <div className="d-flex align-items-center flex-wrap" style={{ gap: '10px' }}>
-              {selectedGrade && (
-                <span className="label label-inline label-light-info font-weight-bold">
-                  Grade: {grades.find(g => g.id === selectedGrade)?.name || selectedGrade}
-                </span>
-              )}
-              {selectedClass && (
-                <span className="label label-inline label-light-primary font-weight-bold">
-                  Class: {selectedClass.name}
-                </span>
-              )}
-              {selectedTerm && (
-                <span className="label label-inline label-light-success font-weight-bold">
-                  Term: {terms.find(t => t.id === selectedTerm)?.name || selectedTerm}
-                </span>
-              )}
-            </div>
+                  {/* Term Selection */}
+                  <div className="dropdown dropdown-inline d-flex align-items-center" style={{ minWidth: '200px' }}>
+                    <select 
+                      className="form-control form-control-sm form-control-solid" 
+                      value={selectedTerm || ''} 
+                      onChange={e => {
+                        handleTermChange(e.target.value);
+                      }}
+                    >
+                      <option value="">Term...</option>
+                      {terms?.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                    </select>
+                    <div className="ml-1 d-flex">
+                      <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/terms"} title="Configure Terms">
+                        <i className="fa fa-cog font-size-xs"></i>
+                      </button>
+                      <button className="btn btn-xs btn-icon btn-light-success" onClick={() => window.location.hash = "#/terms/add"} title="Add Term">
+                        <i className="fa fa-plus font-size-xs"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Current Selection Display */}
+                  <div className="d-flex align-items-center flex-wrap" style={{ gap: '10px' }}>
+                    {selectedGrade && (
+                      <span className="label label-inline label-light-info font-weight-bold">
+                        Grade: {availableGrades.find(g => g.id === selectedGrade)?.name || selectedGrade}
+                      </span>
+                    )}
+                    {selectedClass && (
+                      <span className="label label-inline label-light-primary font-weight-bold">
+                        Class: {selectedClass.name}
+                      </span>
+                    )}
+                    {selectedTerm && (
+                      <span className="label label-inline label-light-success font-weight-bold">
+                        Term: {terms.find(t => t.id === selectedTerm)?.name || selectedTerm}
+                      </span>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       </div>

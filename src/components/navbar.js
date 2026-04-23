@@ -692,6 +692,8 @@ class Navbar extends React.Component {
                         <li className="kt-menu__item"><Link to="/library" className="kt-menu__link"><span className="kt-menu__link-text" style={bottomNavCommonLinkStyle}>Library</span></Link></li>
                         {!isTeacher && <li className="kt-menu__item"><Link to="/finance/fees" className="kt-menu__link"><span className="kt-menu__link-text" style={bottomNavCommonLinkStyle}>Fee</span></Link></li>}
                         {!isTeacher && <li className="kt-menu__item"><Link to="/results" className="kt-menu__link"><span className="kt-menu__link-text" style={bottomNavCommonLinkStyle}>Results</span></Link></li>}
+                        {!isTeacher && <li className="kt-menu__item"><Link to="/time-tables" className="kt-menu__link"><span className="kt-menu__link-text" style={bottomNavCommonLinkStyle}>Time Tables</span></Link></li>}
+
                     </ul>
                 </div>
             </div>
