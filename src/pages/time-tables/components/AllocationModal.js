@@ -129,32 +129,32 @@ const AllocationModal = ({
           maxHeight: '85vh',
           display: 'flex',
           flexDirection: 'column',
-          borderRadius: '12px',
-          border: 'none',
-          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+          borderRadius: '8px',
+          border: '1px solid #dee2e6',
+          boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)'
         }}>
           <div className="modal-header" style={{
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: 'white',
-            borderRadius: '12px 12px 0 0',
-            padding: '20px 24px',
-            border: 'none'
+            backgroundColor: '#f8f9fa',
+            color: '#212529',
+            borderRadius: '8px 8px 0 0',
+            padding: '16px 20px',
+            borderBottom: '1px solid #dee2e6'
           }}>
             <div className="d-flex align-items-center justify-content-between w-100">
               <div>
-                <h5 className="modal-title mb-1" style={{ fontWeight: '700', fontSize: '18px', margin: 0 }}>
-                  📝 Allocate Lesson
+                <h5 className="modal-title mb-1" style={{ fontWeight: '600', fontSize: '16px', margin: 0 }}>
+                  Allocate Lesson
                 </h5>
                 <div className="d-flex align-items-center">
-                  <span className="mr-3" style={{ fontSize: '14px', opacity: 0.9 }}>
-                    📅 {day}
+                  <span className="mr-3" style={{ fontSize: '13px', color: '#6c757d' }}>
+                    {day}
                   </span>
-                  <span className="mr-3" style={{ fontSize: '14px', opacity: 0.9 }}>
-                    🕐 {time}
+                  <span className="mr-3" style={{ fontSize: '13px', color: '#6c757d' }}>
+                    {time}
                   </span>
                   {slot && (
-                    <span style={{ fontSize: '14px', opacity: 0.9 }}>
-                      ⏱️ {slot.duration} min
+                    <span style={{ fontSize: '13px', color: '#6c757d' }}>
+                      {slot.duration} min
                     </span>
                   )}
                 </div>
@@ -164,9 +164,8 @@ const AllocationModal = ({
                 className="close" 
                 onClick={onClose}
                 style={{
-                  color: 'white',
-                  fontSize: '24px',
-                  opacity: 0.8,
+                  color: '#6c757d',
+                  fontSize: '20px',
                   background: 'none',
                   border: 'none',
                   padding: '0',
@@ -174,17 +173,7 @@ const AllocationModal = ({
                   height: '30px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: '50%',
-                  transition: 'all 0.2s'
-                }}
-                onMouseOver={(e) => {
-                  e.target.style.opacity = '1';
-                  e.target.style.backgroundColor = 'rgba(255,255,255,0.2)';
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.opacity = '0.8';
-                  e.target.style.backgroundColor = 'transparent';
+                  justifyContent: 'center'
                 }}
               >
                 <span aria-hidden="true">&times;</span>
@@ -203,15 +192,15 @@ const AllocationModal = ({
               <div className="col-md-6" style={{ paddingLeft: 0, paddingRight: '12px' }}>
                 <div className="card shadow-sm" style={{ borderRadius: '8px', border: 'none', height: '100%' }}>
                   <div className="card-header" style={{
-                    background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-                    color: 'white',
+                    backgroundColor: '#f8f9fa',
+                    color: '#212529',
                     borderRadius: '8px 8px 0 0',
                     padding: '12px 16px',
-                    border: 'none'
+                    borderBottom: '1px solid #dee2e6'
                   }}>
                     <div className="d-flex align-items-center justify-content-between">
-                      <label className="mb-0" style={{ fontWeight: '600', fontSize: '14px' }}>
-                        📚 Subject Selection <span className="text-danger">*</span>
+                      <label className="mb-0" style={{ fontWeight: '600', fontSize: '14px', color: '#212529' }}>
+                        Subject Selection <span className="text-danger">*</span>
                       </label>
                       <span className="badge badge-light" style={{ fontSize: '11px' }}>
                         {filteredSubjects.length} available
@@ -306,15 +295,15 @@ const AllocationModal = ({
               <div className="col-md-6" style={{ paddingLeft: '12px', paddingRight: 0 }}>
                 <div className="card shadow-sm" style={{ borderRadius: '8px', border: 'none', height: '100%' }}>
                   <div className="card-header" style={{
-                    background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-                    color: 'white',
+                    backgroundColor: '#f8f9fa',
+                    color: '#212529',
                     borderRadius: '8px 8px 0 0',
                     padding: '12px 16px',
-                    border: 'none'
+                    borderBottom: '1px solid #dee2e6'
                   }}>
                     <div className="d-flex align-items-center justify-content-between">
-                      <label className="mb-0" style={{ fontWeight: '600', fontSize: '14px' }}>
-                        👨‍🏫 Teacher Selection <span className="text-danger">*</span>
+                      <label className="mb-0" style={{ fontWeight: '600', fontSize: '14px', color: '#212529' }}>
+                        Teacher Selection <span className="text-danger">*</span>
                       </label>
                       <span className="badge badge-light" style={{ fontSize: '11px' }}>
                         {filteredTeachers.length} available
@@ -403,12 +392,12 @@ const AllocationModal = ({
                             </div>
                             {teacher.email && (
                               <div className="text-muted" style={{ fontSize: '12px', marginTop: '4px' }}>
-                                📧 {teacher.email}
+                                {teacher.email}
                               </div>
                             )}
                             {teacher.subjects && teacher.subjects.length > 0 && (
                               <div className="text-muted" style={{ fontSize: '12px', marginTop: '4px' }}>
-                                📚 {teacher.subjects.slice(0, 3).map(s => s.name).join(', ')}
+                                {teacher.subjects.slice(0, 3).map(s => s.name).join(', ')}
                                 {teacher.subjects.length > 3 && ` +${teacher.subjects.length - 3} more`}
                               </div>
                             )}
@@ -441,7 +430,7 @@ const AllocationModal = ({
                 </div>
                 <div className="flex-grow-1">
                   <div className="font-weight-bold" style={{ color: '#856404', fontSize: '14px' }}>
-                    ⚠️ Teacher Schedule Conflict
+                    Teacher Schedule Conflict
                   </div>
                   <div className="mt-1" style={{ fontSize: '13px', color: '#856404' }}>
                     {selectedTeacher?.name} is already teaching at this time:
@@ -450,7 +439,7 @@ const AllocationModal = ({
                     {teacherConflicts.map((conflict, index) => (
                       <div key={index} className="d-inline-block mr-2 mb-2">
                         <span className="badge badge-warning" style={{ fontSize: '11px', padding: '4px 8px' }}>
-                          📍 {conflict.class?.name || 'Unknown Class'}
+                          {conflict.class?.name || 'Unknown Class'}
                         </span>
                         <span className="text-muted ml-1" style={{ fontSize: '12px' }}>
                           {conflict.subject?.name} ({conflict.day} {conflict.time})
@@ -469,7 +458,7 @@ const AllocationModal = ({
                   <div className="d-flex align-items-center justify-content-between">
                     <div>
                       <div className="font-weight-bold text-dark mb-1" style={{ fontSize: '13px' }}>
-                        📋 Current Allocation
+                        Current Allocation
                       </div>
                       <div className="d-flex align-items-center flex-wrap">
                         <span className="badge badge-success mr-2" style={{ fontSize: '12px' }}>
@@ -492,28 +481,28 @@ const AllocationModal = ({
             {selectedTeacher && (
               <div className="card shadow-sm" style={{ borderRadius: '8px', border: 'none' }}>
                 <div className="card-header" style={{
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  color: 'white',
+                  backgroundColor: '#f8f9fa',
+                  color: '#212529',
                   borderRadius: '8px 8px 0 0',
                   padding: '10px 16px',
-                  border: 'none'
+                  borderBottom: '1px solid #dee2e6'
                 }}>
                   <div className="d-flex align-items-center justify-content-between">
-                    <div className="font-weight-bold" style={{ fontSize: '13px' }}>
-                      👥 {selectedTeacher.name}'s Weekly Schedule
+                    <div className="font-weight-bold" style={{ fontSize: '13px', color: '#212529' }}>
+                      {selectedTeacher.name}'s Weekly Schedule
                     </div>
                     <button 
                       className="btn btn-sm"
                       style={{
-                        backgroundColor: 'rgba(255,255,255,0.2)',
-                        color: 'white',
-                        border: 'none',
+                        backgroundColor: '#e9ecef',
+                        color: '#212529',
+                        border: '1px solid #ced4da',
                         fontSize: '11px',
                         padding: '2px 8px'
                       }}
                       onClick={() => setShowTeacherConflicts(!showTeacherConflicts)}
                     >
-                      {showTeacherConflicts ? '👁️ Hide' : '👁️ Show'} Details
+                      {showTeacherConflicts ? 'Hide' : 'Show'} Details
                     </button>
                   </div>
                 </div>
@@ -542,7 +531,7 @@ const AllocationModal = ({
                                 {allocation.day}
                               </div>
                               <div className="text-muted" style={{ fontSize: '11px', marginTop: '2px' }}>
-                                🕐 {allocation.time}
+                                {allocation.time}
                               </div>
                             </div>
                           </div>
@@ -585,7 +574,7 @@ const AllocationModal = ({
                   onClick={onClose}
                   style={{ fontSize: '13px', padding: '8px 16px' }}
                 >
-                  ❌ Cancel
+                  Cancel
                 </button>
                 {currentAllocation && (
                   <button 
@@ -595,7 +584,7 @@ const AllocationModal = ({
                     style={{ fontSize: '13px', padding: '8px 16px' }}
                   >
                     <i className="fas fa-trash-alt mr-2"></i>
-                    🗑️ Clear
+                    Clear
                   </button>
                 )}
                 <button 
@@ -611,7 +600,7 @@ const AllocationModal = ({
                   }}
                 >
                   <i className="fas fa-save mr-2"></i>
-                  {currentAllocation ? '🔄 Update' : '➕ Allocate'} Lesson
+                  {currentAllocation ? 'Update' : 'Allocate'} Lesson
                 </button>
               </div>
             </div>
