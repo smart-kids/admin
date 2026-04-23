@@ -264,14 +264,39 @@ const TimeTableMatrix = () => {
     if (!selectedClass) return;
     
     try {
-      console.log('Loading time table data for class:', selectedClass.id);
+      console.log('Loading time table data for class:', selectedClass.id, selectedClass.name);
+      setLoading(true);
+      setError(null);
+      
       const timeTableResponse = await Data.timeTables.getByClass(selectedClass.id);
-      console.log('Time table data loaded:', Object.keys(timeTableResponse || {}).length);
+      console.log('Time table data loaded:', {
+        classId: selectedClass.id,
+        className: selectedClass.name,
+        dataKeys: Object.keys(timeTableResponse || {}).length,
+        sampleData: Object.entries(timeTableResponse || {}).slice(0, 2)
+      });
+      
       setTimeTableData(timeTableResponse || {});
+      
+      // Validate that data structure is correct
+      if (timeTableResponse && Object.keys(timeTableResponse).length > 0) {
+        const firstKey = Object.keys(timeTableResponse)[0];
+        const firstEntry = timeTableResponse[firstKey];
+        console.log('Sample entry validation:', {
+          key: firstKey,
+          hasSubject: !!firstEntry.subject,
+          hasTeacher: !!firstEntry.teacher,
+          subjectName: firstEntry.subject?.name,
+          teacherName: firstEntry.teacher?.name
+        });
+      }
+      
     } catch (error) {
       console.error('Error loading time table data:', error);
-      setError('Failed to load time table data. Please try again.');
+      setError(`Failed to load time table data: ${error.message || 'Unknown error'}`);
       setTimeTableData({});
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -597,14 +622,11 @@ const TimeTableMatrix = () => {
                       onChange={e => handleClassChange(e.target.value)}
                     >
                       <option value="">Class...</option>
-                      {availableClasses.map(c => {
-                        const studentCount = students?.filter(student => student.class === c.id).length || 0;
-                        return (
-                          <option key={c.id} value={c.id}>
-                            {c.name} ({studentCount} Students)
-                          </option>
-                        );
-                      })}
+                      {availableClasses.map(c => (
+                        <option key={c.id} value={c.id}>
+                          {c.name} ({(c.students && c.students.length) || 0} Students)
+                        </option>
+                      ))}
                     </select>
                     <div className="ml-1 d-flex">
                       <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/classes"} title="Configure Classes">

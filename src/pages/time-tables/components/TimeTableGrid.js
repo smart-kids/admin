@@ -37,7 +37,18 @@ const TimeTableGrid = ({
 
   const getSlotAllocation = (day, time) => {
     const key = `${day}-${time}`;
-    return timeTableData[key] || null;
+    const allocation = timeTableData[key];
+    
+    // Debug logging to help identify data issues
+    if (allocation) {
+      console.log(`Found allocation for ${key}:`, {
+        subject: allocation.subject?.name,
+        teacher: allocation.teacher?.name,
+        class: allocation.class?.name
+      });
+    }
+    
+    return allocation || null;
   };
 
   const hasConflict = (teacher, day, time) => {
@@ -48,6 +59,19 @@ const TimeTableGrid = ({
   const renderSlot = (day, slot) => {
     const key = `${day}-${slot.time}`;
     const allocation = timeTableData[key];
+    
+    // Debug logging for data structure
+    if (process.env.NODE_ENV === 'development') {
+      if (allocation) {
+        console.log(`Rendering slot ${key}:`, {
+          hasSubject: !!allocation.subject,
+          hasTeacher: !!allocation.teacher,
+          subjectName: allocation.subject?.name,
+          teacherName: allocation.teacher?.name,
+          className: allocation.class?.name
+        });
+      }
+    }
     
     if (slot.isBreak) {
       const breakIcon = slot.breakType === 'tea' ? 'flaticon2-coffee' : 'flaticon2-food';
@@ -81,14 +105,19 @@ const TimeTableGrid = ({
     }
     
     if (allocation) {
-      const subjectColor = subjectColors[allocation.subject?.name] || '#3699ff';
-      const hasTeacherConflict = checkTeacherConflict(allocation.teacher, day, slot.time, true);
-      const conflictInfo = hasTeacherConflict ? getTeacherAllocations(allocation.teacher).find(a => a.day === day && a.time === slot.time) : null;
+      // Validate data structure
+      const subjectName = allocation.subject?.name || 'Unknown Subject';
+      const teacherName = allocation.teacher?.name || 'Unknown Teacher';
+      const subjectColor = getSubjectColor(subjectName);
+      
+      const hasTeacherConflict = checkTeacherConflict && checkTeacherConflict(allocation.teacher, day, slot.time, true);
+      const conflictInfo = hasTeacherConflict && getTeacherAllocations ? 
+        getTeacherAllocations(allocation.teacher).find(a => a.day === day && a.time === slot.time) : null;
       
       return (
         <div 
           className={`time-table-slot allocated-slot ${hasTeacherConflict ? 'conflict-slot' : ''}`}
-          onClick={() => onSlotClick(day, slot)}
+          onClick={() => onSlotClick && onSlotClick(day, slot)}
           style={{
             backgroundColor: `${subjectColor}10`,
             borderLeft: `4px solid ${subjectColor}`,
@@ -100,10 +129,10 @@ const TimeTableGrid = ({
         >
           <div className="p-2">
             <div className="font-weight-bold font-size-sm text-dark mb-1">
-              {allocation.subject?.name || 'N/A'}
+              {subjectName}
             </div>
             <div className="font-size-xs text-muted">
-              {allocation.teacher?.name || 'N/A'}
+              {teacherName}
             </div>
             {hasTeacherConflict && (
               <div className="conflict-indicator">
@@ -171,8 +200,45 @@ const TimeTableGrid = ({
     );
   }
 
+  // Debug panel for development
+  const DebugPanel = () => {
+    if (process.env.NODE_ENV !== 'development') return null;
+    
+    return (
+      <div className="card card-custom mb-4" style={{ borderRadius: '8px', border: '1px solid #ebedf3', backgroundColor: '#f8f9fa' }}>
+        <div className="card-body p-4">
+          <h6 className="font-weight-bold text-dark mb-3">Debug Information</h6>
+          <div className="row">
+            <div className="col-md-6">
+              <div className="font-size-sm">
+                <strong>Time Table Data Keys:</strong> {Object.keys(timeTableData).length}
+              </div>
+              <div className="font-size-sm">
+                <strong>Selected Class:</strong> {selectedClass?.name || 'None'}
+              </div>
+              <div className="font-size-sm">
+                <strong>Time Slots:</strong> {timeSlots.length}
+              </div>
+            </div>
+            <div className="col-md-6">
+              <div className="font-size-sm">
+                <strong>Sample Data:</strong>
+              </div>
+              <pre className="font-size-xs bg-light p-2 mt-1" style={{ maxHeight: '100px', overflow: 'auto' }}>
+                {JSON.stringify(Object.entries(timeTableData).slice(0, 3), null, 2)}
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="time-table-grid-container">
+      {/* Debug Panel */}
+      <DebugPanel />
+      
       {/* Header */}
       
 
