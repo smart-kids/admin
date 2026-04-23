@@ -639,23 +639,7 @@ const TimeTableMatrix = () => {
                   </div>
 
                   {/* Current Selection Display */}
-                  <div className="d-flex align-items-center flex-wrap" style={{ gap: '10px' }}>
-                    {selectedGrade && (
-                      <span className="label label-inline label-light-info font-weight-bold">
-                        Grade: {availableGrades.find(g => g.id === selectedGrade)?.name || selectedGrade}
-                      </span>
-                    )}
-                    {selectedClass && (
-                      <span className="label label-inline label-light-primary font-weight-bold">
-                        Class: {selectedClass.name}
-                      </span>
-                    )}
-                    {selectedTerm && (
-                      <span className="label label-inline label-light-success font-weight-bold">
-                        Term: {terms.find(t => t.id === selectedTerm)?.name || selectedTerm}
-                      </span>
-                    )}
-                  </div>
+                  
                 </>
               );
             })()}
