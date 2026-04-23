@@ -174,31 +174,7 @@ const TimeTableGrid = ({
   return (
     <div className="time-table-grid-container">
       {/* Header */}
-      <div className="card card-custom mb-4" style={{ borderRadius: '8px', border: '1px solid #ebedf3' }}>
-        <div className="card-body p-4">
-          <div className="d-flex justify-content-between align-items-center">
-            <div>
-              <h4 className="font-weight-boldest text-dark mb-2">
-                {selectedClass ? `Time Table - ${selectedClass.name}` : 'Time Table'}
-              </h4>
-              <p className="text-muted">
-                {selectedClass 
-                  ? `Manage schedule for ${selectedClass.name} (${selectedClass.studentCount || 0} students)`
-                  : 'Select a class to manage its time table schedule'
-                }
-              </p>
-            </div>
-            <div>
-              {selectedClass && (
-                <span className="label label-inline label-light-primary font-weight-bold">
-                  <i className="flaticon2-calendar mr-2"></i>
-                  {config.workingDays.length} days × {timeSlots.filter(s => !s.isBreak).length} periods
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
+      
 
       <div className="card card-custom" style={{ borderRadius: '8px', border: '1px solid #ebedf3' }}>
         <div className="card-body p-0">
