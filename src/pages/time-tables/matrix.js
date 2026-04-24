@@ -579,7 +579,7 @@ const TimeTableMatrix = () => {
             disabled={!classes.length}
             style={{ whiteSpace: 'nowrap' }}
           >
-            <i className="flaticon2-printer mr-2"></i>
+            <i className="fas fa-print mr-2"></i>
             Print All
           </button>
           <button 
@@ -587,7 +587,7 @@ const TimeTableMatrix = () => {
             onClick={handlePrintSingle}
             disabled={!selectedClass}
           >
-            <i className="flaticon2-printer mr-2"></i>
+            <i className="fas fa-print mr-2"></i>
             Print
           </button>
         </div>
