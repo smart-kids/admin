@@ -1,0 +1,210 @@
+/* Enhanced Search Component Styles */
+.enhanced-search-container {
+  width: 100%;
+  max-width: 400px;
+  margin: 0;
+}
+
+.enhanced-search-input-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #E4E6EF;
+  border-radius: 8px;
+  padding: 0.25rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+}
+
+.enhanced-search-input-group:hover {
+  border-color: #0095E8;
+  box-shadow: 0 4px 12px rgba(0, 149, 232, 0.1);
+}
+
+.enhanced-search-input-group:focus-within {
+  border-color: #0095E8;
+  box-shadow: 0 0 0 3px rgba(0, 149, 232, 0.1);
+}
+
+.enhanced-search-input-wrapper {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.enhanced-search-input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 0.5rem 0.75rem 0.5rem 2.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #181C32;
+}
+
+.enhanced-search-input::placeholder {
+  color: #7E8299;
+  font-weight: 400;
+}
+
+.enhanced-search-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.enhanced-search-icon {
+  position: absolute;
+  left: 0.75rem;
+  color: #7E8299;
+  font-size: 0.9rem;
+  pointer-events: none;
+  transition: color 0.3s ease;
+}
+
+.enhanced-search-input-group:focus-within .enhanced-search-icon {
+  color: #0095E8;
+}
+
+.enhanced-search-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.enhanced-search-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  min-width: 60px;
+}
+
+.enhanced-search-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.enhanced-search-btn-primary {
+  background: linear-gradient(135deg, #0095E8 0%, #0077B5 100%);
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 149, 232, 0.3);
+}
+
+.enhanced-search-btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 149, 232, 0.4);
+  background: linear-gradient(135deg, #0077B5 0%, #0056B3 100%);
+}
+
+.enhanced-search-btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.enhanced-search-btn-secondary {
+  background: #F3F6F9;
+  color: #3F4254;
+  border: 1px solid #E4E6EF;
+}
+
+.enhanced-search-btn-secondary:hover:not(:disabled) {
+  background: #E4E6EF;
+  color: #181C32;
+  transform: translateY(-1px);
+}
+
+.enhanced-search-btn-secondary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .enhanced-search-input-group {
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+  
+  .enhanced-search-input-wrapper {
+    width: 100%;
+  }
+  
+  .enhanced-search-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+  
+  .enhanced-search-btn {
+    flex: 1;
+    min-width: auto;
+  }
+  
+  .enhanced-search-container {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .enhanced-search-input {
+    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    font-size: 0.9rem;
+  }
+  
+  .enhanced-search-icon {
+    left: 0.75rem;
+    font-size: 1rem;
+  }
+  
+  .enhanced-search-btn {
+    padding: 0.625rem 1rem;
+    font-size: 0.85rem;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .enhanced-search-input-group {
+    background: #1a1a1a;
+    border-color: #333;
+  }
+  
+  .enhanced-search-input {
+    color: #ffffff;
+  }
+  
+  .enhanced-search-input::placeholder {
+    color: #999;
+  }
+  
+  .enhanced-search-btn-secondary {
+    background: #2a2a2a;
+    color: #ffffff;
+    border-color: #333;
+  }
+  
+  .enhanced-search-btn-secondary:hover:not(:disabled) {
+    background: #333;
+  }
+}
+
+/* Animation for search appearance */
+.enhanced-search-container {
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

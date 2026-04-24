@@ -8,6 +8,9 @@ import AddClassModal from "../classes/add";
 import AddGradeModal from "../learning/grades/add";
 import AddTermModal from "./components/AddTermModal";
 import { StatCard, DistributionChart, TrendBarChart, AreaChart, RankingList } from "../../components/analytics/DashboardWidgets";
+import EnhancedSearch from '../../components/enhanced-search/EnhancedSearch';
+import AlphabetFilter from '../../components/alphabet-filter/AlphabetFilter';
+import EnhancedDropdown from '../../components/enhanced-dropdown/EnhancedDropdown';
 
 class ResultsMatrix extends React.Component {
   state = {
@@ -22,6 +25,8 @@ class ResultsMatrix extends React.Component {
 
     selectedClass: "",
     selectedTerm: "",
+    searchTerm: "",
+    alphabetFilter: "",
     
     assessmentTypes: [],
     assessmentRubrics: [],
@@ -198,6 +203,15 @@ class ResultsMatrix extends React.Component {
     
     if (loading) this.setState({ loading: false });
   }
+
+  handleFilterChange = (filterName, value) => {
+      this.setState({ [filterName]: value }, () => {
+          localStorage.setItem(`matrix_${filterName}`, value);
+          if (filterName === 'selectedClass' || filterName === 'selectedTerm') {
+              this.fetchAssessments();
+          }
+      });
+  };
   
   componentDidUpdate(prevProps, prevState) {
       if (this.state.selectedClass !== prevState.selectedClass) {
@@ -744,13 +758,15 @@ class ResultsMatrix extends React.Component {
 
                 <div className="card-toolbar d-flex align-items-center">
                     <div className="dropdown dropdown-inline mr-2 d-flex align-items-center">
-                        <select className="form-control form-control-sm form-control-solid" value={selectedTerm} onChange={e => {
-                            this.setState({ selectedTerm: e.target.value });
-                            localStorage.setItem('matrix_selectedTerm', e.target.value);
-                        }}>
-                            <option value="">Term...</option>
-                            {terms?.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                        </select>
+                        <EnhancedDropdown
+                            value={selectedTerm}
+                            onChange={(value) => this.handleFilterChange('selectedTerm', value)}
+                            options={terms}
+                            placeholder="Term..."
+                            searchable={true}
+                            width="200px"
+                            className="mr-2"
+                        />
                         <div className="ml-1 d-flex">
                             <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/terms"} title="Configure Terms">
                                 <i className="fa fa-cog font-size-xs"></i>
@@ -762,10 +778,17 @@ class ResultsMatrix extends React.Component {
                     </div>
                     
                     <div className="dropdown dropdown-inline mr-2 d-flex align-items-center">
-                        <select className="form-control form-control-sm form-control-solid" value={selectedClass} onChange={e => this.handleClassChange(e.target.value)}>
-                            <option value="">Class (Students)...</option>
-                            {availableClasses.map(c => <option key={c.id} value={c.id}>{c.name} ({(c.students && c.students.length) || 0} Students)</option>)}
-                        </select>
+                        <EnhancedDropdown
+                            value={selectedClass}
+                            onChange={(value) => this.handleFilterChange('selectedClass', value)}
+                            options={availableClasses}
+                            placeholder="Class (Students)..."
+                            searchable={true}
+                            width="250px"
+                            showCount={true}
+                            countKey="students.length"
+                            className="mr-2"
+                        />
                         <div className="ml-1 d-flex">
                             <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/classes"} title="Configure Classes">
                                 <i className="fa fa-cog font-size-xs"></i>
@@ -777,13 +800,23 @@ class ResultsMatrix extends React.Component {
                     </div>
 
                     <div className="dropdown dropdown-inline mr-2 d-flex align-items-center">
-                        <select className="form-control form-control-sm form-control-solid" value={selectedGrade} onChange={e => {
-                            this.setState({ selectedGrade: e.target.value });
-                            localStorage.setItem('matrix_selectedGrade', e.target.value);
-                        }}>
-                            <option value="">Grade (Subjects)...</option>
-                            {availableGrades.map(g => <option key={g.id} value={g.id}>{g.name} ({(g.subjects || []).length} Subjects)</option>)}
-                        </select>
+                        <EnhancedDropdown
+                            value={selectedGrade}
+                            onChange={(value) => this.handleFilterChange('selectedGrade', value)}
+                            options={availableGrades.map(grade => ({
+                                ...grade,
+                                studentCount: this.getFilteredStudents().filter(student => {
+                                    const studentGradeId = student.class?.grade?.id || student.class?.grade || student.grade_id;
+                                    return studentGradeId && String(studentGradeId) === String(grade.id);
+                                }).length
+                            }))}
+                            placeholder="Grade (Students)..."
+                            searchable={true}
+                            width="220px"
+                            showCount={true}
+                            countKey="studentCount"
+                            className="mr-2"
+                        />
                         <div className="ml-1 d-flex">
                             <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/learning"} title="Configure Grades">
                                 <i className="fa fa-cog font-size-xs"></i>

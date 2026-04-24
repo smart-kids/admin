@@ -1,5 +1,6 @@
 import React, { memo, useState, useCallback, useMemo, useEffect } from 'react';
 import Data from "../../../utils/data";
+import SearchAlphabetFilter from '../../../components/search-alphabet-filter/SearchAlphabetFilter';
 
 /** 
  * DetailedPerformanceAnalytics
@@ -534,42 +535,23 @@ const ResultsGrid = ({ students, subjects, assessments, allAssessments, allTerms
 
     return (
         <div className={`d-flex flex-column results-table-container ${loading ? 'opacity-70' : ''}`} style={{ minHeight: '400px' }}>
-            {/* Alphabetical Quick Filter */}
-            <div className="d-flex flex-wrap mb-4 p-2 bg-light rounded" style={{ gap: '4px' }}>
-                <button 
-                    className={`btn btn-xs font-weight-boldest ${selectedLetter === null ? 'btn-primary' : 'btn-light-primary text-primary'}`}
-                    onClick={() => setSelectedLetter(null)}
-                    style={{ minWidth: '40px' }}
-                >
-                    ALL
-                </button>
-                {letters.map(letter => (
-                    <button 
-                        key={letter}
-                        className={`btn btn-xs font-weight-boldest ${selectedLetter === letter ? 'btn-primary' : 'btn-light-primary text-primary'}`}
-                        onClick={() => setSelectedLetter(letter)}
-                        style={{ minWidth: '32px' }}
-                    >
-                        {letter}
-                    </button>
-                ))}
-            </div>
-
-            {/* Search Bar & Controls */}
-            <div className="d-flex justify-content-between align-items-center mb-6">
-                <div className="d-flex align-items-center" style={{ gap: '15px' }}>
-                    <div style={{ width: '350px' }}>
-                        <div className="input-icon input-icon-right">
-                            <input
-                                type="text"
-                                className="form-control"
-                                placeholder="Search Name, ADM No..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                            <span><i className="flaticon2-search-1 icon-md text-muted"></i></span>
-                        </div>
-                    </div>
+            {/* Combined Search and Alphabet Filter */}
+            <div className="mb-6">
+                <SearchAlphabetFilter
+                    searchTerm={searchTerm}
+                    onSearchChange={(value) => setSearchTerm(value)}
+                    onSearch={(value) => setSearchTerm(value)}
+                    onClearSearch={() => setSearchTerm('')}
+                    alphabetFilter={selectedLetter}
+                    onAlphabetFilterChange={(letter) => setSelectedLetter(letter)}
+                    data={students}
+                    dataKey="names"
+                    placeholder="Search Name, ADM No..."
+                    className="mb-4"
+                />
+                
+                {/* Additional Controls */}
+                <div className="d-flex justify-content-between align-items-center">
                     <div className="d-flex align-items-center">
                         <span className="text-muted font-weight-bold mr-2" style={{ fontSize: '0.8rem' }}>Show:</span>
                         <select 
@@ -584,9 +566,9 @@ const ResultsGrid = ({ students, subjects, assessments, allAssessments, allTerms
                             <option value={1000}>All</option>
                         </select>
                     </div>
-                </div>
-                <div className="text-muted font-weight-bold">
-                    {loading ? 'Updating results...' : `Found ${filteredStudents.length} students`}
+                    <div className="text-muted font-weight-bold">
+                        {loading ? 'Updating results...' : `Found ${filteredStudents.length} students`}
+                    </div>
                 </div>
             </div>
 

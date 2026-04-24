@@ -10,6 +10,8 @@ import Subheader from "../../components/subheader";
 import StatementCard from "./components/StatementCard";
 import BulkReportSmsModal from "../../components/reports/BulkReportSmsModal";
 import SmsBalanceModal from "./components/SmsBalanceModal";
+import SearchAlphabetFilter from '../../components/search-alphabet-filter/SearchAlphabetFilter';
+import EnhancedDropdown from '../../components/enhanced-dropdown/EnhancedDropdown';
 
 // --- HELPER COMPONENTS ---
 
@@ -111,6 +113,7 @@ class FeesManagement extends Component {
         selectedClass: localStorage.getItem('fees_selectedClass') || "",
         selectedTerm: localStorage.getItem('fees_selectedTerm') || "",
         searchTerm: "",
+        alphabetFilter: localStorage.getItem('fees_alphabetFilter') || "",
 
         // Processed Data (for performance)
         processedParents: [],
@@ -431,7 +434,7 @@ class FeesManagement extends Component {
      * Running this only when data/filters change (not every render) is key for 500+ items.
      */
     recalculateFinancials = () => {
-        const { students, parents, payments, classes, terms, feeStructures, expected, charges, selectedClass, selectedTerm, searchTerm } = this.state;
+        const { students, parents, payments, classes, terms, feeStructures, expected, charges, selectedClass, selectedTerm, searchTerm, alphabetFilter } = this.state;
 
         // EXIT if any core piece is missing. 
         // We allow payments to be empty, as students might not have paid yet.
@@ -693,11 +696,22 @@ class FeesManagement extends Component {
         // 6. Apply Search Filter
         const termLower = searchTerm.toLowerCase();
         const filteredList = processedList.filter(g => {
-            if (!searchTerm) return true;
-            if (g.parent.name?.toLowerCase().includes(termLower)) return true;
-            if (g.parent.phone?.includes(termLower)) return true;
-            // Search inside students
-            return g.students.some(s => s.names?.toLowerCase().includes(termLower));
+            // Apply search filter
+            if (searchTerm) {
+                const matchesSearch = g.parent.name?.toLowerCase().includes(termLower) ||
+                                    g.parent.phone?.includes(termLower) ||
+                                    g.students.some(s => s.names?.toLowerCase().includes(termLower));
+                if (!matchesSearch) return false;
+            }
+            
+            // Apply alphabet filter
+            if (alphabetFilter) {
+                const parentName = g.parent.name || '';
+                const firstLetter = parentName.trim().charAt(0).toUpperCase();
+                if (firstLetter !== alphabetFilter) return false;
+            }
+            
+            return true;
         });
 
         this.setState({
@@ -1943,10 +1957,15 @@ class FeesManagement extends Component {
 
                                         <div className="card-toolbar d-flex align-items-center">
                                             <div className="dropdown dropdown-inline mr-2 d-flex align-items-center">
-                                                <select className="form-control form-control-sm form-control-solid" value={selectedTerm} onChange={e => this.handleFilterChange('selectedTerm', e.target.value)}>
-                                                    <option value="">Term...</option>
-                                                    {this.getAvailableData().availableTerms.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                                                </select>
+                                                <EnhancedDropdown
+                                                    value={this.state.selectedTerm}
+                                                    onChange={(value) => this.handleFilterChange('selectedTerm', value)}
+                                                    options={this.getAvailableData().availableTerms}
+                                                    placeholder="Term..."
+                                                    searchable={true}
+                                                    width="200px"
+                                                    className="mr-2"
+                                                />
                                                 <div className="ml-1 d-flex">
                                                     <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/terms"} title="Configure Terms">
                                                         <i className="fa fa-cog font-size-xs"></i>
@@ -1957,10 +1976,17 @@ class FeesManagement extends Component {
                                                 </div>
                                             </div>
                                             <div className="dropdown dropdown-inline mr-4 d-flex align-items-center">
-                                                <select className="form-control form-control-sm form-control-solid" value={selectedClass} onChange={e => this.handleClassChange(e.target.value)}>
-                                                    <option value="">Class (Students)...</option>
-                                                    {this.getAvailableData().availableClasses.map(c => <option key={c.id} value={c.id}>{c.name} ({(c.students && c.students.length) || 0} Students)</option>)}
-                                                </select>
+                                                <EnhancedDropdown
+                                                    value={this.state.selectedClass}
+                                                    onChange={this.handleClassChange}
+                                                    options={this.getAvailableData().availableClasses}
+                                                    placeholder="Class (Students)..."
+                                                    searchable={true}
+                                                    width="250px"
+                                                    showCount={true}
+                                                    countKey="students.length"
+                                                    className="mr-2"
+                                                />
                                                 <div className="ml-1 d-flex">
                                                     <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/classes"} title="Configure Classes">
                                                         <i className="fa fa-cog font-size-xs"></i>
@@ -1985,16 +2011,20 @@ class FeesManagement extends Component {
                                 <div className="card-body py-0">
                                     {loading ? <SkeletonLoader /> : (
                                         <>
-                                            {/* SEARCH & FILTER */}
-                                            <div className="input-icon input-icon-right mb-5">
-                                                <input
-                                                    type="text"
-                                                    className="form-control"
+                                            {/* ENHANCED SEARCH & FILTER */}
+                                            <div className="mb-5">
+                                                <SearchAlphabetFilter
+                                                    searchTerm={this.state.searchTerm}
+                                                    onSearchChange={(value) => this.handleFilterChange('searchTerm', value)}
+                                                    onSearch={(value) => this.handleFilterChange('searchTerm', value)}
+                                                    onClearSearch={() => this.handleFilterChange('searchTerm', '')}
+                                                    alphabetFilter={this.state.alphabetFilter}
+                                                    onAlphabetFilterChange={(value) => this.handleFilterChange('alphabetFilter', value)}
+                                                    data={this.state.processedParents}
+                                                    dataKey="parent.name"
                                                     placeholder="Search Parent Name, Phone, or Student Name..."
-                                                    value={searchTerm}
-                                                    onChange={e => this.handleFilterChange('searchTerm', e.target.value)}
+                                                    className="mb-4"
                                                 />
-                                                <span><i className="flaticon2-search-1 icon-md"></i></span>
                                             </div>
 
                                             {/* MAIN TABLE */}
