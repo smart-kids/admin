@@ -320,9 +320,9 @@ const FinancialMetrics = () => {
               valueStyle={{ color: '#3f8600' }}
               suffix={
                 metrics.revenueGrowth > 0 ? 
-                  <ArrowUpOutlined style={{ color: '#52c41a' }} /> : 
+                  <ArrowUpOutlined style={{ color: '#52c41a', fontSize: '3.2rem', margin: '1rem' }} /> : 
                   metrics.revenueGrowth < 0 ?
-                    <ArrowDownOutlined style={{ color: '#f5222d' }} /> : null
+                    <ArrowDownOutlined style={{ color: '#f5222d', fontSize: '3.2rem', margin: '1rem' }} /> : null
               }
             />
             <div style={{ fontSize: '14px', color: '#52c41a', marginTop: '8px' }}>
@@ -342,7 +342,7 @@ const FinancialMetrics = () => {
                 color: metrics.collectionRate >= 80 ? '#3f8600' : 
                        metrics.collectionRate >= 60 ? '#faad14' : '#f5222d' 
               }}
-              prefix={<CreditCardOutlined />}
+              prefix={<CreditCardOutlined style={{ fontSize: '3.2rem', margin: '1rem' }} />}
             />
           </Card>
         </Col>
@@ -355,7 +355,7 @@ const FinancialMetrics = () => {
               precision={2}
               prefix="KES "
               valueStyle={{ color: metrics.outstandingBalance > 0 ? '#f5222d' : '#52c41a' }}
-              prefix={<WarningOutlined />}
+              prefix={<WarningOutlined style={{ fontSize: '3.2rem', margin: '1rem' }} />}
             />
           </Card>
         </Col>
@@ -367,7 +367,7 @@ const FinancialMetrics = () => {
               value={metrics.paymentMethods ? Object.values(metrics.paymentMethods).reduce((sum, val) => sum + val, 0) : 0}
               precision={0}
               valueStyle={{ color: '#1890ff' }}
-              prefix={<DollarOutlined />}
+              prefix={<DollarOutlined style={{ fontSize: '3.2rem', margin: '1rem' }} />}
             />
           </Card>
         </Col>

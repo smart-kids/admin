@@ -455,7 +455,7 @@ const TeacherDashboard = () => {
               value={metrics.classOverview.totalStudents}
               precision={0}
               valueStyle={{ color: '#1890ff' }}
-              prefix={<UserOutlined />}
+              prefix={<UserOutlined style={{ fontSize: '3.2rem', margin: '1rem' }} />}
             />
           </Card>
         </Col>
@@ -471,7 +471,7 @@ const TeacherDashboard = () => {
                 color: metrics.classOverview.averagePerformance >= 70 ? '#3f8600' : 
                        metrics.classOverview.averagePerformance >= 60 ? '#faad14' : '#f5222d' 
               }}
-              prefix={<BookOutlined />}
+              prefix={<BookOutlined style={{ fontSize: '3.2rem', margin: '1rem' }} />}
             />
           </Card>
         </Col>
@@ -487,7 +487,7 @@ const TeacherDashboard = () => {
                 color: metrics.classOverview.attendanceRate >= 90 ? '#3f8600' : 
                        metrics.classOverview.attendanceRate >= 80 ? '#faad14' : '#f5222d' 
               }}
-              prefix={<TeamOutlined />}
+              prefix={<TeamOutlined style={{ fontSize: '3.2rem', margin: '1rem' }} />}
             />
           </Card>
         </Col>
@@ -503,7 +503,7 @@ const TeacherDashboard = () => {
                 color: metrics.classOverview.assignmentCompletion >= 80 ? '#3f8600' : 
                        metrics.classOverview.assignmentCompletion >= 60 ? '#faad14' : '#f5222d' 
               }}
-              prefix={<ClockCircleOutlined />}
+              prefix={<ClockCircleOutlined style={{ fontSize: '3.2rem', margin: '1rem' }} />}
             />
           </Card>
         </Col>
@@ -567,7 +567,7 @@ const TeacherDashboard = () => {
               value={metrics.studentProgress.totalStudents}
               precision={0}
               valueStyle={{ color: '#1890ff' }}
-              prefix={<UserOutlined />}
+              prefix={<UserOutlined style={{ fontSize: '3.2rem', margin: '1rem' }} />}
             />
           </Card>
         </Col>
@@ -579,7 +579,7 @@ const TeacherDashboard = () => {
               value={metrics.studentProgress.atRiskStudents}
               precision={0}
               valueStyle={{ color: '#f5222d' }}
-              prefix={<UserOutlined />}
+              prefix={<UserOutlined style={{ fontSize: '3.2rem', margin: '1rem' }} />}
             />
           </Card>
         </Col>
@@ -591,7 +591,7 @@ const TeacherDashboard = () => {
               value={metrics.studentProgress.topPerformers}
               precision={0}
               valueStyle={{ color: '#3f8600' }}
-              prefix={<TrophyOutlined />}
+              prefix={<TrophyOutlined style={{ fontSize: '3.2rem', margin: '1rem' }} />}
             />
           </Card>
         </Col>

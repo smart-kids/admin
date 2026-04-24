@@ -1913,16 +1913,12 @@ class FeesManagement extends Component {
             <div className="kt-grid__item kt-grid__item--fluid kt-grid kt-grid--ver kt-page">
                 <div className="kt-grid__item kt-grid__item--fluid kt-grid kt-grid--hor kt-wrapper" id="kt_wrapper">
                     <Navbar />
-                    <Subheader links={["Finance"]} />
 
                     <div className="kt-content kt-grid__item kt-grid__item--fluid pt-0" style={{ height: "100vh" }} id="kt_content">
                         <div className="kt-container pt-0">
                             <div className="card card-custom gutter-b">
                                 <div className="card-header border-0 pt-5 pb-2 d-flex flex-column align-items-stretch">
-                                    <div className="mb-4 d-flex flex-column">
-                                        <h1 className="font-weight-bolder text-dark font-size-h3 mb-0">Fees Management</h1>
-                                        <div className="text-muted font-weight-bold font-size-sm mt-1">Manage student balances and payments</div>
-                                    </div>
+                                    
 
                                     <div className="d-flex align-items-center justify-content-between">
                                         <ul className="nav nav-tabs nav-tabs-line nav-bold nav-tabs-line-2x border-0 mb-0">
@@ -1975,16 +1971,15 @@ class FeesManagement extends Component {
                                                     </button>
                                                 </div>
                                             </div>
-                                            <div className="dropdown dropdown-inline mr-4 d-flex align-items-center">
+                                            
+                                            <div className="dropdown dropdown-inline mr-2 d-flex align-items-center">
                                                 <EnhancedDropdown
                                                     value={this.state.selectedClass}
                                                     onChange={this.handleClassChange}
                                                     options={this.getAvailableData().availableClasses}
-                                                    placeholder="Class (Students)..."
+                                                    placeholder="Class..."
                                                     searchable={true}
                                                     width="250px"
-                                                    showCount={true}
-                                                    countKey="students.length"
                                                     className="mr-2"
                                                 />
                                                 <div className="ml-1 d-flex">
@@ -2006,6 +2001,7 @@ class FeesManagement extends Component {
                                             </button>
                                         </div>
                                     </div>
+                                </div>
                                 </div>
 
                                 <div className="card-body py-0">
@@ -2436,15 +2432,14 @@ class FeesManagement extends Component {
                                             ) : this.state.activeTab === 'advanced-insights' ? (
                                                 this.renderAdvancedInsights()
                                             ) : null
-    }
-                                    )}
-                                        </>
-                       ) }
-                        </div>
+    }))
+                                </>
+                              )}  </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                
+
 
                 {/* MODALS (Reused from V1 structure) */}
                 {this.state.showPaymentModal && (

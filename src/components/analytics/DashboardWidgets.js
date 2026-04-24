@@ -9,7 +9,7 @@ export const StatCard = ({ title, value, subtext, icon, color = '#3699ff', trend
             <div className="d-flex align-items-center justify-content-between mb-2">
                 <span className={`symbol symbol-45 symbol-light-${color === '#3699ff' ? 'primary' : 'success'}`}>
                     <span className="symbol-label">
-                        <i className={`text-${color === '#3699ff' ? 'primary' : 'success'} ${icon}`} style={{ fontSize: '1.2rem' }}></i>
+                        <i className={`text-${color === '#3699ff' ? 'primary' : 'success'} ${icon}`} style={{ fontSize: '3.2rem', margin: '1rem' }}></i>
                     </span>
                 </span>
                 {trend && (

@@ -582,69 +582,7 @@ class FinanceInsightsDashboard extends Component {
     );
   };
 
-  renderControls = () => {
-    const { layoutMode, showComparison, showSparklines } = this.state;
-
-    return (
-      <div className="card card-custom mb-4">
-        <div className="card-body">
-          <div className="d-flex justify-content-between align-items-center">
-            <div className="d-flex align-items-center">
-              <label className="mr-3">Layout:</label>
-              <div className="btn-group">
-                <button 
-                  className={`btn ${layoutMode === 'grid' ? 'btn-primary' : 'btn-light'}`}
-                  onClick={() => this.handleLayoutChange('grid')}
-                >
-                  <i className="fas fa-th"></i> Grid
-                </button>
-                <button 
-                  className={`btn ${layoutMode === 'list' ? 'btn-primary' : 'btn-light'}`}
-                  onClick={() => this.handleLayoutChange('list')}
-                >
-                  <i className="fas fa-list"></i> List
-                </button>
-                <button 
-                  className={`btn ${layoutMode === 'compact' ? 'btn-primary' : 'btn-light'}`}
-                  onClick={() => this.handleLayoutChange('compact')}
-                >
-                  <i className="fas fa-compress"></i> Compact
-                </button>
-              </div>
-            </div>
-
-            <div className="d-flex align-items-center">
-              <div className="custom-control custom-switch mr-3">
-                <input 
-                  type="checkbox" 
-                  className="custom-control-input" 
-                  id="showComparison"
-                  checked={showComparison}
-                  onChange={(e) => this.setState({ showComparison: e.target.checked })}
-                />
-                <label className="custom-control-label" htmlFor="showComparison">
-                  Show Comparison
-                </label>
-              </div>
-
-              <div className="custom-control custom-switch">
-                <input 
-                  type="checkbox" 
-                  className="custom-control-input" 
-                  id="showSparklines"
-                  checked={showSparklines}
-                  onChange={(e) => this.setState({ showSparklines: e.target.checked })}
-                />
-                <label className="custom-control-label" htmlFor="showSparklines">
-                  Sparklines
-                </label>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
+ 
 
   renderFilters = () => {
     const { classes, terms } = this.state;
@@ -662,7 +600,7 @@ class FinanceInsightsDashboard extends Component {
                 onChange={(e) => onFilterChange('selectedClass', e.target.value)}
               >
                 <option value="">All Classes</option>
-                {classes.map(cls => (
+                {(Array.isArray(classes) ? classes : []).map(cls => (
                   <option key={cls.id} value={cls.id}>
                     {cls.name || `Class ${cls.id}`}
                   </option>
@@ -677,7 +615,7 @@ class FinanceInsightsDashboard extends Component {
                 onChange={(e) => onFilterChange('selectedTerm', e.target.value)}
               >
                 <option value="">All Terms</option>
-                {terms.map(term => (
+                {(Array.isArray(terms) ? terms : []).map(term => (
                   <option key={term.id} value={term.id}>
                     {term.name || `Term ${term.id}`}
                   </option>
@@ -724,20 +662,11 @@ class FinanceInsightsDashboard extends Component {
 
     return (
       <div className="finance-insights-dashboard">
-        <div className="d-flex justify-content-between align-items-center mb-6">
-          <div>
-            <h1 className="font-weight-bolder text-dark font-size-h3 mb-0">
-              Finance Insights
-            </h1>
-            <div className="text-muted font-weight-bold font-size-sm mt-1">
-              Comprehensive financial analysis and comparison tools
-            </div>
-          </div>
-        </div>
+        
 
         {this.renderFilters()}
 
-        {this.renderControls()}
+  
 
         {this.renderKPIs()}
 

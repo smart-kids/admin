@@ -305,63 +305,73 @@
   }
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .search-alphabet-filter-container {
-    background: #1a1a1a;
-    border-color: #333;
-  }
-  
-  .search-alphabet-filter-input-group {
-    background: #1a1a1a;
-    border-color: #333;
-  }
-  
-  .search-alphabet-filter-input {
-    color: #ffffff;
-  }
-  
-  .search-alphabet-filter-input::placeholder {
-    color: #999;
-  }
-  
-  .search-alphabet-filter-btn-letter {
-    background: #2a2a2a;
-    border-color: #444;
-    color: #ccc;
-  }
-  
-  .search-alphabet-filter-btn-letter:hover:not(.disabled):not(.active) {
-    background: #333;
-    border-color: #0095E8;
-    color: #0095E8;
-  }
-  
-  .search-alphabet-filter-btn-letter.disabled {
-    background: #1a1a1a;
-    border-color: #222;
-    color: #555;
-  }
-  
-  .search-alphabet-filter-btn-secondary {
-    background: #2a2a2a;
-    color: #ffffff;
-    border-color: #333;
-  }
-  
-  .search-alphabet-filter-btn-secondary:hover:not(:disabled) {
-    background: #333;
-  }
-  
-  .search-alphabet-filter-active {
-    background: rgba(0, 149, 232, 0.1);
-    border-color: #0095E8;
-  }
-  
-  .search-alphabet-filter-active-label {
-    color: #0095E8;
-  }
+/* Dark mode support - Only apply when explicitly set to dark */
+[data-theme="dark"] .search-alphabet-filter-container,
+body.dark-mode .search-alphabet-filter-container {
+  background: #1a1a1a;
+  border-color: #333;
 }
+
+[data-theme="dark"] .search-alphabet-filter-input-group,
+body.dark-mode .search-alphabet-filter-input-group {
+  background: #1a1a1a;
+  border-color: #333;
+}
+
+[data-theme="dark"] .search-alphabet-filter-input,
+body.dark-mode .search-alphabet-filter-input {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .search-alphabet-filter-input::placeholder,
+body.dark-mode .search-alphabet-filter-input::placeholder {
+  color: #999;
+}
+
+[data-theme="dark"] .search-alphabet-filter-btn-letter,
+body.dark-mode .search-alphabet-filter-btn-letter {
+  background: #2a2a2a;
+  border-color: #444;
+  color: #ccc;
+}
+
+[data-theme="dark"] .search-alphabet-filter-btn-letter:hover:not(.disabled):not(.active),
+body.dark-mode .search-alphabet-filter-btn-letter:hover:not(.disabled):not(.active) {
+  background: #333;
+  border-color: #0095E8;
+  color: #0095E8;
+}
+
+[data-theme="dark"] .search-alphabet-filter-btn-letter.disabled,
+body.dark-mode .search-alphabet-filter-btn-letter.disabled {
+  background: #1a1a1a;
+  border-color: #222;
+  color: #555;
+}
+
+[data-theme="dark"] .search-alphabet-filter-btn-secondary,
+body.dark-mode .search-alphabet-filter-btn-secondary {
+  background: #2a2a2a;
+  color: #ffffff;
+  border-color: #333;
+}
+
+[data-theme="dark"] .search-alphabet-filter-btn-secondary:hover:not(:disabled),
+body.dark-mode .search-alphabet-filter-btn-secondary:hover:not(:disabled) {
+  background: #333;
+}
+
+[data-theme="dark"] .search-alphabet-filter-active,
+body.dark-mode .search-alphabet-filter-active {
+  background: rgba(0, 149, 232, 0.1);
+  border-color: #0095E8;
+}
+
+[data-theme="dark"] .search-alphabet-filter-active-label,
+body.dark-mode .search-alphabet-filter-active-label {
+  color: #0095E8;
+}
+
 
 /* Animation for component appearance */
 .search-alphabet-filter-container {

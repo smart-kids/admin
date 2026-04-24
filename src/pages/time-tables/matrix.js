@@ -41,7 +41,7 @@ const TimeTableMatrix = () => {
   const [showPrintView, setShowPrintView] = useState(false);
   const [schoolInfo, setSchoolInfo] = useState(null);
   const [allTimeTablesData, setAllTimeTablesData] = useState({});
-  const [viewMode, setViewMode] = useState(localStorage.getItem('timeTables_viewMode') || 'vertical'); // 'vertical' or 'horizontal'
+  const [viewMode, setViewMode] = useState(localStorage.getItem('timeTables_viewMode') || 'horizontal'); // 'vertical' or 'horizontal'
 
   // Generate time slots based on configuration
   const timeSlots = useMemo(() => {
@@ -540,58 +540,6 @@ const TimeTableMatrix = () => {
 
   return (
     <div className="time-tables-container">
-      {/* Header */}
-      <div className="d-flex justify-content-between align-items-center mb-6">
-        <div>
-          <h2 className="font-weight-boldest text-dark mb-2">Time Tables</h2>
-          <p className="text-muted">Manage class schedules and teacher allocations</p>
-        </div>
-        <div className="d-flex align-items-center" style={{ gap: '10px' }}>
-          {/* View Mode Toggle */}
-          <div className="btn-group" role="group">
-            <button 
-              type="button"
-              className={`btn btn-sm ${viewMode === 'vertical' ? 'btn-primary' : 'btn-light-primary'}`}
-              onClick={() => setViewMode('vertical')}
-              title="Vertical View"
-            >
-              <i className="flaticon2-calendar"></i>
-            </button>
-            <button 
-              type="button"
-              className={`btn btn-sm ${viewMode === 'horizontal' ? 'btn-primary' : 'btn-light-primary'}`}
-              onClick={() => setViewMode('horizontal')}
-              title="Horizontal View"
-            >
-              <i className="flaticon2-calendar-1"></i>
-            </button>
-          </div>
-          <button 
-            className="btn btn-light-primary btn-sm"
-            onClick={() => setShowConfig(!showConfig)}
-          >
-            <i className="flaticon2-settings mr-2"></i>
-            Settings
-          </button>
-          <button 
-            className="btn btn-success btn-sm"
-            onClick={handlePrintAll}
-            disabled={!classes.length}
-            style={{ whiteSpace: 'nowrap' }}
-          >
-            <i className="fas fa-print mr-2"></i>
-            Print All
-          </button>
-          <button 
-            className="btn btn-primary btn-sm"
-            onClick={handlePrintSingle}
-            disabled={!selectedClass}
-          >
-            <i className="fas fa-print mr-2"></i>
-            Print
-          </button>
-        </div>
-      </div>
 
       {/* Error Display */}
       {error && (
@@ -610,87 +558,128 @@ const TimeTableMatrix = () => {
         </div>
       )}
 
-      {/* Class, Term, and Grade Selection */}
-      <div className="card card-custom mb-6" style={{ borderRadius: '8px', border: '1px solid #ebedf3' }}>
-        <div className="card-body p-5">
-          <div className="d-flex align-items-center justify-content-between flex-wrap" style={{ gap: '20px' }}>
-            {(() => {
-              const { availableClasses, availableGrades } = getAvailableData();
+      {/* All Controls in Single Row - Left/Right Distribution */}
+      <div className="card card-custom card-shadowless mb-6">
+        <div className="card-body py-4">
+          <div className="d-flex align-items-center justify-content-between flex-wrap">
+            
+            {/* Left Section */}
+            <div className="d-flex align-items-center flex-wrap" style={{ gap: '20px' }}>
+              {/* Title */}
+              <div className="d-flex align-items-center flex-wrap">
+                <h1 className="font-weight-bolder text-dark font-size-h3 mb-0 mr-4">Time Tables</h1>
+                
+              </div>
 
-              return (
-                <>
-                  {/* Grade Selection */}
-                  <div className="d-flex align-items-center" style={{ minWidth: '200px' }}>
-                    <EnhancedDropdown
-                      value={selectedGrade || ''}
-                      onChange={handleGradeChange}
-                      options={availableGrades}
-                      placeholder="Grade..."
-                      className="form-control-sm"
-                      searchable={true}
-                      minWidth="200px"
-                    />
-                    <div className="ml-2 d-flex">
-                      <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/learning"} title="Configure Grades">
-                        <i className="fa fa-cog font-size-xs"></i>
-                      </button>
-                      <button className="btn btn-xs btn-icon btn-light-success" onClick={() => window.location.hash = "#/grades/add"} title="Add Grade">
-                        <i className="fa fa-plus font-size-xs"></i>
-                      </button>
-                    </div>
-                  </div>
+              {/* Term Selection */}
+              <div className="flex-grow-0" style={{ minWidth: '220px' }}>
+                <label className="font-weight-bolder text-dark font-size-sm d-block mb-2">Term</label>
+                <EnhancedDropdown
+                  value={selectedTerm || ''}
+                  onChange={handleTermChange}
+                  options={terms || []}
+                  placeholder="Select Term..."
+                  className="w-100"
+                  searchable={true}
+                  showCount={true}
+                  countKey="classes"
+                  countLabel="classes"
+                />
+              </div>
 
-                  {/* Class Selection */}
-                  <div className="d-flex align-items-center" style={{ minWidth: '200px' }}>
-                    <EnhancedDropdown
-                      value={selectedClass?.id || ''}
-                      onChange={handleClassChange}
-                      options={availableClasses}
-                      placeholder="Class..."
-                      className="form-control-sm"
-                      searchable={true}
-                      minWidth="200px"
-                      labelKey="name"
-                      valueKey="id"
-                      showCount={true}
-                      countKey="students"
-                    />
-                    <div className="ml-2 d-flex">
-                      <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/classes"} title="Configure Classes">
-                        <i className="fa fa-cog font-size-xs"></i>
-                      </button>
-                      <button className="btn btn-xs btn-icon btn-light-success" onClick={() => window.location.hash = "#/classes/add"} title="Add Class">
-                        <i className="fa fa-plus font-size-xs"></i>
-                      </button>
-                    </div>
-                  </div>
+              {/* Class Selection */}
+              <div className="flex-grow-0" style={{ minWidth: '220px' }}>
+                <label className="font-weight-bolder text-dark font-size-sm d-block mb-2">Class</label>
+                <EnhancedDropdown
+                  value={selectedClass?.id || ''}
+                  onChange={handleClassChange}
+                  options={classes || []}
+                  placeholder="Select Class..."
+                  className="w-100"
+                  searchable={true}
+                  showCount={true}
+                  countKey="students"
+                  countLabel="students"
+                />
+              </div>
+            </div>
 
-                  {/* Term Selection */}
-                  <div className="d-flex align-items-center" style={{ minWidth: '200px' }}>
-                    <EnhancedDropdown
-                      value={selectedTerm || ''}
-                      onChange={handleTermChange}
-                      options={terms || []}
-                      placeholder="Term..."
-                      className="form-control-sm"
-                      searchable={true}
-                      minWidth="200px"
-                    />
-                    <div className="ml-2 d-flex">
-                      <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/terms"} title="Configure Terms">
-                        <i className="fa fa-cog font-size-xs"></i>
-                      </button>
-                      <button className="btn btn-xs btn-icon btn-light-success" onClick={() => window.location.hash = "#/terms/add"} title="Add Term">
-                        <i className="fa fa-plus font-size-xs"></i>
-                      </button>
-                    </div>
-                  </div>
+            {/* Right Section */}
+            <div className="d-flex align-items-center flex-wrap" style={{ gap: '20px' }}>
+              {/* View Mode Toggle */}
+              <div className="flex-grow-0" style={{ minWidth: '180px' }}>
+                <label className="font-weight-bolder text-dark font-size-sm d-block mb-2">View Mode</label>
+                <div className="btn-group w-100" role="group">
+                  <button 
+                    type="button"
+                    className={`btn btn-sm flex-grow-1 ${viewMode === 'vertical' ? 'btn-primary' : 'btn-light-primary'}`}
+                    onClick={() => setViewMode('vertical')}
+                    title="Vertical View"
+                  >
+                    <i className="flaticon2-calendar mr-1"></i>
+                    <span className="d-none d-sm-inline">Vertical</span>
+                  </button>
+                  <button 
+                    type="button"
+                    className={`btn btn-sm flex-grow-1 ${viewMode === 'horizontal' ? 'btn-primary' : 'btn-light-primary'}`}
+                    onClick={() => setViewMode('horizontal')}
+                    title="Horizontal View"
+                  >
+                    <i className="flaticon2-calendar-1 mr-1"></i>
+                    <span className="d-none d-sm-inline">Horizontal</span>
+                  </button>
+                </div>
+              </div>
 
-                  {/* Current Selection Display */}
-                  
-                </>
-              );
-            })()}
+              {/* Clear Button */}
+              {(selectedTerm || selectedClass) && (
+                <div className="flex-grow-0">
+                  <label className="font-weight-bolder text-dark font-size-sm d-block mb-2">&nbsp;</label>
+                  <button 
+                    className="btn btn-clean btn-sm text-muted font-weight-bold"
+                    onClick={() => {
+                      handleTermChange('');
+                      handleClassChange('');
+                    }}
+                  >
+                    <i className="fa fa-times mr-1"></i>Clear
+                  </button>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex-grow-0">
+                <label className="font-weight-bolder text-dark font-size-sm d-block mb-2">&nbsp;</label>
+                <div className="d-flex align-items-center" style={{ gap: '10px' }}>
+                  <button 
+                    className="btn btn-light-primary btn-sm font-weight-bold"
+                    onClick={() => setShowConfig(!showConfig)}
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    <i className="flaticon2-settings mr-1"></i>
+                    <span className="d-none d-sm-inline">Settings</span>
+                  </button>
+                  <button 
+                    className="btn btn-success btn-sm font-weight-bold"
+                    onClick={handlePrintAll}
+                    disabled={!classes.length}
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    <i className="fas fa-print mr-1"></i>
+                    <span className="d-none d-sm-inline">Print All</span>
+                  </button>
+                  <button 
+                    className="btn btn-primary btn-sm font-weight-bold"
+                    onClick={handlePrintSingle}
+                    disabled={!selectedClass}
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    <i className="fas fa-print mr-1"></i>
+                    <span className="d-none d-sm-inline">Print</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

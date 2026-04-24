@@ -729,10 +729,7 @@ class ResultsMatrix extends React.Component {
     return (
       <div className="card card-custom">
         <div className="card-header border-0 py-5 d-flex flex-column align-items-stretch">
-            <div className="mb-4 d-flex flex-column">
-                <h1 className="font-weight-bolder text-dark font-size-h3 mb-0">Results Management</h1>
-                <div className="text-muted font-weight-bold font-size-sm mt-1">Manage student scores and academic insights</div>
-            </div>
+            
 
             <div className="d-flex align-items-center justify-content-between">
                 <ul className="nav nav-tabs nav-tabs-line nav-bold nav-tabs-line-2x border-0 mb-0">
@@ -808,7 +805,11 @@ class ResultsMatrix extends React.Component {
                                 studentCount: this.getFilteredStudents().filter(student => {
                                     const studentGradeId = student.class?.grade?.id || student.class?.grade || student.grade_id;
                                     return studentGradeId && String(studentGradeId) === String(grade.id);
-                                }).length
+                                }).length,
+                                subjects: filteredSubjectsList.filter(subject => 
+                                    subject.grade?.id === grade.id || subject.grade === grade.id
+                                ),
+                                countLabel: 'students'
                             }))}
                             placeholder="Grade (Students)..."
                             searchable={true}

@@ -85,7 +85,7 @@ export const EnhancedStatCard = ({
         <div className="d-flex flex-column justify-content-between mr-6">
           <span className={`symbol symbol-45 symbol-light-${getIconColor()}`}>
             <span className="symbol-label">
-              <i className={`text-${getIconColor()} ${icon}`} style={{ fontSize: '1.2rem' }}></i>
+              <i className={`text-${getIconColor()} ${icon}`} style={{ fontSize: '3.2rem', margin: '1rem' }}></i>
             </span>
           </span>
           
@@ -206,7 +206,7 @@ export const AdvancedStatCard = ({
         <div className="d-flex align-items-center justify-content-between mb-4">
           <span className={`symbol symbol-40 symbol-light-${getIconColor()}`}>
             <span className="symbol-label">
-              <i className={`text-${getIconColor()} ${icon}`} style={{ fontSize: '1rem' }}></i>
+              <i className={`text-${getIconColor()} ${icon}`} style={{ fontSize: '3.2rem', margin: '1rem' }}></i>
             </span>
           </span>
           

@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import './EnhancedDropdown.css';
+import './DropdownButtonFixes.css';
 
 const EnhancedDropdown = ({ 
   value, 
@@ -126,7 +127,8 @@ const EnhancedDropdown = ({
         if (typeof countValue === 'object' && countValue !== null) {
           countValue = Object.keys(countValue).length;
         }
-        return `${label} (${countValue})`;
+        const countLabel = selectedOption.countLabel || 'students';
+        return `${label} (${countValue} ${countLabel})`;
       }
       return label;
     }
@@ -187,7 +189,7 @@ const EnhancedDropdown = ({
                     {showCount && countKey && option[countKey] !== undefined && (
                       <span className="enhanced-dropdown-option-count">
                         <span className="enhanced-dropdown-count-shape">
-                          {Array.isArray(option[countKey]) ? option[countKey].length : option[countKey]} students
+                          {Array.isArray(option[countKey]) ? option[countKey].length : option[countKey]} {option.countLabel || 'students'}
                         </span>
                       </span>
                     )}

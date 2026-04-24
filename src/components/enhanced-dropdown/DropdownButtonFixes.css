@@ -1,0 +1,130 @@
+/* Enhanced Dropdown Button Fixes */
+
+/* Fix for btn-xs and fa-cog styling next to dropdowns */
+.btn-xs {
+  padding: 0.25rem 0.5rem !important;
+  font-size: 0.75rem !important;
+  line-height: 1.5 !important;
+  border-radius: 0.25rem !important;
+  min-width: 28px !important;
+  height: 28px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.3s ease !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+}
+
+.btn-icon.btn-xs {
+  width: 28px !important;
+  height: 28px !important;
+  padding: 0 !important;
+  border-radius: 6px !important;
+}
+
+.btn-icon.btn-xs i {
+  font-size: 0.7rem !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+}
+
+/* Specific styling for fa-cog icons */
+.btn-xs .fa-cog,
+.btn-xs .fa-plus {
+  font-size: 0.65rem !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Light theme button variants */
+.btn-light-primary {
+  background: linear-gradient(135deg, #E3F2FD 0%, #F3F6F9 100%) !important;
+  border: 1px solid #E4E6EF !important;
+  color: #0095E8 !important;
+}
+
+.btn-light-primary:hover {
+  background: linear-gradient(135deg, #BBDEFB 0%, #E3F2FD 100%) !important;
+  border-color: #0095E8 !important;
+  color: #0077B5 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 3px 8px rgba(0, 149, 232, 0.2) !important;
+}
+
+.btn-light-success {
+  background: linear-gradient(135deg, #E8F5E8 0%, #F3F6F9 100%) !important;
+  border: 1px solid #E4E6EF !important;
+  color: #10b981 !important;
+}
+
+.btn-light-success:hover {
+  background: linear-gradient(135deg, #C8E6C9 0%, #E8F5E8 100%) !important;
+  border-color: #10b981 !important;
+  color: #059669 !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 3px 8px rgba(16, 185, 129, 0.2) !important;
+}
+
+/* Dark mode support - Only apply when explicitly set to dark */
+[data-theme="dark"] .btn-light-primary,
+body.dark-mode .btn-light-primary {
+  background: linear-gradient(135deg, #1a3a52 0%, #2a2a2a 100%) !important;
+  border-color: #444 !important;
+  color: #0095E8 !important;
+}
+
+[data-theme="dark"] .btn-light-primary:hover,
+body.dark-mode .btn-light-primary:hover {
+  background: linear-gradient(135deg, #2a4a66 0%, #333 100%) !important;
+  border-color: #0095E8 !important;
+  color: #0077B5 !important;
+  box-shadow: 0 3px 8px rgba(0, 149, 232, 0.3) !important;
+}
+
+[data-theme="dark"] .btn-light-success,
+body.dark-mode .btn-light-success {
+  background: linear-gradient(135deg, #1a3a2a 0%, #2a2a2a 100%) !important;
+  border-color: #444 !important;
+  color: #10b981 !important;
+}
+
+[data-theme="dark"] .btn-light-success:hover,
+body.dark-mode .btn-light-success:hover {
+  background: linear-gradient(135deg, #2a4a3a 0%, #333 100%) !important;
+  border-color: #10b981 !important;
+  color: #059669 !important;
+  box-shadow: 0 3px 8px rgba(16, 185, 129, 0.3) !important;
+}
+
+/* Ensure proper spacing with dropdowns */
+.ml-1.d-flex .btn-xs {
+  margin-left: 0.25rem !important;
+}
+
+.ml-2.d-flex .btn-xs {
+  margin-left: 0.5rem !important;
+}
+
+/* Fix alignment issues */
+.d-flex.align-items-center .btn-xs {
+  align-self: center !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .btn-xs {
+    min-width: 26px !important;
+    height: 26px !important;
+  }
+  
+  .btn-icon.btn-xs {
+    width: 26px !important;
+    height: 26px !important;
+  }
+  
+  .btn-xs .fa-cog,
+  .btn-xs .fa-plus {
+    font-size: 0.6rem !important;
+  }
+}
