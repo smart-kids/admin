@@ -117,7 +117,16 @@ const EnhancedDropdown = ({
     if (selectedOption) {
       const label = selectedOption[labelKey] || '';
       if (showCount && countKey && selectedOption[countKey] !== undefined) {
-        return `${label} (${selectedOption[countKey]})`;
+        let countValue = selectedOption[countKey];
+        // Handle arrays by getting their length
+        if (Array.isArray(countValue)) {
+          countValue = countValue.length;
+        }
+        // Handle objects by converting to string representation
+        if (typeof countValue === 'object' && countValue !== null) {
+          countValue = Object.keys(countValue).length;
+        }
+        return `${label} (${countValue})`;
       }
       return label;
     }
@@ -178,7 +187,7 @@ const EnhancedDropdown = ({
                     {showCount && countKey && option[countKey] !== undefined && (
                       <span className="enhanced-dropdown-option-count">
                         <span className="enhanced-dropdown-count-shape">
-                          {option[countKey]} students
+                          {Array.isArray(option[countKey]) ? option[countKey].length : option[countKey]} students
                         </span>
                       </span>
                     )}

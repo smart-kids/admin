@@ -3,6 +3,7 @@ import TimeTableGrid from './components/TimeTableGrid';
 import TimeTableConfig from './components/TimeTableConfig';
 import AllocationModal from './components/AllocationModal';
 import TimeTablePrintReview from './components/TimeTablePrintReview';
+import EnhancedDropdown from '../../components/enhanced-dropdown/EnhancedDropdown';
 import Data from "../../utils/data";
 
 const TimeTableMatrix = () => {
@@ -22,10 +23,10 @@ const TimeTableMatrix = () => {
     lunchBreakLength: 30,
     lessonsPerTeaBreak: 2,
     lessonsPerLunchBreak: 4,
-    teaBreakAfterLessons: [2, 6], // Support multiple tea breaks
-    lunchBreakAfterLessons: 4,
+    teaBreakAfterLessons: [2, 4], // Support multiple tea breaks - updated to after lessons 2, 4
+    lunchBreakAfterLessons: 6, // Updated to after lesson 6
     startTime: '08:00',
-    endTime: '13:30',
+    endTime: '15:30', // Updated to 15:30
     workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
   });
   const [showConfig, setShowConfig] = useState(false);
@@ -40,7 +41,7 @@ const TimeTableMatrix = () => {
   const [showPrintView, setShowPrintView] = useState(false);
   const [schoolInfo, setSchoolInfo] = useState(null);
   const [allTimeTablesData, setAllTimeTablesData] = useState({});
-  const [viewMode, setViewMode] = useState('vertical'); // 'vertical' or 'horizontal'
+  const [viewMode, setViewMode] = useState(localStorage.getItem('timeTables_viewMode') || 'vertical'); // 'vertical' or 'horizontal'
 
   // Generate time slots based on configuration
   const timeSlots = useMemo(() => {
@@ -173,6 +174,11 @@ const TimeTableMatrix = () => {
       clearInterval(checkAutoSelect);
     };
   }, [classes, terms, grades]);
+
+  // Save viewMode to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('timeTables_viewMode', viewMode);
+  }, [viewMode]);
 
   const getAvailableData = () => {
     const userData = JSON.parse(localStorage.getItem("user") || "{}");
@@ -571,6 +577,7 @@ const TimeTableMatrix = () => {
             className="btn btn-success btn-sm"
             onClick={handlePrintAll}
             disabled={!classes.length}
+            style={{ whiteSpace: 'nowrap' }}
           >
             <i className="flaticon2-printer mr-2"></i>
             Print All
@@ -613,18 +620,17 @@ const TimeTableMatrix = () => {
               return (
                 <>
                   {/* Grade Selection */}
-                  <div className="dropdown dropdown-inline d-flex align-items-center" style={{ minWidth: '200px' }}>
-                    <select 
-                      className="form-control form-control-sm form-control-solid" 
-                      value={selectedGrade || ''} 
-                      onChange={e => {
-                        handleGradeChange(e.target.value);
-                      }}
-                    >
-                      <option value="">Grade...</option>
-                      {availableGrades.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-                    </select>
-                    <div className="ml-1 d-flex">
+                  <div className="d-flex align-items-center" style={{ minWidth: '200px' }}>
+                    <EnhancedDropdown
+                      value={selectedGrade || ''}
+                      onChange={handleGradeChange}
+                      options={availableGrades}
+                      placeholder="Grade..."
+                      className="form-control-sm"
+                      searchable={true}
+                      minWidth="200px"
+                    />
+                    <div className="ml-2 d-flex">
                       <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/learning"} title="Configure Grades">
                         <i className="fa fa-cog font-size-xs"></i>
                       </button>
@@ -635,20 +641,21 @@ const TimeTableMatrix = () => {
                   </div>
 
                   {/* Class Selection */}
-                  <div className="dropdown dropdown-inline d-flex align-items-center" style={{ minWidth: '200px' }}>
-                    <select 
-                      className="form-control form-control-sm form-control-solid" 
-                      value={selectedClass?.id || ''} 
-                      onChange={e => handleClassChange(e.target.value)}
-                    >
-                      <option value="">Class...</option>
-                      {availableClasses.map(c => (
-                        <option key={c.id} value={c.id}>
-                          {c.name} ({(c.students && c.students.length) || 0} Students)
-                        </option>
-                      ))}
-                    </select>
-                    <div className="ml-1 d-flex">
+                  <div className="d-flex align-items-center" style={{ minWidth: '200px' }}>
+                    <EnhancedDropdown
+                      value={selectedClass?.id || ''}
+                      onChange={handleClassChange}
+                      options={availableClasses}
+                      placeholder="Class..."
+                      className="form-control-sm"
+                      searchable={true}
+                      minWidth="200px"
+                      labelKey="name"
+                      valueKey="id"
+                      showCount={true}
+                      countKey="students"
+                    />
+                    <div className="ml-2 d-flex">
                       <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/classes"} title="Configure Classes">
                         <i className="fa fa-cog font-size-xs"></i>
                       </button>
@@ -659,18 +666,17 @@ const TimeTableMatrix = () => {
                   </div>
 
                   {/* Term Selection */}
-                  <div className="dropdown dropdown-inline d-flex align-items-center" style={{ minWidth: '200px' }}>
-                    <select 
-                      className="form-control form-control-sm form-control-solid" 
-                      value={selectedTerm || ''} 
-                      onChange={e => {
-                        handleTermChange(e.target.value);
-                      }}
-                    >
-                      <option value="">Term...</option>
-                      {terms?.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-                    </select>
-                    <div className="ml-1 d-flex">
+                  <div className="d-flex align-items-center" style={{ minWidth: '200px' }}>
+                    <EnhancedDropdown
+                      value={selectedTerm || ''}
+                      onChange={handleTermChange}
+                      options={terms || []}
+                      placeholder="Term..."
+                      className="form-control-sm"
+                      searchable={true}
+                      minWidth="200px"
+                    />
+                    <div className="ml-2 d-flex">
                       <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/terms"} title="Configure Terms">
                         <i className="fa fa-cog font-size-xs"></i>
                       </button>
