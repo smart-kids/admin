@@ -1,10 +1,13 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import app from "../scripts.bundle"; // Assuming this is Metronic's app bundle
 import Data from "../utils/data";
 import { withRouter } from "react-router";
 import Pace from 'react-pace-progress';
 import { useTheme } from "../contexts/ThemeContext";
+
+// Access app globally to avoid ES modules conflict
+// The scripts.bundle.js is loaded in index.html and should be available on window
+let app = null;
 const toastr = window.toastr;
 
 // Keep the Metronic JS initializers for things like dropdowns and the profile offcanvas
@@ -132,7 +135,11 @@ class Navbar extends React.Component {
     // Initialize dark mode
     this.initializeDarkMode();
 
-    app.init();
+    // Safely initialize app from global scope
+    app = window.app || window.KTApp;
+    if (app && typeof app.init === 'function') {
+      app.init();
+    }
     this.initProfileOffcanvas();
     // Initial menu setup
     setTimeout(() => this.initDesktopMenu(), 500);

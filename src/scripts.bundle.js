@@ -340,11 +340,6 @@ var KTApp = function () {
     };
 }();
 
-// webpack support
-if (typeof module !== 'undefined') {
-    module.exports = KTApp;
-}
-
 // Initialize KTApp class on document ready
 $(document).ready(function () {
     KTApp.init(KTAppOptions);
@@ -9881,11 +9876,6 @@ var KTLayout = function () {
     }
 };
 }();
-
-// webpack support
-if (typeof module !== 'undefined') {
-    module.exports = KTLayout;
-}
 
 // ES6 default export for React imports
 export default KTLayout;

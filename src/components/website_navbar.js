@@ -1,14 +1,19 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import app from "../scripts.bundle"
 
+// Access app globally to avoid ES modules conflict
+let app = null;
 const KTUtil = window.KTUtil
 const KTOffcanvas = window.KTOffcanvas
 
 class Navbar extends React.Component {
   componentDidMount() {
     // window.KTLayout.init();
-    app.init()
+    // Safely initialize app from global scope
+    app = window.app || window.KTApp;
+    if (app && typeof app.init === 'function') {
+      app.init();
+    }
 
     var profilePanel = KTUtil.get('kt_offcanvas_toolbar_profile');
     var head = KTUtil.find(profilePanel, '.kt-offcanvas-panel__head');
