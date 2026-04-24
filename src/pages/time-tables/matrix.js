@@ -22,7 +22,7 @@ const TimeTableMatrix = () => {
     lunchBreakLength: 30,
     lessonsPerTeaBreak: 2,
     lessonsPerLunchBreak: 4,
-    teaBreakAfterLessons: 2,
+    teaBreakAfterLessons: [2, 6], // Support multiple tea breaks
     lunchBreakAfterLessons: 4,
     startTime: '08:00',
     endTime: '13:30',
@@ -40,6 +40,7 @@ const TimeTableMatrix = () => {
   const [showPrintView, setShowPrintView] = useState(false);
   const [schoolInfo, setSchoolInfo] = useState(null);
   const [allTimeTablesData, setAllTimeTablesData] = useState({});
+  const [viewMode, setViewMode] = useState('vertical'); // 'vertical' or 'horizontal'
 
   // Generate time slots based on configuration
   const timeSlots = useMemo(() => {
@@ -51,7 +52,7 @@ const TimeTableMatrix = () => {
     let currentTime = startHour * 60 + startMin;
     const endTime = endHour * 60 + endMin;
     let lessonCount = 0;
-    let teaBreakUsed = false;
+    let teaBreaksUsed = [];
     let lunchBreakUsed = false;
     
     while (currentTime < endTime) {
@@ -65,12 +66,12 @@ const TimeTableMatrix = () => {
       let breakDuration = 0;
       
       if (lessonCount > 0) {
-        // Check for tea break (only once)
-        if (lessonCount === config.teaBreakAfterLessons && !teaBreakUsed) {
+        // Check for tea breaks (support multiple)
+        if (config.teaBreakAfterLessons && config.teaBreakAfterLessons.includes(lessonCount) && !teaBreaksUsed.includes(lessonCount)) {
           isBreak = true;
           breakType = 'tea';
           breakDuration = config.teaBreakLength;
-          teaBreakUsed = true;
+          teaBreaksUsed.push(lessonCount);
         }
         // Check for lunch break (only once)
         else if (lessonCount === config.lunchBreakAfterLessons && !lunchBreakUsed) {
@@ -540,6 +541,25 @@ const TimeTableMatrix = () => {
           <p className="text-muted">Manage class schedules and teacher allocations</p>
         </div>
         <div className="d-flex align-items-center" style={{ gap: '10px' }}>
+          {/* View Mode Toggle */}
+          <div className="btn-group" role="group">
+            <button 
+              type="button"
+              className={`btn btn-sm ${viewMode === 'vertical' ? 'btn-primary' : 'btn-light-primary'}`}
+              onClick={() => setViewMode('vertical')}
+              title="Vertical View"
+            >
+              <i className="flaticon2-calendar"></i>
+            </button>
+            <button 
+              type="button"
+              className={`btn btn-sm ${viewMode === 'horizontal' ? 'btn-primary' : 'btn-light-primary'}`}
+              onClick={() => setViewMode('horizontal')}
+              title="Horizontal View"
+            >
+              <i className="flaticon2-calendar-1"></i>
+            </button>
+          </div>
           <button 
             className="btn btn-light-primary btn-sm"
             onClick={() => setShowConfig(!showConfig)}
@@ -709,6 +729,7 @@ const TimeTableMatrix = () => {
         checkTeacherConflict={checkTeacherConflict}
         getTeacherAllocations={getTeacherAllocations}
         loading={loading}
+        viewMode={viewMode}
       />
 
       {/* Allocation Modal */}

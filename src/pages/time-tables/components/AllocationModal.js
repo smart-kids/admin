@@ -116,13 +116,16 @@ const AllocationModal = ({
       left: 0,
       right: 0,
       bottom: 0,
-      zIndex: 1050
+      zIndex: 1050,
+      padding: '20px'
     }}>
       <div className="modal-dialog modal-xl" role="document" style={{ 
         maxWidth: '900px',
-        width: '90%',
-        margin: 0,
-        maxHeight: '85vh'
+        width: '100%',
+        margin: '0 auto',
+        maxHeight: '85vh',
+        position: 'relative',
+        flex: '0 0 auto'
       }}>
         <div className="modal-content" style={{ 
           height: 'auto',

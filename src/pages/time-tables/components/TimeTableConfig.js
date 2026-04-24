@@ -135,24 +135,67 @@ const TimeTableConfig = ({ config, onConfigChange, onClose }) => {
             
             <div className="form-group mb-4">
               <label className="font-weight-bold text-dark font-size-sm">
-                Tea Break After (lessons)
+                Tea Breaks After Lessons (comma-separated)
               </label>
-              <div className="input-group">
+              <div className="d-flex align-items-center" style={{ gap: '10px', marginBottom: '10px' }}>
                 <input
-                  type="number"
+                  type="text"
                   className="form-control form-control-solid"
-                  value={localConfig.teaBreakAfterLessons || 2}
-                  onChange={(e) => handleInputChange('teaBreakAfterLessons', parseInt(e.target.value) || 2)}
-                  min="1"
-                  max="10"
-                  step="1"
+                  value={(localConfig.teaBreakAfterLessons || []).join(', ')}
+                  onChange={(e) => {
+                    const values = e.target.value.split(',').map(v => parseInt(v.trim())).filter(v => !isNaN(v) && v > 0);
+                    handleInputChange('teaBreakAfterLessons', values.length > 0 ? values : [2]);
+                  }}
+                  placeholder="e.g., 2, 6"
                 />
-                <div className="input-group-append">
-                  <span className="input-group-text">lessons</span>
-                </div>
               </div>
+              
+              {/* Quick Preset Buttons */}
+              <div className="d-flex flex-wrap" style={{ gap: '8px', marginBottom: '10px' }}>
+                <button
+                  type="button"
+                  className="btn btn-light-primary btn-xs font-weight-bold"
+                  onClick={() => handleInputChange('teaBreakAfterLessons', [2])}
+                  title="One tea break after 2nd lesson"
+                >
+                  After 2nd
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-light-primary btn-xs font-weight-bold"
+                  onClick={() => handleInputChange('teaBreakAfterLessons', [2, 6])}
+                  title="Tea breaks after 2nd and 6th lessons"
+                >
+                  After 2nd & 6th
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-light-primary btn-xs font-weight-bold"
+                  onClick={() => handleInputChange('teaBreakAfterLessons', [3, 7])}
+                  title="Tea breaks after 3rd and 7th lessons"
+                >
+                  After 3rd & 7th
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-light-primary btn-xs font-weight-bold"
+                  onClick={() => handleInputChange('teaBreakAfterLessons', [2, 5, 8])}
+                  title="Tea breaks after 2nd, 5th, and 8th lessons"
+                >
+                  After 2nd, 5th & 8th
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-light-danger btn-xs font-weight-bold"
+                  onClick={() => handleInputChange('teaBreakAfterLessons', [])}
+                  title="No tea breaks"
+                >
+                  No Tea Breaks
+                </button>
+              </div>
+              
               <small className="text-muted font-size-xs">
-                Number of lessons before tea break (e.g., 2 for break after 2nd lesson)
+                Enter lesson numbers after which tea breaks should occur (e.g., "2, 6" for breaks after 2nd and 6th lessons)
               </small>
             </div>
 
@@ -280,10 +323,10 @@ const TimeTableConfig = ({ config, onConfigChange, onClose }) => {
                   <strong>Lesson Duration:</strong> {localConfig.lessonLength} minutes
                 </div>
                 <div className="font-size-sm text-dark mb-3">
-                  <strong>Break Duration:</strong> {localConfig.breakLength} minutes
+                  <strong>Tea Breaks:</strong> After lessons {(localConfig.teaBreakAfterLessons || []).join(', ')}
                 </div>
-                <div className="font-size-sm text-dark">
-                  <strong>Break Frequency:</strong> Every {localConfig.lessonsPerBreak} lesson{localConfig.lessonsPerBreak > 1 ? 's' : ''}
+                <div className="font-size-sm text-dark mb-3">
+                  <strong>Lunch Break:</strong> After lesson {localConfig.lunchBreakAfterLessons || 4}
                 </div>
                 
                 <div className="mt-4 p-3 bg-white rounded">
@@ -342,11 +385,32 @@ const calculateLessonsPerDay = (config) => {
   let currentTime = startHour * 60 + startMin;
   const endTime = endHour * 60 + endMin;
   let lessonCount = 0;
+  let teaBreaksUsed = [];
+  let lunchBreakUsed = false;
   
   while (currentTime < endTime) {
-    const isBreak = lessonCount > 0 && lessonCount % config.lessonsPerBreak === 0;
-    currentTime += isBreak ? config.breakLength : config.lessonLength;
+    let isBreak = false;
+    
+    let breakType = null;
+    if (lessonCount > 0) {
+      // Check for tea breaks (support multiple)
+      if (config.teaBreakAfterLessons && config.teaBreakAfterLessons.includes(lessonCount) && !teaBreaksUsed.includes(lessonCount)) {
+        isBreak = true;
+        breakType = 'tea';
+        teaBreaksUsed.push(lessonCount);
+      }
+      // Check for lunch break (only once)
+      else if (lessonCount === config.lunchBreakAfterLessons && !lunchBreakUsed) {
+        isBreak = true;
+        breakType = 'lunch';
+        lunchBreakUsed = true;
+      }
+    }
+    
+    currentTime += isBreak ? (breakType === 'tea' ? config.teaBreakLength : config.lunchBreakLength) : config.lessonLength;
     if (!isBreak) lessonCount++;
+    
+    if (currentTime >= endTime) break;
   }
   
   return lessonCount;

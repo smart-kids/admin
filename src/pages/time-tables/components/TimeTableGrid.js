@@ -10,7 +10,8 @@ const TimeTableGrid = ({
   onSlotClick, 
   checkTeacherConflict, 
   getTeacherAllocations,
-  loading 
+  loading,
+  viewMode = 'vertical'
 }) => {
   
   const subjectColors = useMemo(() => ({
@@ -200,48 +201,85 @@ const TimeTableGrid = ({
     );
   }
 
-  // Debug panel for development
-  const DebugPanel = () => {
-    if (process.env.NODE_ENV !== 'development') return null;
-    
+  
+  // Render horizontal view (days as rows, time as columns)
+  const renderHorizontalView = () => {
     return (
-      <div className="card card-custom mb-4" style={{ borderRadius: '8px', border: '1px solid #ebedf3', backgroundColor: '#f8f9fa' }}>
-        <div className="card-body p-4">
-          <h6 className="font-weight-bold text-dark mb-3">Debug Information</h6>
-          <div className="row">
-            <div className="col-md-6">
-              <div className="font-size-sm">
-                <strong>Time Table Data Keys:</strong> {Object.keys(timeTableData).length}
-              </div>
-              <div className="font-size-sm">
-                <strong>Selected Class:</strong> {selectedClass?.name || 'None'}
-              </div>
-              <div className="font-size-sm">
-                <strong>Time Slots:</strong> {timeSlots.length}
-              </div>
-            </div>
-            <div className="col-md-6">
-              <div className="font-size-sm">
-                <strong>Sample Data:</strong>
-              </div>
-              <pre className="font-size-xs bg-light p-2 mt-1" style={{ maxHeight: '100px', overflow: 'auto' }}>
-                {JSON.stringify(Object.entries(timeTableData).slice(0, 3), null, 2)}
-              </pre>
-            </div>
+      <div className="card card-custom" style={{ borderRadius: '8px', border: '1px solid #ebedf3' }}>
+        <div className="card-body p-0">
+          <div className="table-responsive">
+            <table className="table table-bordered table-vertical-center mb-0 time-table-grid">
+              <thead>
+                <tr>
+                  <th 
+                    className="text-center font-weight-boldest text-dark"
+                    style={{ 
+                      minWidth: '120px', 
+                      backgroundColor: '#f9fafc',
+                      border: '1px solid #ebedf3',
+                      padding: '15px 10px'
+                    }}
+                  >
+                    Day
+                  </th>
+                  {timeSlots.map(slot => (
+                    <th 
+                      key={slot.id}
+                      className="text-center font-weight-boldest text-dark"
+                      style={{ 
+                        minWidth: '100px', 
+                        backgroundColor: '#f9fafc',
+                        border: '1px solid #ebedf3',
+                        padding: '15px 10px'
+                      }}
+                    >
+                      <div>{slot.time}</div>
+                      <div className="font-size-xs text-muted">
+                        {slot.duration} min
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {config.workingDays.map(day => (
+                  <tr key={day}>
+                    <td 
+                      className="text-center font-weight-bold"
+                      style={{ 
+                        backgroundColor: '#f9fafc',
+                        border: '1px solid #ebedf3',
+                        padding: '15px 10px',
+                        verticalAlign: 'middle'
+                      }}
+                    >
+                      {day}
+                    </td>
+                    {timeSlots.map(slot => (
+                      <td 
+                        key={`${day}-${slot.id}`}
+                        style={{ 
+                          border: '1px solid #ebedf3',
+                          padding: '8px',
+                          verticalAlign: 'top'
+                        }}
+                      >
+                        {renderSlot(day, slot)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
     );
   };
 
-  return (
-    <div className="time-table-grid-container">
-      {/* Debug Panel */}
-      <DebugPanel />
-      
-      {/* Header */}
-      
-
+  // Render vertical view (time as rows, days as columns) - original view
+  const renderVerticalView = () => {
+    return (
       <div className="card card-custom" style={{ borderRadius: '8px', border: '1px solid #ebedf3' }}>
         <div className="card-body p-0">
           {/* Time Table Grid */}
@@ -314,6 +352,13 @@ const TimeTableGrid = ({
           </div>
         </div>
       </div>
+    );
+  };
+
+  return (
+    <div className="time-table-grid-container">
+      {/* Render based on view mode */}
+      {viewMode === 'horizontal' ? renderHorizontalView() : renderVerticalView()}
 
       {/* Legend */}
       <div className="card card-custom mt-4" style={{ borderRadius: '8px', border: '1px solid #ebedf3' }}>
