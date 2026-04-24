@@ -1,4 +1,14 @@
 {
-  "presets": ["@babel/preset-env", "@babel/preset-react"],
-  "plugins": ["@babel/plugin-proposal-optional-chaining"]
+  "presets": [
+    ["@babel/preset-env", {}],
+    ["@babel/preset-react", {
+      "runtime": "classic",
+      "throwIfNamespace": false
+    }]
+  ],
+  "plugins": [
+    "@babel/plugin-proposal-optional-chaining",
+    "@babel/plugin-proposal-async-generator-functions",
+    "@babel/plugin-syntax-dynamic-import"
+  ]
 }

@@ -9842,15 +9842,53 @@ var KTLayout = function () {
         closeMobileHeaderMenuOffcanvas: function () {
             if (KTUtil.isMobileDevice()) {
                 headerMenuOffcanvas.hide();
-            }
         }
-    };
+
+        pageStickyPortlet = initPageStickyPortlet();
+        pageStickyPortlet.initSticky();
+
+        KTUtil.addResizeHandler(function () {
+            pageStickyPortlet.updateSticky();
+        });
+
+        initPageStickyPortlet();
+    },
+
+    getAsideMenu: function () {
+        return asideMenu;
+    },
+
+    onAsideToggle: function (handler) {
+        if (typeof asideToggler.element !== 'undefined') {
+            asideToggler.on('toggle', handler);
+        }
+    },
+
+    getAsideToggler: function () {
+        return asideToggler;
+    },
+
+    closeMobileAsideMenuOffcanvas: function () {
+        if (KTUtil.isMobileDevice()) {
+            asideMenuOffcanvas.hide();
+        }
+    },
+
+    closeMobileHeaderMenuOffcanvas: function () {
+        if (KTUtil.isMobileDevice()) {
+            headerMenuOffcanvas.hide();
+        }
+    }
+};
 }();
 
 // webpack support
 if (typeof module !== 'undefined') {
     module.exports = KTLayout;
 }
+
+// ES6 default export for React imports
+export default KTLayout;
 
 window.KTLayout = KTLayout
 window.KTUtil = KTUtil
