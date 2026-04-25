@@ -25,7 +25,7 @@ class Subheader extends React.Component {
   }
 
   render() {
-    const { links } = this.props;
+    const { links, actions } = this.props;
     const { selectedSchool } = this.state;
 
     const showBreadcrumbs = links && links.length > 0;
@@ -157,13 +157,11 @@ class Subheader extends React.Component {
                     ))}
                   </div>
                 </div>
-                {/* <div className="kt-subheader__toolbar">
-                  <div className="kt-subheader__low-balance">
-                    <div className="kt-subheader__balance-display" style={{ color: "white", fontSize: "0.9rem", fontWeight: 500 }}>
-                      Balance: KSH&nbsp;{accountBalance}
-                    </div>
+                {actions && (
+                  <div className="kt-subheader__toolbar">
+                    {actions}
                   </div>
-                </div> */}
+                )}
               </div>
             </div>
           </div>

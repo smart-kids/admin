@@ -20,21 +20,50 @@ export const EChartsWrapper = ({
     setChartInstance(echartsInstance);
     if (onChartReady) onChartReady(echartsInstance);
     
-    // Add custom event handlers
+    // Add custom event handlers with error handling
     echartsInstance.on('click', (params) => {
-      if (onChartClick) {
-        onChartClick(params);
+      try {
+        if (onChartClick) {
+          onChartClick(params);
+        }
+      } catch (error) {
+        console.warn('Chart click handler error:', error);
       }
     });
 
-    // Add hover effect
+    // Add hover effect with error handling
     echartsInstance.on('mouseover', (params) => {
-      echartsInstance.getZr().setCursorStyle('pointer');
+      try {
+        if (echartsInstance.getZr()) {
+          echartsInstance.getZr().setCursorStyle('pointer');
+        }
+      } catch (error) {
+        console.warn('Chart mouseover handler error:', error);
+      }
     });
 
     echartsInstance.on('mouseout', (params) => {
-      echartsInstance.getZr().setCursorStyle('default');
+      try {
+        if (echartsInstance.getZr()) {
+          echartsInstance.getZr().setCursorStyle('default');
+        }
+      } catch (error) {
+        console.warn('Chart mouseout handler error:', error);
+      }
     });
+
+    // Add tooltip error handling
+    try {
+      const tooltipModel = echartsInstance.getModel().getComponent('tooltip');
+      if (tooltipModel) {
+        echartsInstance.on('showTip', (params) => {
+          // Prevent tooltip errors by ensuring valid DOM elements
+          if (!params || !params.from || !params.to) return;
+        });
+      }
+    } catch (error) {
+      console.warn('Tooltip setup error:', error);
+    }
   };
 
   useEffect(() => {

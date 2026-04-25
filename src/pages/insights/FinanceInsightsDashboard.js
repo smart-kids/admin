@@ -12,6 +12,9 @@ import { PaymentMethodChart, PaymentMethodTrendChart } from '../../components/ch
 import { FeeHeatmapChart, FeeTreemapChart } from '../../components/charts/finance/FeeHeatmapChart';
 import { StreamRadarChart, StreamComparisonChart } from '../../components/charts/finance/StreamRadarChart';
 import { CashFlowChart, CashFlowTimelineChart, CashFlowSummaryChart } from '../../components/charts/finance/CashFlowChart';
+import { FeeCollectionFunnelChart } from '../../components/charts/finance/FeeCollectionFunnelChart';
+import { PaymentPatternSankeyChart } from '../../components/charts/finance/PaymentPatternSankeyChart';
+import { ARAgingGaugeChart } from '../../components/charts/finance/ARAgingGaugeChart';
 
 class FinanceInsightsDashboard extends Component {
   state = {
@@ -43,7 +46,10 @@ class FinanceInsightsDashboard extends Component {
       paymentMethods: true,
       feeHeatmap: true,
       streamRadar: true,
-      cashFlow: true
+      cashFlow: true,
+      collectionFunnel: true,
+      paymentPattern: true,
+      arAging: true
     },
     
     // Dashboard layout
@@ -569,12 +575,31 @@ class FinanceInsightsDashboard extends Component {
 
     return (
       <div className="row mt-4">
-        {activeCharts.cashFlow && (
-          <div className="col-lg-12">
-            <CashFlowChart 
-              data={comparisonData} 
+        {activeCharts.collectionFunnel && (
+          <div className="col-lg-4">
+            <FeeCollectionFunnelChart 
+              data={this.generateCollectionFunnelData()} 
               loading={loading}
-              showLabels={true}
+              showComparison={this.state.showComparison}
+            />
+          </div>
+        )}
+        
+        {activeCharts.paymentPattern && (
+          <div className="col-lg-4">
+            <PaymentPatternSankeyChart 
+              data={this.generatePaymentPatternData()} 
+              loading={loading}
+              timeRange={this.state.selectedTimeRange}
+            />
+          </div>
+        )}
+        
+        {activeCharts.arAging && (
+          <div className="col-lg-4">
+            <ARAgingGaugeChart 
+              data={this.generateARAgingData()} 
+              loading={loading}
             />
           </div>
         )}
@@ -641,6 +666,51 @@ class FinanceInsightsDashboard extends Component {
     );
   };
 
+  generateCollectionFunnelData = () => {
+    const { payments, charges } = this.state;
+    
+    const totalBilled = charges.reduce((sum, charge) => sum + parseFloat(charge.amount || 0), 0);
+    const partialPayments = payments.filter(p => p.status === 'PARTIAL').reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+    const fullPayments = payments.filter(p => p.status === 'COMPLETED').reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+    const overdue = charges.filter(c => new Date(c.dueDate) < new Date() && !this.isPaid(c.id)).reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+    const writtenOff = charges.filter(c => c.status === 'WRITTEN_OFF').reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+    
+    return {
+      totalBilled,
+      partialPayments,
+      fullPayments,
+      overdue,
+      writtenOff
+    };
+  };
+
+  generatePaymentPatternData = () => {
+    const { payments } = this.state;
+    
+    return payments.map(payment => ({
+      paymentMethod: payment.paymentMethod || payment.type,
+      feeCategory: payment.feeCategory || 'Other',
+      amount: parseFloat(payment.amount || 0),
+      date: payment.date || payment.createdAt
+    }));
+  };
+
+  generateARAgingData = () => {
+    const { charges, payments } = this.state;
+    
+    return charges.map(charge => ({
+      amount: parseFloat(charge.amount || 0),
+      dueDate: charge.dueDate,
+      paidDate: payments.find(p => p.chargeId === charge.id)?.date,
+      status: charge.status
+    }));
+  };
+
+  isPaid = (chargeId) => {
+    const { payments } = this.state;
+    return payments.some(p => p.chargeId === chargeId && p.status === 'COMPLETED');
+  };
+
   render() {
     const { loading, error } = this.state;
 
@@ -662,19 +732,23 @@ class FinanceInsightsDashboard extends Component {
 
     return (
       <div className="finance-insights-dashboard">
-        
-
         {this.renderFilters()}
-
-  
-
         {this.renderKPIs()}
-
         {this.renderMainCharts()}
-
         {this.renderSecondaryCharts()}
-
         {this.renderTertiaryCharts()}
+        
+        {this.state.activeCharts.cashFlow && (
+          <div className="row mt-4">
+            <div className="col-lg-12">
+              <CashFlowChart 
+                data={this.state.comparisonData} 
+                loading={loading}
+                showLabels={true}
+              />
+            </div>
+          </div>
+        )}
 
         {loading && (
           <div className="text-center py-10">

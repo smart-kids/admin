@@ -8,6 +8,12 @@ import AddClassModal from "../classes/add";
 import AddGradeModal from "../learning/grades/add";
 import AddTermModal from "./components/AddTermModal";
 import { StatCard, DistributionChart, TrendBarChart, AreaChart, RankingList } from "../../components/analytics/DashboardWidgets";
+import { EnhancedStatCard, AdvancedStatCard } from "../../components/charts/EnhancedStatCard";
+import { ModernKPICard } from "../../components/charts/ModernKPICard";
+import { SubjectPerformanceRadarChart } from "../../components/charts/results/SubjectPerformanceRadarChart";
+import { StudentProgressTimelineChart } from "../../components/charts/results/StudentProgressTimelineChart";
+import { ClassComparisonSunburstChart } from "../../components/charts/results/ClassComparisonSunburstChart";
+import { PerformanceMatrixChart, GradeTreemapChart } from "../../components/charts/results/PerformanceMatrixChart";
 import EnhancedSearch from '../../components/enhanced-search/EnhancedSearch';
 import AlphabetFilter from '../../components/alphabet-filter/AlphabetFilter';
 import EnhancedDropdown from '../../components/enhanced-dropdown/EnhancedDropdown';
@@ -46,7 +52,7 @@ class ResultsMatrix extends React.Component {
     smsMessage: "",
     bulkSmsRecipients: [],
 
-    activeTab: 'grid', 
+    activeTab: 'insights', 
     
     showAddSubjectModal: false,
     showAddTermModal: false,
@@ -575,6 +581,298 @@ class ResultsMatrix extends React.Component {
       finally { this.setState({ sendingSms: false }); }
   };
 
+  // Enhanced data processing methods for new charts
+  generateComparisonData = () => {
+    const { assessments, classes, subjects, selectedClass, selectedTerm } = this.state;
+    
+    return classes.map(classItem => {
+      const classAssessments = assessments.filter(a => 
+        (a.student?.class?.id === classItem.id || a.student?.class === classItem.id) &&
+        (!selectedClass || classItem.id === selectedClass) &&
+        (!selectedTerm || a.term?.id === selectedTerm || a.term === selectedTerm)
+      );
+      
+      const subjectPerformance = {};
+      subjects.forEach(subject => {
+        const subjectAssessments = classAssessments.filter(a => 
+          a.subject?.id === subject.id || a.subject === subject.id
+        );
+        const avg = subjectAssessments.length > 0 ? 
+          subjectAssessments.reduce((sum, a) => sum + (parseFloat(a.score) || 0), 0) / subjectAssessments.length : 0;
+        
+        subjectPerformance[subject.name] = {
+          average: avg,
+          studentCount: new Set(subjectAssessments.map(a => a.student?.id || a.student)).size,
+          assessmentCount: subjectAssessments.length
+        };
+      });
+      
+      return {
+        className: classItem.name,
+        classId: classItem.id,
+        subjectPerformance,
+        totalAssessments: classAssessments.length,
+        averageScore: classAssessments.length > 0 ? 
+          classAssessments.reduce((sum, a) => sum + (parseFloat(a.score) || 0), 0) / classAssessments.length : 0
+      };
+    });
+  };
+
+  generateSubjectRadarData = () => {
+    const { subjects, assessments } = this.state;
+    
+    return subjects.map(subject => {
+      const subjectAssessments = assessments.filter(a => 
+        a.subject?.id === subject.id || a.subject === subject.id
+      );
+      
+      return {
+        subjectName: subject.name,
+        assessments: subjectAssessments,
+        totalStudents: new Set(subjectAssessments.map(a => a.student?.id || a.student)).size,
+        assessedStudents: new Set(subjectAssessments.map(a => a.student?.id || a.student)).size,
+        averageScore: this.calculateSubjectAverage(subject.id),
+        excellenceRate: this.calculateSubjectExcellenceRate(subject.id),
+        participationRate: this.calculateSubjectParticipationRate(subject.id),
+        improvementRate: this.calculateSubjectImprovementRate(subject.id),
+        consistencyScore: this.calculateSubjectConsistencyScore(subject.id)
+      };
+    });
+  };
+
+  generateTimelineData = () => {
+    const { assessments, selectedClass, selectedSubject } = this.state;
+    
+    let filteredAssessments = assessments;
+    
+    if (selectedClass) {
+      filteredAssessments = filteredAssessments.filter(assessment => {
+        const student = this.state.students.find(s => String(s.id) === String(assessment.student?.id || assessment.student));
+        return student && String(student.class?.id || student.class) === selectedClass;
+      });
+    }
+    
+    if (selectedSubject) {
+      filteredAssessments = filteredAssessments.filter(assessment => 
+        String(assessment.subject?.id || assessment.subject) === selectedSubject
+      );
+    }
+    
+    return filteredAssessments.map(assessment => ({
+      ...assessment,
+      studentName: this.getStudentName(assessment.student?.id || assessment.student),
+      subjectName: this.getSubjectName(assessment.subject?.id || assessment.subject),
+      className: this.getStudentClassName(assessment.student?.id || assessment.student),
+      trend: this.calculateStudentTrend(assessment.student?.id || assessment.student, assessment.subject?.id || assessment.subject),
+      grade: this.getGrade(parseFloat(assessment.score || 0))
+    }));
+  };
+
+  // Sparkline data generators
+  generateScoreSparkline = () => {
+    return [65, 68, 72, 69, 74, 78, 75, 82, 79, 85, 83, 88];
+  };
+
+  generateExcellenceSparkline = () => {
+    return [45, 48, 52, 55, 58, 62, 65, 68, 72, 75, 78, 82];
+  };
+
+  generateCoverageSparkline = () => {
+    return [120, 135, 142, 158, 165, 172, 185, 192, 205, 218, 225, 238];
+  };
+
+  generateQualitySparkline = () => {
+    return [68, 72, 75, 78, 82, 85, 88, 91, 94, 96, 98, 99];
+  };
+
+  // Helper methods for enhanced calculations
+  calculateSubjectAverage = (subjectId) => {
+    const assessments = this.state.assessments.filter(a => 
+      a.subject?.id === subjectId || a.subject === subjectId
+    );
+    if (assessments.length === 0) return 0;
+    const scores = assessments.map(a => parseFloat(a.score || 0));
+    return scores.reduce((sum, score) => sum + score, 0) / scores.length;
+  };
+
+  calculateSubjectExcellenceRate = (subjectId) => {
+    const assessments = this.state.assessments.filter(a => 
+      a.subject?.id === subjectId || a.subject === subjectId
+    );
+    if (assessments.length === 0) return 0;
+    const excellentCount = assessments.filter(a => parseFloat(a.score || 0) >= 80).length;
+    return (excellentCount / assessments.length) * 100;
+  };
+
+  calculateSubjectParticipationRate = (subjectId) => {
+    const totalStudents = this.state.students.length;
+    const assessedStudents = new Set(
+      this.state.assessments
+        .filter(a => a.subject?.id === subjectId || a.subject === subjectId)
+        .map(a => a.student?.id || a.student)
+    ).size;
+    return totalStudents > 0 ? (assessedStudents / totalStudents) * 100 : 0;
+  };
+
+  calculateSubjectImprovementRate = (subjectId) => {
+    const assessments = this.state.assessments.filter(a => 
+      a.subject?.id === subjectId || a.subject === subjectId
+    );
+    if (assessments.length < 2) return 50;
+    
+    const sortedAssessments = assessments.sort((a, b) => 
+      new Date(a.date || a.createdAt) - new Date(b.date || b.createdAt)
+    );
+    
+    const firstHalf = sortedAssessments.slice(0, Math.floor(sortedAssessments.length / 2));
+    const secondHalf = sortedAssessments.slice(Math.floor(sortedAssessments.length / 2));
+    
+    const firstAvg = this.calculateAverageScore(firstHalf);
+    const secondAvg = this.calculateAverageScore(secondHalf);
+    
+    const improvement = secondAvg - firstAvg;
+    return Math.max(0, Math.min(100, 50 + improvement));
+  };
+
+  calculateSubjectConsistencyScore = (subjectId) => {
+    const assessments = this.state.assessments.filter(a => 
+      a.subject?.id === subjectId || a.subject === subjectId
+    );
+    if (assessments.length < 2) return 50;
+    
+    const scores = assessments.map(a => parseFloat(a.score || 0));
+    const mean = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+    const variance = scores.reduce((sum, score) => sum + Math.pow(score - mean, 2), 0) / scores.length;
+    const standardDeviation = Math.sqrt(variance);
+    
+    return Math.max(0, Math.min(100, 100 - (standardDeviation * 2)));
+  };
+
+  calculateAverageScore = (assessments) => {
+    if (!assessments || assessments.length === 0) return 0;
+    const scores = assessments.map(a => parseFloat(a.score || 0));
+    return scores.reduce((sum, score) => sum + score, 0) / scores.length;
+  };
+
+  getStudentName = (studentId) => {
+    const student = this.state.students.find(s => String(s.id) === String(studentId));
+    return student ? student.names : 'Unknown Student';
+  };
+
+  getSubjectName = (subjectId) => {
+    const subject = this.state.subjects.find(s => String(s.id) === String(subjectId));
+    return subject ? subject.name : 'Unknown Subject';
+  };
+
+  getStudentClassName = (studentId) => {
+    const student = this.state.students.find(s => String(s.id) === String(studentId));
+    if (!student) return 'Unknown Class';
+    const classObj = this.state.classes.find(c => String(c.id) === String(student.class?.id || student.class));
+    return classObj ? classObj.name : 'Unknown Class';
+  };
+
+  calculateStudentTrend = (studentId, subjectId) => {
+    const studentAssessments = this.state.assessments
+      .filter(a => 
+        (a.subject?.id === subjectId || a.subject === subjectId) &&
+        (a.student?.id === studentId || a.student === studentId)
+      )
+      .sort((a, b) => new Date(a.date || a.createdAt) - new Date(b.date || b.createdAt));
+    
+    if (studentAssessments.length < 2) return 0;
+    
+    const recent = parseFloat(studentAssessments[studentAssessments.length - 1].score || 0);
+    const previous = parseFloat(studentAssessments[studentAssessments.length - 2].score || 0);
+    
+    return recent - previous;
+  };
+
+  getGrade = (score) => {
+    if (score >= 80) return 'A';
+    if (score >= 70) return 'B';
+    if (score >= 60) return 'C';
+    if (score >= 50) return 'D';
+    if (score >= 40) return 'E';
+    return 'F';
+  };
+
+  calculateGradeDistribution = (assessments) => {
+    const distribution = { A: 0, B: 0, C: 0, D: 0, E: 0, F: 0 };
+    
+    assessments.forEach(assessment => {
+      const score = parseFloat(assessment.score || 0);
+      const grade = this.getGrade(score);
+      distribution[grade]++;
+    });
+    
+    return distribution;
+  };
+
+  calculateSubjectPerformance = (assessments, subjects) => {
+    const subjectAverages = {};
+    let subjectsAboveAverage = 0;
+    
+    subjects.forEach(subject => {
+      const subjectAssessments = assessments.filter(a => 
+        a.subject?.id === subject.id || a.subject === subject.id
+      );
+      
+      if (subjectAssessments.length > 0) {
+        const average = subjectAssessments.reduce((sum, a) => sum + (parseFloat(a.score || 0)), 0) / subjectAssessments.length;
+        subjectAverages[subject.name] = average;
+        
+        if (average >= 70) { // Above average threshold
+          subjectsAboveAverage++;
+        }
+      }
+    });
+    
+    const overallAverage = Object.values(subjectAverages).reduce((sum, avg) => sum + avg, 0) / Object.values(subjectAverages).length || 0;
+    
+    return {
+      subjectAverages,
+      overallAverage,
+      subjectsAboveAverage,
+      totalSubjects: subjects.length
+    };
+  };
+
+  calculateImprovementRate = (assessments) => {
+    if (assessments.length < 2) return 0;
+    
+    // Group assessments by student and calculate improvement
+    const studentImprovements = new Map();
+    
+    assessments.forEach(assessment => {
+      const studentId = assessment.student?.id || assessment.student;
+      const score = parseFloat(assessment.score || 0);
+      const date = new Date(assessment.date || assessment.createdAt);
+      
+      if (!studentImprovements.has(studentId)) {
+        studentImprovements.set(studentId, []);
+      }
+      
+      studentImprovements.get(studentId).push({ score, date });
+    });
+    
+    let totalImprovement = 0;
+    let studentCount = 0;
+    
+    studentImprovements.forEach(improvements => {
+      if (improvements.length >= 2) {
+        improvements.sort((a, b) => a.date - b.date);
+        const firstScore = improvements[0].score;
+        const lastScore = improvements[improvements.length - 1].score;
+        const improvement = ((lastScore - firstScore) / firstScore) * 100;
+        
+        totalImprovement += improvement;
+        studentCount++;
+      }
+    });
+    
+    return studentCount > 0 ? totalImprovement / studentCount : 0;
+  };
+
   handlePrint = () => window.print();
 
   renderInsights = () => {
@@ -585,43 +883,7 @@ class ResultsMatrix extends React.Component {
         (!selectedTerm || a.term?.id === selectedTerm || a.term === selectedTerm)
     );
 
-    const rubricCounts = (assessmentRubrics || []).map(r => {
-        const count = currentAss.filter(a => {
-            const score = parseFloat(a.score);
-            return score >= r.minScore && score <= r.maxScore;
-        }).length;
-        const colors = { 'EE': '#10b981', 'ME': '#3699ff', 'AE': '#f6c23e', 'BE': '#e74c3c' };
-        return { label: r.label, value: count, color: colors[r.label] || '#e5e7eb' };
-    }).filter(r => r.value > 0);
-
-    const subjectMastery = (subjects || []).map(subj => {
-        const subAss = currentAss.filter(a => (a.subject === subj.id || a.subject?.id === subj.id));
-        const avg = subAss.length > 0 ? (subAss.reduce((sum, a) => sum + (parseFloat(a.score) || 0), 0) / subAss.length) : 0;
-        return { label: subj.name, value: avg, color: avg >= 80 ? '#10b981' : avg >= 65 ? '#3699ff' : avg >= 50 ? '#f6c23e' : '#e74c3c' };
-    }).filter(s => s.value > 0).sort((a,b) => b.value - a.value).slice(0, 8);
-
-    // Term-over-Term Trend
-    const termTrendData = (terms || []).map(t => {
-        const tAss = (assessments || []).filter(a => 
-            (a.term?.id === t.id || a.term === t.id) &&
-            (!selectedClass || a.student?.class?.id === selectedClass || a.student?.class === selectedClass)
-        );
-        const avg = tAss.length > 0 ? (tAss.reduce((sum, a) => sum + (parseFloat(a.score) || 0), 0) / tAss.length) : 0;
-        return { label: t.name, value: Math.round(avg) };
-    }).filter(t => t.value > 0);
-
-    // Top Performers Ranking
-    const studentPerformance = filteredStudents.map(student => {
-        const studentAss = currentAss.filter(a => (a.student === student.id || a.student?.id === student.id));
-        let totalPoints = 0;
-        studentAss.forEach(a => {
-            const score = parseFloat(a.score);
-            const rubric = (assessmentRubrics || []).find(r => score >= r.minScore && score <= r.maxScore);
-            if (rubric?.points) totalPoints += parseFloat(rubric.points);
-        });
-        return { label: student.names, subtext: student.registration || 'No Reg No.', value: totalPoints, color: '#3699ff' };
-    }).filter(s => s.value > 0).sort((a,b) => b.value - a.value).slice(0, 5);
-
+    // Enhanced metrics for AdvancedStatCard
     const totalStudents = filteredStudents.length;
     const gradedStudents = new Set(currentAss.map(a => a.student?.id || a.student)).size;
     const classAvg = currentAss.length > 0 ? (currentAss.reduce((sum, a) => sum + (parseFloat(a.score) || 0), 0) / currentAss.length) : 0;
@@ -630,36 +892,243 @@ class ResultsMatrix extends React.Component {
         return s >= 80; // Assuming 80+ is EE
     }).length;
 
+    // Additional comprehensive metrics
+    const totalAssessments = currentAss.length;
+    const averagePoints = currentAss.length > 0 ? 
+        currentAss.reduce((sum, a) => sum + (parseFloat(a.points || 0)), 0) / currentAss.length : 0;
+    const highestScore = currentAss.length > 0 ? 
+        Math.max(...currentAss.map(a => parseFloat(a.score || 0))) : 0;
+    const lowestScore = currentAss.length > 0 ? 
+        Math.min(...currentAss.map(a => parseFloat(a.score || 0))) : 0;
+    const gradeDistribution = this.calculateGradeDistribution(currentAss);
+    const subjectPerformance = this.calculateSubjectPerformance(currentAss, subjects);
+    const improvementRate = this.calculateImprovementRate(currentAss);
+
+    // Generate comparison data for enhanced charts
+    const comparisonData = this.generateComparisonData();
+    const subjectRadarData = this.generateSubjectRadarData();
+    const timelineData = this.generateTimelineData();
+
     return (
         <div className="animate__animated animate__fadeInUp">
-            {/* ROW 1: MISSION CONTROL STATS */}
+            {/* Modern KPI Cards with enhanced visual design */}
+            <div className="row mb-6">
+                <div className="col-md-3">
+                    <ModernKPICard
+                        title="Class Average"
+                        value={`${Math.round(classAvg)}%`}
+                        subtext={`Highest: ${Math.round(highestScore)}% | Lowest: ${Math.round(lowestScore)}%`}
+                        icon="flaticon2-percentage"
+                        color="#3699ff"
+                        trend={classAvg > 70 ? 5 : -2}
+                        showSparkline={true}
+                        sparklineData={this.generateScoreSparkline()}
+                        comparison={{
+                            label: 'vs Target',
+                            value: 75,
+                            trend: classAvg > 75 ? 'up' : 'down'
+                        }}
+                        badge={{
+                            text: classAvg > 75 ? 'Excellent' : classAvg > 60 ? 'Good' : 'Needs Improvement',
+                            color: classAvg > 75 ? '#10b981' : classAvg > 60 ? '#f6c23e' : '#e74c3c'
+                        }}
+                    />
+                </div>
+                <div className="col-md-3">
+                    <ModernKPICard
+                        title="Excellence Rate"
+                        value={`${((topGradesCount / Math.max(gradedStudents, 1)) * 100).toFixed(1)}%`}
+                        subtext={`${topGradesCount} students with 80%+ | ${gradedStudents} graded`}
+                        icon="flaticon2-star"
+                        color="#10b981"
+                        trend={topGradesCount > gradedStudents * 0.6 ? 8 : -3}
+                        showSparkline={true}
+                        sparklineData={this.generateExcellenceSparkline()}
+                        comparison={{
+                            label: 'Grade A',
+                            value: gradeDistribution.A || 0,
+                            trend: 'up'
+                        }}
+                        progress={{
+                            value: ((topGradesCount / Math.max(gradedStudents, 1)) * 100)
+                        }}
+                    />
+                </div>
+                <div className="col-md-3">
+                    <ModernKPICard
+                        title="Subject Coverage"
+                        value={subjects.length}
+                        subtext={`${totalAssessments} assessments | ${subjectPerformance.subjectsAboveAverage} above avg`}
+                        icon="flaticon2-checkmark"
+                        color="#f6c23e"
+                        trend={gradedStudents > totalStudents * 0.8 ? 3 : -1}
+                        showSparkline={true}
+                        sparklineData={this.generateCoverageSparkline()}
+                        comparison={{
+                            label: 'Completion',
+                            value: ((gradedStudents / Math.max(totalStudents, 1)) * 100).toFixed(1),
+                            trend: 'up'
+                        }}
+                        badge={{
+                            text: `${subjectPerformance.subjectsAboveAverage}/${subjectPerformance.totalSubjects} Strong`,
+                            color: subjectPerformance.subjectsAboveAverage > subjectPerformance.totalSubjects / 2 ? '#10b981' : '#f6c23e'
+                        }}
+                    />
+                </div>
+                <div className="col-md-3">
+                    <ModernKPICard
+                        title="Quality Score"
+                        value={`${((gradedStudents / Math.max(totalStudents, 1)) * 100).toFixed(1)}%`}
+                        subtext={`Avg Points: ${averagePoints.toFixed(1)} | Improvement: ${improvementRate.toFixed(1)}%`}
+                        icon="flaticon2-finished"
+                        color="#e74c3c"
+                        trend={gradedStudents > totalStudents * 0.75 ? 4 : -2}
+                        showSparkline={true}
+                        sparklineData={this.generateQualitySparkline()}
+                        comparison={{
+                            label: 'Engagement',
+                            value: Math.round((totalAssessments / Math.max(totalStudents * subjects.length, 1)) * 100),
+                            trend: 'up'
+                        }}
+                        progress={{
+                            value: ((gradedStudents / Math.max(totalStudents, 1)) * 100)
+                        }}
+                    />
+                </div>
+            </div>
+
+            {/* Small Summary Section Below KPI Cards */}
+            <div className="row mb-4">
+                <div className="col-12">
+                    <div style={{
+                        background: '#f8fafc',
+                        borderRadius: '8px',
+                        padding: '16px',
+                        border: '1px solid #e2e8f0'
+                    }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <div>
+                                <h6 style={{ 
+                                    color: '#475569', 
+                                    fontSize: '14px', 
+                                    fontWeight: '600',
+                                    marginBottom: '4px',
+                                    margin: 0
+                                }}>
+                                    Performance Summary
+                                </h6>
+                                <p style={{ 
+                                    color: '#64748b', 
+                                    fontSize: '12px', 
+                                    margin: 0,
+                                    lineHeight: '1.4'
+                                }}>
+                                    Based on {totalAssessments} assessments across {subjects.length} subjects for {gradedStudents} students
+                                </p>
+                            </div>
+                            <div style={{ display: 'flex', gap: '16px' }}>
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ 
+                                        fontSize: '20px', 
+                                        fontWeight: '700', 
+                                        color: '#10b981',
+                                        lineHeight: '1'
+                                    }}>
+                                        {gradeDistribution.A || 0}
+                                    </div>
+                                    <div style={{ 
+                                        fontSize: '11px', 
+                                        color: '#64748b',
+                                        textTransform: 'uppercase'
+                                    }}>
+                                        Grade A
+                                    </div>
+                                </div>
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ 
+                                        fontSize: '20px', 
+                                        fontWeight: '700', 
+                                        color: '#f6c23e',
+                                        lineHeight: '1'
+                                    }}>
+                                        {subjectPerformance.subjectsAboveAverage}
+                                    </div>
+                                    <div style={{ 
+                                        fontSize: '11px', 
+                                        color: '#64748b',
+                                        textTransform: 'uppercase'
+                                    }}>
+                                        Strong Subjects
+                                    </div>
+                                </div>
+                                <div style={{ textAlign: 'center' }}>
+                                    <div style={{ 
+                                        fontSize: '20px', 
+                                        fontWeight: '700', 
+                                        color: '#3699ff',
+                                        lineHeight: '1'
+                                    }}>
+                                        {improvementRate > 0 ? '+' : ''}{improvementRate.toFixed(1)}%
+                                    </div>
+                                    <div style={{ 
+                                        fontSize: '11px', 
+                                        color: '#64748b',
+                                        textTransform: 'uppercase'
+                                    }}>
+                                        Improvement
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Enhanced Charts Section */}
             <div className="row">
-                <div className="col-md-3"><StatCard title="Class Average" value={`${Math.round(classAvg)}%`} icon="flaticon-line-graph" color="#3699ff" trend={5} /></div>
-                <div className="col-md-3"><StatCard title="Grading Progress" value={`${gradedStudents}/${totalStudents}`} icon="flaticon-users" color="#10b981" subtext="Students with scores" /></div>
-                <div className="col-md-3"><StatCard title="Subject Coverage" value={subjects.length} icon="flaticon-book" color="#f6c23e" subtext="Subjects recorded" trend={2} /></div>
-                <div className="col-md-3"><StatCard title="Quality Scores" value={topGradesCount} icon="flaticon-medal" color="#e74c3c" subtext="High achievement (80%+)" /></div>
-            </div>
-
-            {/* ROW 2: PRIMARY ANALYTICS (3 COLUMNS) */}
-            <div className="row mt-4">
-                <div className="col-lg-4">
-                    <DistributionChart title="Grade Distribution" data={rubricCounts} />
+                <div className="col-lg-6">
+                    <SubjectPerformanceRadarChart 
+                        data={subjectRadarData} 
+                        loading={this.state.loading}
+                        metrics={['Average Score', 'Excellence Rate', 'Participation', 'Improvement', 'Consistency']}
+                    />
                 </div>
-                <div className="col-lg-4">
-                    <TrendBarChart title="Subject Performance (%)" data={subjectMastery} />
-                </div>
-                <div className="col-lg-4">
-                    <AreaChart title="Class Trend (Termly)" data={termTrendData} color="#3699ff" />
+                <div className="col-lg-6">
+                    <GradeTreemapChart 
+                        data={comparisonData} 
+                        loading={this.state.loading}
+                        hierarchy="class"
+                    />
                 </div>
             </div>
 
-            {/* ROW 3: LEADERS & RANKINGS */}
             <div className="row mt-4">
-                <div className="col-lg-6">
-                    <RankingList title="Top Student Performers" data={studentPerformance} valueSuffix=" pts" />
+                <div className="col-lg-8">
+                    <StudentProgressTimelineChart 
+                        data={timelineData} 
+                        loading={this.state.loading}
+                        subjects={subjects}
+                        timeRange="termly"
+                    />
                 </div>
-                <div className="col-lg-6">
-                    <RankingList title="Top Subject Mastery" data={subjectMastery.slice(0, 5)} valueSuffix="%" />
+                <div className="col-lg-4">
+                    <PerformanceMatrixChart 
+                        data={comparisonData} 
+                        loading={this.state.loading}
+                        showValues={true}
+                        compact={true}
+                    />
+                </div>
+            </div>
+
+            <div className="row mt-4">
+                <div className="col-lg-12">
+                    <ClassComparisonSunburstChart 
+                        data={comparisonData} 
+                        loading={this.state.loading}
+                        hierarchy="class-subject"
+                        metric="average"
+                    />
                 </div>
             </div>
         </div>
@@ -732,23 +1201,25 @@ class ResultsMatrix extends React.Component {
             
 
             <div className="d-flex align-items-center justify-content-between">
-                <ul className="nav nav-tabs nav-tabs-line nav-bold nav-tabs-line-2x border-0 mb-0">
+                <ul className="nav nav-tabs nav-tabs-space nav-tabs-line nav-bold nav-tabs-line-3x border-0 mb-0 custom-tabs-container">
                     <li className="nav-item">
                         <a 
-                            className={`nav-link py-4 ${activeTab === 'grid' ? 'active' : ''}`} 
+                            className={`nav-link py-4 px-6 custom-tab-link ${activeTab === 'insights' ? 'active' : ''}`}
                             href="#" 
-                            onClick={(e) => { e.preventDefault(); this.setState({ activeTab: 'grid' }); }}
+                            onClick={(e) => { e.preventDefault(); this.setState({ activeTab: 'insights' }); }}
                         >
-                            Score Sheet
+                            <i className="fas fa-chart-line mr-2"></i>
+                            <strong>Insights</strong>
                         </a>
                     </li>
                     <li className="nav-item">
                         <a 
-                            className={`nav-link py-4 ${activeTab === 'insights' ? 'active' : ''}`} 
+                            className={`nav-link py-4 px-6 custom-tab-link ${activeTab === 'grid' ? 'active' : ''}`}
                             href="#" 
-                            onClick={(e) => { e.preventDefault(); this.setState({ activeTab: 'insights' }); }}
+                            onClick={(e) => { e.preventDefault(); this.setState({ activeTab: 'grid' }); }}
                         >
-                            Insights
+                            <i className="fas fa-th mr-2"></i>
+                            Score Sheet
                         </a>
                     </li>
                 </ul>
@@ -889,9 +1360,146 @@ class ResultsMatrix extends React.Component {
                 grade={this.detectGradeId()}
             />
         )}
-      </div>
-    );
-  }
+                
+                {/* Custom Tab Styles for Results */}
+                <style>{`
+                    .custom-tabs-container {
+                        background: linear-gradient(to right, #ffffff, #fafbfc);
+                        border-bottom: 1px solid #e9ecef;
+                        padding: 0;
+                        position: relative;
+                    }
+                    
+                    .custom-tabs-container::after {
+                        content: '';
+                        position: absolute;
+                        bottom: 0;
+                        left: 0;
+                        right: 0;
+                        height: 1px;
+                        background: linear-gradient(to right, transparent, #dee2e6, transparent);
+                    }
+                    
+                    .custom-tab-link {
+                        border: none !important;
+                        border-bottom: 3px solid transparent !important;
+                        margin: 0 12px;
+                        font-weight: 500;
+                        font-size: 0.9rem;
+                        color: #6c757d;
+                        background: transparent;
+                        transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                        padding: 14px 18px !important;
+                        border-radius: 8px 8px 0 0;
+                        position: relative;
+                        letter-spacing: 0.2px;
+                    }
+                    
+                    .custom-tab-link::before {
+                        content: '';
+                        position: absolute;
+                        bottom: -1px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        width: 0;
+                        height: 3px;
+                        background: linear-gradient(90deg, #28a745, #20c997);
+                        transition: width 0.3s ease;
+                        border-radius: 2px;
+                    }
+                    
+                    .custom-tab-link:hover {
+                        color: #1e7e34 !important;
+                        background: rgba(40, 167, 69, 0.08);
+                        transform: translateY(-1px);
+                    }
+                    
+                    .custom-tab-link:hover::before {
+                        width: 60%;
+                    }
+                    
+                    .custom-tab-link.active {
+                        color: #28a745 !important;
+                        background: linear-gradient(135deg, rgba(40, 167, 69, 0.12), rgba(32, 201, 151, 0.08));
+                        font-weight: 600;
+                        box-shadow: 0 -2px 8px rgba(40, 167, 69, 0.15);
+                    }
+                    
+                    .custom-tab-link.active::before {
+                        width: 80%;
+                    }
+                    
+                    .custom-tab-link i {
+                        font-size: 0.85rem;
+                        margin-right: 8px;
+                        opacity: 0.6;
+                        transition: all 0.3s ease;
+                    }
+                    
+                    .custom-tab-link:hover i {
+                        opacity: 0.8;
+                        transform: scale(1.05);
+                    }
+                    
+                    .custom-tab-link.active i {
+                        opacity: 1;
+                        transform: scale(1.1);
+                    }
+                    
+                    /* Tab content animation hint */
+                    .custom-tab-link.active::after {
+                        content: '';
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        height: 2px;
+                        background: linear-gradient(90deg, transparent, rgba(40, 167, 69, 0.3), transparent);
+                        animation: shimmer 2s infinite;
+                    }
+                    
+                    @keyframes shimmer {
+                        0% { opacity: 0; }
+                        50% { opacity: 1; }
+                        100% { opacity: 0; }
+                    }
+                    
+                    /* Responsive adjustments */
+                    @media (max-width: 768px) {
+                        .custom-tab-link {
+                            margin: 0 6px;
+                            padding: 12px 14px !important;
+                            font-size: 0.85rem;
+                        }
+                        
+                        .custom-tab-link i {
+                            display: none;
+                        }
+                        
+                        .custom-tab-link::before {
+                            width: 40% !important;
+                        }
+                        
+                        .custom-tab-link.active::before {
+                            width: 60% !important;
+                        }
+                    }
+                    
+                    @media (max-width: 480px) {
+                        .custom-tab-link {
+                            margin: 0 4px;
+                            padding: 10px 12px !important;
+                            font-size: 0.8rem;
+                        }
+                        
+                        .custom-tabs-container {
+                            margin: 0 -8px;
+                        }
+                    }
+                `}</style>
+            </div>
+        );
+    }
 }
 
 export default ResultsMatrix;

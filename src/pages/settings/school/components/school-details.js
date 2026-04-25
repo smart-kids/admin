@@ -141,12 +141,12 @@ export default class SchoolDetails extends React.Component {
 
   async saveSchoolDetails(data) {
     console.log("Triggering save for school details. Data received:", data);
-    const { id, name, phone, email, address, inviteSmsText, logo, themeColor } = data;
+    const { id, name, phone, email, address, schoolSize, inviteSmsText, logo, themeColor } = data;
 
     if (id) {
       try {
         const schoolDataPayload = {
-          id, name, phone, email, address, inviteSmsText, logo, themeColor
+          id, name, phone, email, address, schoolSize, inviteSmsText, logo, themeColor
         };
         console.log("Updating school with payload:", schoolDataPayload);
         await Data.schools.update(schoolDataPayload);
@@ -239,6 +239,10 @@ export default class SchoolDetails extends React.Component {
             <div style={styles.detailItem}>
               <span style={styles.label}>Address:</span>
               <span style={styles.value}>{school.address || 'N/A'}</span>
+            </div>
+            <div style={styles.detailItem}>
+              <span style={styles.label}>School Size:</span>
+              <span style={styles.value}>{school.schoolSize ? `${school.schoolSize} students` : 'N/A'}</span>
             </div>
             {school.inviteSmsText && ( // Conditionally render Invite SMS if present
              <div style={styles.detailItem}>

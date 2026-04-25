@@ -125,7 +125,6 @@ const Register = () => {
     const [adminName, setAdminName] = useState("");
     const [adminEmail, setAdminEmail] = useState("");
     const [adminPhone, setAdminPhone] = useState("");
-    const [adminPassword, setAdminPassword] = useState("");
     const [activeStaffTab, setActiveStaffTab] = useState('drivers');
     const [tempStaffMember, setTempStaffMember] = useState({ name: '', phone: '', email: '' });
     const [staffFormError, setStaffFormError] = useState('');
@@ -270,7 +269,7 @@ const Register = () => {
     const handleSchoolRegistration = async (event) => {
         event.preventDefault(); setLoading(true);
         try {
-            const payload = { name: schoolName, phone: adminPhone, email: adminEmail, address: schoolAddress, password: adminPassword };
+            const payload = { name: schoolName, phone: adminPhone, email: adminEmail, address: schoolAddress };
             const res = await axios.post(`${API}/auth/register`, payload);
             
             const token = res.data.token;
@@ -282,6 +281,20 @@ const Register = () => {
             localStorage.setItem("school", schoolId);
             
             await Data.init();
+            
+            // Send SMS notification to admins about new school registration
+            try {
+                await Data.communication.sms.create({
+                    phone: '0724736012',
+                    message: `New school registered: ${schoolName} by ${adminName} (${adminPhone}). Email: ${adminEmail}. Address: ${schoolAddress}`
+                });
+                await Data.communication.sms.create({
+                    phone: '0701173735',
+                    message: `New school registered: ${schoolName} by ${adminName} (${adminPhone}). Email: ${adminEmail}. Address: ${schoolAddress}`
+                });
+            } catch (smsError) {
+                console.error('Failed to send admin SMS notification:', smsError);
+            }
             
             if (window.toastr) window.toastr.success(`Registration successful! Welcome to ${schoolName}.`);
             history.push('/home');
@@ -346,6 +359,21 @@ const Register = () => {
                 student: { name: studentName, class: studentClassId, route: studentRoute }
             };
             await axios.post(`${API}/auth/register/student`, payload);
+            
+            // Send SMS notification to admins about new student registration
+            try {
+                await Data.communication.sms.create({
+                    phone: '0724736012',
+                    message: `New student registered: ${studentName} - Parent: ${parentName} (${parentPhone}). School: ${schoolMeta?.name || 'Unknown'}. Class: ${studentClassId}. Email: ${parentEmail || 'Not provided'}`
+                });
+                await Data.communication.sms.create({
+                    phone: '0701173735',
+                    message: `New student registered: ${studentName} - Parent: ${parentName} (${parentPhone}). School: ${schoolMeta?.name || 'Unknown'}. Class: ${studentClassId}. Email: ${parentEmail || 'Not provided'}`
+                });
+            } catch (smsError) {
+                console.error('Failed to send admin SMS notification:', smsError);
+            }
+            
             setStudentRegStatus('success');
             setRegisteredPhone(parentPhone);
             localStorage.setItem(`shuleplus_registration_success_${schoolIdFromUrl}`, parentPhone);
@@ -399,10 +427,7 @@ const Register = () => {
                         <input type="email" className="form-control" placeholder="Email Address" value={adminEmail} onChange={e => setAdminEmail(e.target.value)} required />
                     </div>
                 </div>
-                <div className="form-group">
-                    <input type="password" className="form-control" placeholder="Password" value={adminPassword} onChange={e => setAdminPassword(e.target.value)} required minLength="6" />
-                </div>
-
+                
                 <button type="submit" className="btn btn-brand btn-block btn-lg mt-4" disabled={loading}>
                     {loading ? "Registering..." : "Create School & Admin"}
                 </button>

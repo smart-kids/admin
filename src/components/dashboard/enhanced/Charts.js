@@ -359,7 +359,7 @@ export class EntityChart extends Component {
     // Focus on core business entities that make sense for distribution analysis
     const entities = [
       { name: 'Active Schools', count: data.totalSchools || 0, color: '#3699ff', icon: 'la la-school' },
-      { name: 'Enrolled Students', count: data.totalStudentsInSchools || data.totalStudents || 0, color: '#10b981', icon: 'la la-graduation-cap' },
+      { name: 'Enrolled Students', count: data.totalStudents || 0, color: '#10b981', icon: 'la la-graduation-cap' },
       { name: 'Teaching Staff', count: data.totalTeachers || 0, color: '#f6c23e', icon: 'la la-user' },
       { name: 'Active Classes', count: data.totalClasses || 0, color: '#e74c3c', icon: 'la fa-chalkboard' }
     ];

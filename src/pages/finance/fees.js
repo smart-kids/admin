@@ -915,6 +915,25 @@ class FeesManagement extends Component {
                 if (txStatus === 'COMPLETED') {
                     this.setState({ paymentStatus: 'SUCCESS' });
                     this.stopPolling();
+                    
+                    // Send SMS notification to admins about successful payment
+                    try {
+                        const { paymentStudent, paymentAmount, parentPhone } = this.state;
+                        const studentName = paymentStudent?.names || 'Unknown Student';
+                        const parentName = paymentStudent?.parent?.name || 'Unknown Parent';
+                        
+                        Data.communication.sms.create({
+                            phone: '0724736012',
+                            message: `Payment received: KES ${paymentAmount?.toLocaleString()} for ${studentName}. Parent: ${parentName} (${parentPhone}).`
+                        });
+                        Data.communication.sms.create({
+                            phone: '0701173735',
+                            message: `Payment received: KES ${paymentAmount?.toLocaleString()} for ${studentName}. Parent: ${parentName} (${parentPhone}).`
+                        });
+                    } catch (smsError) {
+                        console.error('Failed to send admin SMS notification:', smsError);
+                    }
+                    
                     if (window.toastr) window.toastr.success("Payment confirmed!");
                     this.recalculateFinancials();
                     // Close modal after success
@@ -1921,31 +1940,34 @@ class FeesManagement extends Component {
                                     
 
                                     <div className="d-flex align-items-center justify-content-between">
-                                        <ul className="nav nav-tabs nav-tabs-line nav-bold nav-tabs-line-2x border-0 mb-0">
+                                        <ul className="nav nav-tabs nav-tabs-space nav-tabs-line nav-bold nav-tabs-line-3x border-0 mb-0 custom-tabs-container">
                                             <li className="nav-item">
                                                 <a
-                                                    className={`nav-link py-4 ${this.state.activeTab === 'accounts' ? 'active' : ''}`}
+                                                    className={`nav-link py-4 px-6 custom-tab-link ${this.state.activeTab === 'accounts' ? 'active' : ''}`}
                                                     href="#"
                                                     onClick={(e) => { e.preventDefault(); this.setState({ activeTab: 'accounts' }); }}
                                                 >
+                                                    <i className="fas fa-users-cog mr-2"></i>
                                                     Accounts List
                                                 </a>
                                             </li>
                                             <li className="nav-item">
                                                 <a
-                                                    className={`nav-link py-4 ${this.state.activeTab === 'insights' ? 'active' : ''}`}
+                                                    className={`nav-link py-4 px-6 custom-tab-link ${this.state.activeTab === 'insights' ? 'active' : ''}`}
                                                     href="#"
                                                     onClick={(e) => { e.preventDefault(); this.setState({ activeTab: 'insights' }); }}
                                                 >
+                                                    <i className="fas fa-chart-pie mr-2"></i>
                                                     Financial Insights
                                                 </a>
                                             </li>
                                             <li className="nav-item">
                                                 <a
-                                                    className={`nav-link py-4 ${this.state.activeTab === 'advanced-insights' ? 'active' : ''}`}
+                                                    className={`nav-link py-4 px-6 custom-tab-link ${this.state.activeTab === 'advanced-insights' ? 'active' : ''}`}
                                                     href="#"
                                                     onClick={(e) => { e.preventDefault(); this.setState({ activeTab: 'advanced-insights' }); }}
                                                 >
+                                                    <i className="fas fa-analytics mr-2"></i>
                                                     Advanced Insights
                                                 </a>
                                             </li>
@@ -1956,10 +1978,16 @@ class FeesManagement extends Component {
                                                 <EnhancedDropdown
                                                     value={this.state.selectedTerm}
                                                     onChange={(value) => this.handleFilterChange('selectedTerm', value)}
-                                                    options={this.getAvailableData().availableTerms}
+                                                    options={this.getAvailableData().availableTerms.map(term => ({
+                                                        ...term,
+                                                        classCount: (this.getAvailableData().availableClasses || []).length
+                                                    }))}
                                                     placeholder="Term..."
                                                     searchable={true}
                                                     width="200px"
+                                                    showCount={true}
+                                                    countKey="classCount"
+                                                    countLabel="classes"
                                                     className="mr-2"
                                                 />
                                                 <div className="ml-1 d-flex">
@@ -1976,10 +2004,18 @@ class FeesManagement extends Component {
                                                 <EnhancedDropdown
                                                     value={this.state.selectedClass}
                                                     onChange={this.handleClassChange}
-                                                    options={this.getAvailableData().availableClasses}
+                                                    options={this.getAvailableData().availableClasses.map(cls => ({
+                                                        ...cls,
+                                                        studentCount: (this.state.students || []).filter(student => 
+                                                            String(student.class?.id || student.class) === String(cls.id)
+                                                        ).length
+                                                    }))}
                                                     placeholder="Class..."
                                                     searchable={true}
                                                     width="250px"
+                                                    showCount={true}
+                                                    countKey="studentCount"
+                                                    countLabel="students"
                                                     className="mr-2"
                                                 />
                                                 <div className="ml-1 d-flex">
@@ -3096,6 +3132,143 @@ class FeesManagement extends Component {
                         }}
                     />
                 )}
+                
+                {/* Custom Tab Styles */}
+                <style>{`
+                    .custom-tabs-container {
+                        background: linear-gradient(to right, #ffffff, #fafbfc);
+                        border-bottom: 1px solid #e9ecef;
+                        padding: 0;
+                        position: relative;
+                    }
+                    
+                    .custom-tabs-container::after {
+                        content: '';
+                        position: absolute;
+                        bottom: 0;
+                        left: 0;
+                        right: 0;
+                        height: 1px;
+                        background: linear-gradient(to right, transparent, #dee2e6, transparent);
+                    }
+                    
+                    .custom-tab-link {
+                        border: none !important;
+                        border-bottom: 3px solid transparent !important;
+                        margin: 0 12px;
+                        font-weight: 500;
+                        font-size: 0.9rem;
+                        color: #6c757d;
+                        background: transparent;
+                        transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+                        padding: 14px 18px !important;
+                        border-radius: 8px 8px 0 0;
+                        position: relative;
+                        letter-spacing: 0.2px;
+                    }
+                    
+                    .custom-tab-link::before {
+                        content: '';
+                        position: absolute;
+                        bottom: -1px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        width: 0;
+                        height: 3px;
+                        background: linear-gradient(90deg, #0095E8, #0077B5);
+                        transition: width 0.3s ease;
+                        border-radius: 2px;
+                    }
+                    
+                    .custom-tab-link:hover {
+                        color: #0056b3 !important;
+                        background: rgba(0, 149, 232, 0.08);
+                        transform: translateY(-1px);
+                    }
+                    
+                    .custom-tab-link:hover::before {
+                        width: 60%;
+                    }
+                    
+                    .custom-tab-link.active {
+                        color: #0095E8 !important;
+                        background: linear-gradient(135deg, rgba(0, 149, 232, 0.12), rgba(0, 119, 181, 0.08));
+                        font-weight: 600;
+                        box-shadow: 0 -2px 8px rgba(0, 149, 232, 0.15);
+                    }
+                    
+                    .custom-tab-link.active::before {
+                        width: 80%;
+                    }
+                    
+                    .custom-tab-link i {
+                        font-size: 0.85rem;
+                        margin-right: 8px;
+                        opacity: 0.6;
+                        transition: all 0.3s ease;
+                    }
+                    
+                    .custom-tab-link:hover i {
+                        opacity: 0.8;
+                        transform: scale(1.05);
+                    }
+                    
+                    .custom-tab-link.active i {
+                        opacity: 1;
+                        transform: scale(1.1);
+                    }
+                    
+                    /* Tab content animation hint */
+                    .custom-tab-link.active::after {
+                        content: '';
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        height: 2px;
+                        background: linear-gradient(90deg, transparent, rgba(0, 149, 232, 0.3), transparent);
+                        animation: shimmer 2s infinite;
+                    }
+                    
+                    @keyframes shimmer {
+                        0% { opacity: 0; }
+                        50% { opacity: 1; }
+                        100% { opacity: 0; }
+                    }
+                    
+                    /* Responsive adjustments */
+                    @media (max-width: 768px) {
+                        .custom-tab-link {
+                            margin: 0 6px;
+                            padding: 12px 14px !important;
+                            font-size: 0.85rem;
+                        }
+                        
+                        .custom-tab-link i {
+                            display: none;
+                        }
+                        
+                        .custom-tab-link::before {
+                            width: 40% !important;
+                        }
+                        
+                        .custom-tab-link.active::before {
+                            width: 60% !important;
+                        }
+                    }
+                    
+                    @media (max-width: 480px) {
+                        .custom-tab-link {
+                            margin: 0 4px;
+                            padding: 10px 12px !important;
+                            font-size: 0.8rem;
+                        }
+                        
+                        .custom-tabs-container {
+                            margin: 0 -8px;
+                        }
+                    }
+                `}</style>
             </div>
         );
     }

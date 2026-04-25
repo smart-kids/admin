@@ -22,6 +22,7 @@ class Modal extends React.Component {
       phone: "",
       email: "",
       address: "",
+      schoolSize: "", // Number of students
       inviteSmsText: "Hello {{username}}, you've been invited to join {{team_name}}. Your temporary password is {{password}}.", // Default
       logo: null, // For base64 string or URL
       themeColor: "#4e73df", // Default theme color (e.g., a nice blue)
@@ -94,7 +95,7 @@ class Modal extends React.Component {
   static getDerivedStateFromProps(props, state) {
     // Default state structure including themeColor
     const defaultEditState = {
-        id: null, name: "", phone: "", email: "", address: "",
+        id: null, name: "", phone: "", email: "", address: "", schoolSize: "",
         inviteSmsText: "Hello {{username}}, you've been invited to join {{team_name}}. Your temporary password is {{password}}.",
         logo: null,
         themeColor: "#4e73df", // Ensure default is here
@@ -192,7 +193,7 @@ class Modal extends React.Component {
   };
 
   render() {
-    const { name, phone, email, address, inviteSmsText, themeColor } = this.state.edit; // Added themeColor
+    const { name, phone, email, address, schoolSize, inviteSmsText, themeColor } = this.state.edit; // Added themeColor and schoolSize
     const { loading, logoPreview } = this.state;
     const currentModalId = modalNumber;
     const currentFormId = modalNumber + "form";
@@ -265,6 +266,20 @@ class Modal extends React.Component {
                         placeholder="Enter physical address" value={address}
                         onChange={this.handleChange} disabled={loading}
                       />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group col-md-6">
+                      <label htmlFor={`${currentFormId}_schoolSize`}>School Size (Number of Students):</label>
+                      <input
+                        type="number" className="form-control" id={`${currentFormId}_schoolSize`} name="schoolSize"
+                        placeholder="Enter number of students" min="0" value={schoolSize}
+                        onChange={this.handleChange} disabled={loading}
+                      />
+                      <small className="form-text text-muted">Total number of students enrolled in the school.</small>
+                    </div>
+                    <div className="form-group col-md-6">
+                      {/* This column can be used for future fields or left empty */}
                     </div>
                   </div>
 

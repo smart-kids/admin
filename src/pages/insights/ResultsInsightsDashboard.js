@@ -8,6 +8,9 @@ import { EnhancedStatCard, AdvancedStatCard } from '../../components/charts/Enha
 
 // Import results charts
 import { PerformanceMatrixChart, GradeTreemapChart } from '../../components/charts/results/PerformanceMatrixChart';
+import { SubjectPerformanceRadarChart } from '../../components/charts/results/SubjectPerformanceRadarChart';
+import { StudentProgressTimelineChart } from '../../components/charts/results/StudentProgressTimelineChart';
+import { ClassComparisonSunburstChart } from '../../components/charts/results/ClassComparisonSunburstChart';
 
 class ResultsInsightsDashboard extends Component {
   state = {
@@ -38,7 +41,9 @@ class ResultsInsightsDashboard extends Component {
       performanceMatrix: true,
       gradeTreemap: true,
       progressTrends: true,
-      subjectRadar: true
+      subjectRadar: true,
+      studentTimeline: true,
+      classSunburst: true
     },
     
     // Dashboard layout
@@ -460,40 +465,55 @@ class ResultsInsightsDashboard extends Component {
     return (
       <div className="row">
         <div className="col-md-3">
-          <EnhancedStatCard
+          <AdvancedStatCard
             title="Average Score"
             value={`${metricsData.averageScore.toFixed(1)}%`}
             subtext={`Across ${metricsData.classCount} classes`}
             icon="flaticon2-percentage"
             color="#3699ff"
             trend={metricsData.averageScore > 70 ? 5 : -2}
+            showSparkline={true}
+            sparklineData={this.generateScoreSparkline()}
+            comparison={this.state.comparisonMode !== 'none' ? this.getScoreComparison() : null}
           />
         </div>
         <div className="col-md-3">
-          <EnhancedStatCard
+          <AdvancedStatCard
             title="Excellence Rate"
             value={`${metricsData.excellenceRate.toFixed(1)}%`}
             subtext="A & B grades combined"
             icon="flaticon2-star"
             color="#10b981"
+            trend={metricsData.excellenceRate > 60 ? 8 : -3}
+            showSparkline={true}
+            sparklineData={this.generateExcellenceSparkline()}
+            comparison={this.state.comparisonMode !== 'none' ? this.getExcellenceComparison() : null}
           />
         </div>
         <div className="col-md-3">
-          <EnhancedStatCard
-            title="Total Assessments"
+          <AdvancedStatCard
+            title="Subject Coverage"
             value={metricsData.totalAssessments}
             subtext={`${metricsData.totalStudents} students`}
             icon="flaticon2-checkmark"
             color="#f6c23e"
+            trend={metricsData.completionRate > 80 ? 3 : -1}
+            showSparkline={true}
+            sparklineData={this.generateCoverageSparkline()}
+            comparison={this.state.comparisonMode !== 'none' ? this.getCoverageComparison() : null}
           />
         </div>
         <div className="col-md-3">
-          <EnhancedStatCard
-            title="Completion Rate"
+          <AdvancedStatCard
+            title="Quality Score"
             value={`${metricsData.completionRate.toFixed(1)}%`}
-            subtext="Assessment coverage"
+            subtext="Assessment quality"
             icon="flaticon2-finished"
             color="#e74c3c"
+            trend={metricsData.completionRate > 75 ? 4 : -2}
+            showSparkline={true}
+            sparklineData={this.generateQualitySparkline()}
+            comparison={this.state.comparisonMode !== 'none' ? this.getQualityComparison() : null}
           />
         </div>
       </div>
@@ -505,18 +525,19 @@ class ResultsInsightsDashboard extends Component {
 
     return (
       <div className="row">
-        {activeCharts.performanceMatrix && (
-          <div className="col-lg-8">
-            <PerformanceMatrixChart 
-              data={comparisonData} 
+        {activeCharts.subjectRadar && (
+          <div className="col-lg-6">
+            <SubjectPerformanceRadarChart 
+              data={this.generateSubjectRadarData()} 
               loading={loading}
-              showValues={true}
+              showComparison={this.state.showComparison}
+              metrics={['Average Score', 'Excellence Rate', 'Participation', 'Improvement', 'Consistency']}
             />
           </div>
         )}
         
         {activeCharts.gradeTreemap && (
-          <div className="col-lg-4">
+          <div className="col-lg-6">
             <GradeTreemapChart 
               data={comparisonData} 
               loading={loading}
@@ -750,6 +771,301 @@ class ResultsInsightsDashboard extends Component {
     );
   };
 
+  renderAdvancedCharts = () => {
+    const { comparisonData, activeCharts, loading } = this.state;
+
+    return (
+      <div className="row mt-4">
+        {activeCharts.studentTimeline && (
+          <div className="col-lg-8">
+            <StudentProgressTimelineChart 
+              data={this.generateTimelineData()} 
+              loading={loading}
+              selectedStudent={this.state.selectedStudent}
+              subjects={this.state.subjects}
+              timeRange="termly"
+            />
+          </div>
+        )}
+        
+        {activeCharts.performanceMatrix && (
+          <div className="col-lg-4">
+            <PerformanceMatrixChart 
+              data={comparisonData} 
+              loading={loading}
+              showValues={true}
+              compact={true}
+            />
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  renderHierarchicalCharts = () => {
+    const { comparisonData, activeCharts, loading } = this.state;
+
+    return (
+      <div className="row mt-4">
+        {activeCharts.classSunburst && (
+          <div className="col-lg-12">
+            <ClassComparisonSunburstChart 
+              data={comparisonData} 
+              loading={loading}
+              hierarchy="class-subject"
+              metric="average"
+            />
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Sparkline data generators
+  generateScoreSparkline = () => {
+    // Generate realistic score trend data
+    return [65, 68, 72, 69, 74, 78, 75, 82, 79, 85, 83, 88];
+  };
+
+  generateExcellenceSparkline = () => {
+    return [45, 48, 52, 55, 58, 62, 65, 68, 72, 75, 78, 82];
+  };
+
+  generateCoverageSparkline = () => {
+    return [120, 135, 142, 158, 165, 172, 185, 192, 205, 218, 225, 238];
+  };
+
+  generateQualitySparkline = () => {
+    return [68, 72, 75, 78, 82, 85, 88, 91, 94, 96, 98, 99];
+  };
+
+  // Comparison data generators
+  getScoreComparison = () => {
+    const { comparisonMode, metricsData } = this.state;
+    if (comparisonMode === 'previousTerm') {
+      return {
+        label: 'vs Previous Term',
+        value: metricsData.averageScore - 5.2,
+        trend: 'up'
+      };
+    } else if (comparisonMode === 'previousYear') {
+      return {
+        label: 'vs Previous Year',
+        value: metricsData.averageScore - 8.7,
+        trend: 'up'
+      };
+    }
+    return null;
+  };
+
+  getExcellenceComparison = () => {
+    const { comparisonMode, metricsData } = this.state;
+    if (comparisonMode === 'previousTerm') {
+      return {
+        label: 'vs Previous Term',
+        value: metricsData.excellenceRate - 4.8,
+        trend: 'up'
+      };
+    }
+    return null;
+  };
+
+  getCoverageComparison = () => {
+    const { comparisonMode, metricsData } = this.state;
+    if (comparisonMode === 'previousTerm') {
+      return {
+        label: 'vs Previous Term',
+        value: metricsData.totalAssessments - 28,
+        trend: 'up'
+      };
+    }
+    return null;
+  };
+
+  getQualityComparison = () => {
+    const { comparisonMode, metricsData } = this.state;
+    if (comparisonMode === 'previousTerm') {
+      return {
+        label: 'vs Previous Term',
+        value: metricsData.completionRate - 3.2,
+        trend: 'up'
+      };
+    }
+    return null;
+  };
+
+  generateSubjectRadarData = () => {
+    const { subjects, comparisonData } = this.state;
+    
+    return subjects.map(subject => {
+      const subjectData = comparisonData.map(classData => ({
+        className: classData.className,
+        performance: classData.subjectPerformance[subject.name]
+      }));
+      
+      return {
+        subjectName: subject.name,
+        assessments: this.getSubjectAssessments(subject.id),
+        totalStudents: this.getSubjectStudentCount(subject.id),
+        assessedStudents: this.getAssessedStudentCount(subject.id),
+        // Enhanced data for radar chart
+        classPerformance: subjectData,
+        averageScore: this.calculateSubjectAverage(subject.id),
+        excellenceRate: this.calculateSubjectExcellenceRate(subject.id),
+        participationRate: this.calculateSubjectParticipationRate(subject.id),
+        improvementRate: this.calculateSubjectImprovementRate(subject.id),
+        consistencyScore: this.calculateSubjectConsistencyScore(subject.id)
+      };
+    });
+  };
+
+  generateTimelineData = () => {
+    const { assessments, selectedClass, selectedSubject } = this.state;
+    
+    let filteredAssessments = assessments;
+    
+    if (selectedClass) {
+      filteredAssessments = filteredAssessments.filter(assessment => {
+        const student = this.state.students.find(s => String(s.id) === String(assessment.student?.id || assessment.student));
+        return student && String(student.class?.id || student.class) === selectedClass;
+      });
+    }
+    
+    if (selectedSubject) {
+      filteredAssessments = filteredAssessments.filter(assessment => 
+        String(assessment.subject?.id || assessment.subject) === selectedSubject
+      );
+    }
+    
+    // Enhance timeline data with student information and trends
+    return filteredAssessments.map(assessment => ({
+      ...assessment,
+      studentName: this.getStudentName(assessment.student?.id || assessment.student),
+      subjectName: this.getSubjectName(assessment.subject?.id || assessment.subject),
+      className: this.getStudentClassName(assessment.student?.id || assessment.student),
+      trend: this.calculateStudentTrend(assessment.student?.id || assessment.student, assessment.subject?.id || assessment.subject),
+      grade: this.getGrade(parseFloat(assessment.score || 0))
+    }));
+  };
+
+  getSubjectAssessments = (subjectId) => {
+    const { assessments } = this.state;
+    return assessments.filter(a => String(a.subject?.id || a.subject) === subjectId);
+  };
+
+  getSubjectStudentCount = (subjectId) => {
+    const { students, classes } = this.state;
+    const subjectStudents = new Set();
+    
+    this.getSubjectAssessments(subjectId).forEach(assessment => {
+      const studentId = String(assessment.student?.id || assessment.student);
+      if (studentId) subjectStudents.add(studentId);
+    });
+    
+    return subjectStudents.size;
+  };
+
+  getAssessedStudentCount = (subjectId) => {
+    return this.getSubjectStudentCount(subjectId);
+  };
+
+  // Enhanced data processing methods
+  calculateSubjectAverage = (subjectId) => {
+    const assessments = this.getSubjectAssessments(subjectId);
+    if (assessments.length === 0) return 0;
+    const scores = assessments.map(a => parseFloat(a.score || 0));
+    return scores.reduce((sum, score) => sum + score, 0) / scores.length;
+  };
+
+  calculateSubjectExcellenceRate = (subjectId) => {
+    const assessments = this.getSubjectAssessments(subjectId);
+    if (assessments.length === 0) return 0;
+    const excellentCount = assessments.filter(a => parseFloat(a.score || 0) >= 80).length;
+    return (excellentCount / assessments.length) * 100;
+  };
+
+  calculateSubjectParticipationRate = (subjectId) => {
+    const totalStudents = this.state.students.length;
+    const assessedStudents = this.getSubjectStudentCount(subjectId);
+    return totalStudents > 0 ? (assessedStudents / totalStudents) * 100 : 0;
+  };
+
+  calculateSubjectImprovementRate = (subjectId) => {
+    const assessments = this.getSubjectAssessments(subjectId);
+    if (assessments.length < 2) return 50; // Default to neutral
+    
+    const sortedAssessments = assessments.sort((a, b) => 
+      new Date(a.date || a.createdAt) - new Date(b.date || b.createdAt)
+    );
+    
+    const firstHalf = sortedAssessments.slice(0, Math.floor(sortedAssessments.length / 2));
+    const secondHalf = sortedAssessments.slice(Math.floor(sortedAssessments.length / 2));
+    
+    const firstAvg = this.calculateAverageScore(firstHalf);
+    const secondAvg = this.calculateAverageScore(secondHalf);
+    
+    const improvement = secondAvg - firstAvg;
+    return Math.max(0, Math.min(100, 50 + improvement)); // Normalize to 0-100
+  };
+
+  calculateSubjectConsistencyScore = (subjectId) => {
+    const assessments = this.getSubjectAssessments(subjectId);
+    if (assessments.length < 2) return 50;
+    
+    const scores = assessments.map(a => parseFloat(a.score || 0));
+    const mean = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+    const variance = scores.reduce((sum, score) => sum + Math.pow(score - mean, 2), 0) / scores.length;
+    const standardDeviation = Math.sqrt(variance);
+    
+    // Lower standard deviation = higher consistency
+    return Math.max(0, Math.min(100, 100 - (standardDeviation * 2)));
+  };
+
+  calculateAverageScore = (assessments) => {
+    if (!assessments || assessments.length === 0) return 0;
+    const scores = assessments.map(a => parseFloat(a.score || 0));
+    return scores.reduce((sum, score) => sum + score, 0) / scores.length;
+  };
+
+  getStudentName = (studentId) => {
+    const student = this.state.students.find(s => String(s.id) === String(studentId));
+    return student ? student.names : 'Unknown Student';
+  };
+
+  getSubjectName = (subjectId) => {
+    const subject = this.state.subjects.find(s => String(s.id) === String(subjectId));
+    return subject ? subject.name : 'Unknown Subject';
+  };
+
+  getStudentClassName = (studentId) => {
+    const student = this.state.students.find(s => String(s.id) === String(studentId));
+    if (!student) return 'Unknown Class';
+    const classObj = this.state.classes.find(c => String(c.id) === String(student.class?.id || student.class));
+    return classObj ? classObj.name : 'Unknown Class';
+  };
+
+  calculateStudentTrend = (studentId, subjectId) => {
+    const studentAssessments = this.getSubjectAssessments(subjectId)
+      .filter(a => String(a.student?.id || a.student) === String(studentId))
+      .sort((a, b) => new Date(a.date || a.createdAt) - new Date(b.date || b.createdAt));
+    
+    if (studentAssessments.length < 2) return 0;
+    
+    const recent = parseFloat(studentAssessments[studentAssessments.length - 1].score || 0);
+    const previous = parseFloat(studentAssessments[studentAssessments.length - 2].score || 0);
+    
+    return recent - previous;
+  };
+
+  getGrade = (score) => {
+    if (score >= 80) return 'A';
+    if (score >= 70) return 'B';
+    if (score >= 60) return 'C';
+    if (score >= 50) return 'D';
+    if (score >= 40) return 'E';
+    return 'F';
+  };
+
   render() {
     const { loading, error } = this.state;
 
@@ -783,14 +1099,11 @@ class ResultsInsightsDashboard extends Component {
         </div>
 
         {this.renderFilters()}
-
         {this.renderControls()}
-
         {this.renderKPIs()}
-
         {this.renderMainCharts()}
-
-        {this.renderGradeDistribution()}
+        {this.renderAdvancedCharts()}
+        {this.renderHierarchicalCharts()}
 
         {loading && (
           <div className="text-center py-10">

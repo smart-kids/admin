@@ -292,10 +292,23 @@ class Navbar extends React.Component {
         { path: "/assessment-types", label: "Assessment Types" },
         { path: "/rubrics", label: "Rubrics" },
     ].filter(item => {
+        // Check if user is super admin for schools access
+        const isSuperAdmin = effectiveRole === 'super_admin' || effectiveRole === 'superadmin' || effectiveRole === 'Super Admin' || 
+                            effectiveRole === 'sAdmin' || effectiveRole === 'sadmin' ||
+                            (userData && userData.isSuperAdmin) || 
+                            (userData && userData.role === 'super_admin') ||
+                            (userData && userData.userType === 'sAdmin');
+        
         if (isTeacher) {
             const forbidden = ["/schools", "/admins", "/invitations", "/finance/fees", "/finance/charge-types", "/settings/school", "/terms", "/assessment-types", "/rubrics"];
             return !forbidden.includes(item.path);
         }
+        
+        // Only show Schools item to super admins
+        if (item.path === "/schools" && !isSuperAdmin) {
+            return false;
+        }
+        
         return true;
     });
     const financeItems = [
@@ -370,13 +383,66 @@ class Navbar extends React.Component {
                         <ul style={{listStyle: 'none', padding: 0, margin: '0 0 10px 0', backgroundColor: 'var(--bg-tertiary)'}}>
                             {availableSchools.map(schoolItem => (
                                 <li key={schoolItem.id}>
-                                    <button onClick={() => this.switchSchools(schoolItem)} style={subButtonStyle}>{schoolItem.name}</button>
+                                    <button onClick={() => this.switchSchools(schoolItem)} style={{ ...subButtonStyle, display: 'flex', alignItems: 'center', padding: '10px 15px' }}>
+                                        {/* School Logo */}
+                                        <div style={{ 
+                                          width: '28px', 
+                                          height: '28px', 
+                                          borderRadius: '4px', 
+                                          marginRight: '10px', 
+                                          backgroundColor: schoolItem.theme_color || 'var(--bg-tertiary)',
+                                          display: 'flex', 
+                                          alignItems: 'center', 
+                                          justifyContent: 'center',
+                                          overflow: 'hidden',
+                                          flexShrink: 0
+                                        }}>
+                                          {schoolItem.logo ? (
+                                            <img src={schoolItem.logo} alt={schoolItem.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                          ) : (
+                                            <i className="la la-school" style={{ color: '#fff', fontSize: '14px' }}></i>
+                                          )}
+                                        </div>
+                                        
+                                        {/* School Info */}
+                                        <div style={{ flex: 1, textAlign: 'left' }}>
+                                          <div style={{ 
+                                            color: 'var(--text-primary)', 
+                                            fontWeight: '500', 
+                                            fontSize: '0.9rem',
+                                            marginBottom: '2px'
+                                          }}>
+                                            {schoolItem.name}
+                                          </div>
+                                          <div style={{ 
+                                            color: 'var(--text-secondary)', 
+                                            fontSize: '0.75rem',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '6px'
+                                          }}>
+                                            <span style={{ 
+                                              display: 'inline-block',
+                                              width: '6px',
+                                              height: '6px',
+                                              borderRadius: '50%',
+                                              backgroundColor: schoolItem.theme_color || 'var(--brand-color)'
+                                            }}></span>
+                                            {schoolItem.students?.length || schoolItem.studentCount || 0} students
+                                          </div>
+                                        </div>
+                                        
+                                        {/* Selection Indicator */}
+                                        {selectedSchool?.id === schoolItem.id && (
+                                          <i className="la la-check" style={{ color: 'var(--brand-color)', fontSize: '0.9rem', marginLeft: '8px' }}></i>
+                                        )}
+                                    </button>
                                 </li>
                             ))}
                         </ul>
                     )}
                 </li>
-                {/* Main Links */}
+                                {/* Main Links */}
                 {!isTeacher && <li><Link to="/home" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-dashboard" style={{marginRight: '12px', fontSize: '1.2rem', color: 'var(--text-tertiary)'}}></i> Reports</Link></li>}
                 <li><Link to="/comms" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-bullhorn" style={{marginRight: '12px', fontSize: '1.2rem', color: 'var(--text-tertiary)'}}></i> SMS & Email</Link></li>
                 <li><Link to="/learning" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-graduation-cap" style={{marginRight: '12px', fontSize: '1.2rem', color: 'var(--text-tertiary)'}}></i> Learning</Link></li>
@@ -474,10 +540,23 @@ class Navbar extends React.Component {
       { path: "/assessment-types", label: "Assessment Types", IconComponent: SvgSettingsIcon },
       { path: "/rubrics", label: "Rubrics", IconComponent: SvgSettingsIcon },
     ].filter(item => {
+        // Check if user is super admin for schools access
+        const isSuperAdmin = effectiveRole === 'super_admin' || effectiveRole === 'superadmin' || effectiveRole === 'Super Admin' || 
+                            effectiveRole === 'sAdmin' || effectiveRole === 'sadmin' ||
+                            (storedUser && storedUser.isSuperAdmin) || 
+                            (storedUser && storedUser.role === 'super_admin') ||
+                            (storedUser && storedUser.userType === 'sAdmin');
+        
         if (isTeacher) {
             const forbidden = ["/schools", "/admins", "/invitations", "/finance/fees", "/finance/charge-types", "/settings/school", "/terms", "/assessment-types", "/rubrics"];
             return !forbidden.includes(item.path);
         }
+        
+        // Only show Schools item to super admins
+        if (item.path === "/schools" && !isSuperAdmin) {
+            return false;
+        }
+        
         return true;
     });
     const financeItems = [
@@ -502,6 +581,25 @@ class Navbar extends React.Component {
         .kt-menu__submenu .kt-menu__item:hover > .kt-menu__link,
         .kt-menu__submenu .kt-menu__item.kt-menu__item--hover > .kt-menu__link { background-color: ${LIGHT_GREY_HOVER_BG} !important; }
         .balance-dot { height: 8px; width: 8px; background-color: #FA064B; border-radius: 50%; display: inline-block; margin-left: 5px; vertical-align: middle; box-shadow: 0 0 4px rgba(250, 6, 75, 0.5); }
+        
+        /* Enhanced navbar styles */
+        .kt-header-menu .kt-menu__nav > .kt-menu__item > .kt-menu__link {
+            transition: all 0.3s ease;
+        }
+        .kt-header-menu .kt-menu__nav > .kt-menu__item:hover > .kt-menu__link {
+            transform: translateY(-1px);
+        }
+        .class-selector-highlight {
+            background: linear-gradient(135deg, rgba(57, 102, 255, 0.1), rgba(57, 102, 255, 0.05)) !important;
+            border: 1px solid rgba(57, 102, 255, 0.2) !important;
+        }
+        .compact-profile-btn {
+            transition: all 0.2s ease;
+        }
+        .compact-profile-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
     `;
 
     const showLowBalanceIndicator = selectedSchool && selectedSchool.financial && typeof selectedSchool.financial.balance === 'number' && selectedSchool.financial.balance < 300;
@@ -524,15 +622,68 @@ class Navbar extends React.Component {
                 {availableSchools.length > 1 && (
                   <li className="kt-menu__item kt-menu__item--submenu kt-menu__item--rel" data-ktmenu-submenu-toggle="click" aria-haspopup="true">
                     <a href="!#" onClick={e => e.preventDefault()} className="kt-menu__link kt-menu__toggle">
-                      <span className="kt-menu__link-text" style={{ ...topNavlinkStyle, fontWeight: '500' }}>{selectedSchool?.name || "Select School"}</span>
+                      <span className="kt-menu__link-text class-selector-highlight" style={{ ...topNavlinkStyle, fontWeight: '500', padding: '6px 14px', borderRadius: '8px' }}>
+                        <i className="la la-school" style={{ marginRight: '6px', fontSize: '0.9rem' }}></i>
+                        {selectedSchool?.name || "Select School"}
+                      </span>
                       <i className="kt-menu__hor-arrow la la-angle-down" style={topNavIconStyle} />
                     </a>
                     <div className="kt-menu__submenu kt-menu__submenu--classic kt-menu__submenu--left">
                       <ul className="kt-menu__subnav">
                         {availableSchools.map(schoolItem => (
-                          <li key={schoolItem.id} onClick={() => this.switchSchools(schoolItem)} className="kt-menu__item" aria-haspopup="true">
-                            <a href="!#" onClick={e => e.preventDefault()} className="kt-menu__link">
-                                <span className="kt-menu__link-text" style={{ color: DEFAULT_TOP_NAV_TEXT_COLOR }}>{schoolItem.name}</span>
+                          <li key={schoolItem.id} onClick={() => this.switchSchools(schoolItem)} className="kt-menu__item" aria-haspopup="true" style={{ position: 'relative' }}>
+                            <a href="!#" onClick={e => e.preventDefault()} className="kt-menu__link" style={{ display: 'flex', alignItems: 'center', padding: '8px 12px' }}>
+                                {/* School Logo */}
+                                <div style={{ 
+                                  width: '32px', 
+                                  height: '32px', 
+                                  borderRadius: '6px', 
+                                  marginRight: '12px', 
+                                  backgroundColor: schoolItem.theme_color || 'var(--bg-tertiary)',
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  justifyContent: 'center',
+                                  overflow: 'hidden'
+                                }}>
+                                  {schoolItem.logo ? (
+                                    <img src={schoolItem.logo} alt={schoolItem.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                  ) : (
+                                    <i className="la la-school" style={{ color: '#fff', fontSize: '16px' }}></i>
+                                  )}
+                                </div>
+                                
+                                {/* School Info */}
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ 
+                                    color: DEFAULT_TOP_NAV_TEXT_COLOR, 
+                                    fontWeight: '500', 
+                                    fontSize: '0.9rem',
+                                    marginBottom: '2px'
+                                  }}>
+                                    {schoolItem.name}
+                                  </div>
+                                  <div style={{ 
+                                    color: 'var(--text-secondary)', 
+                                    fontSize: '0.8rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px'
+                                  }}>
+                                    <span style={{ 
+                                      display: 'inline-block',
+                                      width: '8px',
+                                      height: '8px',
+                                      borderRadius: '50%',
+                                      backgroundColor: schoolItem.theme_color || 'var(--brand-color)'
+                                    }}></span>
+                                    {schoolItem.students?.length || schoolItem.studentCount || 0} students
+                                  </div>
+                                </div>
+                                
+                                {/* Selection Indicator */}
+                                {selectedSchool?.id === schoolItem.id && (
+                                  <i className="la la-check" style={{ color: 'var(--brand-color)', fontSize: '1rem' }}></i>
+                                )}
                             </a>
                           </li>
                         ))}
@@ -540,7 +691,7 @@ class Navbar extends React.Component {
                     </div>
                   </li>
                 )}
-                {!isTeacher && (
+                                {!isTeacher && (
                 <li className="kt-menu__item">
                   <Link to="/home" className="kt-menu__link">
                     <span className="kt-menu__link-text" style={{ ...topNavlinkStyle, fontWeight: '500' }}>Reports</span>
@@ -699,26 +850,60 @@ class Navbar extends React.Component {
             </div>
         </div>
         
-        {/* PROFILE PANEL (Offcanvas) - Unchanged */}
-        <div id="kt_offcanvas_toolbar_profile" className="kt-offcanvas-panel" style={{ margin: '15px', maxHeight: 'calc(100vh - 125px)', marginTop: '110px', borderRadius: '10px' }}>
-            <div className="kt-offcanvas-panel__head">
-                <h3 className="kt-offcanvas-panel__title">Profile</h3>
-                <a href="!#" onClick={e => e.preventDefault()} className="kt-offcanvas-panel__close" id="kt_offcanvas_toolbar_profile_close"><i className="flaticon2-delete" /></a>
+        {/* PROFILE PANEL (Offcanvas) - Compact Design */}
+        <div id="kt_offcanvas_toolbar_profile" className="kt-offcanvas-panel" style={{ margin: '15px', maxHeight: '320px', marginTop: '110px', borderRadius: '10px', width: '280px' }}>
+            <div className="kt-offcanvas-panel__head" style={{ padding: '15px 20px', borderBottom: '1px solid var(--border-primary)' }}>
+                <h3 className="kt-offcanvas-panel__title" style={{ fontSize: '1.1rem', margin: 0, color: 'var(--text-primary)' }}>Profile</h3>
+                <a href="!#" onClick={e => e.preventDefault()} className="kt-offcanvas-panel__close" id="kt_offcanvas_toolbar_profile_close" style={{ fontSize: '1.2rem' }}><i className="la la-times" /></a>
             </div>
-            <div className="kt-offcanvas-panel__body kt-scroll">
-                <div className="kt-user-card-v3 kt-margin-b-30">
-                    <div className="kt-user-card-v3__detalis">
-                        <a href="!#" onClick={e => e.preventDefault()} className="kt-user-card-v3__name">{storedUser?.names || user}</a>
-                        <div className="kt-user-card-v3__desc">{storedUser?.userType ? storedUser.userType.charAt(0).toUpperCase() + storedUser.userType.slice(1) : ''}</div>
-                        <div className="kt-user-card-v3__info">
-                            {storedUser?.email && (<a href={`mailto:${storedUser.email}`} className="kt-user-card-v3__item"><i className="flaticon-email-black-circular-button kt-font-brand" /><span className="kt-user-card-v3__tag">{storedUser.email}</span></a>)}
-                            <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                <button className="btn btn-label-brand btn-sm btn-bold btn-block" type="button" onClick={() => this.props.history.push({ pathname: "/settings/user" })}>Profile Settings</button>
-                                {typeof window.matchMedia === 'function' && !window.matchMedia('(display-mode: standalone)').matches && typeof window.deferredInstallPrompt !== 'undefined' && (<button className="btn btn-label-success btn-sm btn-bold btn-block" type="button" onClick={this.handleInstallApp}>Install App</button>)}
-                                <button className="btn btn-label-danger btn-sm btn-bold btn-block" type="button" onClick={() => { localStorage.clear(); window.location.href = '/'; }}>Log Out</button>
-                            </div>
+            <div className="kt-offcanvas-panel__body" style={{ padding: '20px' }}>
+                {/* User Info */}
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+                    <img alt="User avatar" src={storedUser?.avatar || `https://picsum.photos/40/40?random=${storedUser?.id || 1027}`} style={{ width: '40px', height: '40px', borderRadius: '50%', marginRight: '12px' }} />
+                    <div>
+                        <div style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '0.95rem' }}>{storedUser?.names || user}</div>
+                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{storedUser?.userType ? storedUser.userType.charAt(0).toUpperCase() + storedUser.userType.slice(1) : ''}</div>
+                    </div>
+                </div>
+                
+                {/* Email */}
+                {storedUser?.email && (
+                    <div style={{ marginBottom: '20px', padding: '10px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '6px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                            <i className="la la-envelope" style={{ marginRight: '8px' }}></i>
+                            {storedUser.email}
                         </div>
                     </div>
+                )}
+                
+                {/* Action Buttons */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <button 
+                        className="btn btn-sm btn-bold compact-profile-btn" 
+                        style={{ backgroundColor: 'var(--brand-color)', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 12px', fontSize: '0.85rem' }}
+                        type="button" 
+                        onClick={() => this.props.history.push({ pathname: "/settings/user" })}
+                    >
+                        <i className="la la-cog" style={{ marginRight: '6px' }}></i> Profile Settings
+                    </button>
+                    {typeof window.matchMedia === 'function' && !window.matchMedia('(display-mode: standalone)').matches && typeof window.deferredInstallPrompt !== 'undefined' && (
+                        <button 
+                            className="btn btn-sm btn-bold compact-profile-btn" 
+                            style={{ backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 12px', fontSize: '0.85rem' }}
+                            type="button" 
+                            onClick={this.handleInstallApp}
+                        >
+                            <i className="la la-download" style={{ marginRight: '6px' }}></i> Install App
+                        </button>
+                    )}
+                    <button 
+                        className="btn btn-sm btn-bold compact-profile-btn" 
+                        style={{ backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 12px', fontSize: '0.85rem' }}
+                        type="button" 
+                        onClick={() => { localStorage.clear(); window.location.href = '/'; }}
+                    >
+                        <i className="la la-sign-out" style={{ marginRight: '6px' }}></i> Log Out
+                    </button>
                 </div>
             </div>
         </div>

@@ -239,7 +239,6 @@ const RegistrationStage = ({ registrationData, schoolMeta, onSubmit, onBack, isL
         schoolName: '',
         address: '',
         phone: '',
-        password: '',
         
         // Student/parent fields
         parentName: '',
@@ -260,8 +259,8 @@ const RegistrationStage = ({ registrationData, schoolMeta, onSubmit, onBack, isL
                 return;
             }
         } else {
-            if (!formData.schoolName || !formData.phone || !formData.password) {
-                setError('School name, phone, and password are required');
+            if (!formData.schoolName || !formData.phone) {
+                setError('School name and phone are required');
                 return;
             }
         }
@@ -382,15 +381,6 @@ const RegistrationStage = ({ registrationData, schoolMeta, onSubmit, onBack, isL
                                 onChange={(e) => handleChange('phone', e.target.value)}
                                 className="form-input"
                                 required
-                            />
-                            <input
-                                type="password"
-                                placeholder="Password"
-                                value={formData.password}
-                                onChange={(e) => handleChange('password', e.target.value)}
-                                className="form-input"
-                                required
-                                minLength="6"
                             />
                         </div>
                     </div>
