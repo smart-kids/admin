@@ -23,6 +23,7 @@ class EnhancedSchoolsDashboard extends Component {
     attemptEvents: [],
     smsEvents: [],
     institutionalDeposits: [],
+    books: [],
     
     // Processed metrics
     saasMetrics: null,
@@ -80,7 +81,8 @@ class EnhancedSchoolsDashboard extends Component {
       Data.lessonAttempts.subscribe(({ lessonAttempts }) => this.updateData({ lessonAttempts })),
       Data.attemptEvents.subscribe(({ attemptEvents }) => this.updateData({ attemptEvents })),
       Data.smsEvents.subscribe(({ smsEvents }) => this.updateData({ smsEvents })),
-      Data.institutionalDeposits.subscribe(({ institutionalDeposits }) => this.updateData({ institutionalDeposits }))
+      Data.institutionalDeposits.subscribe(({ institutionalDeposits }) => this.updateData({ institutionalDeposits })),
+      Data.books.subscribe(({ books }) => this.updateData({ books }))
     ];
 
     this.subscriptions = subscriptions;
@@ -104,14 +106,14 @@ class EnhancedSchoolsDashboard extends Component {
     try {
       const {
         schools, students, teachers, classes, payments, charges, feeStructures,
-        lessonAttempts, attemptEvents, smsEvents, institutionalDeposits,
+        lessonAttempts, attemptEvents, smsEvents, institutionalDeposits, books,
         selectedTimeRange, selectedSchool
       } = this.state;
 
       // Filter data based on selections
       const filteredData = this.filterData({
         schools, students, teachers, classes, payments, charges, feeStructures,
-        lessonAttempts, attemptEvents, smsEvents, institutionalDeposits
+        lessonAttempts, attemptEvents, smsEvents, institutionalDeposits, books
       }, selectedSchool, selectedTimeRange);
 
       // Calculate all metrics
@@ -311,30 +313,66 @@ class EnhancedSchoolsDashboard extends Component {
   };
 
   calculateEntityMetrics = (data) => {
-    const { schools, students, teachers, classes, lessonAttempts, attemptEvents } = data;
+    const { schools, students, teachers, classes, lessonAttempts, attemptEvents, books } = data;
     
-    // Calculate students per school using nested structure like navbar
-    const studentsPerSchool = schools.map(school => {
+    // Calculate total students from nested school structure (more accurate for all schools)
+    const totalStudentsInSchools = schools.reduce((sum, school) => {
       const schoolStudents = (school.students && Array.isArray(school.students)) ? school.students.length : 
                               (school.studentCount || 0);
-      return { schoolId: school.id, studentCount: schoolStudents };
-    });
+      return sum + schoolStudents;
+    }, 0);
     
-    const totalStudentsInSchools = studentsPerSchool.reduce((sum, school) => sum + school.studentCount, 0);
+    // Calculate total teachers from nested school structure
+    const totalTeachersInSchools = schools.reduce((sum, school) => {
+      const schoolTeachers = (school.teachers && Array.isArray(school.teachers)) ? school.teachers.length : 
+                              (school.teacherCount || 0);
+      return sum + schoolTeachers;
+    }, 0);
+    
+    // Calculate total classes from nested school structure
+    const totalClassesInSchools = schools.reduce((sum, school) => {
+      const schoolClasses = (school.classes && Array.isArray(school.classes)) ? school.classes.length : 
+                            (school.classCount || 0);
+      return sum + schoolClasses;
+    }, 0);
+    
+    // Use the nested counts as primary, fallback to flat arrays if nested counts are 0
+    const totalStudents = totalStudentsInSchools > 0 ? totalStudentsInSchools : students.length;
+    const totalTeachers = totalTeachersInSchools > 0 ? totalTeachersInSchools : teachers.length;
+    const totalClasses = totalClassesInSchools > 0 ? totalClassesInSchools : classes.length;
     
     return {
       totalSchools: schools.length,
-      totalStudents: students.length, // Keep original count for overall
-      totalStudentsInSchools, // New count for properly mapped students
-      totalTeachers: teachers.length,
-      totalClasses: classes.length,
+      totalStudents, // Use accurate nested count
+      totalStudentsInSchools, // Keep for reference
+      totalTeachers, // Use accurate nested count
+      totalClasses, // Use accurate nested count
       totalLessonAttempts: lessonAttempts.length,
       totalAttemptEvents: attemptEvents.length,
-      averageStudentsPerSchool: schools.length > 0 ? totalStudentsInSchools / schools.length : 0,
-      averageTeachersPerSchool: schools.length > 0 ? teachers.length / schools.length : 0,
-      averageClassesPerSchool: schools.length > 0 ? classes.length / schools.length : 0,
-      averageStudentsPerClass: classes.length > 0 ? students.length / classes.length : 0,
-      studentsPerSchool // Detailed breakdown for debugging
+      totalBooks: books ? books.length : 0,
+      averageStudentsPerSchool: schools.length > 0 ? totalStudents / schools.length : 0,
+      averageTeachersPerSchool: schools.length > 0 ? totalTeachers / schools.length : 0,
+      averageClassesPerSchool: schools.length > 0 ? totalClasses / schools.length : 0,
+      averageStudentsPerClass: totalClasses > 0 ? totalStudents / totalClasses : 0,
+      // Detailed breakdown for debugging
+      studentsPerSchool: schools.map(school => ({
+        schoolId: school.id,
+        schoolName: school.name,
+        studentCount: (school.students && Array.isArray(school.students)) ? school.students.length : 
+                      (school.studentCount || 0)
+      })),
+      teachersPerSchool: schools.map(school => ({
+        schoolId: school.id,
+        schoolName: school.name,
+        teacherCount: (school.teachers && Array.isArray(school.teachers)) ? school.teachers.length : 
+                      (school.teacherCount || 0)
+      })),
+      classesPerSchool: schools.map(school => ({
+        schoolId: school.id,
+        schoolName: school.name,
+        classCount: (school.classes && Array.isArray(school.classes)) ? school.classes.length : 
+                     (school.classCount || 0)
+      }))
     };
   };
 
@@ -581,7 +619,7 @@ class EnhancedSchoolsDashboard extends Component {
               title="Monthly Business Revenue"
               value={revenueProjections?.businessMonthlyRevenue || 0}
               subtitle="3 terms per year"
-              icon="la la-chart-line"
+              icon="la la-line-chart"
               color="success"
             />
           </div>
@@ -678,7 +716,7 @@ class EnhancedSchoolsDashboard extends Component {
               title="Total Students"
               value={entityMetrics?.totalStudents || 0}
               subtitle={`${entityMetrics?.averageStudentsPerSchool?.toFixed(1) || 0} per school`}
-              icon="flaticon2-group"
+              icon="la la-users"
               color="primary"
             />
           </div>
@@ -687,7 +725,7 @@ class EnhancedSchoolsDashboard extends Component {
               title="Total Teachers"
               value={entityMetrics?.totalTeachers || 0}
               subtitle={`${entityMetrics?.averageTeachersPerSchool?.toFixed(1) || 0} per school`}
-              icon="flaticon2-user"
+              icon="la la-user"
               color="success"
             />
           </div>
@@ -696,16 +734,16 @@ class EnhancedSchoolsDashboard extends Component {
               title="Total Classes"
               value={entityMetrics?.totalClasses || 0}
               subtitle={`${entityMetrics?.averageClassesPerSchool?.toFixed(1) || 0} per school`}
-              icon="flaticon2-class"
+              icon="la la-school"
               color="warning"
             />
           </div>
           <div className="col-lg-3 col-md-6">
             <ModernMetricCard
-              title="Lesson Attempts"
-              value={entityMetrics?.totalLessonAttempts || 0}
-              subtitle="Total engagement"
-              icon="flaticon2-graduation-cap"
+              title="Library Books"
+              value={entityMetrics?.totalBooks || 0}
+              subtitle="Educational resources"
+              icon="la la-book"
               color="danger"
             />
           </div>
