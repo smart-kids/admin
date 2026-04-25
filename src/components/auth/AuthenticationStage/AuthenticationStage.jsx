@@ -21,6 +21,7 @@ const AuthenticationStage = ({
     
     const passwordRef = useRef(null);
     const intervalRef = useRef(null);
+    const isSubmittingRef = useRef(false);
 
     // Auto-focus password input when password method is selected
     useEffect(() => {
@@ -55,12 +56,20 @@ const AuthenticationStage = ({
         }
     }, [selectedMethod, userIdentifier]);
 
+    // Reset submitting lock if loading state finishes (e.g. error)
+    useEffect(() => {
+        if (!isLoading) {
+            isSubmittingRef.current = false;
+        }
+    }, [isLoading]);
+
     const handleMethodSelect = (method) => {
         setSelectedMethod(method);
         onMethodChange(method);
         setCredentials({});
         setOtpSent(false);
         setResendTimer(0);
+        isSubmittingRef.current = false;
     };
 
     const handleSendOTP = async () => {
@@ -101,20 +110,19 @@ const AuthenticationStage = ({
     };
 
     const handleAuthenticate = async (method, creds) => {
+        if (isSubmittingRef.current || isLoading) {
+            console.log('Blocking multiple fast authentication triggers.');
+            return;
+        }
+        isSubmittingRef.current = true;
+        
         try {
-            if (method === 'otp') {
-                const result = await Data.communication.sms.verifyOTP(userIdentifier, creds.otp);
-                if (!result.success) {
-                    throw new Error(result.message);
-                }
-                // Call parent callback with success
-                onAuthenticate(method, creds);
-            } else {
-                // Password authentication - call parent directly
-                onAuthenticate(method, creds);
-            }
+            // By delegating directly to the parent LoginContainer, we avoid firing two 
+            // sequential `/auth/verify/sms` API calls which was causing the 401 error overlap.
+            onAuthenticate(method, creds);
         } catch (error) {
             console.error('Authentication error:', error);
+            isSubmittingRef.current = false;
             // You might want to show error to user here
         }
     };
@@ -126,11 +134,9 @@ const AuthenticationStage = ({
             if (passwordInput.trim()) {
                 handleAuthenticate('password', { password: passwordInput });
             }
-        } else if (selectedMethod === 'otp') {
-            if (credentials.otp && credentials.otp.length === 5) {
-                handleAuthenticate('otp', { otp: credentials.otp });
-            }
         }
+        // Note: OTP submission is handled exclusively by auto-submit in handleOTPComplete
+        // This prevents double-submissions if the user instinctively hits 'Enter' after typing the code.
     };
 
     const handleResendOTP = () => {

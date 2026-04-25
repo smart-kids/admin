@@ -180,6 +180,10 @@ const LoginContainer = () => {
     };
 
     const handleAuthentication = async (method, credentials) => {
+        if (isLoading || isNetworkRequest) {
+            console.log('?? Authentication already in progress, blocking duplicate request.');
+            return;
+        }
         setIsLoading(true);
         setIsNetworkRequest(true);
         setError(null);
@@ -205,7 +209,8 @@ const LoginContainer = () => {
             console.log('?? Server response:', response);
             console.log('?? Response data:', response.data);
             
-            const { token, data: userData } = response.data;
+            const { token, data, user } = response.data;
+            const userData = data || user;
             
             console.log('?? Extracted token:', token);
             console.log('?? Extracted user data:', userData);
