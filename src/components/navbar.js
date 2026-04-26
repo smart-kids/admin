@@ -266,6 +266,10 @@ class Navbar extends React.Component {
     }
   };
 
+  isActiveRoute = (path) => {
+    return this.props.location.pathname === path;
+  }
+
   renderMobileNav = () => {
     const { isMobileMenuOpen, availableSchools, selectedSchool, openMobileSubmenu } = this.state;
     const userData = JSON.parse(localStorage.getItem("user")) || {};
@@ -600,6 +604,18 @@ class Navbar extends React.Component {
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
+        #kt_offcanvas_toolbar_profile_toggler_btn {
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            padding: 4px 10px !important;
+            margin: 6px 0;
+            display: flex;
+            align-items: center;
+        }
+        #kt_offcanvas_toolbar_profile_toggler_btn:hover {
+            background: rgba(255, 255, 255, 0.1) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
     `;
 
     const showLowBalanceIndicator = selectedSchool && selectedSchool.financial && typeof selectedSchool.financial.balance === 'number' && selectedSchool.financial.balance < 300;
@@ -691,20 +707,7 @@ class Navbar extends React.Component {
                     </div>
                   </li>
                 )}
-                                {!isTeacher && (
-                <li className="kt-menu__item">
-                  <Link to="/home" className="kt-menu__link">
-                    <span className="kt-menu__link-text" style={{ ...topNavlinkStyle, fontWeight: '500' }}>Reports</span>
-                  </Link>
-                </li>
-                )}
-                {isTeacher && (
-                <li className="kt-menu__item">
-                  <Link to="/learning" className="kt-menu__link">
-                    <span className="kt-menu__link-text" style={{ ...topNavlinkStyle, fontWeight: '500' }}>Learning</span>
-                  </Link>
-                </li>
-                )}
+                  
                 {!isTeacher && (
                   <li className="kt-menu__item kt-menu__item--submenu kt-menu__item--rel" data-ktmenu-submenu-toggle="click" aria-haspopup="true">
                     <a href="!#" onClick={e => e.preventDefault()} className="kt-menu__link kt-menu__toggle">
@@ -729,11 +732,7 @@ class Navbar extends React.Component {
                     </div>
                   </li>
                 )}
-                <li className="kt-menu__item">
-                  <Link to="/results" className="kt-menu__link">
-                    <span className="kt-menu__link-text" style={{ ...topNavlinkStyle, fontWeight: '500' }}>Results</span>
-                  </Link>
-                </li>
+                
                 {!isTeacher && (
                     <li className="kt-menu__item kt-menu__item--submenu kt-menu__item--rel" data-ktmenu-submenu-toggle="click" aria-haspopup="true">
                         <a href="!#" onClick={e => e.preventDefault()} className="kt-menu__link kt-menu__toggle">
@@ -837,14 +836,74 @@ class Navbar extends React.Component {
             </div>
             <div id="kt_bottom_nav_menu_container" className="kt-header-menu-wrapper" style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <div className="kt-header-menu">
-                    <ul className="kt-menu__nav">
-                        <li className="kt-menu__item"><Link to="/comms" className="kt-menu__link"><span className="kt-menu__link-text" style={bottomNavCommonLinkStyle}>SMS & Email</span></Link></li>
-                        {!isTeacher && <li className="kt-menu__item"><Link to="/learning" className="kt-menu__link"><span className="kt-menu__link-text" style={bottomNavCommonLinkStyle}>Learning</span></Link></li>}
-                        <li className="kt-menu__item"><Link to="/library" className="kt-menu__link"><span className="kt-menu__link-text" style={bottomNavCommonLinkStyle}>Library</span></Link></li>
-                        {!isTeacher && <li className="kt-menu__item"><Link to="/finance/fees" className="kt-menu__link"><span className="kt-menu__link-text" style={bottomNavCommonLinkStyle}>Fee</span></Link></li>}
-                        {!isTeacher && <li className="kt-menu__item"><Link to="/results" className="kt-menu__link"><span className="kt-menu__link-text" style={bottomNavCommonLinkStyle}>Results</span></Link></li>}
-                        {!isTeacher && <li className="kt-menu__item"><Link to="/time-tables" className="kt-menu__link"><span className="kt-menu__link-text" style={bottomNavCommonLinkStyle}>Time Tables</span></Link></li>}
-
+                    <ul className="kt-menu__nav" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {[
+                            { path: '/comms', label: 'SMS & Email', hideFromTeacher: false, icon: 'la-bullhorn' },
+                            { path: '/learning', label: 'Learning', hideFromTeacher: false, icon: 'la-graduation-cap' },
+                            { path: '/library', label: 'Library', hideFromTeacher: true, icon: 'la-book' },
+                            { path: '/results', label: 'Results', hideFromTeacher: false, icon: 'la-bar-chart' },
+                            { path: '/time-tables', label: 'Time Tables', hideFromTeacher: false, icon: 'la-calendar' },
+                            { path: '/finance/fees', label: 'Fee', hideFromTeacher: true, icon: 'la-money' }
+                        ].map((item) => {
+                            if (item.hideFromTeacher && isTeacher) return null;
+                            if (item.hidden) return null;
+                            
+                            const isActive = this.isActiveRoute(item.path);
+                            return (
+                                <li key={item.path} className={`kt-menu__item ${isActive ? 'kt-menu__item--active' : ''}`} style={{
+                                    margin: 0,
+                                    padding: '0 4px'
+                                }}>
+                                    <Link to={item.path} className="kt-menu__link" style={{
+                                        textDecoration: 'none',
+                                        padding: '8px 16px',
+                                        borderRadius: '8px',
+                                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        position: 'relative',
+                                        backgroundColor: isActive ? 'rgba(57, 102, 255, 0.1)' : 'transparent',
+                                        border: isActive ? '1px solid rgba(57, 102, 255, 0.2)' : '1px solid transparent'
+                                    }}>
+                                        <i className={`la ${item.icon}`} style={{
+                                            fontSize: '1rem',
+                                            color: isActive ? 'var(--brand-color)' : 'var(--text-secondary)',
+                                            transition: 'color 0.3s ease'
+                                        }} />
+                                        <span className="kt-menu__link-text" style={{
+                                            ...bottomNavCommonLinkStyle,
+                                            ...(isActive ? { 
+                                                color: 'var(--brand-color)', 
+                                                fontWeight: '600'
+                                            } : {
+                                                color: 'var(--text-primary)',
+                                                fontWeight: '500'
+                                            }),
+                                            position: 'relative',
+                                            paddingBottom: '2px',
+                                            transition: 'all 0.3s ease',
+                                            fontSize: '0.9rem'
+                                        }}>
+                                            {item.label}
+                                            {isActive && (
+                                                <span style={{
+                                                    position: 'absolute',
+                                                    bottom: '-4px',
+                                                    left: '50%',
+                                                    transform: 'translateX(-50%)',
+                                                    width: '20px',
+                                                    height: '3px',
+                                                    backgroundColor: 'var(--brand-color)',
+                                                    borderRadius: '2px',
+                                                    boxShadow: '0 2px 4px rgba(57, 102, 255, 0.3)'
+                                                }} />
+                                            )}
+                                        </span>
+                                    </Link>
+                                </li>
+                            );
+                        })}
                     </ul>
                 </div>
             </div>
