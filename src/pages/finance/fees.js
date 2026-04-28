@@ -989,6 +989,81 @@ class FeesManagement extends Component {
         }
     };
 
+    recordManualPayment = async () => {
+        const { 
+            paymentAmount, 
+            manualPaymentMethod, 
+            manualPaymentNotes, 
+            manualPaymentTermId, 
+            parentGroup,
+            paymentStudent,
+            selectedStudentId 
+        } = this.state;
+        
+        if (!paymentAmount || parseFloat(paymentAmount) <= 0) {
+            if (window.toastr) window.toastr.error("Please enter a valid amount");
+            return;
+        }
+
+        this.setState({ processingPayment: true });
+        try {
+            // Create manual payment record
+            const paymentData = {
+                school: localStorage.getItem('school'),
+                amount: String(paymentAmount),
+                paymentType: manualPaymentMethod,
+                ref: manualPaymentNotes || '',
+                time: new Date().toISOString(),
+                status: 'COMPLETED',
+                type: 'fees_manual',
+                metadata: {
+                    manual: true,
+                    method: manualPaymentMethod,
+                    termId: manualPaymentTermId || undefined,
+                    notes: manualPaymentNotes
+                }
+            };
+
+            // Add required phone field from parent context
+            if (parentGroup?.parent?.phone) {
+                paymentData.phone = parentGroup.parent.phone;
+            }
+
+            // Assign to parent if no specific student selected
+            if (parentGroup && !selectedStudentId) {
+                paymentData.parent = parentGroup.id;
+            }
+
+            // Assign to specific student if selected
+            if (selectedStudentId) {
+                paymentData.student = selectedStudentId;
+            }
+
+            await Data.payments.create(paymentData);
+            
+            if (window.toastr) window.toastr.success("Manual payment recorded successfully!");
+            
+            // Close modal and reset state
+            this.setState({ 
+                showManualPaymentModal: false,
+                paymentAmount: 0,
+                manualPaymentMethod: "CASH",
+                manualPaymentNotes: "",
+                manualPaymentTermId: "",
+                paymentStudent: null,
+                selectedStudentId: "",
+                parentGroup: null
+            });
+            
+            this.recalculateFinancials();
+        } catch (e) {
+            console.error('Error recording manual payment:', e);
+            if (window.toastr) window.toastr.error(e.message || "Failed to record payment");
+        } finally {
+            this.setState({ processingPayment: false });
+        }
+    };
+
     restoreRecord = async (type, id) => {
         if (!window.confirm("Are you sure you want to restore this record?")) return;
 
@@ -2698,7 +2773,7 @@ class FeesManagement extends Component {
                                 </div>
                                 <div className="modal-footer">
                                     <button className="btn btn-secondary" onClick={() => this.setState({ showManualPaymentModal: false })}>Cancel</button>
-                                    <button className="btn btn-success" disabled={this.state.processingPayment} onClick={this.recordManualPayment}>{this.state.processingPayment ? "Saving..." : "Record"}</button>
+                                    <button className="btn btn-success" disabled={this.state.processingPayment} onClick={()=>this.recordManualPayment()}>{this.state.processingPayment ? "Saving..." : "Record"}</button>
                                 </div>
                             </div>
                         </div>
