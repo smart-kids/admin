@@ -464,7 +464,7 @@ class FeesManagement extends Component {
 
 
         // 2. Helper: Get Selected Term
-        const selectedTermData = terms?.find(t => t.id === selectedTerm);
+        const selectedTermData = (Array.isArray(terms) ? terms : []).find(t => t.id === selectedTerm);
 
         // 3. Filter Students first
         let filteredStudents = students;
@@ -2060,15 +2060,12 @@ class FeesManagement extends Component {
                                                     value={this.state.selectedTerm}
                                                     onChange={(value) => this.handleFilterChange('selectedTerm', value)}
                                                     options={this.getAvailableData().availableTerms.map(term => ({
-                                                        ...term,
-                                                        classCount: (this.getAvailableData().availableClasses || []).length
+                                                        ...term
                                                     }))}
                                                     placeholder="Term..."
                                                     searchable={true}
                                                     width="200px"
-                                                    showCount={true}
-                                                    countKey="classCount"
-                                                    countLabel=""
+                                                    showCount={false}
                                                     className="mr-2"
                                                 />
                                                 {!isTeacher && (
@@ -2552,10 +2549,9 @@ class FeesManagement extends Component {
                                                 />
                                             ) : this.state.activeTab === 'advanced-insights' ? (
                                                 this.renderAdvancedInsights()
-                                            ) : null
-    }))
+                                            ) : null}
                                 </>
-                              )}  </div>
+                              )} </div>
                             </div>
                         </div>
                     </div>
