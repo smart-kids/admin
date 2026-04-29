@@ -117,6 +117,25 @@
   opacity: 0.1;
 }
 
+/* Footer Registration Section */
+.login-footer-register {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  text-align: center;
+  padding: 0 3rem;
+}
+
+.login-footer-register .d-inline-block {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 8px 16px;
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
 /* Responsive adjustments */
 @media (min-width: 992px) {
   .login-card {

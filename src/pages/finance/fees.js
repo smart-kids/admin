@@ -2003,6 +2003,12 @@ class FeesManagement extends Component {
         const indexOfFirstItem = indexOfLastItem - itemsPerPage;
         const currentItems = processedParents.slice(indexOfFirstItem, indexOfLastItem);
 
+        // Define isTeacher for conditional rendering
+        const userData = JSON.parse(localStorage.getItem("user") || "{}");
+        const userRole = localStorage.getItem("userRole");
+        const enhancedUser = JSON.parse(localStorage.getItem("enhancedUser")) || userData;
+        const isTeacher = userRole === 'teacher' || userData?.userType === 'teacher' || userData?.role === 'teacher' || userRole === 'parent' || userData?.userType === 'parent' || userData?.role === 'parent';
+
         return (
             <div className="kt-grid__item kt-grid__item--fluid kt-grid kt-grid--ver kt-page">
                 <div className="kt-grid__item kt-grid__item--fluid kt-grid kt-grid--hor kt-wrapper" id="kt_wrapper">
@@ -2062,17 +2068,19 @@ class FeesManagement extends Component {
                                                     width="200px"
                                                     showCount={true}
                                                     countKey="classCount"
-                                                    countLabel="classes"
+                                                    countLabel=""
                                                     className="mr-2"
                                                 />
-                                                <div className="ml-1 d-flex">
-                                                    <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/terms"} title="Configure Terms">
-                                                        <i className="fa fa-cog font-size-xs"></i>
-                                                    </button>
-                                                    <button className="btn btn-xs btn-icon btn-light-success" onClick={() => this.setState({ showAddTermModal: true })} title="Add Term">
-                                                        <i className="fa fa-plus font-size-xs"></i>
-                                                    </button>
-                                                </div>
+                                                {!isTeacher && (
+                                                    <div className="ml-1 d-flex">
+                                                        <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/terms"} title="Configure Terms">
+                                                            <i className="fa fa-cog font-size-xs"></i>
+                                                        </button>
+                                                        <button className="btn btn-xs btn-icon btn-light-success" onClick={() => this.setState({ showAddTermModal: true })} title="Add Term">
+                                                            <i className="fa fa-plus font-size-xs"></i>
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
                                             
                                             <div className="dropdown dropdown-inline mr-2 d-flex align-items-center">
@@ -2090,17 +2098,19 @@ class FeesManagement extends Component {
                                                     width="250px"
                                                     showCount={true}
                                                     countKey="studentCount"
-                                                    countLabel="students"
+                                                    countLabel=""
                                                     className="mr-2"
                                                 />
-                                                <div className="ml-1 d-flex">
-                                                    <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/classes"} title="Configure Classes">
-                                                        <i className="fa fa-cog font-size-xs"></i>
-                                                    </button>
-                                                    <button className="btn btn-xs btn-icon btn-light-success" onClick={() => this.setState({ showAddClassModal: true })} title="Add Class">
-                                                        <i className="fa fa-plus font-size-xs"></i>
-                                                    </button>
-                                                </div>
+                                                {!isTeacher && (
+                                                    <div className="ml-1 d-flex">
+                                                        <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/classes"} title="Configure Classes">
+                                                            <i className="fa fa-cog font-size-xs"></i>
+                                                        </button>
+                                                        <button className="btn btn-xs btn-icon btn-light-success" onClick={() => this.setState({ showAddClassModal: true })} title="Add Class">
+                                                            <i className="fa fa-plus font-size-xs"></i>
+                                                        </button>
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <button

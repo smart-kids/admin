@@ -200,6 +200,36 @@ const IdentityStage = ({ onSubmit, isLoading, recognizedUser, sessionData }) => 
                         <p>Your information is encrypted and protected</p>
                     </div>
                 </div>
+
+                {/* Registration Options */}
+                <div className="registration-options">
+                    <div className="registration-divider">
+                        <span>New to Shule Plus?</span>
+                    </div>
+                    <div className="registration-links">
+                        <div className="registration-link-item">
+                            <i className="fas fa-school"></i>
+                            <div>
+                                <strong>School Administrators</strong>
+                                <p><a href="#/register" className="text-primary">Register your school</a> and create your admin account</p>
+                            </div>
+                        </div>
+                        <div className="registration-link-item">
+                            <i className="fas fa-chalkboard-teacher"></i>
+                            <div>
+                                <strong>Teachers & Staff</strong>
+                                <p>Contact your school administrator to request an invitation</p>
+                            </div>
+                        </div>
+                        <div className="registration-link-item">
+                            <i className="fas fa-users"></i>
+                            <div>
+                                <strong>Parents</strong>
+                                <p>Ask your administrator for a registration link or <a href="#/" className="text-primary">sign in here</a></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </form>
         </div>
     );

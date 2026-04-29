@@ -1170,6 +1170,12 @@ class ResultsMatrix extends React.Component {
         return classMatch && String(termId) === String(selectedTerm);
     });
 
+    // Define isTeacher for conditional rendering
+    const userData = JSON.parse(localStorage.getItem("user") || "{}");
+    const userRole = localStorage.getItem("userRole");
+    const enhancedUser = JSON.parse(localStorage.getItem("enhancedUser")) || userData;
+    const isTeacher = userRole === 'teacher' || userData?.userType === 'teacher' || userData?.role === 'teacher' || userRole === 'parent' || userData?.userType === 'parent' || userData?.role === 'parent';
+
     if (showPrintView) {
         return (
             <div className="p-10 min-h-100vh" style={{ backgroundColor: '#f3f4f6' }}>
@@ -1235,14 +1241,16 @@ class ResultsMatrix extends React.Component {
                             width="200px"
                             className="mr-2"
                         />
-                        <div className="ml-1 d-flex">
-                            <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/terms"} title="Configure Terms">
-                                <i className="fa fa-cog font-size-xs"></i>
-                            </button>
-                            <button className="btn btn-xs btn-icon btn-light-success" onClick={() => this.setState({ showAddTermModal: true })} title="Add Term">
-                                <i className="fa fa-plus font-size-xs"></i>
-                            </button>
-                        </div>
+                        {!isTeacher && (
+                            <div className="ml-1 d-flex">
+                                <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/terms"} title="Configure Terms">
+                                    <i className="fa fa-cog font-size-xs"></i>
+                                </button>
+                                <button className="btn btn-xs btn-icon btn-light-success" onClick={() => this.setState({ showAddTermModal: true })} title="Add Term">
+                                    <i className="fa fa-plus font-size-xs"></i>
+                                </button>
+                            </div>
+                        )}
                     </div>
                     
                     <div className="dropdown dropdown-inline mr-2 d-flex align-items-center">
@@ -1257,14 +1265,16 @@ class ResultsMatrix extends React.Component {
                             countKey="students.length"
                             className="mr-2"
                         />
-                        <div className="ml-1 d-flex">
-                            <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/classes"} title="Configure Classes">
-                                <i className="fa fa-cog font-size-xs"></i>
-                            </button>
-                            <button className="btn btn-xs btn-icon btn-light-success" onClick={() => this.setState({ showAddClassModal: true })} title="Add Class">
-                                <i className="fa fa-plus font-size-xs"></i>
-                            </button>
-                        </div>
+                        {!isTeacher && (
+                            <div className="ml-1 d-flex">
+                                <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/classes"} title="Configure Classes">
+                                    <i className="fa fa-cog font-size-xs"></i>
+                                </button>
+                                <button className="btn btn-xs btn-icon btn-light-success" onClick={() => this.setState({ showAddClassModal: true })} title="Add Class">
+                                    <i className="fa fa-plus font-size-xs"></i>
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     <div className="dropdown dropdown-inline mr-2 d-flex align-items-center">
@@ -1273,30 +1283,32 @@ class ResultsMatrix extends React.Component {
                             onChange={(value) => this.handleFilterChange('selectedGrade', value)}
                             options={availableGrades.map(grade => ({
                                 ...grade,
+                                countLabel: 'subjects',
+                                subjects: filteredSubjectsList.filter(subject => 
+                                    subject.grade?.id === grade.id || subject.grade === grade.id
+                                ),
                                 studentCount: this.getFilteredStudents().filter(student => {
                                     const studentGradeId = student.class?.grade?.id || student.class?.grade || student.grade_id;
                                     return studentGradeId && String(studentGradeId) === String(grade.id);
                                 }).length,
-                                subjects: filteredSubjectsList.filter(subject => 
-                                    subject.grade?.id === grade.id || subject.grade === grade.id
-                                ),
-                                countLabel: 'students'
                             }))}
-                            placeholder="Grade (Students)..."
+                            placeholder="Grade (Subjects)..."
                             searchable={true}
                             width="220px"
                             showCount={true}
-                            countKey="studentCount"
+                            countKey="subjects.length"
                             className="mr-2"
                         />
-                        <div className="ml-1 d-flex">
-                            <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/learning"} title="Configure Grades">
-                                <i className="fa fa-cog font-size-xs"></i>
-                            </button>
-                            <button className="btn btn-xs btn-icon btn-light-success" onClick={() => this.setState({ showAddGradeModal: true })} title="Add Grade">
-                                <i className="fa fa-plus font-size-xs"></i>
-                            </button>
-                        </div>
+                        {!isTeacher && (
+                            <div className="ml-1 d-flex">
+                                <button className="btn btn-xs btn-icon btn-light-primary mr-1" onClick={() => window.location.hash = "#/learning"} title="Configure Grades">
+                                    <i className="fa fa-cog font-size-xs"></i>
+                                </button>
+                                <button className="btn btn-xs btn-icon btn-light-success" onClick={() => this.setState({ showAddGradeModal: true })} title="Add Grade">
+                                    <i className="fa fa-plus font-size-xs"></i>
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     <div className="d-flex align-items-center">

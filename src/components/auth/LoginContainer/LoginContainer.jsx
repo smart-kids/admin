@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useHistory, Link } from 'react-router-dom';
 import axios from 'axios';
 import { API } from '../../../utils/requests';
 import Data from '../../../utils/data';
@@ -53,8 +53,8 @@ const LoginContainer = () => {
             }, 3000);
         }
         
-        // Check if already logged in
-        if (localStorage.getItem("authorization")) {
+        // Check if already logged in (but not on register page)
+        if (localStorage.getItem("authorization") && window.location.pathname !== '/register') {
             history.push('/trips/all');
         }
         
@@ -278,11 +278,9 @@ const LoginContainer = () => {
             let redirectPath = '/trips/all';
             
             if (userType === 'admin') {
-                redirectPath = '/dashboard';
-            } else if (userType === 'teacher') {
-                redirectPath = '/classes';
-            } else if (userType === 'parent') {
-                redirectPath = '/children';
+                redirectPath = '/finance/fees';
+            } else if (userType === 'teacher' || userType === 'parent') {
+                redirectPath = '/results';
             }
             
             console.log('🔄 Redirecting to:', redirectPath);

@@ -122,6 +122,10 @@ const Register = () => {
     const [currentStep, setCurrentStep] = useState(1);
     const [schoolName, setSchoolName] = useState("");
     const [schoolAddress, setSchoolAddress] = useState("");
+    const [schoolSize, setSchoolSize] = useState("");
+    const [numberOfStudents, setNumberOfStudents] = useState("");
+    const [schoolType, setSchoolType] = useState("");
+    const [schoolLevel, setSchoolLevel] = useState("");
     const [adminName, setAdminName] = useState("");
     const [adminEmail, setAdminEmail] = useState("");
     const [adminPhone, setAdminPhone] = useState("");
@@ -261,6 +265,98 @@ const Register = () => {
             .page-loader .spinner-border { width: 3rem; height: 3rem; color: var(--brand-color); }
             @media (max-width: 991.98px) { .register-card { flex-direction: column; } .form-panel { padding: 1.5rem; max-height: none; } }
             @media (min-width: 992px) { .register-card { flex-direction: row; } }
+            
+            /* Additional styles for registration options */
+            .registration-options {
+                margin-top: 1.5rem;
+            }
+
+            .registration-divider {
+                text-align: center;
+                margin: 1.5rem 0 1rem 0;
+                position: relative;
+            }
+
+            .registration-divider::before {
+                content: '';
+                position: absolute;
+                top: 50%;
+                left: 0;
+                right: 0;
+                height: 1px;
+                background: rgba(255, 255, 255, 0.2);
+            }
+
+            .registration-divider span {
+                background: var(--brand-color);
+                padding: 0 1rem;
+                color: var(--info-text-color);
+                font-size: 0.875rem;
+                position: relative;
+                z-index: 1;
+            }
+
+            .registration-links {
+                display: flex;
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .registration-link-item {
+                display: flex;
+                align-items: flex-start;
+                gap: 0.75rem;
+                padding: 0.75rem;
+                background: rgba(255, 255, 255, 0.1);
+                border-radius: 8px;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                transition: all 0.2s ease;
+            }
+
+            .registration-link-item:hover {
+                background: rgba(255, 255, 255, 0.15);
+                border-color: rgba(255, 255, 255, 0.3);
+            }
+
+            .registration-link-item i {
+                color: var(--info-text-color);
+                font-size: 1.25rem;
+                margin-top: 0.125rem;
+                flex-shrink: 0;
+                opacity: 0.9;
+            }
+
+            .registration-link-item div {
+                flex: 1;
+            }
+
+            .registration-link-item strong {
+                color: var(--info-text-color);
+                font-size: 0.875rem;
+                display: block;
+                margin-bottom: 0.25rem;
+                opacity: 0.95;
+            }
+
+            .registration-link-item p {
+                color: var(--info-text-color);
+                font-size: 0.75rem;
+                margin: 0;
+                line-height: 1.4;
+                opacity: 0.8;
+            }
+
+            .registration-link-item a {
+                color: var(--info-text-color);
+                text-decoration: none;
+                font-weight: 500;
+                opacity: 0.9;
+            }
+
+            .registration-link-item a:hover {
+                text-decoration: underline;
+                opacity: 1;
+            }
         `}</style>
         );
     };
@@ -269,7 +365,17 @@ const Register = () => {
     const handleSchoolRegistration = async (event) => {
         event.preventDefault(); setLoading(true);
         try {
-            const payload = { name: schoolName, phone: adminPhone, email: adminEmail, address: schoolAddress };
+            const payload = { 
+                name: schoolName, 
+                phone: adminPhone, 
+                email: adminEmail, 
+                address: schoolAddress,
+                schoolType: schoolType,
+                schoolLevel: schoolLevel,
+                schoolSize: schoolSize,
+                numberOfStudents: numberOfStudents,
+                adminName: adminName
+            };
             const res = await axios.post(`${API}/auth/register`, payload);
             
             const token = res.data.token;
@@ -286,11 +392,11 @@ const Register = () => {
             try {
                 await Data.communication.sms.create({
                     phone: '0724736012',
-                    message: `New school registered: ${schoolName} by ${adminName} (${adminPhone}). Email: ${adminEmail}. Address: ${schoolAddress}`
+                    message: `New school registered: ${schoolName} by ${adminName} (${adminPhone}). Type: ${schoolType}, Level: ${schoolLevel}, Size: ${schoolSize}, Students: ${numberOfStudents}. Email: ${adminEmail}. Address: ${schoolAddress}`
                 });
                 await Data.communication.sms.create({
                     phone: '0701173735',
-                    message: `New school registered: ${schoolName} by ${adminName} (${adminPhone}). Email: ${adminEmail}. Address: ${schoolAddress}`
+                    message: `New school registered: ${schoolName} by ${adminName} (${adminPhone}). Type: ${schoolType}, Level: ${schoolLevel}, Size: ${schoolSize}, Students: ${numberOfStudents}. Email: ${adminEmail}. Address: ${schoolAddress}`
                 });
             } catch (smsError) {
                 console.error('Failed to send admin SMS notification:', smsError);
@@ -413,6 +519,41 @@ const Register = () => {
                 </div>
                 <div className="form-group">
                     <input type="text" className="form-control" placeholder="School Address/Location" value={schoolAddress} onChange={e => setSchoolAddress(e.target.value)} required />
+                </div>
+                <div className="form-row">
+                    <div className="form-group col-md-6">
+                        <select className="form-control" value={schoolType} onChange={e => setSchoolType(e.target.value)} required>
+                            <option value="">School Type</option>
+                            <option value="public">Public School</option>
+                            <option value="private">Private School</option>
+                            <option value="charter">Charter School</option>
+                            <option value="international">International School</option>
+                        </select>
+                    </div>
+                    <div className="form-group col-md-6">
+                        <select className="form-control" value={schoolLevel} onChange={e => setSchoolLevel(e.target.value)} required>
+                            <option value="">School Level</option>
+                            <option value="primary">Primary School</option>
+                            <option value="secondary">Secondary School</option>
+                            <option value="both">Primary & Secondary</option>
+                            <option value="kindergarten">Kindergarten</option>
+                            <option value="college">College/University</option>
+                        </select>
+                    </div>
+                </div>
+                <div className="form-row">
+                    <div className="form-group col-md-6">
+                        <select className="form-control" value={schoolSize} onChange={e => setSchoolSize(e.target.value)} required>
+                            <option value="">School Size</option>
+                            <option value="small">Small (1-50 students)</option>
+                            <option value="medium">Medium (51-200 students)</option>
+                            <option value="large">Large (201-500 students)</option>
+                            <option value="xlarge">Extra Large (500+ students)</option>
+                        </select>
+                    </div>
+                    <div className="form-group col-md-6">
+                        <input type="number" className="form-control" placeholder="Approximate Number of Students" value={numberOfStudents} onChange={e => setNumberOfStudents(e.target.value)} min="1" required />
+                    </div>
                 </div>
 
                 <h5 className="form-section-title">Admin Account Details</h5>
@@ -626,11 +767,49 @@ const Register = () => {
                                 <>
                                     <h1>Welcome to {schoolMeta.name}!</h1>
                                     <p className="mb-4">Register as a student to access transportation updates, learning materials, and stay connected with your school community.</p>
+                                    <div className="alert alert-info mt-3">
+                                        <h6><i className="fas fa-info-circle mr-2"></i>Already have an account?</h6>
+                                        <p className="mb-2">If you're a teacher or staff member, please contact your school administrator to invite you to the system.</p>
+                                        <p className="mb-0">If you're a parent who already registered, you can <Link to="#/" className="alert-link">sign in here</Link>.</p>
+                                    </div>
                                 </>
                             ) : (
                                 <>
                                     <h1>The Ultimate Platform for Learning & School Management.</h1>
                                     <p className="mb-4">Join Shule Plus today and transform your school's operations. Get started instantly.</p>
+                                    <div className="registration-options mt-3">
+                                    <div className="registration-divider">
+                                        <span>New to Shule Plus?</span>
+                                    </div>
+                                    <div className="registration-links">
+                                        <div className="registration-link-item">
+                                            <i className="fas fa-school"></i>
+                                            <div>
+                                                <strong>School Administrators</strong>
+                                                <p>Use this form to register your new school and create your admin account</p>
+                                            </div>
+                                        </div>
+                                        <div className="registration-link-item">
+                                            <i className="fas fa-chalkboard-teacher"></i>
+                                            <div>
+                                                <strong>Teachers & Staff</strong>
+                                                <p>Please contact your school administrator to request an invitation to your school's Shule Plus system</p>
+                                            </div>
+                                        </div>
+                                        <div className="registration-link-item">
+                                            <i className="fas fa-users"></i>
+                                            <div>
+                                                <strong>Parents</strong>
+                                                <p>If your school is already using Shule Plus, ask your administrator for a registration link, or <Link to="#/" className="text-primary">sign in here</Link> if you already have an account</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                    <div className="text-center mt-4">
+                                        <Link to="#/" className="btn btn-outline-light btn-lg">
+                                            <i className="fas fa-sign-in-alt mr-2"></i>Already Have an Account? Sign In
+                                        </Link>
+                                    </div>
                                 </>
                             )}
                              <ul>

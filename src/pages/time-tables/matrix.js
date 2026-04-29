@@ -582,8 +582,7 @@ const TimeTableMatrix = () => {
                   className="w-100"
                   searchable={true}
                   showCount={true}
-                  countKey="classes"
-                  countLabel="classes"
+                  
                 />
               </div>
 
