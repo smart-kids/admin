@@ -1297,25 +1297,89 @@ class FeesManagement extends Component {
     };
 
     renderAdvancedInsights = () => {
-        const { payments, charges, students, classes, feeStructures, selectedClass, selectedTerm, processedParents } = this.state;
+        const { payments, charges, students, classes, feeStructures, selectedClass, selectedTerm, processedParents, terms } = this.state;
 
-        // Data processing
-        const validPayments = (payments || []).filter(p => !p.status || p.status === 'COMPLETED');
+        // Filter data based on selectedClass and selectedTerm
+        let filteredPayments = payments || [];
+        let filteredCharges = charges || [];
+        let filteredStudents = students || [];
+        let filteredClasses = classes || [];
+        let filteredProcessedParents = processedParents || [];
+
+        // Apply class filter
+        if (selectedClass) {
+            filteredStudents = students.filter(student => String(student.class?.id || student.class) === selectedClass);
+            filteredClasses = classes.filter(cls => String(cls.id) === selectedClass);
+            filteredPayments = payments.filter(payment => {
+                const student = students.find(s => String(s.id) === String(payment.student?.id || payment.student));
+                return student && String(student.class?.id || student.class) === selectedClass;
+            });
+            filteredCharges = charges.filter(charge => {
+                const student = students.find(s => String(s.id) === String(charge.student?.id || charge.student));
+                return student && String(student.class?.id || student.class) === selectedClass;
+            });
+            filteredProcessedParents = processedParents.filter(parent => {
+                return parent.students.some(student => String(student.class?.id || student.class) === selectedClass);
+            });
+        }
+
+        // Apply term filter
+        if (selectedTerm) {
+            filteredPayments = filteredPayments.filter(payment => {
+                if (payment.assignedTermId) {
+                    return String(payment.assignedTermId) === selectedTerm;
+                }
+                if (payment.metadata?.termId) {
+                    return String(payment.metadata.termId) === selectedTerm;
+                }
+                return false;
+            });
+            
+            filteredCharges = filteredCharges.filter(charge => {
+                const chargeTermId = String(charge.term?.id || charge.term || "");
+                return chargeTermId === selectedTerm;
+            });
+        }
+
+        // Data processing with filtered data
+        const validPayments = filteredPayments.filter(p => !p.status || p.status === 'COMPLETED');
         const totalCollected = validPayments.reduce((sum, p) => sum + (parseFloat(p.amount || p.ammount) || 0), 0);
-        const totalCharges = (charges || []).reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0);
-        const totalArrears = Math.max(0, totalCharges - totalCollected);
-        const collectionRate = totalCharges > 0 ? Math.round((totalCollected / totalCharges) * 100) : 0;
+        
+        // Calculate total expected using fee structures
+        const getFees = (classId, termId = null) => {
+            if (!classId || !feeStructures || !Array.isArray(feeStructures)) return 0;
+            
+            const targetClassId = String(classId?.id || classId);
+            const targetTermId = termId || selectedTerm;
+            
+            const applicableFees = feeStructures.filter(fs =>
+                String(fs.class?.id || fs.class) === targetClassId &&
+                (!targetTermId || String(fs.term?.id || fs.term) === String(targetTermId)) &&
+                fs.isActive === true
+            );
+            
+            return applicableFees.reduce((total, fs) => total + (parseFloat(fs.amount) || 0), 0);
+        };
+
+        const totalExpectedFees = filteredStudents.reduce((sum, student) => {
+            return sum + getFees(student.class?.id || student.class, selectedTerm);
+        }, 0);
+        
+        const totalCharges = filteredCharges.reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0);
+        const totalExpected = totalExpectedFees + totalCharges;
+        const totalArrears = Math.max(0, totalExpected - totalCollected);
+        const collectionRate = totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 0;
 
         // Advanced metrics
         const averagePaymentAmount = validPayments.length > 0 ? totalCollected / validPayments.length : 0;
         const paymentFrequency = validPayments.length;
-        const overdueAccounts = processedParents.filter(p => p.totalBalance > 0).length;
-        const healthyAccounts = processedParents.filter(p => p.totalBalance <= 0).length;
+        const overdueAccounts = filteredProcessedParents.filter(p => p.totalBalance > 0).length;
+        const healthyAccounts = filteredProcessedParents.filter(p => p.totalBalance <= 0).length;
 
         // Payment methods breakdown
         const methods = {};
-        (payments || []).forEach(p => {
-            const m = p.method || p.paymentType || 'M-Pesa';
+        validPayments.forEach(p => {
+            const m = p.method || p.paymentType || p.type || 'M-Pesa';
             methods[m] = (methods[m] || 0) + (parseFloat(p.amount || p.ammount) || 0);
         });
         const methodData = Object.keys(methods).map(m => ({
@@ -1344,57 +1408,21 @@ class FeesManagement extends Component {
         }
 
         // Class performance analysis
-        const getFees = (classId, termId = null) => {
-            if (!classId || !feeStructures || !Array.isArray(feeStructures)) return 0;
-            
-            const targetClassId = String(classId?.id || classId);
-            const targetTermId = termId || selectedTerm;
-            
-            // Get all active fee structures for this class and term
-            const applicableFees = feeStructures.filter(fs =>
-                String(fs.class?.id || fs.class) === targetClassId &&
-                (!targetTermId || String(fs.term?.id || fs.term) === String(targetTermId)) &&
-                fs.isActive === true
-            );
-            
-            // Sum all applicable fees (tuition, transport, etc.)
-            return applicableFees.reduce((total, fs) => total + (parseFloat(fs.amount) || 0), 0);
-        };
-
-        const classPerformance = (classes || []).map(cls => {
-            const classStudents = (students || []).filter(s => s.class?.id === cls.id || s.class === cls.id);
+        const classPerformance = filteredClasses.map(cls => {
+            const classStudents = filteredStudents.filter(s => String(s.class?.id || s.class) === String(cls.id));
             const classStudentIds = new Set(classStudents.map(s => s.id));
             const classPaid = validPayments.filter(p => classStudentIds.has(p.student?.id || p.student)).reduce((sum, p) => sum + (parseFloat(p.amount || p.ammount) || 0), 0);
             
-            // Use fee structures for expected amounts instead of charges
             const classFeePerStudent = getFees(cls.id, selectedTerm);
             const classExpected = classFeePerStudent * classStudents.length;
             
-            // Add custom charges for this class
-            const classCharges = (charges || []).filter(c => {
-                const chargeStudentId = String(c.student?.id || c.student);
-                return classStudentIds.has(chargeStudentId);
+            const classCharges = filteredCharges.filter(c => {
+                const student = filteredStudents.find(s => String(s.id) === String(c.student?.id || c.student));
+                return student && String(student.class?.id || student.class) === String(cls.id);
             }).reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
             
             const totalExpected = classExpected + classCharges;
             const collectionRate = totalExpected > 0 ? (classPaid / totalExpected) * 100 : 0;
-            
-            // Debug logging for first class
-            if (cls.id === (classes?.[0]?.id)) {
-                console.log('Class Performance Debug:', {
-                    className: cls.name,
-                    classStudentsCount: classStudents.length,
-                    classFeePerStudent,
-                    classExpected,
-                    classCharges,
-                    totalExpected,
-                    classPaid,
-                    collectionRate,
-                    feeStructuresCount: feeStructures?.length || 0,
-                    selectedTerm,
-                    validPaymentsCount: validPayments.length
-                });
-            }
             
             return {
                 className: cls.name || `Class ${cls.id}`,
@@ -1407,7 +1435,7 @@ class FeesManagement extends Component {
             };
         }).sort((a, b) => b.collectionRate - a.collectionRate);
 
-        // Aging analysis
+        // Aging analysis with real data
         const agingBuckets = {
             'Current': { amount: 0, count: 0 },
             '1-30 Days': { amount: 0, count: 0 },
@@ -1416,10 +1444,26 @@ class FeesManagement extends Component {
             '90+ Days': { amount: 0, count: 0 }
         };
 
-        processedParents.forEach(parent => {
+        const now = new Date();
+        filteredProcessedParents.forEach(parent => {
             if (parent.totalBalance > 0) {
-                // Simple aging logic - in production, this would use actual payment dates
-                const daysOverdue = Math.floor(Math.random() * 120); // Placeholder
+                // Calculate days overdue based on last payment date or term start date
+                const lastPayment = parent.history && parent.history.length > 0 ? 
+                    new Date(parent.history[0].time || parent.history[0].createdAt) : null;
+                
+                let daysOverdue = 0;
+                if (lastPayment) {
+                    daysOverdue = Math.floor((now - lastPayment) / (1000 * 60 * 60 * 24));
+                } else {
+                    // If no payments, use term start date or default to 90 days
+                    const currentTerm = terms.find(t => t.id === selectedTerm);
+                    if (currentTerm && currentTerm.startDate) {
+                        daysOverdue = Math.floor((now - new Date(currentTerm.startDate)) / (1000 * 60 * 60 * 24));
+                    } else {
+                        daysOverdue = 90; // Default assumption
+                    }
+                }
+                
                 let bucket = 'Current';
                 if (daysOverdue > 90) bucket = '90+ Days';
                 else if (daysOverdue > 60) bucket = '61-90 Days';
@@ -2089,9 +2133,12 @@ class FeesManagement extends Component {
                                                 <EnhancedDropdown
                                                     value={this.state.selectedTerm}
                                                     onChange={(value) => this.handleFilterChange('selectedTerm', value)}
-                                                    options={this.getAvailableData().availableTerms.map(term => ({
-                                                        ...term
-                                                    }))}
+                                                    options={[
+                                                        { id: '', name: 'ALL Terms' },
+                                                        ...this.getAvailableData().availableTerms.map(term => ({
+                                                            ...term
+                                                        }))
+                                                    ]}
                                                     placeholder="Term..."
                                                     searchable={true}
                                                     width="200px"
@@ -2114,12 +2161,15 @@ class FeesManagement extends Component {
                                                 <EnhancedDropdown
                                                     value={this.state.selectedClass}
                                                     onChange={this.handleClassChange}
-                                                    options={this.getAvailableData().availableClasses.map(cls => ({
-                                                        ...cls,
-                                                        studentCount: (this.state.students || []).filter(student => 
-                                                            String(student.class?.id || student.class) === String(cls.id)
-                                                        ).length
-                                                    }))}
+                                                    options={[
+                                                        { id: '', name: 'ALL Classes' },
+                                                        ...this.getAvailableData().availableClasses.map(cls => ({
+                                                            ...cls,
+                                                            studentCount: (this.state.students || []).filter(student => 
+                                                                String(student.class?.id || student.class) === String(cls.id)
+                                                            ).length
+                                                        }))
+                                                    ]}
                                                     placeholder="Class..."
                                                     searchable={true}
                                                     width="250px"

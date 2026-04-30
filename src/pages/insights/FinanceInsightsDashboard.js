@@ -124,7 +124,7 @@ class FinanceInsightsDashboard extends Component {
     const { payments, charges, feeStructures, classes, students, parents, terms } = this.state;
     const { selectedClass, selectedTerm } = this.props;
     
-    if (!payments || !classes) {
+    if (!payments || !classes || !students) {
       this.setState({ loading: false });
       return;
     }
@@ -139,6 +139,7 @@ class FinanceInsightsDashboard extends Component {
       let filteredClasses = classes;
       let filteredStudents = students;
       
+      // Apply class filter
       if (selectedClass) {
         filteredClasses = classes.filter(cls => String(cls.id) === selectedClass);
         filteredStudents = students.filter(student => String(student.class?.id || student.class) === selectedClass);
@@ -146,15 +147,38 @@ class FinanceInsightsDashboard extends Component {
           const student = students.find(s => String(s.id) === String(payment.student?.id || payment.student));
           return student && String(student.class?.id || student.class) === selectedClass;
         });
-        filteredCharges = charges.filter(charge => String(charge.class?.id || charge.class) === selectedClass);
+        filteredCharges = charges.filter(charge => {
+          const student = students.find(s => String(s.id) === String(charge.student?.id || charge.student));
+          return student && String(student.class?.id || student.class) === selectedClass;
+        });
         filteredFeeStructures = feeStructures.filter(fs => String(fs.class?.id || fs.class) === selectedClass);
       }
       
+      // Apply term filter - filter payments by assigned term
       if (selectedTerm) {
         filteredPayments = filteredPayments.filter(payment => {
-          const paymentDate = new Date(payment.time || payment.createdAt || payment.date);
-          // Simple term filtering - this could be enhanced with proper term date ranges
-          return true; // For now, don't filter by term as payment data might not have term info
+          // Use pre-processed assignedTermId if available, otherwise try to match by term
+          if (payment.assignedTermId) {
+            return String(payment.assignedTermId) === selectedTerm;
+          }
+          // Fallback: try to match by metadata termId
+          if (payment.metadata?.termId) {
+            return String(payment.metadata.termId) === selectedTerm;
+          }
+          // If no term info, include only if no term filter is applied
+          return false;
+        });
+        
+        // Filter charges by term
+        filteredCharges = filteredCharges.filter(charge => {
+          const chargeTermId = String(charge.term?.id || charge.term || "");
+          return chargeTermId === selectedTerm;
+        });
+        
+        // Filter fee structures by term
+        filteredFeeStructures = filteredFeeStructures.filter(fs => {
+          const fsTermId = String(fs.term?.id || fs.term || "");
+          return !selectedTerm || fsTermId === selectedTerm || fsTermId === "";
         });
       }
       
@@ -207,26 +231,44 @@ class FinanceInsightsDashboard extends Component {
           classGroups[classId].payments.push({
             ...payment,
             studentName: student.names,
-            processedAmount: parseFloat(payment.amount || 0)
+            processedAmount: parseFloat(payment.amount || payment.ammount || 0)
           });
         }
       }
     });
 
-    // Process charges and fee structures
+    // Process charges and link to students
     charges.forEach(charge => {
-      const classId = String(charge.class?.id || charge.class);
-      if (classGroups[classId]) {
-        classGroups[classId].charges.push(charge);
+      const studentId = String(charge.student?.id || charge.student);
+      const student = students.find(s => String(s.id) === studentId);
+      
+      if (student) {
+        const classId = String(student.class?.id || student.class);
+        if (classGroups[classId]) {
+          classGroups[classId].charges.push({
+            ...charge,
+            studentName: student ? student.names : 'Unknown Student'
+          });
+        }
       }
     });
 
+    // Process fee structures
     feeStructures.forEach(fs => {
       const classId = String(fs.class?.id || fs.class);
       if (classGroups[classId] && fs.isActive) {
         const feeType = fs.feeType || 'Other';
         classGroups[classId].feeStructure[feeType] = (classGroups[classId].feeStructure[feeType] || 0) + parseFloat(fs.amount || 0);
       }
+    });
+
+    // Calculate expected amounts using fee structures
+    Object.values(classGroups).forEach(classGroup => {
+      classGroup.expectedFees = classGroup.students.length * Object.values(classGroup.feeStructure).reduce((sum, amount) => sum + amount, 0);
+      classGroup.totalCharges = classGroup.charges.reduce((sum, charge) => sum + parseFloat(charge.amount || 0), 0);
+      classGroup.totalExpected = classGroup.expectedFees + classGroup.totalCharges;
+      classGroup.totalCollected = classGroup.payments.reduce((sum, payment) => sum + payment.processedAmount, 0);
+      classGroup.collectionRate = classGroup.totalExpected > 0 ? (classGroup.totalCollected / classGroup.totalExpected) * 100 : 0;
     });
 
     return Object.values(classGroups);
@@ -344,19 +386,23 @@ class FinanceInsightsDashboard extends Component {
   };
 
   calculateMetrics = (processedData) => {
-    const totalRevenue = processedData.reduce((sum, cls) => sum + cls.payments.reduce((subSum, p) => subSum + p.processedAmount, 0), 0);
+    const totalRevenue = processedData.reduce((sum, cls) => sum + cls.totalCollected, 0);
+    const totalExpected = processedData.reduce((sum, cls) => sum + cls.totalExpected, 0);
     const totalStudents = processedData.reduce((sum, cls) => sum + cls.students.length, 0);
     const averageRevenue = processedData.length > 0 ? totalRevenue / processedData.length : 0;
     const totalTransactions = processedData.reduce((sum, cls) => sum + cls.payments.length, 0);
+    const overallCollectionRate = totalExpected > 0 ? (totalRevenue / totalExpected) * 100 : 0;
     
     return {
       totalRevenue,
+      totalExpected,
       averageRevenue,
       totalStudents,
       totalTransactions,
       averageTransaction: totalTransactions > 0 ? totalRevenue / totalTransactions : 0,
       classCount: processedData.length,
-      collectionRate: this.calculateOverallCollectionRate(processedData)
+      collectionRate: overallCollectionRate,
+      outstandingBalance: totalExpected - totalRevenue
     };
   };
 
@@ -624,7 +670,7 @@ class FinanceInsightsDashboard extends Component {
                 value={selectedClass || ""}
                 onChange={(e) => onFilterChange('selectedClass', e.target.value)}
               >
-                <option value="">All Classes</option>
+                <option value="">ALL Classes</option>
                 {(Array.isArray(classes) ? classes : []).map(cls => (
                   <option key={cls.id} value={cls.id}>
                     {cls.name || `Class ${cls.id}`}
@@ -639,7 +685,7 @@ class FinanceInsightsDashboard extends Component {
                 value={selectedTerm || ""}
                 onChange={(e) => onFilterChange('selectedTerm', e.target.value)}
               >
-                <option value="">All Terms</option>
+                <option value="">ALL Terms</option>
                 {(Array.isArray(terms) ? terms : []).map(term => (
                   <option key={term.id} value={term.id}>
                     {term.name || `Term ${term.id}`}
