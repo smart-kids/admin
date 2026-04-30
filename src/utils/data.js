@@ -1424,6 +1424,9 @@ var Data = (function () {
                         `;
                         const response = await mutate(mutation, { orders });
 
+                        // Store term order in localStorage as fallback
+                        localStorage.setItem('termOrders', JSON.stringify(orders));
+
                         // Update cache locally
                         const safeList = Array.isArray(allData.terms) ? allData.terms : [];
                         orders.forEach(({ id, order }) => {

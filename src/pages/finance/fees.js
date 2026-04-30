@@ -292,24 +292,16 @@ class FeesManagement extends Component {
             const student = students.find(s => String(s.id) === pStudentId);
             const studentName = student ? student.names : 'Unallocated';
 
-            // 3. Assign Term
+            // 3. Assign Term - rely only on explicit termId for bring forward calculations
             let assignedTermName = "Unknown Term";
-            let assignedTermId = metadata.termId || null;
-            const pTime = new Date(p.time || p.createdAt || p.transactionDate).getTime();
+            let assignedTermId = null;
 
-            if (assignedTermId) {
-                const term = safeTerms.find(t => String(t.id) === String(assignedTermId));
-                if (term) assignedTermName = term.name;
-            } else if (!isNaN(pTime)) {
-                // Automatic date-based assignment fallback
-                const matchingTerm = safeTerms.find(t => {
-                    const start = new Date(t.startDate).getTime();
-                    const end = new Date(t.endDate).getTime();
-                    return pTime >= start && pTime <= end;
-                });
-                if (matchingTerm) {
-                    assignedTermName = matchingTerm.name;
-                    assignedTermId = matchingTerm.id;
+            // Only use explicit termId - ignore dates completely
+            if (metadata.termId) {
+                const term = safeTerms.find(t => String(t.id) === String(metadata.termId));
+                if (term) {
+                    assignedTermName = term.name;
+                    assignedTermId = term.id;
                 }
             }
 
@@ -559,8 +551,8 @@ class FeesManagement extends Component {
                     // Filter by term if selectedTerm is set
                     if (selectedTerm) {
                         const chargeTermId = String(charge.term?.id || charge.term || "");
-                        if (chargeTermId && chargeTermId !== String(selectedTerm)) {
-                            return; // Only include charges for selected term
+                        if (chargeTermId !== String(selectedTerm)) {
+                            return; // Only include charges that explicitly match selected term
                         }
                     }
                     parentMap[parentId].charges.push(charge);
@@ -646,39 +638,66 @@ class FeesManagement extends Component {
             // 5b. Calculate Balance Brought Forward (Previous Terms)
             let balanceBroughtForward = 0;
             if (selectedTerm && terms.length > 0) {
-                // Find all terms that are not the current term
-                const previousTerms = terms.filter(t => t.id !== selectedTerm);
+                console.log(`DEBUG: All terms:`, terms.map(t => ({id: t.id, name: t.name, order: t.order})));
+                
+                const currentTerm = terms.find(t => t.id === selectedTerm);
+                
+                // Extract term number from name (e.g., "Term 1 2024" -> 1)
+                const extractTermNumber = (termName) => {
+                    const match = termName.match(/Term (\d+)/i);
+                    return match ? parseInt(match[1]) : 0;
+                };
+                
+                const currentTermOrder = currentTerm?.order || extractTermNumber(currentTerm?.name || '') || 0;
+                console.log(`DEBUG: Current term:`, {id: currentTerm?.id, name: currentTerm?.name, order: currentTermOrder});
+                
+                const previousTerms = terms
+                    .filter(t => {
+                        if (t.id === selectedTerm) return false;
+                        const termOrder = t.order || extractTermNumber(t.name || '') || 0;
+                        return termOrder < currentTermOrder;
+                    })
+                    .sort((a, b) => {
+                        const orderA = a.order || extractTermNumber(a.name || '') || 0;
+                        const orderB = b.order || extractTermNumber(b.name || '') || 0;
+                        return orderA - orderB;
+                    });
 
-                // 1. Previous Class Fees - Calculate for each previous term using fee structures
-                const prevFees = group.students.reduce((sum, s) => {
-                    const studentPrevFees = previousTerms.reduce((termSum, prevTerm) => {
+                console.log(`DEBUG: Group ${group.id}, Selected Term: ${selectedTerm}, Previous Terms:`, previousTerms.map(t => ({id: t.id, name: t.name, order: t.order || extractTermNumber(t.name || '') || 0})));
+                console.log(`DEBUG: Previous terms count:`, previousTerms.length);
+
+                // Calculate net balance for each previous term
+                previousTerms.forEach(prevTerm => {
+                    // 1. Expected fees for this previous term
+                    const termExpectedFees = group.students.reduce((sum, s) => {
                         const termFee = getFees(s.class?.id || s.class, prevTerm.id);
-                        return termSum + termFee;
+                        return sum + termFee;
                     }, 0);
-                    return sum + studentPrevFees;
-                }, 0);
 
-                // 2. Previous Charges (Not in current term)
-                const prevChargesSum = (charges || []).filter(c => {
-                    const pId = String(c.parent?.id || c.parent);
-                    if (pId !== group.id) return false;
-                    const cTermId = String(c.term?.id || c.term || "");
-                    if (cTermId) {
-                        return previousTerms.some(pt => String(pt.id) === cTermId);
-                    }
-                    return false; // Only include charges with explicit termId
-                }).reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+                    // 2. Charges for this previous term
+                    const termCharges = (charges || []).filter(c => {
+                        const pId = String(c.parent?.id || c.parent);
+                        if (pId !== group.id) return false;
+                        const cTermId = String(c.term?.id || c.term || "");
+                        // Only include charges explicitly for this term
+                        return cTermId === String(prevTerm.id);
+                    }).reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
 
-                // 3. Previous Payments (Not in current term)
-                const prevPaymentsSum = processedAllPayments.filter(p => {
-                    const isFailed = p.status === 'FAILED' || p.status === 'FAILED_ON_CALLBACK';
-                    const isPendingMpesa = p.status === 'PENDING' && p.type === 'mpesa_init';
-                    if (isFailed || isPendingMpesa) return false;
+                    // 3. Payments for this previous term
+                    const termPayments = processedAllPayments.filter(p => {
+                        const isFailed = p.status === 'FAILED' || p.status === 'FAILED_ON_CALLBACK';
+                        const isPendingMpesa = p.status === 'PENDING' && p.type === 'mpesa_init';
+                        if (isFailed || isPendingMpesa) return false;
+                        return String(p.assignedTermId) === String(prevTerm.id);
+                    }).reduce((sum, p) => sum + (p.processedAmount || 0), 0);
 
-                    return p.assignedTermId && previousTerms.some(pt => String(pt.id) === String(p.assignedTermId));
-                }).reduce((sum, p) => sum + (p.processedAmount || 0), 0);
+                    // Net balance for this term = (Fees + Charges) - Payments
+                    const termBalance = (termExpectedFees + termCharges) - termPayments;
+                    console.log(`DEBUG: Term ${prevTerm.name} - Fees: ${termExpectedFees}, Charges: ${termCharges}, Payments: ${termPayments}, Balance: ${termBalance}`);
+                    balanceBroughtForward += termBalance;
+                });
 
-                balanceBroughtForward = (prevFees + prevChargesSum) - prevPaymentsSum;
+                console.log(`DEBUG: Final balanceBroughtForward for group ${group.id}: ${balanceBroughtForward}`);
             }
 
             const manualBroughtForward = group.students.reduce((sum, s) => sum + (parseFloat(s.balanceBroughtForward) || 0), 0);
@@ -811,6 +830,17 @@ class FeesManagement extends Component {
             editChargeData: {
                 ...charge,
                 termId: charge.term?.id || charge.term || ""
+            }
+        });
+    };
+
+    openEditPaymentModal = (payment) => {
+        this.setState({
+            showEditPaymentModal: true,
+            editPaymentData: {
+                ...payment,
+                paymentType: payment.paymentType || payment.type || 'M-Pesa',
+                amount: payment.amount || payment.ammount || 0
             }
         });
     };
@@ -1754,7 +1784,7 @@ class FeesManagement extends Component {
             totalBBF: 0
         };
 
-        if (selectedTerm && terms.length > 0) {
+        if (selectedTerm && Array.isArray(terms) && terms.length > 0) {
             const previousTerms = terms.filter(t => t.id !== selectedTerm);
             
             // 1. Previous Class Fees for this specific student
@@ -2192,7 +2222,13 @@ class FeesManagement extends Component {
                                                                                             <div className="d-flex justify-content-between align-items-center mb-1">
                                                                                                 <span className="text-muted font-size-xs">Base Fees:</span>
                                                                                                 <span className="text-muted font-size-xs font-weight-medium">
-                                                                                                    {(group.totalExpected - group.totalCharges - (group.balanceBroughtForward || 0)).toLocaleString()}
+                                                                                                    {(() => {
+                                                                                                        // Calculate only current term fees (excluding charges and BBF)
+                                                                                                        const currentTermFees = group.students.reduce((sum, student) => {
+                                                                                                            return sum + (student.finances?.expected || 0);
+                                                                                                        }, 0);
+                                                                                                        return currentTermFees.toLocaleString();
+                                                                                                    })()}
                                                                                                 </span>
                                                                                             </div>
                                                                                             {group.totalCharges > 0 && (
