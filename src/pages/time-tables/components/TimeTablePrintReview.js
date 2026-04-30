@@ -13,7 +13,8 @@ const TimeTablePrintReview = ({
   subjects, 
   teachers,
   school: propSchool,
-  printAll = false 
+  printAll = false,
+  orientation = 'portrait'
 }) => {
   const school = propSchool || Data.schools.getSelected();
   const themeColor = school?.themeColor || '#1a1a1a';
@@ -38,6 +39,28 @@ const TimeTablePrintReview = ({
 
   const getSubjectColor = (subjectName) => {
     return subjectColors[subjectName] || '#3699ff';
+  };
+
+  
+  const getPrintStyles = () => {
+    const baseStyles = {
+      padding: orientation === 'landscape' ? '0.5cm 1cm' : '1.0cm 1.5cm',
+      backgroundColor: 'white', 
+      minHeight: 'auto', 
+      height: 'auto', 
+      width: orientation === 'landscape' ? '29.7cm' : '21cm',
+      margin: '2cm auto', 
+      position: 'relative',
+      fontFamily: "'Inter', 'Roboto', sans-serif",
+      color: '#1f2937', 
+      boxSizing: 'border-box',
+      boxShadow: '0 0 30px rgba(0,0,0,0.1)', 
+      border: '1px solid #e5e7eb',
+      overflow: 'visible',
+      display: 'flex',
+      flexDirection: 'column'
+    };
+    return baseStyles;
   };
 
   const renderTimeTable = (classData, classTimeTableData) => {
@@ -259,23 +282,7 @@ const TimeTablePrintReview = ({
   };
 
   return (
-    <div className="time-table-print-review" style={{ 
-      padding: '1.0cm 1.5cm', 
-      backgroundColor: 'white', 
-      minHeight: 'auto', 
-      height: 'auto', 
-      width: '21cm', 
-      margin: '2cm auto', 
-      position: 'relative',
-      fontFamily: "'Inter', 'Roboto', sans-serif",
-      color: '#1f2937', 
-      boxSizing: 'border-box',
-      boxShadow: '0 0 30px rgba(0,0,0,0.1)', 
-      border: '1px solid #e5e7eb',
-      overflow: 'visible',
-      display: 'flex',
-      flexDirection: 'column'
-    }}>
+    <div className="time-table-print-review" style={getPrintStyles()}>
       {/* Premium Header Layout */}
       <ReportHeader school={school} title="TIME TABLE" themeColor={themeColor} />
 
@@ -338,7 +345,7 @@ const TimeTablePrintReview = ({
             box-shadow: none;
             border: none;
             margin: 0;
-            padding: 1cm;
+            padding: ${orientation === 'landscape' ? '0.5cm 1cm' : '1cm'};
           }
           
           .time-table-print-container {
@@ -347,11 +354,16 @@ const TimeTablePrintReview = ({
           }
           
           table {
-            font-size: 10px !important;
+            font-size: ${orientation === 'landscape' ? '9px' : '10px'} !important;
           }
           
           th, td {
-            padding: 6px !important;
+            padding: ${orientation === 'landscape' ? '4px 6px' : '6px'} !important;
+          }
+
+          @page {
+            size: A4 ${orientation};
+            margin: 1cm;
           }
         }
       `}</style>

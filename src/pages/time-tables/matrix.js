@@ -42,6 +42,7 @@ const TimeTableMatrix = () => {
   const [schoolInfo, setSchoolInfo] = useState(null);
   const [allTimeTablesData, setAllTimeTablesData] = useState({});
   const [viewMode, setViewMode] = useState(localStorage.getItem('timeTables_viewMode') || 'horizontal'); // 'vertical' or 'horizontal'
+  const [printOrientation, setPrintOrientation] = useState(localStorage.getItem('timeTablesPrint_orientation') || 'portrait');
 
   // Generate time slots based on configuration
   const timeSlots = useMemo(() => {
@@ -424,6 +425,12 @@ const TimeTableMatrix = () => {
     window.print();
   }, []);
 
+  // Handle orientation change
+  const handleOrientationChange = useCallback((orientation) => {
+    setPrintOrientation(orientation);
+    localStorage.setItem('timeTablesPrint_orientation', orientation);
+  }, []);
+
   const generatePrintContent = () => {
     const days = config.workingDays;
     const subjectColors = {
@@ -511,8 +518,29 @@ const TimeTableMatrix = () => {
           <button className="btn btn-secondary font-weight-bold" onClick={togglePrintView}>
             <i className="fa fa-arrow-left"></i> Back to Time Tables
           </button>
-          <div>
-            <h4 className="m-0 font-weight-bold">Time Table Preview</h4>
+          <div className="d-flex align-items-center gap-4">
+            <div className="d-flex align-items-center gap-3">
+              <span className="font-weight-bold text-dark">Page Orientation:</span>
+              <div className="btn-group" role="group">
+                <button
+                  type="button"
+                  className={`btn ${printOrientation === 'portrait' ? 'btn-primary' : 'btn-light-primary'}`}
+                  onClick={() => handleOrientationChange('portrait')}
+                >
+                  <i className="fa fa-file-text-o mr-1"></i> Portrait
+                </button>
+                <button
+                  type="button"
+                  className={`btn ${printOrientation === 'landscape' ? 'btn-primary' : 'btn-light-primary'}`}
+                  onClick={() => handleOrientationChange('landscape')}
+                >
+                  <i className="fa fa-file-text-o mr-1" style={{ transform: 'rotate(90deg)' }}></i> Landscape
+                </button>
+              </div>
+            </div>
+            <div>
+              <h4 className="m-0 font-weight-bold">Time Table Preview</h4>
+            </div>
           </div>
           <div>
             <button className="btn btn-primary font-weight-bold" onClick={handlePrint}>
@@ -532,6 +560,7 @@ const TimeTableMatrix = () => {
             teachers={teachers}
             school={schoolInfo}
             printAll={!selectedClass}
+            orientation={printOrientation}
           />
         </div>
       </div>

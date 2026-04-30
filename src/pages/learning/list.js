@@ -100,6 +100,7 @@ class CurriculumManagerV5 extends React.Component {
         // Print System
         showPrintView: false,
         printData: null,
+        printOrientation: localStorage.getItem('learningPrint_orientation') || 'portrait',
     };
 
     componentDidMount() {
@@ -698,6 +699,10 @@ class CurriculumManagerV5 extends React.Component {
 
     togglePrintView = () => this.setState(prev => ({ showPrintView: !prev.showPrintView, printData: null }));
     handlePrint = () => window.print();
+    handleOrientationChange = (orientation) => {
+        this.setState({ printOrientation: orientation });
+        localStorage.setItem('learningPrint_orientation', orientation);
+    };
 
     handlePrintPlanning = () => {
         const { school, selectedSubject, selectedTermId, selectedTopic, selectedSubtopic, schemesOfWork, recordsOfWork, lessonPlans, iepTemplates, terms, _masterGradesList, selectedGrade } = this.state;
@@ -1506,7 +1511,7 @@ class CurriculumManagerV5 extends React.Component {
                                 }
 
                                 @page {
-                                    size: A4 landscape;
+                                    size: A4 ${this.state.printOrientation};
                                     margin: 0;
                                 }
                             }
@@ -1517,9 +1522,30 @@ class CurriculumManagerV5 extends React.Component {
                                     <button className="btn btn-secondary" onClick={this.togglePrintView}>
                                         <i className="la la-arrow-left"></i> Back to Planning
                                     </button>
-                                    <div className="text-center">
-                                        <h4 className="m-0 font-weight-bold">Teacher Planning Portfolio Preview</h4>
-                                        <span className="text-muted small">Professional A4 Export Format</span>
+                                    <div className="d-flex align-items-center gap-4">
+                                        <div className="d-flex align-items-center gap-3">
+                                            <span className="font-weight-bold text-dark">Page Orientation:</span>
+                                            <div className="btn-group" role="group">
+                                                <button
+                                                    type="button"
+                                                    className={`btn ${this.state.printOrientation === 'portrait' ? 'btn-primary' : 'btn-light-primary'}`}
+                                                    onClick={() => this.handleOrientationChange('portrait')}
+                                                >
+                                                    <i className="fa fa-file-text-o mr-1"></i> Portrait
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={`btn ${this.state.printOrientation === 'landscape' ? 'btn-primary' : 'btn-light-primary'}`}
+                                                    onClick={() => this.handleOrientationChange('landscape')}
+                                                >
+                                                    <i className="fa fa-file-text-o mr-1" style={{ transform: 'rotate(90deg)' }}></i> Landscape
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="text-center">
+                                            <h4 className="m-0 font-weight-bold">Teacher Planning Portfolio Preview</h4>
+                                            <span className="text-muted small">Professional A4 Export Format</span>
+                                        </div>
                                     </div>
                                     <button className="btn btn-primary font-weight-bold" onClick={this.handlePrint}>
                                         <i className="la la-print mr-2"></i> Print Document
@@ -1536,6 +1562,7 @@ class CurriculumManagerV5 extends React.Component {
                                         lessons={allLessonPlans}
                                         records={allRecords}
                                         iep={allIep}
+                                        orientation={this.state.printOrientation}
                                     />
                                 </div>
                             </div>

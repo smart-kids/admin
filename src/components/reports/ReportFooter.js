@@ -41,7 +41,7 @@ const ReportFooter = ({ themeColor, validationStatus = "Authentic Record" }) => 
                 <div style={{ fontSize: '0.22rem', color: '#e5e7eb', fontWeight: 300 }}>
                     <span style={{ color: '#d1d5db', fontWeight: 400 }}>ShulePlus</span> • 
                     Phone: <span style={{ color: '#9ca3af' }}>+254740706588</span> • 
-                    Email: <span style={{ color: '#9ca3af' }}>shuleplus3@gmail.com</span>
+                    {/* Email: <span style={{ color: '#9ca3af' }}>shuleplus3@gmail.com</span> */}
                 </div>
             </div>
             

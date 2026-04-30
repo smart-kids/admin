@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import ReportHeader from '../../../components/reports/ReportHeader';
 import ReportFooter from '../../../components/reports/ReportFooter';
 
@@ -11,24 +11,32 @@ const PlanningPrintView = ({
     schemes = [], 
     lessons = [], 
     records = [], 
-    iep = [] 
+    iep = [],
+    orientation = 'portrait'
 }) => {
+    
     const themeColor = school?.themeColor || '#5867dd';
     const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
 
-    return (
-        <div className="planning-print-root" style={{ 
+    
+    const getPrintStyles = () => {
+        const baseStyles = {
             backgroundColor: 'white', 
-            width: '100%',
-            maxWidth: '29.7cm', 
+            width: orientation === 'landscape' ? '100%' : '100%',
+            maxWidth: orientation === 'landscape' ? 'none' : '29.7cm', 
             margin: '0 auto', 
             fontFamily: "'Inter', 'Roboto', sans-serif",
             color: '#1e293b',
             boxSizing: 'border-box',
             paddingBottom: '2cm',
             lineHeight: 1.4
-        }}>
-            <div className="report-card-container" style={{ padding: '0.5cm 1cm' }}>
+        };
+        return baseStyles;
+    };
+
+    return (
+        <div className="planning-print-root" style={getPrintStyles()}>
+            <div className="report-card-container" style={{ padding: orientation === 'landscape' ? '0.3cm 0.8cm' : '0.5cm 1cm' }}>
                 {/* 1. Header */}
                 <ReportHeader school={school} title="TEACHER PLANNING PORTFOLIO" themeColor={themeColor} />
 
@@ -323,6 +331,35 @@ const PlanningPrintView = ({
                     <ReportFooter themeColor={themeColor} validationStatus="Authenticated Curriculum Record" />
                 </div>
             </div>
+            
+            {/* Print Styles */}
+            <style jsx>{`
+                @media print {
+                    .planning-print-root {
+                        width: 100% !important;
+                        max-width: none !important;
+                        margin: 0 !important;
+                        padding: ${orientation === 'landscape' ? '0.3cm 0.8cm' : '0.5cm 1cm'} !important;
+                    }
+                    
+                    .report-card-container {
+                        padding: ${orientation === 'landscape' ? '0.3cm 0.8cm' : '0.5cm 1cm'} !important;
+                    }
+                    
+                    table {
+                        font-size: ${orientation === 'landscape' ? '0.6rem' : '0.7rem'} !important;
+                    }
+                    
+                    th, td {
+                        padding: ${orientation === 'landscape' ? '4px' : '6px'} !important;
+                    }
+
+                    @page {
+                        size: A4 ${orientation};
+                        margin: 1cm;
+                    }
+                }
+            `}</style>
         </div>
     );
 };

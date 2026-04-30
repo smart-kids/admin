@@ -1261,9 +1261,8 @@ class ResultsMatrix extends React.Component {
                             placeholder="Class (Students)..."
                             searchable={true}
                             width="250px"
-                            showCount={true}
-                            countKey="students.length"
                             className="mr-2"
+                            showEmptySearchResults={true}
                         />
                         {!isTeacher && (
                             <div className="ml-1 d-flex">
@@ -1283,10 +1282,6 @@ class ResultsMatrix extends React.Component {
                             onChange={(value) => this.handleFilterChange('selectedGrade', value)}
                             options={availableGrades.map(grade => ({
                                 ...grade,
-                                countLabel: 'subjects',
-                                subjects: filteredSubjectsList.filter(subject => 
-                                    subject.grade?.id === grade.id || subject.grade === grade.id
-                                ),
                                 studentCount: this.getFilteredStudents().filter(student => {
                                     const studentGradeId = student.class?.grade?.id || student.class?.grade || student.grade_id;
                                     return studentGradeId && String(studentGradeId) === String(grade.id);
@@ -1295,9 +1290,8 @@ class ResultsMatrix extends React.Component {
                             placeholder="Grade (Subjects)..."
                             searchable={true}
                             width="220px"
-                            showCount={true}
-                            countKey="subjects.length"
                             className="mr-2"
+                            showEmptySearchResults={true}
                         />
                         {!isTeacher && (
                             <div className="ml-1 d-flex">
