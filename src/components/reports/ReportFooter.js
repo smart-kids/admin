@@ -22,26 +22,26 @@ const ReportFooter = ({ themeColor, validationStatus = "Authentic Record" }) => 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                     <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: '0.85rem', fontWeight: 900, color: '#374151', letterSpacing: '-0.3px' }}>
-                            Powered by <span style={{ color: '#FA064B' }}>Shule</span><span style={{ color: '#1a1a1a' }}>Plus</span>
+                            Report Powered by <span style={{ color: '#FA064B' }}>Shule</span><span style={{ color: '#1a1a1a' }}>Plus</span>
                         </div>
                         <div style={{ fontSize: '0.65rem', color: '#9ca3af', fontWeight: 500 }}>
                             Leading the Education Digital Frontier
                         </div>
                     </div>
-                    <img 
-                        src="/assets/media/logos/ic_launcher.png" 
-                        alt="ShulePlus Logo" 
-                        style={{ 
-                            width: '42px', 
-                            height: '42px', 
-                            borderRadius: '10px', 
-                            boxShadow: '0 4px 10px rgba(250, 6, 75, 0.2)',
-                            objectFit: 'contain',
-                            backgroundColor: 'white',
-                            padding: '4px',
-                            border: '1px solid #f3f4f6'
-                        }} 
-                    />
+                </div>
+            </div>
+            
+            {/* Contact Details - Subtle */}
+            <div style={{ 
+                marginTop: '8px', 
+                paddingTop: '6px', 
+                borderTop: '1px solid #f3f4f6',
+                textAlign: 'center'
+            }}>
+                <div style={{ fontSize: '0.22rem', color: '#e5e7eb', fontWeight: 300 }}>
+                    <span style={{ color: '#d1d5db', fontWeight: 400 }}>ShulePlus</span> • 
+                    Phone: <span style={{ color: '#9ca3af' }}>+254740706588</span> • 
+                    Email: <span style={{ color: '#9ca3af' }}>shuleplus3@gmail.com</span>
                 </div>
             </div>
             

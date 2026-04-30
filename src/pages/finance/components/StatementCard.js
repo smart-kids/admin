@@ -174,9 +174,8 @@ const StatementCard = ({ group, school, validStudentsData, totalValidExpected, t
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.8rem' }}>
                     <thead>
                         <tr style={{ backgroundColor: themeColor }}>
-                            <th style={{ padding: '8px 12px', textAlign: 'left', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', width: '45%' }}>Student / Item</th>
-                            <th style={{ padding: '8px 8px', textAlign: 'right', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Amount (KES)</th>
-                            <th style={{ padding: '8px 12px', textAlign: 'right', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Status</th>
+                            <th style={{ padding: '8px 12px', textAlign: 'left', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', width: '60%' }}>Student / Item</th>
+                            <th style={{ padding: '8px 12px', textAlign: 'right', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Amount (KES)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -187,7 +186,7 @@ const StatementCard = ({ group, school, validStudentsData, totalValidExpected, t
                                 <React.Fragment key={'s-'+idx}>
                                     {/* Student Name Header */}
                                     <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e5e7eb' }}>
-                                        <td colSpan="3" style={{ padding: '8px 12px', fontWeight: 700, fontSize: '0.85rem', color: '#1f2937' }}>
+                                        <td colSpan="2" style={{ padding: '8px 12px', fontWeight: 700, fontSize: '0.85rem', color: '#1f2937' }}>
                                             {s.names}
                                         </td>
                                     </tr>
@@ -205,20 +204,8 @@ const StatementCard = ({ group, school, validStudentsData, totalValidExpected, t
                                                     )}
                                                 </div>
                                             </td>
-                                            <td style={{ padding: '6px 8px', textAlign: 'right', fontSize: '0.8rem', fontWeight: 700 }}>
+                                            <td style={{ padding: '6px 12px', textAlign: 'right', fontSize: '0.8rem', fontWeight: 700 }}>
                                                 KES {fs.totalAmount.toLocaleString()}
-                                            </td>
-                                            <td style={{ padding: '6px 12px', textAlign: 'right', fontSize: '0.8rem' }}>
-                                                <span style={{ 
-                                                    padding: '2px 6px', 
-                                                    borderRadius: '8px', 
-                                                    fontSize: '0.65rem', 
-                                                    fontWeight: 600,
-                                                    backgroundColor: '#fef2f2',
-                                                    color: '#dc2626'
-                                                }}>
-                                                    OUTSTANDING
-                                                </span>
                                             </td>
                                         </tr>
                                     ))}
@@ -231,7 +218,7 @@ const StatementCard = ({ group, school, validStudentsData, totalValidExpected, t
                         {group.charges && group.charges.length > 0 && (
                             <React.Fragment>
                                 <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e5e7eb' }}>
-                                    <td colSpan="3" style={{ padding: '8px 12px', fontWeight: 700, fontSize: '0.85rem', color: '#1f2937' }}>
+                                    <td colSpan="2" style={{ padding: '8px 12px', fontWeight: 700, fontSize: '0.85rem', color: '#1f2937' }}>
                                         Additional Charges
                                     </td>
                                 </tr>
@@ -247,20 +234,8 @@ const StatementCard = ({ group, school, validStudentsData, totalValidExpected, t
                                                 )}
                                             </div>
                                         </td>
-                                        <td style={{ padding: '6px 8px', textAlign: 'right', fontSize: '0.8rem', fontWeight: 700 }}>
+                                        <td style={{ padding: '6px 12px', textAlign: 'right', fontSize: '0.8rem', fontWeight: 700 }}>
                                             {parseFloat(c.amount || 0).toLocaleString()}
-                                        </td>
-                                        <td style={{ padding: '6px 12px', textAlign: 'right', fontSize: '0.8rem' }}>
-                                            <span style={{ 
-                                                padding: '2px 6px', 
-                                                borderRadius: '8px', 
-                                                fontSize: '0.65rem', 
-                                                fontWeight: 600,
-                                                backgroundColor: '#fef3c7',
-                                                color: '#92400e'
-                                            }}>
-                                                OUTSTANDING
-                                            </span>
                                         </td>
                                     </tr>
                                 ))}
@@ -369,18 +344,7 @@ const StatementCard = ({ group, school, validStudentsData, totalValidExpected, t
                 </table>
             </div>
 
-            {/* Payment Instructions / Disclaimer Block */}
-            <div style={{ marginBottom: '0.6cm' }}>
-                <div style={{ border: '2px solid #f3f4f6', padding: '10px', borderRadius: '8px', backgroundColor: '#ffffff' }}>
-                    <h5 style={{ margin: '0 0 6px 0', fontSize: '0.75rem', fontWeight: 800, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        Payment Instructions
-                    </h5>
-                    <div style={{ padding: '8px', backgroundColor: '#f8fafc', borderRadius: '4px', fontSize: '0.8rem', color: '#374151', textAlign: 'center', fontWeight: 600 }}>
-                        Please login to the application to make payment or send paybill
-                    </div>
-                </div>
-            </div>
-
+            
             {/* Premium ShulePlus Footer - Pushed to bottom via flex */}
             <div style={{ marginTop: 'auto', paddingBottom: '0.5cm' }}>
                 <ReportFooter themeColor={themeColor} validationStatus="Authentic Financial Record" />
