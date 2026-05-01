@@ -900,6 +900,13 @@ var Data = (function () {
 
         ];
 
+        // Skip all network requests if there's no auth token — no point firing
+        // 25 requests that are guaranteed to 401 before the redirect kicks in.
+        if (!localStorage.getItem("authorization")) {
+            console.warn("[Data] No auth token found. Skipping data fetch.");
+            return;
+        }
+
         queries.forEach(({ query: qStr, variables = {} }) => {
             query(qStr, variables)
                 .then((response) => mergeAndNotify(response))

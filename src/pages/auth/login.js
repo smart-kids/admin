@@ -245,9 +245,13 @@ class Login extends React.Component {
                 throw new Error(res.data?.message || "Failed to send OTP code.");
             }
         } catch (err) {
-            const errorMsg = err.response?.data?.message || err.message || "Could not send OTP.";
+            const responseData = err.response?.data;
+            const isNotRegistered = responseData?.action === "register" || err.response?.status === 404;
+            const errorMsg = isNotRegistered
+                ? "This phone number isn't linked to any account. Please contact your school admin to be added."
+                : (responseData?.message || err.message || "Could not send OTP.");
             if (this._isMounted) this.setState({ error: errorMsg, isLoading: false, isOtpSent: false, showOtpInput: false });
-            toastr && toastr.error("OTP Send Failed", errorMsg);
+            toastr && toastr.error(isNotRegistered ? "Phone Not Found" : "OTP Send Failed", errorMsg);
         }
         }
     };

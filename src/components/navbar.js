@@ -318,7 +318,7 @@ class Navbar extends React.Component {
     const financeItems = [
       { path: "/finance/topup", label: "Mpesa Top Up" },
       { path: "/finance/charges", label: "SMS Usage History" },
-      { path: "/finance/institutional-deposits", label: "Institutional Finance" },
+      { path: "/finance/institutional-deposits", label: "Billing" },
     ];
 
     const mobileMenuStyle = {
@@ -566,7 +566,7 @@ class Navbar extends React.Component {
     const financeItems = [
       { path: "/finance/topup", label: "Top Up SMS: " + `${selectedSchool?.financial?.balanceFormated || "0 SMS's"}`
       }, { path: "/finance/charges", label: "SMS Usage History" },
-      { path: "/finance/institutional-deposits", label: "Institutional Finance" },
+      { path: "/finance/institutional-deposits", label: "Billing" },
     ];
 
     const customHoverStyle = `

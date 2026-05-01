@@ -1,8 +1,17 @@
 import React, { Component } from "react";
-import Data from "../../utils/data";
 import Navbar from "../../components/navbar";
 import Subheader from "../../components/subheader";
 import Footer from "../../components/footer";
+import Data from "../../utils/data";
+import ErrorToast from "../finance/components/error-toast";
+import SuccessToast from "../schools/components/success-toast";
+
+// Initialize toast instances
+const errorToast = new ErrorToast();
+const successToast = new SuccessToast();
+
+// Generate unique modal ID
+const billingModalNumber = Math.random().toString().split(".")[1];
 
 // --- HELPER COMPONENTS ---
 
@@ -79,469 +88,473 @@ const Pagination = ({ total, itemsPerPage, currentPage, onPageChange }) => {
 
 class InstitutionalDeposits extends Component {
     state = {
-        deposits: [],
-        loading: true,
+        invoices: [
+            // Unpaid invoices first (for school admins)
+            {
+                id: '20260401123456',
+                status: 'Unpaid',
+                created: 'Apr 1, 2026',
+                amount: 'KES 45,000',
+                description: 'Term 2 School Management System Subscription',
+                dueDate: 'Apr 15, 2026',
+                schoolId: 'school_001'
+            },
+            {
+                id: '20260328789012',
+                status: 'Unpaid',
+                created: 'Mar 28, 2026',
+                amount: 'KES 12,500',
+                description: 'SMS Bundle Package - 10,000 messages',
+                dueDate: 'Apr 11, 2026',
+                schoolId: 'school_001'
+            },
+            {
+                id: '20260315456789',
+                status: 'Unpaid',
+                created: 'Mar 15, 2026',
+                amount: 'KES 8,000',
+                description: 'Teacher Training Module - Professional Development',
+                dueDate: 'Mar 30, 2026',
+                schoolId: 'school_002'
+            },
+            // Paid invoices
+            {
+                id: '20260216089025',
+                status: 'Paid',
+                created: 'Feb 16, 2026',
+                amount: 'KES 45,000',
+                description: 'Term 1 School Management System Subscription',
+                dueDate: 'Mar 16, 2026',
+                schoolId: 'school_001'
+            },
+            {
+                id: '20260216884677',
+                status: 'Paid',
+                created: 'Feb 16, 2026',
+                amount: 'KES 12,500',
+                description: 'SMS Bundle Package - 10,000 messages',
+                dueDate: 'Mar 16, 2026',
+                schoolId: 'school_001'
+            },
+            {
+                id: '20251229899973',
+                status: 'Paid',
+                created: 'Dec 29, 2025',
+                amount: 'KES 35,000',
+                description: 'Annual License Fee - St. Mary\'s Primary School',
+                dueDate: 'Jan 29, 2026',
+                schoolId: 'school_003'
+            },
+            {
+                id: '20251229798023',
+                status: 'Paid',
+                created: 'Dec 29, 2025',
+                amount: 'KES 8,500',
+                description: 'Parent-Teacher Communication Module',
+                dueDate: 'Jan 29, 2026',
+                schoolId: 'school_002'
+            },
+            {
+                id: '20251110466424',
+                status: 'Paid',
+                created: 'Nov 10, 2025',
+                amount: 'KES 15,000',
+                description: 'Exam Management System Setup',
+                dueDate: 'Dec 10, 2025',
+                schoolId: 'school_004'
+            },
+            {
+                id: '20251110709733',
+                status: 'Paid',
+                created: 'Nov 10, 2025',
+                amount: 'KES 22,000',
+                description: 'Library Management Module - Junior School',
+                dueDate: 'Dec 10, 2025',
+                schoolId: 'school_005'
+            },
+            {
+                id: '20250925605461',
+                status: 'Paid',
+                created: 'Sep 25, 2025',
+                amount: 'KES 5,000',
+                description: 'Transport Route Optimization Service',
+                dueDate: 'Oct 25, 2025',
+                schoolId: 'school_001'
+            },
+            {
+                id: '20250925231299',
+                status: 'Paid',
+                created: 'Sep 25, 2025',
+                amount: 'KES 18,000',
+                description: 'Student Registration Package - 500 students',
+                dueDate: 'Oct 25, 2025',
+                schoolId: 'school_002'
+            },
+            {
+                id: '20250808155915',
+                status: 'Paid',
+                created: 'Aug 8, 2025',
+                amount: 'KES 7,500',
+                description: 'Report Card Generation Software',
+                dueDate: 'Sep 8, 2025',
+                schoolId: 'school_003'
+            }
+        ],
+        loading: false,
         currentPage: 1,
-        itemsPerPage: 15,
-        totalDeposits: 0,
-        showDepositModal: false,
-        bankInstructions: false,
-        showMpesaModal: false,
-        // Statistics data
-        userStats: {
-            students: 0,
-            parents: 0,
-            teachers: 0,
-            admins: 0
+        itemsPerPage: 10,
+        totalInvoices: 13,
+        showInvoiceModal: false,
+        selectedInvoice: null,
+        showEmailModal: false,
+        emailRecipient: '',
+        emailSubject: '',
+        emailMessage: '',
+        showPrintView: false,
+        printInvoice: null,
+        schoolInfo: null,
+        showCreateInvoiceModal: false,
+        showBillingModal: false,
+        showBankPaymentModal: false,
+        showBankConfirmationModal: false,
+        billingPhone: '',
+        paymentMethod: 'mpesa', // 'mpesa' or 'bank'
+        bankPaymentDetails: {
+            bankName: 'Family Bank',
+            accountName: 'Shule Plus',
+            accountNumber: '024000062139',
+            branch: 'Ruiru Branch',
+            swiftCode: 'FABLKENA'
         },
-        learningStats: {
-            totalAttempts: 0,
-            completedAttempts: 0,
-            totalQuestions: 0,
-            correctAnswers: 0,
-            totalTime: 0 // in minutes
-        },
-        billingInfo: {
-            totalUsageTime: 0,
-            appUsageCost: 0,
-            smsCount: 0,
-            smsCost: 0,
-            estimatedCost: 0,
-            totalPaid: 0,
-            balance: 0,
-            ratePerMinute: 2, // KES per minute
-            ratePerSms: 2 // Assuming 2 KES per SMS
+        bankPaymentIdentifier: '',
+        currentUser: null,
+        isSuperAdmin: false,
+        selectedSchool: null,
+        newInvoice: {
+            amount: '',
+            description: '',
+            schoolId: '',
+            dueDate: ''
         }
     };
 
     componentDidMount() {
-        this.fetchDeposits();
-        this.fetchStatistics();
+        // Get current user and check role
+        const userData = JSON.parse(localStorage.getItem("user")) || {};
+        const isSuperAdmin = userData.userType === 'super_admin' || userData.userType === 'superadmin' || userData.role === 'super_admin' || userData.isSuperAdmin;
+        const savedBillingPhone = localStorage.getItem('billingPhone') || '';
+        const savedPaymentMethod = localStorage.getItem('paymentMethod') || 'mpesa';
         
-        // Subscribe to data changes
-        this.unsubscribeStudents = Data.students.subscribe(() => this.updateUserStats());
-        this.unsubscribeParents = Data.parents.subscribe(() => this.updateUserStats());
-        this.unsubscribeTeachers = Data.teachers.subscribe(() => this.updateUserStats());
-        this.unsubscribeAdmins = Data.admins.subscribe(() => this.updateUserStats());
-        this.unsubscribeLessonAttempts = Data.lessonAttempts.subscribe(() => this.updateBillingStats());
-        this.unsubscribeAttemptEvents = Data.attemptEvents.subscribe(() => this.updateBillingStats());
-        this.unsubscribePayments = Data.payments.subscribe(() => this.updateBillingStats());
-        this.unsubscribeSms = Data.smsEvents.subscribe(() => this.updateBillingStats());
-        this.unsubscribeEvents = Data.events.subscribe(() => this.updateBillingStats());
+        // Get selected school
+        const selectedSchool = Data.schools.getSelected();
+        
+        this.setState({ 
+            currentUser: userData,
+            isSuperAdmin: isSuperAdmin,
+            billingPhone: savedBillingPhone,
+            paymentMethod: savedPaymentMethod,
+            selectedSchool: selectedSchool
+        });
+        
+        // Subscribe to school changes
+        this.schoolsSubscription = Data.schools.subscribe(({ selectedSchool }) => {
+            this.setState({ selectedSchool });
+        });
+        
+        // Simulate loading
+        setTimeout(() => {
+            this.setState({ loading: false });
+        }, 1000);
     }
 
     componentWillUnmount() {
-        // Clean up subscriptions
-        if (this.unsubscribeStudents) this.unsubscribeStudents();
-        if (this.unsubscribeParents) this.unsubscribeParents();
-        if (this.unsubscribeTeachers) this.unsubscribeTeachers();
-        if (this.unsubscribeAdmins) this.unsubscribeAdmins();
-        if (this.unsubscribeLessonAttempts) this.unsubscribeLessonAttempts();
-        if (this.unsubscribeAttemptEvents) this.unsubscribeAttemptEvents();
-        if (this.unsubscribePayments) this.unsubscribePayments();
-        if (this.unsubscribeSms) this.unsubscribeSms();
-        if (this.unsubscribeEvents) this.unsubscribeEvents();
+        if (this.schoolsSubscription) {
+            this.schoolsSubscription();
+        }
     }
 
-    fetchDeposits = async () => {
-        this.setState({ loading: true });
-        try {
-            const response = await Data.institutionalDeposits.getPage({
-                page: this.state.currentPage,
-                limit: this.state.itemsPerPage,
-                sort: { key: 'createdAt', direction: 'descending' }
-            });
-            this.setState({
-                deposits: response.deposits || [],
-                totalDeposits: response.totalCount || 0,
-                loading: false
-            });
-        } catch (error) {
-            console.error('Failed to fetch deposits:', error);
-            this.setState({ loading: false });
-        }
-    };
-
     handlePageChange = (page) => {
-        this.setState({ currentPage: page }, () => {
-            this.fetchDeposits();
+        this.setState({ currentPage: page });
+    };
+
+    handleViewInvoice = (invoice) => {
+        this.setState({ selectedInvoice: invoice, showInvoiceModal: true });
+    };
+
+    togglePrintView = () => {
+        this.setState(prev => ({ showPrintView: !prev.showPrintView }));
+    };
+
+    handlePrint = () => {
+        window.print();
+    };
+
+    handlePrintInvoice = (invoice) => {
+        this.setState({ printInvoice: invoice, showPrintView: true });
+    };
+
+    handleEmailInvoice = (invoice) => {
+        this.setState({ 
+            selectedInvoice: invoice, 
+            showEmailModal: true,
+            emailSubject: `Invoice ${invoice.id} - Smart Kids School`,
+            emailMessage: `Please find attached invoice ${invoice.id} for ${invoice.amount} dated ${invoice.created}.`
         });
     };
 
-    fetchStatistics = () => {
-        this.updateUserStats();
-        this.updateBillingStats();
-    };
-
-    updateUserStats = () => {
-        const students = Data.students.list() || [];
-        const parents = Data.parents.list() || [];
-        const teachers = Data.teachers.list() || [];
-        const admins = Data.admins.list() || [];
-
-        this.setState({
-            userStats: {
-                students: students.length,
-                parents: parents.length,
-                teachers: teachers.length,
-                admins: admins.length
-            }
-        });
-    };
-
-    updateBillingStats = () => {
-        const lessonAttempts = Data.lessonAttempts.list() || [];
-        const smsEvents = Data.smsEvents.list() || [];
+    handleSendEmail = () => {
+        const { selectedInvoice, emailRecipient, emailSubject, emailMessage } = this.state;
         
-        let totalTimeInMinutes = 0;
-        lessonAttempts.forEach(attempt => {
-            if (attempt.startedAt && attempt.completedAt) {
-                const startTime = new Date(attempt.startedAt);
-                const endTime = new Date(attempt.completedAt);
-                const durationMinutes = (endTime - startTime) / (1000 * 60);
-                totalTimeInMinutes += durationMinutes;
+        // Simulate sending email
+        alert(`Invoice ${selectedInvoice.id} has been sent to ${emailRecipient}`);
+        
+        this.setState({ 
+            showEmailModal: false, 
+            emailRecipient: '', 
+            emailSubject: '', 
+            emailMessage: '',
+            selectedInvoice: null
+        });
+    };
+
+    handleCreateInvoice = () => {
+        this.setState({ showCreateInvoiceModal: true });
+    };
+
+    handleSaveInvoice = () => {
+        const { newInvoice, invoices } = this.state;
+        
+        if (!newInvoice.amount || !newInvoice.description || !newInvoice.dueDate) {
+            errorToast.show({ message: 'Please fill in all required fields' });
+            return;
+        }
+
+        const invoiceId = Date.now().toString();
+        const createdDate = new Date().toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+        });
+        
+        const invoice = {
+            id: invoiceId,
+            status: 'Unpaid',
+            created: createdDate,
+            amount: `KES ${parseInt(newInvoice.amount).toLocaleString()}`,
+            description: newInvoice.description,
+            dueDate: new Date(newInvoice.dueDate).toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+            }),
+            schoolId: newInvoice.schoolId || 'school_001'
+        };
+
+        this.setState({ 
+            invoices: [invoice, ...invoices],
+            totalInvoices: invoices.length + 1,
+            showCreateInvoiceModal: false,
+            newInvoice: {
+                amount: '',
+                description: '',
+                schoolId: '',
+                dueDate: ''
             }
         });
 
-        const smsCost = smsEvents.length * this.state.billingInfo.ratePerSms;
-        const appUsageCost = totalTimeInMinutes * this.state.billingInfo.ratePerMinute;
-        const estimatedTotalCost = appUsageCost + smsCost;
-
-        const allPayments = Data.payments.list() || [];
-        let totalPaid = 0;
-        allPayments.forEach(p => {
-             const metadata = p.metadata || {};
-             if (metadata.type === 'institutional_deposit' || 
-                 metadata.purpose === 'institutional_deposit' ||
-                 p.type === 'institutional_deposit' ||
-                 p.paymentType === 'institutional_deposit') {
-                 if (p.status === 'COMPLETED' || p.status === 'completed') {
-                     totalPaid += (Number(p.amount) || 0);
-                 }
-             }
+        successToast.show({ 
+            message: `Invoice ${invoiceId} created successfully!`,
+            header: 'Invoice Created'
         });
-
-        this.setState(prevState => ({
-            billingInfo: {
-                ...prevState.billingInfo,
-                totalUsageTime: Math.round(totalTimeInMinutes),
-                appUsageCost: Math.round(appUsageCost),
-                smsCount: smsEvents.length,
-                smsCost: Math.round(smsCost),
-                estimatedCost: Math.round(estimatedTotalCost),
-                totalPaid: totalPaid,
-                balance: Math.round(totalPaid - estimatedTotalCost)
-            }
-        }));
     };
 
-    handleMpesaDeposit = () => {
-        this.setState({ showMpesaModal: true });
-    };
-
-    handleMpesaSubmit = async (depositData) => {
-        try {
-            const response = await Data.institutionalDeposits.createWithMpesa(depositData);
-            
-            // Show success message
-            alert('M-Pesa payment initiated! Please complete the payment on your phone.');
-            
-            // Close modal and refresh deposits
-            this.setState({ showMpesaModal: false });
-            this.fetchDeposits();
-        } catch (error) {
-            console.error('M-Pesa deposit failed:', error);
-            alert('Failed to initiate M-Pesa payment. Please try again.');
+    handlePayInvoice = (invoice) => {
+        const paymentMethod = this.state.paymentMethod || localStorage.getItem('paymentMethod') || 'mpesa';
+        const billingPhone = this.state.billingPhone || localStorage.getItem('billingPhone') || '';
+        
+        console.log('Pay Invoice - Payment Method:', paymentMethod);
+        console.log('Pay Invoice - Billing Phone:', billingPhone);
+        console.log('Pay Invoice - State:', this.state.paymentMethod, this.state.billingPhone);
+        
+        if (paymentMethod === 'mpesa' && !billingPhone) {
+            errorToast.show({ message: 'Please set up your M-Pesa billing number first' });
+            this.handleManageBilling();
+            return;
+        }
+        
+        if (paymentMethod === 'bank') {
+            this.setState({ selectedInvoice: invoice, showBankPaymentModal: true });
+        } else {
+            this.setState({ selectedInvoice: invoice, showPaymentModal: true });
         }
     };
 
-    renderStatisticsCards = () => {
-        const { userStats, learningStats, billingInfo } = this.state;
+    handlePayWithSavedCard = (cardId) => {
+        // For now, just show a success message with the card used
+        const cardName = cardId === 'visa_4242' ? 'Visa ending in 4242' : 'Mastercard ending in 8888';
         
-        // Get all entity counts from Data
-        const students = Data.students.list() || [];
-        const parents = Data.parents.list() || [];
-        const teachers = Data.teachers.list() || [];
-        const admins = Data.admins.list() || [];
-        const grades = Data.grades.list() || [];
-        const subjects = Data.subjects.list() || [];
-        const topics = Data.topics.list() || [];
-        const questions = Data.questions.list() || [];
-        const payments = Data.payments.list() || [];
-        const charges = Data.charges.list() || [];
-        const classes = Data.classes.list() || [];
-        const buses = Data.buses.list() || [];
-        const routes = Data.routes.list() || [];
-        const trips = Data.trips.list() || [];
-        const events = Data.events.list() || [];
-        const complaints = Data.complaints.list() || [];
-        const schedules = Data.schedules.list() || [];
-        const books = Data.books.list() || [];
-        const lessonAttempts = Data.lessonAttempts.list() || [];
-        const attemptEvents = Data.attemptEvents.list() || [];
-        const smsEvents = Data.smsEvents.list() || [];
-        const assessmentTypes = Data.assessmentTypes.list() || [];
-        const assessmentRubrics = Data.assessmentRubrics.list() || [];
+        successToast.show({ 
+            message: `Payment initiated with ${cardName}. You will be redirected to the secure payment gateway.`,
+            header: 'Card Payment'
+        });
         
-        // Calculate processed records
-        const totalProcessedRecords = students.length + parents.length + teachers.length + admins.length + 
-                                   grades.length + subjects.length + topics.length + questions.length + 
-                                   payments.length + charges.length + classes.length + buses.length + 
-                                   routes.length + trips.length + events.length + complaints.length + 
-                                   schedules.length + books.length + lessonAttempts.length + 
-                                   attemptEvents.length + smsEvents.length + assessmentTypes.length + 
-                                   assessmentRubrics.length;
+        // Close bank payment modal after initiating card payment
+        this.setState({ showBankPaymentModal: false });
+    };
+
+    handleBankPaymentSubmit = () => {
+        const { bankPaymentIdentifier, selectedInvoice } = this.state;
+        
+        if (!bankPaymentIdentifier || !bankPaymentIdentifier.trim()) {
+            errorToast.show({ message: 'Please enter the transaction reference number' });
+            return;
+        }
+        
+        // Update invoice with bank payment pending status
+        const updatedInvoices = this.state.invoices.map(inv => {
+            if (inv.id === selectedInvoice.id) {
+                return { 
+                    ...inv, 
+                    status: 'Pending Confirmation',
+                    paymentMethod: 'bank',
+                    paymentIdentifier: bankPaymentIdentifier.trim(),
+                    paymentDate: new Date().toISOString()
+                };
+            }
+            return inv;
+        });
+
+        this.setState({ 
+            invoices: updatedInvoices,
+            showBankPaymentModal: false,
+            selectedInvoice: null,
+            bankPaymentIdentifier: ''
+        });
+
+        successToast.show({ 
+            message: `Bank payment reference ${bankPaymentIdentifier} submitted. Awaiting admin confirmation.`,
+            header: 'Payment Submitted'
+        });
+    };
+
+    handleConfirmBankPayment = (invoice) => {
+        // Update invoice status to Paid
+        const updatedInvoices = this.state.invoices.map(inv => {
+            if (inv.id === invoice.id) {
+                return { 
+                    ...inv, 
+                    status: 'Paid',
+                    confirmedBy: this.state.currentUser?.name || 'Super Admin',
+                    confirmedDate: new Date().toISOString()
+                };
+            }
+            return inv;
+        });
+
+        this.setState({ 
+            invoices: updatedInvoices
+        });
+
+        successToast.show({ 
+            message: `Payment for invoice ${invoice.id} confirmed successfully!`,
+            header: 'Payment Confirmed'
+        });
+    };
+
+    handleCardPayment = () => {
+        // For now, just show a success message - in real implementation this would integrate with a payment gateway
+        successToast.show({ 
+            message: 'Card payment initiated. You will be redirected to the secure payment gateway.',
+            header: 'Card Payment'
+        });
+        
+        // Close billing modal after initiating card payment
+        this.setState({ showBillingModal: false });
+    };
+
+    handleManageBilling = () => {
+        this.setState({ showBillingModal: true });
+    };
+
+    handleSaveBillingDetails = () => {
+        const { billingPhone, paymentMethod, selectedSchool } = this.state;
+        
+        if (paymentMethod === 'mpesa' && (!billingPhone || !billingPhone.trim())) {
+            errorToast.show({ message: 'Please enter a valid M-Pesa phone number' });
+            return;
+        }
+        
+        // Save to localStorage
+        localStorage.setItem('paymentMethod', paymentMethod);
+        if (paymentMethod === 'mpesa') {
+            localStorage.setItem('billingPhone', billingPhone.trim());
+        }
+        
+        // Update school data if available
+        if (selectedSchool) {
+            Data.schools.update({
+                id: selectedSchool.id,
+                phone: paymentMethod === 'mpesa' ? billingPhone.trim() : selectedSchool.phone,
+                paymentMethod: paymentMethod
+            });
+        }
+        
+        this.setState({ 
+            billingPhone: paymentMethod === 'mpesa' ? billingPhone.trim() : billingPhone,
+            showBillingModal: false 
+        });
+        
+        successToast.show({ 
+            message: `${paymentMethod === 'mpesa' ? 'M-Pesa' : 'Bank Transfer'} payment method saved successfully!`,
+            header: 'Payment Settings Updated'
+        });
+    };
+
+    renderBillingInfo = () => {
+        const { isSuperAdmin, billingPhone } = this.state;
         
         return (
-            <div className="row mb-4">
-                {/* Entity Statistics */}
-                <div className="col-xl-6 col-lg-12">
+            <div className="row mb-6">
+                <div className="col-12">
                     <div className="kt-portlet kt-portlet--height-fluid">
                         <div className="kt-portlet__head kt-portlet__head--noborder">
                             <div className="kt-portlet__head-label">
-                                <h3 className="kt-portlet__head-title">📊 Entity Statistics</h3>
+                                <h3 className="kt-portlet__head-title">
+                                    <i className="la la-info-circle"></i> Billing Management
+                                </h3>
                             </div>
                         </div>
                         <div className="kt-portlet__body">
-                            <div className="row">
-                                <div className="col-md-4 col-sm-6">
-                                    <div className="text-center p-3">
-                                        <div className="kt-font-brand kt-font-xl">{students.length}</div>
-                                        <div className="kt-font-sm">Students</div>
-                                    </div>
-                                </div>
-                                <div className="col-md-4 col-sm-6">
-                                    <div className="text-center p-3">
-                                        <div className="kt-font-info kt-font-xl">{parents.length}</div>
-                                        <div className="kt-font-sm">Parents</div>
-                                    </div>
-                                </div>
-                                <div className="col-md-4 col-sm-6">
-                                    <div className="text-center p-3">
-                                        <div className="kt-font-warning kt-font-xl">{teachers.length}</div>
-                                        <div className="kt-font-sm">Teachers</div>
-                                    </div>
-                                </div>
-                                <div className="col-md-4 col-sm-6">
-                                    <div className="text-center p-3">
-                                        <div className="kt-font-success kt-font-xl">{admins.length}</div>
-                                        <div className="kt-font-sm">Admins</div>
-                                    </div>
-                                </div>
-                                <div className="col-md-4 col-sm-6">
-                                    <div className="text-center p-3">
-                                        <div className="kt-font-primary kt-font-xl">{classes.length}</div>
-                                        <div className="kt-font-sm">Classes</div>
-                                    </div>
-                                </div>
-                                <div className="col-md-4 col-sm-6">
-                                    <div className="text-center p-3">
-                                        <div className="kt-font-danger kt-font-xl">{grades.length}</div>
-                                        <div className="kt-font-sm">Grades</div>
-                                    </div>
-                                </div>
-                                <div className="col-md-4 col-sm-6">
-                                    <div className="text-center p-3">
-                                        <div className="kt-font-metal kt-font-xl">{subjects.length}</div>
-                                        <div className="kt-font-sm">Subjects</div>
-                                    </div>
-                                </div>
-                                <div className="col-md-4 col-sm-6">
-                                    <div className="text-center p-3">
-                                        <div className="kt-font-focus kt-font-xl">{topics.length}</div>
-                                        <div className="kt-font-sm">Topics</div>
-                                    </div>
-                                </div>
-                                <div className="col-md-4 col-sm-6">
-                                    <div className="text-center p-3">
-                                        <div className="kt-font-warning kt-font-xl">{questions.length}</div>
-                                        <div className="kt-font-sm">Questions</div>
-                                    </div>
-                                </div>
-                                <div className="col-md-4 col-sm-6">
-                                    <div className="text-center p-3">
-                                        <div className="kt-font-success kt-font-xl">{payments.length}</div>
-                                        <div className="kt-font-sm">Payments</div>
-                                    </div>
-                                </div>
-                                <div className="col-md-4 col-sm-6">
-                                    <div className="text-center p-3">
-                                        <div className="kt-font-info kt-font-xl">{charges.length}</div>
-                                        <div className="kt-font-sm">Charges</div>
-                                    </div>
-                                </div>
-                                <div className="col-md-4 col-sm-6">
-                                    <div className="text-center p-3">
-                                        <div className="kt-font-brand kt-font-xl">{buses.length}</div>
-                                        <div className="kt-font-sm">Buses</div>
-                                    </div>
-                                </div>
-                                <div className="col-md-4 col-sm-6">
-                                    <div className="text-center p-3">
-                                        <div className="kt-font-primary kt-font-xl">{routes.length}</div>
-                                        <div className="kt-font-sm">Routes</div>
-                                    </div>
-                                </div>
-                                <div className="col-md-4 col-sm-6">
-                                    <div className="text-center p-3">
-                                        <div className="kt-font-danger kt-font-xl">{trips.length}</div>
-                                        <div className="kt-font-sm">Trips</div>
-                                    </div>
-                                </div>
-                                <div className="col-md-4 col-sm-6">
-                                    <div className="text-center p-3">
-                                        <div className="kt-font-metal kt-font-xl">{events.length}</div>
-                                        <div className="kt-font-sm">Events</div>
-                                    </div>
-                                </div>
-                                <div className="col-md-4 col-sm-6">
-                                    <div className="text-center p-3">
-                                        <div className="kt-font-focus kt-font-xl">{complaints.length}</div>
-                                        <div className="kt-font-sm">Complaints</div>
-                                    </div>
-                                </div>
-                                <div className="col-md-4 col-sm-6">
-                                    <div className="text-center p-3">
-                                        <div className="kt-font-warning kt-font-xl">{schedules.length}</div>
-                                        <div className="kt-font-sm">Schedules</div>
-                                    </div>
-                                </div>
-                                <div className="col-md-4 col-sm-6">
-                                    <div className="text-center p-3">
-                                        <div className="kt-font-success kt-font-xl">{books.length}</div>
-                                        <div className="kt-font-sm">Books</div>
-                                    </div>
-                                </div>
-                                <div className="col-md-4 col-sm-6">
-                                    <div className="text-center p-3">
-                                        <div className="kt-font-info kt-font-xl">{lessonAttempts.length}</div>
-                                        <div className="kt-font-sm">Lesson Attempts</div>
-                                    </div>
-                                </div>
-                                <div className="col-md-4 col-sm-6">
-                                    <div className="text-center p-3">
-                                        <div className="kt-font-brand kt-font-xl">{attemptEvents.length}</div>
-                                        <div className="kt-font-sm">Attempt Events</div>
-                                    </div>
-                                </div>
-                                <div className="col-md-4 col-sm-6">
-                                    <div className="text-center p-3">
-                                        <div className="kt-font-primary kt-font-xl">{smsEvents.length}</div>
-                                        <div className="kt-font-sm">SMS Events</div>
-                                    </div>
-                                </div>
-                                <div className="col-md-4 col-sm-6">
-                                    <div className="text-center p-3">
-                                        <div className="kt-font-danger kt-font-xl">{assessmentTypes.length}</div>
-                                        <div className="kt-font-sm">Assessment Types</div>
-                                    </div>
-                                </div>
-                                <div className="col-md-4 col-sm-6">
-                                    <div className="text-center p-3">
-                                        <div className="kt-font-metal kt-font-xl">{assessmentRubrics.length}</div>
-                                        <div className="kt-font-sm">Assessment Rubrics</div>
-                                    </div>
-                                </div>
+                            <div className="alert alert-info">
+                                <p className="mb-2">
+                                    We've moved your billing period to start on the 1st of each month. 
+                                    Your previous billing period was closed and invoiced, so you may have just received an invoice for it. 
+                                    Your next invoice will be issued on the 1st of next month.
+                                </p>
                             </div>
-                        </div>
-                    </div>
-                </div>
-                
-                {/* Ext. Communication Stats */}
-                <div className="col-xl-3 col-lg-6">
-                    <div className="kt-portlet kt-portlet--height-fluid">
-                        <div className="kt-portlet__head kt-portlet__head--noborder">
-                            <div className="kt-portlet__head-label">
-                                <h3 className="kt-portlet__head-title">📱 Ext. Communication Stats</h3>
-                            </div>
-                        </div>
-                        <div className="kt-portlet__body">
-                            <div className="text-center mb-4">
-                                <div className="kt-font-xxl kt-font-bold kt-font-success">{smsEvents.length}</div>
-                                <div className="kt-font-sm mt-2">SMS Events Dispatched</div>
-                            </div>
-                            <div className="row">
-                                <div className="col-6">
-                                    <div className="text-center">
-                                        <div className="kt-font-lg kt-font-brand">{events.length}</div>
-                                        <div className="kt-font-sm">Sys Events</div>
-                                    </div>
+                            <div className="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <h5 className="kt-font-bold">Billing & payment methods</h5>
+                                    <p className="kt-font-sm text-muted">
+                                        Manage your payment methods, billing address, invoices, and VAT details
+                                    </p>
+                                    {billingPhone && (
+                                        <p className="kt-font-sm text-success">
+                                            <i className="la la-phone"></i> Billing Phone: {billingPhone}
+                                        </p>
+                                    )}
                                 </div>
-                                <div className="col-6">
-                                    <div className="text-center">
-                                        <div className="kt-font-lg kt-font-primary">{complaints.length}</div>
-                                        <div className="kt-font-sm">Sys Complaints</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                {/* Usage vs Deposits Costing */}
-                <div className="col-xl-3 col-lg-6">
-                    <div className="kt-portlet kt-portlet--height-fluid">
-                        <div className="kt-portlet__head kt-portlet__head--noborder">
-                            <div className="kt-portlet__head-label">
-                                <h3 className="kt-portlet__head-title">💰 Usage vs Deposits</h3>
-                            </div>
-                        </div>
-                        <div className="kt-portlet__body">
-                            <div className="text-center mb-4">
-                                <div className={`kt-font-xxl kt-font-bold kt-font-${billingInfo.balance >= 0 ? "success" : "danger"}`}>
-                                    KES {billingInfo.balance.toLocaleString()}
-                                </div>
-                                <div className="kt-font-sm mt-2">Overall Balance</div>
-                            </div>
-                            <div className="d-flex justify-content-between mb-2">
-                                <span className="kt-font-sm">Est Usage Cost:</span>
-                                <span className="kt-font-sm text-danger">- KES {billingInfo.estimatedCost.toLocaleString()}</span>
-                            </div>
-                            <div className="d-flex justify-content-between mb-2 border-bottom pb-2">
-                                <span className="kt-font-sm">Total Termly Paid:</span>
-                                <span className="kt-font-sm text-success">+ KES {billingInfo.totalPaid.toLocaleString()}</span>
-                            </div>
-                            <div className="d-flex justify-content-between mt-3">
-                                <span className="kt-font-sm">Time ({billingInfo.totalUsageTime}m):</span>
-                                <span className="kt-font-sm text-muted">KES {billingInfo.appUsageCost.toLocaleString()}</span>
-                            </div>
-                            <div className="d-flex justify-content-between mt-1">
-                                <span className="kt-font-sm">SMS ({billingInfo.smsCount}):</span>
-                                <span className="kt-font-sm text-muted">KES {billingInfo.smsCost.toLocaleString()}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                {/* Quick Actions */}
-                <div className="col-xl-3 col-lg-6">
-                    <div className="kt-portlet kt-portlet--height-fluid">
-                        <div className="kt-portlet__head kt-portlet__head--noborder">
-                            <div className="kt-portlet__head-label">
-                                <h3 className="kt-portlet__head-title">🚀 Quick Actions</h3>
-                            </div>
-                        </div>
-                        <div className="kt-portlet__body">
-                            <div className="text-center">
-                                <button 
-                                    className="btn btn-label-success btn-bold btn-lg mb-3 btn-block"
-                                    onClick={this.handleMpesaDeposit}
-                                >
-                                    <i className="la la-mobile"></i> M-Pesa Deposit
-                                </button>
-                                <button 
-                                    className="btn btn-label-brand btn-bold btn-lg mb-3 btn-block"
-                                    onClick={() => this.setState({ bankInstructions: true })}
-                                >
-                                    <i className="la la-university"></i> Bank Deposit
-                                </button>
-                                <div className="mt-4">
-                                    <h6 className="kt-font-bold">📞 Bank Details</h6>
-                                    <div className="kt-font-sm">
-                                        <div><strong>Bank:</strong> Family Bank</div>
-                                        <div><strong>Account:</strong> [To be configured]</div>
-                                        <div><strong>Name:</strong> Smart Kids School Ltd</div>
-                                    </div>
+                                <div className="d-flex gap-2">
+                                    {!isSuperAdmin && (
+                                        <button className="btn btn-label-brand btn-bold" onClick={this.handleManageBilling}>
+                                            <i className="la la-cog"></i> Manage billing
+                                        </button>
+                                    )}
+                                    {isSuperAdmin && (
+                                        <button className="btn btn-success btn-bold" onClick={this.handleCreateInvoice}>
+                                            <i className="la la-plus"></i> Create Invoice
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -551,105 +564,956 @@ class InstitutionalDeposits extends Component {
         );
     };
 
-    renderDepositsList = () => {
-        const { deposits, loading, currentPage, itemsPerPage, totalDeposits } = this.state;
+    renderInvoiceModal = () => {
+        const { selectedInvoice, showInvoiceModal } = this.state;
+        
+        if (!showInvoiceModal || !selectedInvoice) return null;
+
+        return (
+            <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal-dialog modal-lg">
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h4 className="modal-title">
+                                <i className="la la-file-invoice"></i> Invoice #{selectedInvoice.id}
+                            </h4>
+                            <button 
+                                type="button" 
+                                className="close" 
+                                onClick={() => this.setState({ showInvoiceModal: false })}
+                            >
+                                <span>&times;</span>
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="invoice-preview">
+                                <div className="text-center mb-4">
+                                    <h3>SHULE PLUS</h3>
+                                    <p className="text-muted">Invoice # {selectedInvoice.id}</p>
+                                </div>
+                                
+                                <div className="row mb-4">
+                                    <div className="col-md-6">
+                                        <h6>Invoice Details</h6>
+                                        <p><strong>Invoice Number:</strong> {selectedInvoice.id}</p>
+                                        <p><strong>Date Created:</strong> {selectedInvoice.created}</p>
+                                        <p><strong>Due Date:</strong> {selectedInvoice.created}</p>
+                                    </div>
+                                    <div className="col-md-6 text-right">
+                                        <h6>Amount Due</h6>
+                                        <h2 className="text-success">{selectedInvoice.amount}</h2>
+                                        <span className="badge badge-success">{selectedInvoice.status}</span>
+                                    </div>
+                                </div>
+                                
+                                <div className="table-responsive mb-4">
+                                    <table className="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Description</th>
+                                                <th className="text-right">Amount</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Monthly Subscription - Smart Kids School</td>
+                                                <td className="text-right">{selectedInvoice.amount}</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Total</strong></td>
+                                                <td className="text-right"><strong>{selectedInvoice.amount}</strong></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div className="text-center text-muted">
+                                    <p>Thank you for your business!</p>
+                                    <p>For questions, please contact billing@smartkids.school</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button 
+                                type="button" 
+                                className="btn btn-secondary" 
+                                onClick={() => this.setState({ showInvoiceModal: false })}
+                            >
+                                Close
+                            </button>
+                            <button 
+                                type="button" 
+                                className="btn btn-primary"
+                                onClick={() => this.handlePrintInvoice(selectedInvoice)}
+                            >
+                                <i className="la la-print"></i> Print
+                            </button>
+                            <button 
+                                type="button" 
+                                className="btn btn-success"
+                                onClick={() => {
+                                    this.setState({ showInvoiceModal: false });
+                                    this.handleEmailInvoice(selectedInvoice);
+                                }}
+                            >
+                                <i className="la la-envelope"></i> Send Email
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    renderEmailModal = () => {
+        const { showEmailModal, emailRecipient, emailSubject, emailMessage } = this.state;
+        
+        if (!showEmailModal) return null;
+
+        return (
+            <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal-dialog">
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h4 className="modal-title">
+                                <i className="la la-envelope"></i> Send Invoice via Email
+                            </h4>
+                            <button 
+                                type="button" 
+                                className="close" 
+                                onClick={() => this.setState({ showEmailModal: false })}
+                            >
+                                <span>&times;</span>
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="form-group">
+                                <label>Email Recipient</label>
+                                <input 
+                                    type="email" 
+                                    className="form-control" 
+                                    placeholder="Enter email address"
+                                    value={emailRecipient}
+                                    onChange={(e) => this.setState({ emailRecipient: e.target.value })}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Subject</label>
+                                <input 
+                                    type="text" 
+                                    className="form-control" 
+                                    value={emailSubject}
+                                    onChange={(e) => this.setState({ emailSubject: e.target.value })}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Message</label>
+                                <textarea 
+                                    className="form-control" 
+                                    rows="4"
+                                    value={emailMessage}
+                                    onChange={(e) => this.setState({ emailMessage: e.target.value })}
+                                ></textarea>
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button 
+                                type="button" 
+                                className="btn btn-secondary" 
+                                onClick={() => this.setState({ showEmailModal: false })}
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                type="button" 
+                                className="btn btn-success"
+                                onClick={this.handleSendEmail}
+                                disabled={!emailRecipient}
+                            >
+                                <i className="la la-paper-plane"></i> Send Email
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    renderBillingModal = () => {
+        const { showBillingModal, billingPhone, selectedSchool } = this.state;
+        
+        if (!showBillingModal) return null;
+
+        return (
+            <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal-dialog modal-lg modal-dialog-centered">
+                    <div className="modal-content" style={{ borderRadius: '16px', border: '1px solid #e5e7eb', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
+                        <div className="modal-header" style={{ borderBottom: '1px solid #f3f4f6', padding: '24px 32px' }}>
+                            <h5 className="modal-title" style={{ fontSize: '20px', fontWeight: '600', color: '#111827', margin: 0 }}>
+                                <i className="flaticon2-settings text-primary mr-3" style={{ fontSize: '24px' }}></i>
+                                Billing Management
+                            </h5>
+                            <button 
+                                type="button" 
+                                className="close" 
+                                onClick={() => this.setState({ showBillingModal: false })}
+                                style={{ fontSize: '24px', color: '#6b7280', background: 'none', border: 'none', padding: '0' }}
+                            >
+                                <span>&times;</span>
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                           
+                            
+                            <div className="form-group mb-4">
+                               
+                                <div className="row">
+                                    <div className="col-md-6">
+                                        <div className={`payment-method-card ${this.state.paymentMethod === 'mpesa' ? 'selected' : ''}`} onClick={() => this.setState({ paymentMethod: 'mpesa' })}>
+                                            <div className="payment-method-header">
+                                                <div className={`payment-radio ${this.state.paymentMethod === 'mpesa' ? 'checked' : ''}`}>
+                                                    <span className="radio-inner"></span>
+                                                </div>
+                                                <div className="payment-icon">
+                                                    <i className="flaticon2-smart-phone"></i>
+                                                </div>
+                                                <div className="payment-title">
+                                                    <h6 className="mb-0">M-Pesa</h6>
+                                                    <small className="text-muted">Instant mobile payments</small>
+                                                </div>
+                                            </div>
+                                            <div className="payment-method-body">
+                                                <ul className="list-unstyled mb-0">
+                                                    <li className="d-flex align-items-center mb-1">
+                                                        <i className="flaticon2-check-mark text-success mr-2"></i>
+                                                        <small>Instant confirmation</small>
+                                                    </li>
+                                                    <li className="d-flex align-items-center">
+                                                        <i className="flaticon2-check-mark text-success mr-2"></i>
+                                                        <small>Mobile money transfer</small>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-6">
+                                        <div className={`payment-method-card ${this.state.paymentMethod === 'bank' ? 'selected' : ''}`} onClick={() => this.setState({ paymentMethod: 'bank' })}>
+                                            <div className="payment-method-header">
+                                                <div className={`payment-radio ${this.state.paymentMethod === 'bank' ? 'checked' : ''}`}>
+                                                    <span className="radio-inner"></span>
+                                                </div>
+                                                <div className="payment-icon">
+                                                    <i className="flaticon2-bank"></i>
+                                                </div>
+                                                <div className="payment-title">
+                                                    <h6 className="mb-0">Bank Transfer</h6>
+                                                    <small className="text-muted">Direct bank deposit</small>
+                                                </div>
+                                            </div>
+                                            <div className="payment-method-body">
+                                                <ul className="list-unstyled mb-0">
+                                                    <li className="d-flex align-items-center mb-1">
+                                                        <i className="flaticon2-check-mark text-success mr-2"></i>
+                                                        <small>Bank account transfer</small>
+                                                    </li>
+                                                    <li className="d-flex align-items-center">
+                                                        <i className="flaticon2-check-mark text-success mr-2"></i>
+                                                        <small>Admin confirmation required</small>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <style jsx>{`
+                                    .payment-method-card {
+                                        border: 2px solid #e5e7eb;
+                                        border-radius: 12px;
+                                        padding: 16px;
+                                        cursor: pointer;
+                                        transition: all 0.3s ease;
+                                        background: white;
+                                        position: relative;
+                                        overflow: hidden;
+                                    }
+                                    
+                                    .payment-method-card:hover {
+                                        border-color: #3699ff;
+                                        box-shadow: 0 4px 12px rgba(54, 153, 255, 0.15);
+                                        transform: translateY(-2px);
+                                    }
+                                    
+                                    .payment-method-card.selected {
+                                        border-color: #3699ff;
+                                        background: #f8fbff;
+                                        box-shadow: 0 6px 20px rgba(54, 153, 255, 0.25);
+                                    }
+                                    
+                                    .payment-method-header {
+                                        display: flex;
+                                        align-items: center;
+                                        margin-bottom: 12px;
+                                    }
+                                    
+                                    .payment-radio {
+                                        width: 20px;
+                                        height: 20px;
+                                        border: 2px solid #d1d5db;
+                                        border-radius: 50%;
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                        margin-right: 12px;
+                                        transition: all 0.3s ease;
+                                    }
+                                    
+                                    .payment-radio.checked {
+                                        border-color: #3699ff;
+                                        background: #3699ff;
+                                    }
+                                    
+                                    .radio-inner {
+                                        width: 8px;
+                                        height: 8px;
+                                        background: white;
+                                        border-radius: 50%;
+                                        opacity: 0;
+                                        transition: opacity 0.3s ease;
+                                    }
+                                    
+                                    .payment-radio.checked .radio-inner {
+                                        opacity: 1;
+                                    }
+                                    
+                                    .payment-icon {
+                                        width: 40px;
+                                        height: 40px;
+                                        background: #3699ff;
+                                        border-radius: 10px;
+                                        display: flex;
+                                        align-items: center;
+                                        justify-content: center;
+                                        margin-right: 12px;
+                                    }
+                                    
+                                    .payment-icon i {
+                                        color: white;
+                                        font-size: 18px;
+                                    }
+                                    
+                                    .payment-title {
+                                        flex: 1;
+                                    }
+                                    
+                                    .payment-method-card.selected .payment-icon {
+                                        background: #3699ff;
+                                        box-shadow: 0 4px 12px rgba(54, 153, 255, 0.3);
+                                    }
+                                `}</style>
+                            </div>
+                            
+                            {this.state.paymentMethod === 'bank' ? (
+                                <div className="form-group mb-4">
+                                    <label className="font-weight-bold text-dark">
+                                        <i className="flaticon2-bank mr-2"></i>
+                                        Bank Transfer Details
+                                    </label>
+                                    <div className="row">
+                                        <div className="col-md-7">
+                                            <div className="bg-light p-3 rounded">
+                                                <div className="font-size-sm text-dark mb-2">
+                                                    <strong>Bank:</strong> {this.state.bankPaymentDetails.bankName}
+                                                </div>
+                                                <div className="font-size-sm text-dark mb-2">
+                                                    <strong>Account Name:</strong> {this.state.bankPaymentDetails.accountName}
+                                                </div>
+                                                <div className="font-size-sm text-dark mb-2">
+                                                    <strong>Account Number:</strong> {this.state.bankPaymentDetails.accountNumber}
+                                                </div>
+                                                <div className="font-size-sm text-dark mb-2">
+                                                    <strong>Branch:</strong> {this.state.bankPaymentDetails.branch}
+                                                </div>
+                                                <div className="font-size-sm text-dark">
+                                                    <strong>SWIFT Code:</strong> {this.state.bankPaymentDetails.swiftCode}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="col-md-5">
+                                            <label className="font-weight-bold text-dark mb-2">
+                                                <i className="flaticon2-credit-card mr-2"></i>
+                                                Card Payment
+                                            </label>
+                                            <div className="bg-light p-3 rounded">
+                                                <div className="form-group mb-3">
+                                                    <small className="text-muted">Card Number</small>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control form-control-sm"
+                                                        placeholder="1234 5678 9012 3456"
+                                                        maxLength={19}
+                                                    />
+                                                </div>
+                                                <div className="row">
+                                                    <div className="col-6">
+                                                        <div className="form-group mb-3">
+                                                            <small className="text-muted">MM/YY</small>
+                                                            <input
+                                                                type="text"
+                                                                className="form-control form-control-sm"
+                                                                placeholder="12/25"
+                                                                maxLength={5}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div className="col-6">
+                                                        <div className="form-group mb-3">
+                                                            <small className="text-muted">CVV</small>
+                                                            <input
+                                                                type="text"
+                                                                className="form-control form-control-sm"
+                                                                placeholder="123"
+                                                                maxLength={3}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="form-group mb-3">
+                                                    <small className="text-muted">Cardholder Name</small>
+                                                    <input
+                                                        type="text"
+                                                        className="form-control form-control-sm"
+                                                        placeholder="John Doe"
+                                                    />
+                                                </div>
+                                                <button 
+                                                    className="btn btn-sm btn-primary btn-block"
+                                                    onClick={() => this.handleCardPayment()}
+                                                >
+                                                    <i className="flaticon2-pay mr-2"></i>
+                                                    Pay with Card
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="form-group mb-4">
+                                    <label className="font-weight-bold text-dark">
+                                        <i className="flaticon2-phone mr-2"></i>
+                                        M-Pesa Billing Number
+                                    </label>
+                                    <div className="input-group">
+                                        <div className="input-group-prepend">
+                                            <span className="input-group-text">
+                                                <i className="flaticon2-smart-phone"></i>
+                                            </span>
+                                        </div>
+                                        <input
+                                            type="tel"
+                                            className="form-control"
+                                            placeholder="Enter M-Pesa number (e.g., 07XX XXX XXX)"
+                                            value={billingPhone}
+                                            onChange={(e) => this.setState({ billingPhone: e.target.value })}
+                                            pattern="[0-9]{10}"
+                                            maxLength={10}
+                                        />
+                                    </div>
+                                    <small className="text-muted font-size-xs mt-2 d-block">
+                                        Enter the 10-digit M-Pesa number without country code (e.g., 0724736012)
+                                    </small>
+                                </div>
+                            )}
+                            
+                            
+                            
+                           
+                        </div>
+                        <div className="modal-footer">
+                            <button 
+                                type="button" 
+                                className="btn btn-secondary" 
+                                onClick={() => this.setState({ showBillingModal: false })}
+                            >
+                                <i className="flaticon2-cross mr-2"></i>
+                                Cancel
+                            </button>
+                            <button 
+                                type="button" 
+                                className="btn btn-primary"
+                                onClick={this.handleSaveBillingDetails}
+                                disabled={(this.state.paymentMethod === 'mpesa' && (!billingPhone || billingPhone.length !== 10))}
+                            >
+                                <i className="flaticon2-check-mark mr-2"></i>
+                                Save Payment Settings
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    renderBankPaymentModal = () => {
+        const { showBankPaymentModal, bankPaymentIdentifier, selectedInvoice, bankPaymentDetails } = this.state;
+        
+        if (!showBankPaymentModal || !selectedInvoice) return null;
+
+        return (
+            <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal-dialog modal-lg modal-dialog-centered">
+                    <div className="modal-content" style={{ borderRadius: '16px', border: '1px solid #e5e7eb', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
+                        <div className="modal-header">
+                            <h5 className="modal-title">
+                                <i className="flaticon2-bank text-primary mr-2"></i>
+                                Bank Transfer Payment
+                            </h5>
+                            <button 
+                                type="button" 
+                                className="close" 
+                                onClick={() => this.setState({ showBankPaymentModal: false })}
+                            >
+                                <span>&times;</span>
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            
+                            
+                            <div className="form-group mb-4">
+                                <div className="row">
+                                    <div className="col-md-6">
+                                        <label className="font-weight-bold text-dark">
+                                            <i className="flaticon2-bank mr-2"></i>
+                                            Bank Transfer Details
+                                        </label>
+                                        <div className="bg-light p-3 rounded">
+                                            <div className="font-size-sm text-dark mb-2">
+                                                <strong>Bank:</strong> {bankPaymentDetails.bankName}
+                                            </div>
+                                            <div className="font-size-sm text-dark mb-2">
+                                                <strong>Account Name:</strong> {bankPaymentDetails.accountName}
+                                            </div>
+                                            <div className="font-size-sm text-dark mb-2">
+                                                <strong>Account Number:</strong> {bankPaymentDetails.accountNumber}
+                                            </div>
+                                            <div className="font-size-sm text-dark mb-2">
+                                                <strong>Branch:</strong> {bankPaymentDetails.branch}
+                                            </div>
+                                            <div className="font-size-sm text-dark">
+                                                <strong>SWIFT Code:</strong> {bankPaymentDetails.swiftCode}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-6">
+                                        <label className="font-weight-bold text-dark">
+                                            <i className="flaticon2-file mr-2"></i>
+                                            Invoice Details
+                                        </label>
+                                        <div className="bg-light p-3 rounded">
+                                            <div className="font-size-sm text-dark mb-2">
+                                                <strong>Invoice Number:</strong> {selectedInvoice.id}
+                                            </div>
+                                            <div className="font-size-sm text-dark mb-2">
+                                                <strong>Amount:</strong> {selectedInvoice.amount}
+                                            </div>
+                                            <div className="font-size-sm text-dark">
+                                                <strong>Description:</strong> {selectedInvoice.description}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="form-group mb-4">
+                                <label className="font-weight-bold text-dark">
+                                    <i className="flaticon2-credit-card mr-2"></i>
+                                    Saved Cards
+                                </label>
+                                <div className="row">
+                                    <div className="col-md-6">
+                                        <div className="card mb-3" style={{ border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                                            <div className="card-body p-3">
+                                                <div className="d-flex justify-content-between align-items-center mb-2">
+                                                    <div className="d-flex align-items-center">
+                                                        <i className="flaticon2-visa text-primary mr-2" style={{ fontSize: '24px' }}></i>
+                                                        <div>
+                                                            <div className="font-weight-bold text-dark">Visa ending in 4242</div>
+                                                            <small className="text-muted">Expires 12/25</small>
+                                                        </div>
+                                                    </div>
+                                                    <button 
+                                                        className="btn btn-sm btn-success"
+                                                        onClick={() => this.handlePayWithSavedCard('visa_4242')}
+                                                    >
+                                                        <i className="flaticon2-pay mr-1"></i> Pay
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="col-md-6">
+                                        <div className="card mb-3" style={{ border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                                            <div className="card-body p-3">
+                                                <div className="d-flex justify-content-between align-items-center mb-2">
+                                                    <div className="d-flex align-items-center">
+                                                        <i className="flaticon2-mastercard text-warning mr-2" style={{ fontSize: '24px' }}></i>
+                                                        <div>
+                                                            <div className="font-weight-bold text-dark">Mastercard ending in 8888</div>
+                                                            <small className="text-muted">Expires 09/24</small>
+                                                        </div>
+                                                    </div>
+                                                    <button 
+                                                        className="btn btn-sm btn-success"
+                                                        onClick={() => this.handlePayWithSavedCard('mastercard_8888')}
+                                                    >
+                                                        <i className="flaticon2-pay mr-1"></i> Pay
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="text-center mt-3">
+                                    <button className="btn btn-outline-primary btn-sm">
+                                        <i className="flaticon2-plus mr-2"></i> Add New Card
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div className="form-group mb-4">
+                                <label className="font-weight-bold text-dark">
+                                    <i className="flaticon2-tag mr-2"></i>
+                                    Transaction Reference Number
+                                </label>
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    placeholder="Enter transaction reference (e.g., M-Pesa transaction ID, bank reference)"
+                                    value={bankPaymentIdentifier}
+                                    onChange={(e) => this.setState({ bankPaymentIdentifier: e.target.value })}
+                                />
+                                <small className="text-muted font-size-xs mt-2 d-block">
+                                    Enter the reference number from your bank transfer or M-Pesa transaction
+                                </small>
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button 
+                                type="button" 
+                                className="btn btn-secondary" 
+                                onClick={() => this.setState({ showBankPaymentModal: false })}
+                            >
+                                <i className="flaticon2-cross mr-2"></i>
+                                Cancel
+                            </button>
+                            <button 
+                                type="button" 
+                                className="btn btn-primary"
+                                onClick={this.handleBankPaymentSubmit}
+                                disabled={!bankPaymentIdentifier || !bankPaymentIdentifier.trim()}
+                            >
+                                <i className="flaticon2-check-mark mr-2"></i>
+                                Submit Payment Reference
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    renderCreateInvoiceModal = () => {
+        const { showCreateInvoiceModal, newInvoice } = this.state;
+        
+        if (!showCreateInvoiceModal) return null;
+
+        return (
+            <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal-dialog">
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h4 className="modal-title">
+                                <i className="la la-plus"></i> Create New Invoice
+                            </h4>
+                            <button 
+                                type="button" 
+                                className="close" 
+                                onClick={() => this.setState({ showCreateInvoiceModal: false })}
+                            >
+                                <span>&times;</span>
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="form-group">
+                                <label>Amount (KES)</label>
+                                <input 
+                                    type="number" 
+                                    className="form-control" 
+                                    placeholder="Enter amount in KES"
+                                    value={newInvoice.amount}
+                                    onChange={(e) => this.setState({ 
+                                        newInvoice: { ...newInvoice, amount: e.target.value }
+                                    })}
+                                    step="100"
+                                    min="0"
+                                />
+                                <small className="form-text text-muted">Enter amount in Kenyan Shillings (e.g., 45000)</small>
+                            </div>
+                            <div className="form-group">
+                                <label>Description</label>
+                                <textarea 
+                                    className="form-control" 
+                                    rows="3"
+                                    placeholder="Enter invoice description (e.g., Term 2 Subscription, SMS Bundle, Teacher Training)"
+                                    value={newInvoice.description}
+                                    onChange={(e) => this.setState({ 
+                                        newInvoice: { ...newInvoice, description: e.target.value }
+                                    })}
+                                ></textarea>
+                            </div>
+                            <div className="form-group">
+                                <label>School ID</label>
+                                <input 
+                                    type="text" 
+                                    className="form-control" 
+                                    placeholder="Enter school ID (e.g., school_001)"
+                                    value={newInvoice.schoolId}
+                                    onChange={(e) => this.setState({ 
+                                        newInvoice: { ...newInvoice, schoolId: e.target.value }
+                                    })}
+                                />
+                            </div>
+                            <div className="form-group">
+                                <label>Due Date</label>
+                                <input 
+                                    type="date" 
+                                    className="form-control" 
+                                    value={newInvoice.dueDate}
+                                    onChange={(e) => this.setState({ 
+                                        newInvoice: { ...newInvoice, dueDate: e.target.value }
+                                    })}
+                                />
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button 
+                                type="button" 
+                                className="btn btn-secondary" 
+                                onClick={() => this.setState({ showCreateInvoiceModal: false })}
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                type="button" 
+                                className="btn btn-success"
+                                onClick={this.handleSaveInvoice}
+                            >
+                                <i className="la la-save"></i> Create Invoice
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    renderPaymentModal = () => {
+        const { showPaymentModal, selectedInvoice, billingPhone } = this.state;
+        
+        if (!showPaymentModal || !selectedInvoice) return null;
+
+        return (
+            <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal-dialog">
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h4 className="modal-title">
+                                <i className="la la-credit-card"></i> Pay Invoice
+                            </h4>
+                            <button 
+                                type="button" 
+                                className="close" 
+                                onClick={() => this.setState({ showPaymentModal: false })}
+                            >
+                                <span>&times;</span>
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="alert alert-info">
+                                <h5>Invoice Details</h5>
+                                <p><strong>Invoice Number:</strong> {selectedInvoice.id}</p>
+                                <p><strong>Amount:</strong> {selectedInvoice.amount}</p>
+                                <p><strong>Due Date:</strong> {selectedInvoice.dueDate}</p>
+                                <p><strong>Description:</strong> {selectedInvoice.description}</p>
+                            </div>
+                            
+                            <div className="form-group">
+                                <label>Payment Method</label>
+                                <div className="form-control">
+                                    <i className="la la-mobile-phone"></i> M-Pesa Payment
+                                </div>
+                            </div>
+                            
+                            <div className="form-group">
+                                <label>Billing Phone Number</label>
+                                <div className="input-group">
+                                    <input 
+                                        type="tel" 
+                                        className="form-control" 
+                                        value={billingPhone}
+                                        readOnly
+                                    />
+                                    <div className="input-group-append">
+                                        <button 
+                                            className="btn btn-outline-secondary"
+                                            type="button"
+                                            onClick={this.handleManageBilling}
+                                        >
+                                            <i className="la la-edit"></i> Change
+                                        </button>
+                                    </div>
+                                </div>
+                                <small className="form-text text-muted">
+                                    Payment will be processed via M-Pesa to this number
+                                </small>
+                            </div>
+
+                            <div className="alert alert-warning">
+                                <i className="la la-info-circle"></i> Click "Confirm Payment" to initiate the M-Pesa payment process. You will receive a prompt on your phone to complete the transaction.
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button 
+                                type="button" 
+                                className="btn btn-secondary" 
+                                onClick={() => this.setState({ showPaymentModal: false })}
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                type="button" 
+                                className="btn btn-success"
+                                onClick={this.handleConfirmPayment}
+                            >
+                                <i className="la la-check"></i> Confirm Payment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    renderInvoicesList = () => {
+        const { invoices, loading, currentPage, itemsPerPage, totalInvoices } = this.state;
 
         if (loading) {
             return <SkeletonLoader />;
         }
 
-        if (deposits.length === 0) {
-            return (
-                <div className="text-center p-10">
-                    <i className="la la-inbox" style={{ fontSize: '3rem', color: '#ddd' }}></i>
-                    <p className="mt-4" style={{ color: '#999' }}>No institutional deposits found</p>
-                </div>
-            );
-        }
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const endIndex = startIndex + itemsPerPage;
+        const currentInvoices = invoices.slice(startIndex, endIndex);
 
         return (
             <div>
-                {/* Statistics Cards */}
-                {this.renderStatisticsCards()}
+                {/* Billing Information */}
+                {this.renderBillingInfo()}
                 
-                {/* Deposits Table */}
+                {/* Historical Invoices */}
                 <div className="kt-portlet">
                     <div className="kt-portlet__head">
                         <div className="kt-portlet__head-label">
-                            <h3 className="kt-portlet__head-title">Institutional Deposits</h3>
+                            <h3 className="kt-portlet__head-title">
+                                <i className="la la-history"></i> Historical invoices
+                            </h3>
                         </div>
                         <div className="kt-portlet__head-toolbar">
-                            <button 
-                                className="btn btn-label-success btn-bold mr-2"
-                                onClick={this.handleMpesaDeposit}
-                            >
-                                <i className="la la-mobile"></i> M-Pesa Deposit
-                            </button>
-                            <button 
-                                className="btn btn-label-brand btn-bold"
-                                onClick={() => this.setState({ bankInstructions: true })}
-                            >
-                                <i className="la la-university"></i> Bank Deposit
-                            </button>
+                            <span className="kt-font-sm text-muted">
+                                These invoices were created before May 1, 2026. New invoices are available through the manage billing link above. 
+                                Please download any old invoices you need, they won't be available in the dashboard anymore.
+                            </span>
                         </div>
                     </div>
-                <div className="kt-portlet__body">
-                    <div className="kt-section">
+                    <div className="kt-portlet__body">
                         <div className="table-responsive">
                             <table className="table table-striped">
                                 <thead>
                                     <tr>
-                                        <th>Receipt #</th>
-                                        <th>Date</th>
-                                        <th>Depositor</th>
-                                        <th>Amount</th>
-                                        <th>Method</th>
-                                        <th>Purpose</th>
+                                        <th>Number</th>
                                         <th>Status</th>
+                                        <th>Created</th>
+                                        <th>Due Date</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {deposits.map(deposit => (
-                                        <tr key={deposit.id}>
+                                    {currentInvoices.map(invoice => (
+                                        <tr key={invoice.id}>
                                             <td>
-                                                <span className="kt-badge kt-badge--success">
-                                                    {deposit.receiptNumber || `INST-${deposit.id}`}
-                                                </span>
-                                            </td>
-                                            <td>{new Date(deposit.createdAt).toLocaleDateString()}</td>
-                                            <td>{deposit.depositorName}</td>
-                                            <td>
-                                                <span className="kt-font-bold kt-font-success">
-                                                    KES {deposit.amount.toLocaleString()}
+                                                <span className="kt-font-bold">
+                                                    {invoice.id}
                                                 </span>
                                             </td>
                                             <td>
-                                                <span className={`kt-badge kt-badge--${deposit.paymentMethod === 'mpesa' ? 'success' : deposit.paymentMethod === 'bank' ? 'primary' : 'info'}`}>
-                                                    {deposit.paymentMethod?.toUpperCase() || 'BANK'}
+                                                <span className={`kt-badge kt-badge--${
+                                                    invoice.status === 'Paid' ? 'success' : 
+                                                    invoice.status === 'Pending Confirmation' ? 'warning' : 
+                                                    invoice.status === 'Unpaid' ? 'danger' : 'secondary'
+                                                }`}>
+                                                    {invoice.status}
                                                 </span>
                                             </td>
-                                            <td>{deposit.purpose || 'fees'}</td>
+                                            <td>{invoice.created}</td>
+                                            <td>{invoice.dueDate}</td>
                                             <td>
-                                                <span className={`kt-badge kt-badge--${deposit.status === 'completed' ? 'success' : 'warning'}`}>
-                                                    {deposit.status || 'pending'}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <button 
-                                                    className="btn btn-sm btn-clean btn-icon btn-icon-md"
-                                                    title="View Receipt"
-                                                    onClick={() => this.viewReceipt(deposit)}
-                                                >
-                                                    <i className="la la-eye"></i>
-                                                </button>
-                                                <button 
-                                                    className="btn btn-sm btn-clean btn-icon btn-icon-md ml-1"
-                                                    title="Download Receipt"
-                                                    onClick={() => this.downloadReceipt(deposit)}
-                                                >
-                                                    <i className="la la-download"></i>
-                                                </button>
+                                                <div className="d-flex align-items-center gap-1">
+                                                    {/* Pay button - more prominent for unpaid invoices */}
+                                                    {!this.state.isSuperAdmin && invoice.status === 'Unpaid' && (
+                                                        <button 
+                                                            className="btn btn-sm btn-success font-weight-bold"
+                                                            title="Pay Invoice"
+                                                            onClick={() => this.handlePayInvoice(invoice)}
+                                                            style={{ minWidth: '80px', fontSize: '12px', padding: '6px 12px' }}
+                                                        >
+                                                            <i className="la la-credit-card"></i> Pay
+                                                        </button>
+                                                    )}
+                                                    {this.state.isSuperAdmin && invoice.status === 'Pending Confirmation' && (
+                                                        <button 
+                                                            className="btn btn-sm btn-info font-weight-bold"
+                                                            title="Confirm Payment"
+                                                            onClick={() => this.handleConfirmBankPayment(invoice)}
+                                                            style={{ minWidth: '100px', fontSize: '12px', padding: '6px 12px' }}
+                                                        >
+                                                            <i className="la la-check"></i> Confirm
+                                                        </button>
+                                                    )}
+                                                    {/* Other actions - smaller icons */}
+                                                    <div className="btn-group">
+                                                        <button 
+                                                            className="btn btn-sm btn-clean btn-icon btn-icon-md"
+                                                            title="View Invoice"
+                                                            onClick={() => this.handleViewInvoice(invoice)}
+                                                        >
+                                                            <i className="la la-eye"></i>
+                                                        </button>
+                                                        <button 
+                                                            className="btn btn-sm btn-clean btn-icon btn-icon-md"
+                                                            title="Print Invoice"
+                                                            onClick={() => this.handlePrintInvoice(invoice)}
+                                                        >
+                                                            <i className="la la-print"></i>
+                                                        </button>
+                                                        <button 
+                                                            className="btn btn-sm btn-clean btn-icon btn-icon-md"
+                                                            title="Send via Email"
+                                                            onClick={() => this.handleEmailInvoice(invoice)}
+                                                        >
+                                                            <i className="la la-envelope"></i>
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}
@@ -658,195 +1522,161 @@ class InstitutionalDeposits extends Component {
                         </div>
                         
                         <Pagination
-                            total={totalDeposits}
+                            total={totalInvoices}
                             itemsPerPage={itemsPerPage}
                             currentPage={currentPage}
                             onPageChange={this.handlePageChange}
                         />
                     </div>
                 </div>
-                </div>
             </div>
         );
     };
 
-    renderMpesaModal = () => {
-        return (
-            <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                <div className="modal-dialog">
-                    <div className="modal-content">
-                        <div className="modal-header">
-                            <h4 className="modal-title">
-                                <i className="la la-mobile"></i> M-Pesa Deposit
-                            </h4>
-                            <button 
-                                type="button" 
-                                className="close" 
-                                onClick={() => this.setState({ showMpesaModal: false })}
-                            >
-                                <span>&times;</span>
-                            </button>
-                        </div>
-                        <form onSubmit={(e) => {
-                            e.preventDefault();
-                            const formData = new FormData(e.target);
-                            this.handleMpesaSubmit({
-                                amount: formData.get('amount'),
-                                phone: formData.get('phone'),
-                                depositorName: formData.get('depositorName'),
-                                purpose: formData.get('purpose')
-                            });
-                        }}>
-                            <div className="modal-body">
-                                <div className="form-group">
-                                    <label>Depositor Name</label>
-                                    <input 
-                                        type="text" 
-                                        name="depositorName"
-                                        className="form-control" 
-                                        placeholder="Enter your name"
-                                        required
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Amount (KES)</label>
-                                    <input 
-                                        type="number" 
-                                        name="amount"
-                                        className="form-control" 
-                                        placeholder="Enter amount"
-                                        min="1"
-                                        required
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>M-Pesa Phone Number</label>
-                                    <input 
-                                        type="tel" 
-                                        name="phone"
-                                        className="form-control" 
-                                        placeholder="254XXXXXXXXX"
-                                        pattern="254[0-9]{9}"
-                                        required
-                                    />
-                                </div>
-                                <div className="form-group">
-                                    <label>Purpose</label>
-                                    <select name="purpose" className="form-control">
-                                        <option value="institutional_deposit">Institutional Deposit</option>
-                                        <option value="fees">School Fees</option>
-                                        <option value="development">Development Fund</option>
-                                        <option value="other">Other</option>
-                                    </select>
-                                </div>
-                                <div className="alert alert-info">
-                                    <i className="la la-info-circle"></i> 
-                                    You will receive an M-Pesa STK push on your phone to complete this payment.
-                                </div>
-                            </div>
-                            <div className="modal-footer">
-                                <button 
-                                    type="button" 
-                                    className="btn btn-secondary" 
-                                    onClick={() => this.setState({ showMpesaModal: false })}
-                                >
-                                    Cancel
-                                </button>
-                                <button type="submit" className="btn btn-success">
-                                    <i className="la la-mobile"></i> Initiate Payment
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        );
-    };
+    renderPrintView = () => {
+        const { printInvoice, schoolInfo } = this.state;
+        
+        if (!printInvoice) return null;
 
-    renderBankInstructions = () => {
         return (
-            <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                <div className="modal-dialog modal-lg">
-                    <div className="modal-content">
-                        <div className="modal-header">
-                            <h4 className="modal-title">
-                                <i className="la la-university"></i> Bank Deposit Instructions
-                            </h4>
-                            <button 
-                                type="button" 
-                                className="close" 
-                                onClick={() => this.setState({ bankInstructions: false })}
-                            >
-                                <span>&times;</span>
-                            </button>
-                        </div>
-                        <div className="modal-body">
-                            <div className="row">
-                                <div className="col-md-6">
-                                    <div className="kt-portlet kt-portlet--height-fluid">
-                                        <div className="kt-portlet__head">
-                                            <div className="kt-portlet__head-label">
-                                                <h5 className="kt-portlet__head-title">Bank Details</h5>
+            <div className="kt-grid__item kt-grid__item--fluid kt-grid kt-grid--ver kt-page">
+                <div className="kt-grid__item kt-grid__item--fluid kt-grid kt-grid--hor kt-wrapper" id="kt_wrapper">
+                    <Navbar />
+                    <Subheader links={["Finance", "Invoice Statement"]} />
+
+                    <div className="kt-content kt-grid__item kt-grid__item--fluid" style={{ height: "auto" }} id="kt_content">
+                        <div className="kt-container">
+                            <div className="d-print-none p-4 border-bottom mb-4 d-flex justify-content-between align-items-center bg-white rounded shadow-sm">
+                                <button className="btn btn-secondary" onClick={this.togglePrintView}>
+                                    <i className="fa fa-arrow-left"></i> Back to Billing
+                                </button>
+                                <div>
+                                    <h4 className="m-0 font-weight-bold">Invoice Preview</h4>
+                                </div>
+                                <div>
+                                    <button className="btn btn-primary" onClick={this.handlePrint}>
+                                        <i className="fa fa-print mr-2"></i> Print Invoice
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="print-area" style={{ backgroundColor: '#f3f4f6', paddingTop: '20px', paddingBottom: '20px', display: 'flex', justifyContent: 'center' }}>
+                                <div className="invoice-preview-card" style={{ 
+                                    backgroundColor: 'white', 
+                                    padding: '40px', 
+                                    borderRadius: '8px', 
+                                    boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+                                    width: '100%',
+                                    maxWidth: '800px'
+                                }}>
+                                    <div className="text-center mb-6">
+                                        <h2 className="mb-2">Shule Plus</h2>
+                                        <h4 className="text-muted">Invoice #{printInvoice.id}</h4>
+                                        <p className="text-muted">Billing & Invoice Management</p>
+                                    </div>
+                                    
+                                    <div className="row mb-6">
+                                        <div className="col-md-6">
+                                            <h6 className="mb-3">Invoice Details</h6>
+                                            <div className="invoice-details">
+                                                <p><strong>Invoice Number:</strong> {printInvoice.id}</p>
+                                                <p><strong>Date Created:</strong> {printInvoice.created}</p>
+                                                <p><strong>Due Date:</strong> {printInvoice.created}</p>
+                                                <p><strong>Billing Period:</strong> Monthly Subscription</p>
+                                                <p><strong>Payment Method:</strong> Auto-debit</p>
                                             </div>
                                         </div>
-                                        <div className="kt-portlet__body">
-                                            <table className="table">
-                                                <tr><td><strong>Bank:</strong></td><td>Family Bank</td></tr>
-                                                <tr><td><strong>Account Name:</strong></td><td>Smart Kids School Ltd</td></tr>
-                                                <tr><td><strong>Account Number:</strong></td><td>[To be configured]</td></tr>
-                                                <tr><td><strong>Branch:</strong></td><td>Westlands Branch</td></tr>
-                                            </table>
+                                        <div className="col-md-6 text-right">
+                                            <h6 className="mb-3">Amount Due</h6>
+                                            <h2 className="text-success mb-3">{printInvoice.amount}</h2>
+                                            <span className="badge badge-success badge-lg">{printInvoice.status}</span>
                                         </div>
                                     </div>
-                                </div>
-                                <div className="col-md-6">
-                                    <div className="kt-portlet kt-portlet--height-fluid">
-                                        <div className="kt-portlet__head">
-                                            <div className="kt-portlet__head-label">
-                                                <h5 className="kt-portlet__head-title">Deposit Process</h5>
-                                            </div>
-                                        </div>
-                                        <div className="kt-portlet__body">
-                                            <ol>
-                                                <li>Visit any Equity Bank branch</li>
-                                                <li>Fill deposit slip with school account details</li>
-                                                <li>Deposit cash or cheque</li>
-                                                <li>Keep your deposit receipt</li>
-                                                <li>Return here to record your deposit</li>
-                                                <li>Receive official receipt instantly</li>
-                                            </ol>
-                                            <div className="text-center mt-4">
-                                                <button 
-                                                    className="btn btn-label-brand btn-bold btn-lg"
-                                                    onClick={() => window.open('/finance/fees', '_blank')}
-                                                >
-                                                    <i className="la la-external-link"></i> Go to Fee Payment
-                                                </button>
-                                            </div>
-                                        </div>
+                                    
+                                    <div className="table-responsive mb-6">
+                                        <table className="table table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th>Description</th>
+                                                    <th className="text-right">Amount</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr>
+                                                    <td>Monthly Subscription - Shule Plus</td>
+                                                    <td className="text-right font-weight-bold">{printInvoice.amount}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>Total</strong></td>
+                                                    <td className="text-right font-weight-bold">{printInvoice.amount}</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    
+                                    <div className="text-center text-muted border-top pt-4">
+                                        <p className="mb-2">Thank you for your business!</p>
+                                        <p className="mb-2">For questions, please contact billing@smartkids.school</p>
+                                        <p className="small">Shule Plus - Educational Excellence</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+                
+                <style>{`
+                    @media print {
+                        /* Hide UI Clutter */
+                        #kt_header, #kt_header_mobile, #kt_header_secondary, .kt-subheader, .kt-footer, .kt-aside, .d-print-none { 
+                            display: none !important; 
+                        }
+                        
+                        /* Reset Layout for Print */
+                        body, html { 
+                            background: white !important; 
+                            margin: 0 !important; 
+                            padding: 0 !important; 
+                        }
+                        
+                        #kt_wrapper, .kt-content, .kt-container, #print-area { 
+                            background: white !important; 
+                            padding: 0 !important; 
+                            margin: 0 !important; 
+                            width: 100% !important; 
+                            max-width: 100% !important; 
+                            display: block !important;
+                            border: none !important;
+                        }
+
+                        #print-area {
+                            padding-top: 20px !important;
+                            margin-top: 0 !important;
+                        }
+
+                        /* Ensure Invoice Card fills space */
+                        .invoice-preview-card { 
+                            page-break-after: auto; 
+                            width: 100% !important; 
+                            max-width: none !important;
+                            height: auto !important; 
+                            border: none !important; 
+                            margin: 0 !important; 
+                            padding: 20px !important; 
+                            box-shadow: none !important; 
+                        }
+                    }
+                `}</style>
             </div>
         );
-    };
-
-    viewReceipt = (deposit) => {
-        // Open receipt in new window or modal
-        const receiptUrl = `/finance/institutional-deposits/receipt/${deposit.id}`;
-        window.open(receiptUrl, '_blank');
-    };
-
-    downloadReceipt = (deposit) => {
-        // Download PDF receipt
-        const receiptUrl = `/finance/institutional-deposits/download/${deposit.id}`;
-        window.open(receiptUrl, '_blank');
     };
 
     render() {
+        const { showPrintView } = this.state;
+        
+        if (showPrintView) {
+            return this.renderPrintView();
+        }
+
         return (
             <div className="kt-grid__item kt-grid__item--fluid kt-grid kt-grid--ver kt-page">
                 <div
@@ -854,7 +1684,7 @@ class InstitutionalDeposits extends Component {
                     id="kt_wrapper"
                 >
                     <Navbar />
-                    <Subheader links={["Finance", "Institutional Deposits"]} />
+                    <Subheader links={["Finance", "Billing"]} />
 
                     <div
                         className="kt-content  kt-grid__item kt-grid__item--fluid kt-grid kt-grid--hor"
@@ -862,9 +1692,13 @@ class InstitutionalDeposits extends Component {
                         id="kt_content"
                     >
                         <div className="kt-container  kt-grid__item kt-grid__item--fluid">
-                            {this.state.bankInstructions && this.renderBankInstructions()}
-                            {this.state.showMpesaModal && this.renderMpesaModal()}
-                            {!this.state.bankInstructions && !this.state.showMpesaModal && this.renderDepositsList()}
+                            {this.renderInvoicesList()}
+                            {this.renderInvoiceModal()}
+                            {this.renderEmailModal()}
+                            {this.renderCreateInvoiceModal()}
+                            {this.renderPaymentModal()}
+                            {this.renderBillingModal()}
+                            {this.renderBankPaymentModal()}
                         </div>
                     </div>
                     <Footer />

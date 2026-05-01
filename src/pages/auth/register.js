@@ -388,20 +388,7 @@ const Register = () => {
             
             await Data.init();
             
-            // Send SMS notification to admins about new school registration
-            try {
-                await Data.communication.sms.create({
-                    phone: '0724736012',
-                    message: `New school registered: ${schoolName} by ${adminName} (${adminPhone}). Type: ${schoolType}, Level: ${schoolLevel}, Size: ${schoolSize}, Students: ${numberOfStudents}. Email: ${adminEmail}. Address: ${schoolAddress}`
-                });
-                await Data.communication.sms.create({
-                    phone: '0701173735',
-                    message: `New school registered: ${schoolName} by ${adminName} (${adminPhone}). Type: ${schoolType}, Level: ${schoolLevel}, Size: ${schoolSize}, Students: ${numberOfStudents}. Email: ${adminEmail}. Address: ${schoolAddress}`
-                });
-            } catch (smsError) {
-                console.error('Failed to send admin SMS notification:', smsError);
-            }
-            
+                        
             if (window.toastr) window.toastr.success(`Registration successful! Welcome to ${schoolName}.`);
             history.push('/home');
             
@@ -466,20 +453,7 @@ const Register = () => {
             };
             await axios.post(`${API}/auth/register/student`, payload);
             
-            // Send SMS notification to admins about new student registration
-            try {
-                await Data.communication.sms.create({
-                    phone: '0724736012',
-                    message: `New student registered: ${studentName} - Parent: ${parentName} (${parentPhone}). School: ${schoolMeta?.name || 'Unknown'}. Class: ${studentClassId}. Email: ${parentEmail || 'Not provided'}`
-                });
-                await Data.communication.sms.create({
-                    phone: '0701173735',
-                    message: `New student registered: ${studentName} - Parent: ${parentName} (${parentPhone}). School: ${schoolMeta?.name || 'Unknown'}. Class: ${studentClassId}. Email: ${parentEmail || 'Not provided'}`
-                });
-            } catch (smsError) {
-                console.error('Failed to send admin SMS notification:', smsError);
-            }
-            
+                        
             setStudentRegStatus('success');
             setRegisteredPhone(parentPhone);
             localStorage.setItem(`shuleplus_registration_success_${schoolIdFromUrl}`, parentPhone);
