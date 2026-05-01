@@ -5,30 +5,14 @@ import './AuthenticationStage.css';
 
 const AuthenticationStage = ({ 
     userIdentifier, 
-    preferredMethod, 
     onAuthenticate, 
     onBack, 
-    onMethodChange, 
     isLoading,
-    sessionData 
 }) => {
-    const [selectedMethod, setSelectedMethod] = useState(preferredMethod || 'otp');
-    const [credentials, setCredentials] = useState({});
     const [otpSent, setOtpSent] = useState(false);
     const [resendTimer, setResendTimer] = useState(0);
-    const [showPassword, setShowPassword] = useState(false);
-    const [passwordInput, setPasswordInput] = useState('');
-    
-    const passwordRef = useRef(null);
     const intervalRef = useRef(null);
     const isSubmittingRef = useRef(false);
-
-    // Auto-focus password input when password method is selected
-    useEffect(() => {
-        if (selectedMethod === 'password' && passwordRef.current) {
-            setTimeout(() => passwordRef.current.focus(), 100);
-        }
-    }, [selectedMethod]);
 
     // Handle resend timer
     useEffect(() => {
@@ -41,20 +25,12 @@ const AuthenticationStage = ({
                 clearInterval(intervalRef.current);
             }
         }
-        
         return () => {
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
             }
         };
     }, [resendTimer]);
-
-    // Auto-send OTP if phone number and OTP is preferred method
-    useEffect(() => {
-        if (selectedMethod === 'otp' && !otpSent && userIdentifier) {
-            handleSendOTP();
-        }
-    }, [selectedMethod, userIdentifier]);
 
     // Reset submitting lock if loading state finishes (e.g. error)
     useEffect(() => {
@@ -63,80 +39,26 @@ const AuthenticationStage = ({
         }
     }, [isLoading]);
 
-    const handleMethodSelect = (method) => {
-        setSelectedMethod(method);
-        onMethodChange(method);
-        setCredentials({});
-        setOtpSent(false);
-        setResendTimer(0);
-        isSubmittingRef.current = false;
-    };
+    // Auto-send OTP on mount
+    useEffect(() => {
+        if (userIdentifier && !otpSent) {
+            handleSendOTP();
+        }
+    }, [userIdentifier]);
 
     const handleSendOTP = async () => {
         try {
-            // Use centralized API from data.js
             const result = await Data.communication.sms.sendOTP(userIdentifier);
-            
             if (result.success) {
                 setOtpSent(true);
-                startResendTimer();
-                setCredentials({ ...credentials, otpSent: true });
+                setResendTimer(30);
                 console.log('OTP sent successfully to:', userIdentifier);
             } else {
                 throw new Error(result.message || "Failed to send OTP code.");
             }
         } catch (error) {
             console.error('Failed to send OTP:', error);
-            // You might want to show error to user here
         }
-    };
-
-    const startResendTimer = () => {
-        setResendTimer(30); // 30 seconds
-    };
-
-    const handleOTPComplete = (otpCode) => {
-        setCredentials({ ...credentials, otp: otpCode });
-        
-        // Auto-submit when OTP is complete
-        if (otpCode.length === 5) {
-            handleAuthenticate('otp', { otp: otpCode });
-        }
-    };
-
-    const handlePasswordChange = (password) => {
-        setPasswordInput(password);
-        setCredentials({ ...credentials, password });
-    };
-
-    const handleAuthenticate = async (method, creds) => {
-        if (isSubmittingRef.current || isLoading) {
-            console.log('Blocking multiple fast authentication triggers.');
-            return;
-        }
-        isSubmittingRef.current = true;
-        
-        try {
-            // By delegating directly to the parent LoginContainer, we avoid firing two 
-            // sequential `/auth/verify/sms` API calls which was causing the 401 error overlap.
-            onAuthenticate(method, creds);
-        } catch (error) {
-            console.error('Authentication error:', error);
-            isSubmittingRef.current = false;
-            // You might want to show error to user here
-        }
-    };
-
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        
-        if (selectedMethod === 'password') {
-            if (passwordInput.trim()) {
-                handleAuthenticate('password', { password: passwordInput });
-            }
-        }
-        // Note: OTP submission is handled exclusively by auto-submit in handleOTPComplete
-        // This prevents double-submissions if the user instinctively hits 'Enter' after typing the code.
     };
 
     const handleResendOTP = () => {
@@ -145,33 +67,23 @@ const AuthenticationStage = ({
         }
     };
 
-    const getMethodDescription = () => {
-        switch (selectedMethod) {
-            case 'otp':
-                return 'We\'ll send a 5-digit code to your phone';
-            case 'password':
-                return 'Enter your account password';
-            default:
-                return 'Choose your preferred authentication method';
+    const handleOTPComplete = (otpCode) => {
+        if (otpCode.length === 5) {
+            if (isSubmittingRef.current || isLoading) return;
+            isSubmittingRef.current = true;
+            onAuthenticate('otp', { otp: otpCode });
         }
-    };
-
-    const isPhoneIdentifier = () => {
-        return /^\+?\d{7,}$/.test(userIdentifier);
     };
 
     const getMaskedIdentifier = () => {
-        if (isPhoneIdentifier()) {
-            const phone = userIdentifier;
-            if (phone.length > 4) {
-                return phone.substring(0, 3) + '***' + phone.substring(phone.length - 2);
-            }
-            return phone;
-        } else if (userIdentifier.includes('@')) {
-            const [username, domain] = userIdentifier.split('@');
+        const id = userIdentifier || '';
+        if (/^\+?\d{7,}$/.test(id)) {
+            return id.length > 4 ? id.substring(0, 3) + '***' + id.substring(id.length - 2) : id;
+        } else if (id.includes('@')) {
+            const [username, domain] = id.split('@');
             return username.substring(0, 2) + '***@' + domain;
         }
-        return userIdentifier.substring(0, 2) + '***';
+        return id.substring(0, 2) + '***';
     };
 
     return (
@@ -192,173 +104,65 @@ const AuthenticationStage = ({
                 <span className="identifier-value">{getMaskedIdentifier()}</span>
             </div>
 
-            {/* Method Selection */}
-            <div className="method-selection">
-                <h3 className="method-title">Choose authentication method</h3>
-                
-                {isPhoneIdentifier() && (
-                    <div 
-                        className={`method-option ${selectedMethod === 'otp' ? 'selected' : ''}`}
-                        onClick={() => handleMethodSelect('otp')}
-                    >
-                        <input
-                            type="radio"
-                            name="auth-method"
-                            value="otp"
-                            checked={selectedMethod === 'otp'}
-                            onChange={() => handleMethodSelect('otp')}
-                            disabled={isLoading}
-                        />
-                        <div className="method-info">
-                            <div className="method-name">
-                                📱 SMS Code (Recommended)
-                            </div>
-                            <div className="method-description">
-                                Fast and secure - we'll text you a code
-                            </div>
+            {/* OTP Form */}
+            <form onSubmit={(e) => e.preventDefault()} className="authentication-form">
+                <div className="otp-section">
+                    {!otpSent ? (
+                        <div className="otp-send-section">
+                            <p className="auth-description">We'll send a 5-digit code to your phone</p>
+                            <button
+                                type="button"
+                                onClick={handleSendOTP}
+                                className="btn btn-primary"
+                                disabled={isLoading}
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <span className="loading-spinner"></span>
+                                        Sending...
+                                    </>
+                                ) : (
+                                    'Send SMS Code'
+                                )}
+                            </button>
                         </div>
-                    </div>
-                )}
-
-                <div 
-                    className={`method-option ${selectedMethod === 'password' ? 'selected' : ''}`}
-                    onClick={() => handleMethodSelect('password')}
-                >
-                    <input
-                        type="radio"
-                        name="auth-method"
-                        value="password"
-                        checked={selectedMethod === 'password'}
-                        onChange={() => handleMethodSelect('password')}
-                        disabled={isLoading}
-                    />
-                    <div className="method-info">
-                        <div className="method-name">
-                            🔐 Password
-                        </div>
-                        <div className="method-description">
-                            Use your account password
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Authentication Form */}
-            <form onSubmit={handleSubmit} className="authentication-form">
-                <div className="auth-description">
-                    {getMethodDescription()}
-                </div>
-
-                {selectedMethod === 'otp' && (
-                    <div className="otp-section">
-                        {!otpSent ? (
-                            <div className="otp-send-section">
-                                <button
-                                    type="button"
-                                    onClick={handleSendOTP}
-                                    className="btn btn-primary"
-                                    disabled={isLoading}
-                                >
-                                    {isLoading ? (
-                                        <>
-                                            <span className="loading-spinner"></span>
-                                            Sending...
-                                        </>
-                                    ) : (
-                                        'Send SMS Code'
-                                    )}
-                                </button>
+                    ) : (
+                        <div className="otp-input-section">
+                            <div className="otp-instructions">
+                                Enter the 5-digit code sent to {getMaskedIdentifier()}
                             </div>
-                        ) : (
-                            <div className="otp-input-section">
-                                <div className="otp-instructions">
-                                    Enter the 5-digit code sent to {getMaskedIdentifier()}
-                                </div>
-                                
-                                <OTPBoxInput
-                                    length={5}
-                                    onComplete={handleOTPComplete}
-                                    disabled={isLoading}
-                                    autoFocus
-                                />
-                                
-                                <div className="otp-actions">
-                                    <button
-                                        type="button"
-                                        onClick={handleResendOTP}
-                                        className="btn-text"
-                                        disabled={resendTimer > 0 || isLoading}
-                                    >
-                                        {resendTimer > 0 
-                                            ? `Resend in ${resendTimer}s` 
-                                            : 'Resend Code'
-                                        }
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={onBack}
-                                        className="btn-text"
-                                        disabled={isLoading}
-                                    >
-                                        Change Number
-                                    </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => handleMethodSelect('password')}
-                                        className="btn-text"
-                                        disabled={isLoading}
-                                    >
-                                        Use Password Instead
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
-
-                {selectedMethod === 'password' && (
-                    <div className="password-section">
-                        <div className="password-input-wrapper">
-                            <input
-                                ref={passwordRef}
-                                type={showPassword ? 'text' : 'password'}
-                                value={passwordInput}
-                                onChange={(e) => handlePasswordChange(e.target.value)}
-                                placeholder="Enter your password"
-                                className="form-input password-input"
-                                autoComplete="current-password"
+                            
+                            <OTPBoxInput
+                                length={5}
+                                onComplete={handleOTPComplete}
                                 disabled={isLoading}
                                 autoFocus
                             />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="password-toggle"
-                                disabled={isLoading}
-                            >
-                                {showPassword ? '👁️‍🗨️' : '👁️'}
-                            </button>
+                            
+                            <div className="otp-actions">
+                                <button
+                                    type="button"
+                                    onClick={handleResendOTP}
+                                    className="btn-text"
+                                    disabled={resendTimer > 0 || isLoading}
+                                >
+                                    {resendTimer > 0 
+                                        ? `Resend in ${resendTimer}s` 
+                                        : 'Resend Code'
+                                    }
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={onBack}
+                                    className="btn-text"
+                                    disabled={isLoading}
+                                >
+                                    Change Number
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                )}
-
-                {/* Submit Button for Password */}
-                {selectedMethod === 'password' && (
-                    <button
-                        type="submit"
-                        className="btn btn-primary"
-                        disabled={!passwordInput.trim() || isLoading}
-                    >
-                        {isLoading ? (
-                            <>
-                                <span className="loading-spinner"></span>
-                                Signing In...
-                            </>
-                        ) : (
-                            'Sign In'
-                        )}
-                    </button>
-                )}
+                    )}
+                </div>
             </form>
 
             {/* Security Notice */}

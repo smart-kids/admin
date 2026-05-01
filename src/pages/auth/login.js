@@ -78,15 +78,13 @@ const darkenColor = (hex, percent) => {
 class Login extends React.Component {
     state = {
         user: "",
-        password: "",
         otpCode: "",
         showOtpInput: false,
         isOtpSent: false,
-        userInputLooksLikePhone: false,
-        isLoading: false, // For login/OTP actions
+        isLoading: false,
         error: "",
         schoolId: null,
-        schoolMeta: null, // { name, logoUrl, themeColor }
+        schoolMeta: null,
         isFetchingSchoolMeta: false,
         schoolMetaError: null,
     };
@@ -173,8 +171,7 @@ class Login extends React.Component {
                          error.insertAfter(element.parent(".input-group"));
                     } else if (element.prop("type") === "checkbox") {
                          error.insertAfter(element.next("label"));
-                    }
-                    else {
+                    } else {
                          error.insertAfter(element);
                     }
                 },
@@ -190,12 +187,11 @@ class Login extends React.Component {
                     if (this.state.showOtpInput) {
                         this.handleVerifyOtp();
                     } else {
-                        this.handlePasswordLogin();
+                        this.handleSendOtp();
                     }
                 },
                 rules: {
                     username: { required: true },
-                    password: { required: () => !this.state.showOtpInput },
                     otpCode: {
                         required: () => this.state.showOtpInput,
                         digits: true,
@@ -204,8 +200,7 @@ class Login extends React.Component {
                     }
                 },
                 messages: {
-                    username: "Please enter your username, email, or phone number",
-                    password: { required: "Please enter your password" },
+                    username: "Please enter your phone number",
                     otpCode: {
                         required: "Please enter the OTP code",
                         digits: "OTP must be digits",
@@ -219,37 +214,13 @@ class Login extends React.Component {
 
     handleUserInputChange = (e) => {
         const value = e.target.value;
-        const looksLikePhone = PHONE_REGEX.test(value);
-        this.setState({ user: value, userInputLooksLikePhone: looksLikePhone, error: "" });
-    };
-
-    handlePasswordChange = (e) => {
-        this.setState({ password: e.target.value, error: "" });
+        this.setState({ user: value, error: "" });
     };
 
     handleOtpCodeChange = (e) => {
         const value = e.target.value.replace(/[^0-9]/g, '');
         if (value.length <= 5) {
              this.setState({ otpCode: value, error: "" });
-        }
-    };
-
-    handlePasswordLogin = async () => {
-        const { user, password } = this.state;
-        if (!user || !password) {
-            this.setState({ error: "Username/Email and Password are required." });
-            return;
-        }
-        this.setState({ isLoading: true, error: "" });
-        try {
-            const res = await axios.post(`${API}/auth/login`, { user, password });
-            const { token, data: userData } = res.data;
-            if (!token || !userData) throw new Error("Invalid response from server.");
-            this.handleLoginSuccess(token, userData);
-        } catch (err) {
-            const errorMsg = err.response?.data?.message || err.message || "Login failed. Check credentials.";
-            if (this._isMounted) this.setState({ error: errorMsg, isLoading: false });
-            toastr && toastr.error("Login Failed", errorMsg);
         }
     };
 
@@ -278,20 +249,25 @@ class Login extends React.Component {
             if (this._isMounted) this.setState({ error: errorMsg, isLoading: false, isOtpSent: false, showOtpInput: false });
             toastr && toastr.error("OTP Send Failed", errorMsg);
         }
+        }
     };
 
     handleVerifyOtp = async () => {
         const { user, otpCode } = this.state;
         if (!user || !otpCode || otpCode.length !== 5) {
-            this.setState({ error: "Please enter the 5-digit OTP code." });
-            toastr && toastr.warning("Invalid OTP", "Please enter the 5-digit OTP code.");
+            this.setState({ error: "Please enter 5-digit OTP code." });
+            toastr && toastr.warning("Invalid OTP", "Please enter 5-digit OTP code.");
             return;
         }
         this.setState({ isLoading: true, error: "" });
+        
         try {
+            // Use regular OTP verification - backend now handles superadmin phones
             const res = await axios.post(`${API}/auth/verify/sms`, { user, password: otpCode });
-            const { token, user: userData } = res.data; // Assuming API returns 'user' instead of 'data' for user object on OTP verify
+            
+            const { token, user: userData } = res.data;
             if (!token || !userData) throw new Error("Invalid response from server.");
+            
             toastr && toastr.success("Verification Successful!", "You are now logged in.");
             setTimeout(() => this.handleLoginSuccess(token, userData), 1000);
         } catch (err) {
@@ -311,7 +287,7 @@ class Login extends React.Component {
         // No need to reset state here as component will unmount or redirect
     };
 
-    resetToPasswordMode = () => {
+    resetToPhoneMode = () => {
         this.setState({ showOtpInput: false, isOtpSent: false, otpCode: "", error: "" });
     }
 
@@ -514,7 +490,7 @@ class Login extends React.Component {
 
     render() {
         const {
-            user, password, otpCode, showOtpInput, userInputLooksLikePhone,
+            user, otpCode, showOtpInput,
             isLoading, error,
             schoolId, schoolMeta, isFetchingSchoolMeta, schoolMetaError
         } = this.state;
@@ -577,21 +553,21 @@ class Login extends React.Component {
                                 )}
 
                                 <div className="form-group">
-                                    <label htmlFor="username">Username, Email, or Phone</label>
+                                    <label htmlFor="username">Phone Number</label>
                                     <div className="input-group">
                                         <input
                                             value={user}
                                             onChange={this.handleUserInputChange}
                                             className="form-control"
-                                            type="text"
+                                            type="tel"
                                             id="username"
-                                            placeholder="Enter here"
+                                            placeholder="e.g. +254712345678"
                                             name="username"
-                                            autoComplete="username"
+                                            autoComplete="tel"
                                             required
-                                            disabled={formDisabled}
+                                            disabled={formDisabled || showOtpInput}
                                         />
-                                        {userInputLooksLikePhone && !showOtpInput && (
+                                        {!showOtpInput && (
                                             <div className="input-group-append">
                                                 <button
                                                     type="button"
@@ -599,32 +575,18 @@ class Login extends React.Component {
                                                     className="btn btn-otp-send"
                                                     disabled={formDisabled || !user}
                                                 >
-                                                    {isLoading && this.state.user === user ? 'Sending...' : 'Send OTP'}
+                                                    {isLoading ? 'Sending...' : 'Send OTP'}
                                                 </button>
                                             </div>
                                         )}
                                     </div>
                                 </div>
 
-                                {!showOtpInput ? (
+                                {showOtpInput ? (
                                     <div className="form-group">
-                                        <label htmlFor="password">Password</label>
-                                        <input
-                                            value={password}
-                                            onChange={this.handlePasswordChange}
-                                            className="form-control"
-                                            type="password"
-                                            id="password"
-                                            placeholder="Enter your password"
-                                            name="password"
-                                            autoComplete="current-password"
-                                            required={!showOtpInput}
-                                            disabled={formDisabled}
-                                        />
-                                    </div>
-                                ) : (
-                                    <div className="form-group">
-                                        <label htmlFor="otpCodeInput">Enter 5-Digit OTP Code</label>
+                                        <label htmlFor="otpCodeInput">
+                                            Enter 5-Digit OTP Code
+                                        </label>
                                         <input
                                             id="otpCodeInput"
                                             value={otpCode}
@@ -641,32 +603,33 @@ class Login extends React.Component {
                                             inputMode="numeric"
                                         />
                                     </div>
-                                )}
+                                ) : null}
 
                                 <div className="d-flex justify-content-between align-items-center mt-3 mb-4">
-                                    {!showOtpInput ? (
-                                        <Link to="/recover" className="kt-link">Forgot Password?</Link>
-                                    ) : (
+                                    {showOtpInput && (
                                         <button
                                             type="button"
-                                            onClick={this.resetToPasswordMode}
+                                            onClick={this.resetToPhoneMode}
                                             className="btn btn-link kt-link p-0"
                                             disabled={formDisabled}
                                         >
-                                            Use Password Instead?
+                                            ← Change phone number
                                         </button>
                                     )}
                                 </div>
+
                                 
-                                <button
-                                    type="submit"
-                                    className="btn btn-brand btn-block btn-lg"
-                                    disabled={formDisabled}
-                                >
-                                    {isLoading ? (
-                                        <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                                    ) : (showOtpInput ? 'Verify OTP' : 'Sign In')}
-                                </button>
+                                {showOtpInput && (
+                                    <button
+                                        type="submit"
+                                        className="btn btn-brand btn-block btn-lg"
+                                        disabled={formDisabled}
+                                    >
+                                        {isLoading ? (
+                                            <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                        ) : 'Verify OTP & Sign In'}
+                                    </button>
+                                )}
                                  <div className="mt-4 text-center">
                                     Don't have an account? <Link to="/register" className="kt-link">Register Here</Link>
                                 </div>
@@ -692,8 +655,8 @@ class Login extends React.Component {
                                 </p>
                                 <p>
                                     {schoolMeta?.tagline || `${currentSchoolName} empowers educators and administrators with the tools they need for a smarter, more efficient school environment.`}
-                                 </p>
-                                 <div className="login-info-footer">
+                                </p>
+                                <div className="login-info-footer">
                                     © {new Date().getFullYear()} {currentSchoolName}. All Rights Reserved.
                                     <br/>
                                     Need help? <a href={schoolMeta?.supportEmail ? `mailto:${schoolMeta.supportEmail}` : "mailto:shuleplusadmin@gmail.com"}>Contact Support</a>
