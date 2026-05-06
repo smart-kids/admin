@@ -2002,116 +2002,146 @@ class FeesManagement extends Component {
                                     </div>
                                 </div>
                                 
-                                <div id="print-area" className="report-card-container mx-auto" style={{ 
-                                    padding: '1.0cm 1.5cm', 
-                                    backgroundColor: 'white', 
-                                    minHeight: '29.7cm', 
-                                    width: '21cm', 
-                                    margin: '0 auto 2cm auto', 
-                                    position: 'relative',
-                                    fontFamily: "'Inter', 'Roboto', sans-serif",
-                                    color: '#1f2937', 
-                                    boxSizing: 'border-box',
-                                    boxShadow: '0 0 40px rgba(0,0,0,0.08)', 
-                                    border: '1px solid #e5e7eb',
-                                    display: 'flex',
-                                    flexDirection: 'column'
-                                }}>
-                                    <ReportHeader 
-                                        school={schoolInfo} 
-                                        title={this.state.collectionReportBalanceFilter ? "OUTSTANDING BALANCES REPORT" : "PAYMENT COLLECTION REPORT"} 
-                                        themeColor={themeColor} 
-                                    />
+                                {(() => {
+                                    const studentReportData = this.getCollectionReportData();
+                                    
+                                    // Group by class
+                                    const groupedByClass = studentReportData.reduce((acc, s) => {
+                                        const cName = s.class?.name || s.studentClassId || "Unassigned";
+                                        if (!acc[cName]) acc[cName] = [];
+                                        acc[cName].push(s);
+                                        return acc;
+                                    }, {});
 
-                                    {/* Report Metadata Block */}
-                                    <div style={{ 
-                                        display: 'grid', 
-                                        gridTemplateColumns: 'repeat(3, 1fr)', 
-                                        gap: '15px', 
-                                        backgroundColor: '#ffffff', 
-                                        padding: '20px', 
-                                        borderRadius: '16px', 
-                                        marginBottom: '0.8cm',
-                                        border: '1px solid #e5e7eb',
-                                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-                                    }}>
-                                        <div style={{ borderRight: '1px solid #f3f4f6', paddingRight: '10px' }}>
-                                            <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 700, color: '#9ca3af', marginBottom: '4px' }}>CLASS / GRADE</div>
-                                            <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#111827' }}>{currentClassName}</div>
-                                        </div>
-                                        <div style={{ borderRight: '1px solid #f3f4f6', paddingRight: '10px' }}>
-                                            <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 700, color: '#9ca3af', marginBottom: '4px' }}>TERM</div>
-                                            <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#111827' }}>{currentTermName}</div>
-                                        </div>
-                                        <div>
-                                            <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 700, color: '#9ca3af', marginBottom: '4px' }}>DATE GENERATED</div>
-                                            <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#111827' }}>{new Date().toLocaleDateString('en-GB')}</div>
-                                        </div>
-                                    </div>
+                                    const sortedClassNames = Object.keys(groupedByClass).sort((a, b) => {
+                                        if (a === "Unassigned") return 1;
+                                        if (b === "Unassigned") return -1;
+                                        return a.localeCompare(b);
+                                    });
 
-                                    {/* Collection Table */}
-                                    <div style={{ marginBottom: '0.8cm', border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden', flex: 1 }}>
-                                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                            <thead>
-                                                <tr style={{ backgroundColor: themeColor }}>
-                                                    <th style={{ padding: '12px 18px', textAlign: 'center', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', width: '40px' }}>#</th>
-                                                    <th style={{ padding: '12px 18px', textAlign: 'left', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Student Details</th>
-                                                    <th style={{ padding: '12px 18px', textAlign: 'left', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Registration</th>
-                                                    <th style={{ padding: '12px 18px', textAlign: 'right', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Expected</th>
-                                                    <th style={{ padding: '12px 18px', textAlign: 'right', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Paid</th>
-                                                    <th style={{ padding: '12px 18px', textAlign: 'right', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Balance</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {studentReportData.length === 0 ? (
-                                                    <tr>
-                                                        <td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: '#9ca3af', fontStyle: 'italic' }}>
-                                                            No student records match the selected filters.
-                                                        </td>
-                                                    </tr>
-                                                ) : studentReportData.map((s, idx) => (
-                                                    <tr key={s.id} style={{ backgroundColor: idx % 2 === 0 ? '#fff' : '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
-                                                        <td style={{ padding: '12px 18px', textAlign: 'center', fontSize: '0.85rem', color: '#6b7280' }}>{idx + 1}</td>
-                                                        <td style={{ padding: '12px 18px' }}>
-                                                            <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#111827' }}>{s.names}</div>
-                                                            <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{s.parentName}</div>
-                                                        </td>
-                                                        <td style={{ padding: '12px 18px', fontSize: '0.85rem', color: '#4b5563' }}>{s.registration}</td>
-                                                        <td style={{ padding: '12px 18px', textAlign: 'right', fontWeight: 600, fontSize: '0.9rem' }}>{s.totalExpected.toLocaleString()}</td>
-                                                        <td style={{ padding: '12px 18px', textAlign: 'right', fontWeight: 700, fontSize: '0.95rem', color: s.totalPaid > 0 ? '#10b981' : '#9ca3af' }}>
-                                                            {s.totalPaid.toLocaleString()}
-                                                            {s.totalPaid === 0 && <span style={{ display: 'block', fontSize: '0.65rem', color: '#ef4444', fontWeight: 800 }}>NO PAYMENT</span>}
-                                                        </td>
-                                                        <td style={{ padding: '12px 18px', textAlign: 'right', fontWeight: 800, fontSize: '1.0rem', color: s.balance > 0 ? '#ef4444' : '#10b981' }}>{s.balance.toLocaleString()}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                    return (
+                                        <div id="print-area">
+                                            {sortedClassNames.map((className, cIdx) => {
+                                                const classStudents = groupedByClass[className];
+                                                return (
+                                                    <div key={className} className="report-card-container mx-auto" style={{ 
+                                                        padding: '1.0cm 1.5cm', 
+                                                        backgroundColor: 'white', 
+                                                        minHeight: '29.7cm', 
+                                                        width: '21cm', 
+                                                        margin: '0 auto 2cm auto', 
+                                                        position: 'relative',
+                                                        fontFamily: "'Inter', 'Roboto', sans-serif",
+                                                        color: '#1f2937', 
+                                                        boxSizing: 'border-box',
+                                                        boxShadow: '0 0 40px rgba(0,0,0,0.08)', 
+                                                        border: '1px solid #e5e7eb',
+                                                        display: 'flex',
+                                                        flexDirection: 'column',
+                                                        pageBreakAfter: cIdx === sortedClassNames.length - 1 ? 'auto' : 'always'
+                                                    }}>
+                                                        <ReportHeader 
+                                                            school={schoolInfo} 
+                                                            title={this.state.collectionReportBalanceFilter ? "OUTSTANDING BALANCES REPORT" : "PAYMENT COLLECTION REPORT"} 
+                                                            themeColor={themeColor} 
+                                                        />
 
-                                    {/* Signature Section */}
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1.0cm', marginBottom: '1.0cm', padding: '0 1cm' }}>
-                                        <div style={{ width: '220px', textAlign: 'center' }}>
-                                            <div style={{ height: '40px' }}></div>
-                                            <div style={{ borderTop: '2px solid #e5e7eb', paddingTop: '10px' }}>
-                                                <p style={{ margin: 0, fontWeight: 800, color: '#111827', fontSize: '0.85rem', textTransform: 'uppercase' }}>Bursar / Accounts</p>
-                                                <p style={{ margin: '4px 0 0 0', fontSize: '0.65rem', color: '#9ca3af', fontWeight: 600 }}>Signature & Date</p>
-                                            </div>
-                                        </div>
-                                        <div style={{ width: '220px', textAlign: 'center' }}>
-                                            <div style={{ height: '40px' }}></div>
-                                            <div style={{ borderTop: '2px solid #e5e7eb', paddingTop: '10px' }}>
-                                                <p style={{ margin: 0, fontWeight: 800, color: '#111827', fontSize: '0.85rem', textTransform: 'uppercase' }}>Principal</p>
-                                                <p style={{ margin: '4px 0 0 0', fontSize: '0.65rem', color: '#9ca3af', fontWeight: 600 }}>Official Stamp & Date</p>
-                                            </div>
-                                        </div>
-                                    </div>
+                                                        {/* Report Metadata Block */}
+                                                        <div style={{ 
+                                                            display: 'grid', 
+                                                            gridTemplateColumns: 'repeat(3, 1fr)', 
+                                                            gap: '15px', 
+                                                            backgroundColor: '#ffffff', 
+                                                            padding: '20px', 
+                                                            borderRadius: '16px', 
+                                                            marginBottom: '0.8cm',
+                                                            border: '1px solid #e5e7eb',
+                                                            boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                                                        }}>
+                                                            <div style={{ borderRight: '1px solid #f3f4f6', paddingRight: '10px' }}>
+                                                                <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 700, color: '#9ca3af', marginBottom: '4px' }}>CLASS / GRADE</div>
+                                                                <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#111827' }}>{className}</div>
+                                                            </div>
+                                                            <div style={{ borderRight: '1px solid #f3f4f6', paddingRight: '10px' }}>
+                                                                <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 700, color: '#9ca3af', marginBottom: '4px' }}>TERM</div>
+                                                                <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#111827' }}>{currentTermName}</div>
+                                                            </div>
+                                                            <div>
+                                                                <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 700, color: '#9ca3af', marginBottom: '4px' }}>DATE GENERATED</div>
+                                                                <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#111827' }}>{new Date().toLocaleDateString('en-GB')}</div>
+                                                            </div>
+                                                        </div>
 
-                                    {/* Footer */}
-                                    <div style={{ marginTop: 'auto', paddingBottom: '0.5cm' }}>
-                                        <ReportFooter themeColor={themeColor} validationStatus="Financial Record" />
-                                    </div>
-                                </div>
+                                                        {/* Collection Table */}
+                                                        <div style={{ marginBottom: '0.8cm', border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden', flex: 1 }}>
+                                                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                                                <thead>
+                                                                    <tr style={{ backgroundColor: themeColor }}>
+                                                                        <th style={{ padding: '12px 18px', textAlign: 'center', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', width: '40px' }}>#</th>
+                                                                        <th style={{ padding: '12px 18px', textAlign: 'left', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Student Details</th>
+                                                                        <th style={{ padding: '12px 18px', textAlign: 'left', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Registration</th>
+                                                                        <th style={{ padding: '12px 18px', textAlign: 'right', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Expected</th>
+                                                                        <th style={{ padding: '12px 18px', textAlign: 'right', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Paid</th>
+                                                                        <th style={{ padding: '12px 18px', textAlign: 'right', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Balance</th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    {classStudents.map((s, idx) => (
+                                                                        <tr key={s.id} style={{ backgroundColor: idx % 2 === 0 ? '#fff' : '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
+                                                                            <td style={{ padding: '12px 18px', textAlign: 'center', fontSize: '0.85rem', color: '#6b7280' }}>{idx + 1}</td>
+                                                                            <td style={{ padding: '12px 18px' }}>
+                                                                                <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#111827' }}>{s.names}</div>
+                                                                                <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{s.parentName}</div>
+                                                                            </td>
+                                                                            <td style={{ padding: '12px 18px', fontSize: '0.85rem', color: '#4b5563' }}>{s.registration}</td>
+                                                                            <td style={{ padding: '12px 18px', textAlign: 'right', fontWeight: 600, fontSize: '0.9rem' }}>{s.totalExpected.toLocaleString()}</td>
+                                                                            <td style={{ padding: '12px 18px', textAlign: 'right', fontWeight: 700, fontSize: '0.95rem', color: s.totalPaid > 0 ? '#10b981' : '#9ca3af' }}>
+                                                                                {s.totalPaid.toLocaleString()}
+                                                                                {s.totalPaid === 0 && <span style={{ display: 'block', fontSize: '0.65rem', color: '#ef4444', fontWeight: 800 }}>NO PAYMENT</span>}
+                                                                            </td>
+                                                                            <td style={{ padding: '12px 18px', textAlign: 'right', fontWeight: 800, fontSize: '1.0rem', color: s.balance > 0 ? '#ef4444' : '#10b981' }}>{s.balance.toLocaleString()}</td>
+                                                                        </tr>
+                                                                    ))}
+                                                                    
+                                                                    {/* CLASS TOTAL ROW */}
+                                                                    <tr style={{ borderTop: '2px solid #374151', backgroundColor: '#f9fafb' }}>
+                                                                        <td colSpan="3" style={{ padding: '15px 18px', textAlign: 'right', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem' }}>Class Total ({className})</td>
+                                                                        <td style={{ padding: '15px 18px', textAlign: 'right', fontWeight: 800, fontSize: '1.0rem' }}>{classStudents.reduce((sum, s) => sum + s.totalExpected, 0).toLocaleString()}</td>
+                                                                        <td style={{ padding: '15px 18px', textAlign: 'right', fontWeight: 800, fontSize: '1.0rem', color: '#10b981' }}>{classStudents.reduce((sum, s) => sum + s.totalPaid, 0).toLocaleString()}</td>
+                                                                        <td style={{ padding: '15px 18px', textAlign: 'right', fontWeight: 800, fontSize: '1.1rem', color: '#ef4444' }}>{classStudents.reduce((sum, s) => sum + s.balance, 0).toLocaleString()}</td>
+                                                                    </tr>
+                                                                </tbody>
+                                                            </table>
+                                                        </div>
+
+                                                        {/* Signature Section */}
+                                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1.0cm', marginBottom: '1.0cm', padding: '0 1cm' }}>
+                                                            <div style={{ width: '220px', textAlign: 'center' }}>
+                                                                <div style={{ height: '40px' }}></div>
+                                                                <div style={{ borderTop: '2px solid #e5e7eb', paddingTop: '10px' }}>
+                                                                    <p style={{ margin: 0, fontWeight: 800, color: '#111827', fontSize: '0.85rem', textTransform: 'uppercase' }}>Bursar / Accounts</p>
+                                                                    <p style={{ margin: '4px 0 0 0', fontSize: '0.65rem', color: '#9ca3af', fontWeight: 600 }}>Signature & Date</p>
+                                                                </div>
+                                                            </div>
+                                                            <div style={{ width: '220px', textAlign: 'center' }}>
+                                                                <div style={{ height: '40px' }}></div>
+                                                                <div style={{ borderTop: '2px solid #e5e7eb', paddingTop: '10px' }}>
+                                                                    <p style={{ margin: 0, fontWeight: 800, color: '#111827', fontSize: '0.85rem', textTransform: 'uppercase' }}>Principal</p>
+                                                                    <p style={{ margin: '4px 0 0 0', fontSize: '0.65rem', color: '#9ca3af', fontWeight: 600 }}>Official Stamp & Date</p>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Footer */}
+                                                        <div style={{ marginTop: 'auto', paddingBottom: '0.5cm' }}>
+                                                            <ReportFooter themeColor={themeColor} validationStatus={`Financial Record - ${className}`} />
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    );
+                                })()}
                             </div>
                         </div>
                         <style>{`
