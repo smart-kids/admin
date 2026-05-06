@@ -76,7 +76,6 @@ class FinanceInsightsDashboard extends Component {
   }
 
   componentDidUpdate(prevProps) {
-    // Update data when props change (filter changes)
     if (prevProps.selectedClass !== this.props.selectedClass || 
         prevProps.selectedTerm !== this.props.selectedTerm ||
         prevProps.classes !== this.props.classes ||
@@ -95,7 +94,9 @@ class FinanceInsightsDashboard extends Component {
         feeStructures: this.props.feeStructures || [], 
         parents: this.props.parents || [], 
         students: this.props.students || [], 
-        terms: this.props.terms || [] 
+        terms: this.props.terms || [],
+        selectedClass: this.props.selectedClass || '',
+        selectedTerm: this.props.selectedTerm || ''
       });
     }
   }
@@ -267,8 +268,11 @@ class FinanceInsightsDashboard extends Component {
     }
   };
 
-  processDataFromUnifiedSource = (processedParents) => {
+  processDataFromUnifiedSource = (dataFromProps) => {
     const { classes } = this.state;
+    const processedParents = dataFromProps || this.props.processedParents || [];
+    
+    if (!processedParents || processedParents.length === 0) return [];
     
     // Use the shared engine to aggregate parent-level data into class-level metrics
     const classGroups = aggregateByClass(processedParents, classes);
@@ -309,7 +313,7 @@ class FinanceInsightsDashboard extends Component {
   };
 
   processFinancialData = (payments, charges, feeStructures, classes, students, parents) => {
-    const { selectedTerm } = this.props;
+    const selectedTerm = this.props.selectedTerm || this.state.selectedTerm || '';
     // Group payments by class and stream
     const classGroups = {};
     
@@ -1019,7 +1023,7 @@ class FinanceInsightsDashboard extends Component {
               <select 
                 className="form-control"
                 value={this.state.comparisonMode || "none"}
-                onChange={(e) => this.setState({ comparisonMode: e.target.value })}
+                onChange={(e) => this.setState({ comparisonMode: e.target.value }, this.processData)}
               >
                 <option value="none">No Comparison</option>
                 <option value="previousTerm">Previous Term</option>

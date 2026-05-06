@@ -1292,7 +1292,7 @@ var Data = (function () {
                 findByClass: (classId, termId) => new Promise(async (resolve, reject) => {
                     try {
                         const schoolId = localStorage.getItem("school");
-                        const response = await api(`
+                        const response = await query(`
                             query GetFeeStructuresByClass($schoolId: String!, $classId: String!, $termId: String) {
                                 school(id: $schoolId) {
                                     feeStructures(where: {

@@ -2,6 +2,13 @@ import React from 'react';
 import ReportHeader from '../../../components/reports/ReportHeader';
 import ReportFooter from '../../../components/reports/ReportFooter';
 
+const maskPhone = (phone) => {
+    if (!phone) return "";
+    const cleaned = phone.replace(/\D/g, '');
+    if (cleaned.length < 9) return phone;
+    return cleaned.slice(0, 3) + "****" + cleaned.slice(-3);
+};
+
 const StatementCard = ({ group, school, validStudentsData, totalValidExpected, totalValidPaid, totalValidBalance, feeStructures, selectedTerm, terms }) => {
     const themeColor = school?.themeColor || '#1a1a1a';
     
@@ -127,11 +134,18 @@ const StatementCard = ({ group, school, validStudentsData, totalValidExpected, t
             }}>
                 <div style={{ borderRight: '1px solid #f3f4f6', paddingRight: '10px' }}>
                     <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 700, color: '#9ca3af', marginBottom: '4px' }}>Billed To</div>
-                    <div style={{ fontSize: '1.0rem', fontWeight: 700, color: '#111827' }}>{group.parent.name}</div>
+                    <div style={{ fontSize: '1.0rem', fontWeight: 700, color: '#111827' }}>
+                        {group.parent.name}
+                        {group.students.length > 1 && (
+                            <span style={{ marginLeft: '8px', fontSize: '0.65rem', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: '4px', verticalAlign: 'middle' }}>
+                                Multi-student Family
+                            </span>
+                        )}
+                    </div>
                 </div>
                 <div style={{ borderRight: '1px solid #f3f4f6', paddingRight: '10px' }}>
                     <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 700, color: '#9ca3af', marginBottom: '4px' }}>Phone</div>
-                    <div style={{ fontSize: '1.0rem', fontWeight: 700, color: '#111827' }}>{group.parent.phone}</div>
+                    <div style={{ fontSize: '1.0rem', fontWeight: 700, color: '#111827' }}>{maskPhone(group.parent.phone)}</div>
                 </div>
                 <div>
                     <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 700, color: '#9ca3af', marginBottom: '4px' }}>Date Issued</div>

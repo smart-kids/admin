@@ -151,9 +151,10 @@ export const calculateFinancials = ({
         parentMap[pId].students.push(student);
     });
 
+    const normalizePhone = (p) => p ? p.replace(/\D/g, '').slice(-9) : '';
+
     // 3. Map charges and payments
     const processedList = Object.values(parentMap).map(group => {
-        const normalizePhone = (p) => p ? p.replace(/\D/g, '').slice(-9) : '';
         const normParentPhone = normalizePhone(group.parent.phone);
         const isSingleChild = group.students.length === 1;
 
@@ -171,6 +172,7 @@ export const calculateFinancials = ({
         }));
 
         // Current Term logic
+        let totalStudentPaid = 0;
         group.students.forEach(student => {
             const classFee = getFeesForClass(student.class?.id || student.class, selectedTerm, feeStructures);
             
@@ -182,16 +184,48 @@ export const calculateFinancials = ({
                 const targetStudentId = String(student.id);
 
                 if (pStudentId && pStudentId !== "undefined" && pStudentId !== "" && pStudentId !== "null" && pStudentId !== targetStudentId) return false;
+                
+                // If single child, take all unassigned payments.
+                // If multiple children, unassigned payments will be handled later or assigned to the first student.
                 if (isSingleChild && (!pStudentId || pStudentId === "undefined" || pStudentId === "null" || pStudentId === "")) return true;
+                
                 return pStudentId === targetStudentId;
             });
 
             const paid = studentTermPayments.reduce((sum, p) => sum + p.processedAmount, 0);
-            student.finances = { expected: classFee, paid, balance: classFee - paid, history: studentTermPayments };
+            student.finances = { 
+                expected: classFee, 
+                totalExpected: classFee,
+                paid, 
+                balance: classFee - paid, 
+                history: studentTermPayments,
+                charges: 0,
+                bbf: 0
+            };
             group.totalExpected += classFee;
-            group.totalPaid += paid;
+            totalStudentPaid += paid;
             group.history = [...group.history, ...studentTermPayments];
         });
+
+        // Handle unassigned payments for multi-student groups (Assign to first student)
+        if (!isSingleChild && group.students[0]) {
+            const unassignedPayments = processedAllPayments.filter(p => {
+                if (!isSuccessfulPayment(p)) return false;
+                if (selectedTerm && String(p.assignedTermId) !== String(selectedTerm)) return false;
+                const pStudentId = String(p.student?.id || p.student || p.metadata?.studentId || "");
+                return !pStudentId || pStudentId === "undefined" || pStudentId === "null" || pStudentId === "";
+            });
+            
+            const unassignedPaid = unassignedPayments.reduce((sum, p) => sum + p.processedAmount, 0);
+            if (unassignedPaid > 0) {
+                group.students[0].finances.paid += unassignedPaid;
+                group.students[0].finances.balance -= unassignedPaid;
+                group.students[0].finances.history = [...group.students[0].finances.history, ...unassignedPayments];
+                totalStudentPaid += unassignedPaid;
+                group.history = [...group.history, ...unassignedPayments];
+            }
+        }
+        group.totalPaid = totalStudentPaid;
 
         // Add charges for current term
         const groupCharges = (charges || []).filter(c => {
@@ -211,13 +245,23 @@ export const calculateFinancials = ({
         // Calculate BBF
         const bbf = calculateBBF(group, terms, selectedTerm, charges, processedAllPayments, feeStructures);
         const manualBBF = group.students.reduce((sum, s) => sum + (parseFloat(s.balanceBroughtForward) || 0), 0);
-        
         group.balanceBroughtForward = bbf + manualBBF;
+
+        // Distribute charges and BBF to first student for report parity
+        if (group.students[0]) {
+            group.students[0].finances.charges = group.totalCharges;
+            group.students[0].finances.bbf = group.balanceBroughtForward;
+            group.students[0].finances.totalExpected = group.students[0].finances.expected + group.totalCharges;
+            // Balance reflects the full group state for this student branch
+            group.students[0].finances.balance = (group.totalExpected - group.totalPaid) + group.balanceBroughtForward;
+        }
+
         group.totalBalance = (group.totalExpected - group.totalPaid) + group.balanceBroughtForward;
         group.allHistory = processedAllPayments;
 
         return group;
     });
+
 
     // 4. Apply Search/Alphabet/Class Filters
     const termLower = searchTerm.toLowerCase();
@@ -286,32 +330,20 @@ export const aggregateByClass = (fullyProcessedParents, classes) => {
     });
     
     fullyProcessedParents.forEach(group => {
-        group.students.forEach(student => {
+        group.students.forEach((student, index) => {
             const classId = String(student.class?.id || student.class);
             const classGroup = classGroups[classId];
             if (!classGroup) return; // Skip if class not in master list
             
             classGroup.students.push(student);
-            classGroup.totalExpected += (student.finances?.expected || 0);
+            classGroup.totalExpected += (student.finances?.totalExpected || student.finances?.expected || 0);
             classGroup.totalPaid += (student.finances?.paid || 0);
             classGroup.totalBalance += (student.finances?.balance || 0);
+            classGroup.totalCharges += (student.finances?.charges || 0);
+            classGroup.balanceBroughtForward += (student.finances?.bbf || 0);
             classGroup.history = [...classGroup.history, ...(student.finances?.history || [])];
+            classGroup.charges = [...classGroup.charges, ...(index === 0 ? group.charges || [] : [])];
         });
-
-        // Distribute group-level charges and BBF to the first student's class
-        // (This is a heuristic as charges are parent-level)
-        const firstStudent = group.students[0];
-        if (firstStudent) {
-            const classId = String(firstStudent.class?.id || firstStudent.class);
-            if (classGroups[classId]) {
-                classGroups[classId].totalCharges += (group.totalCharges || 0);
-                classGroups[classId].charges = [...classGroups[classId].charges, ...(group.charges || [])];
-                classGroups[classId].balanceBroughtForward += (group.balanceBroughtForward || 0);
-                // Also update the totals to include these
-                classGroups[classId].totalExpected += (group.totalCharges || 0);
-                classGroups[classId].totalBalance += (group.totalCharges || 0) + (group.balanceBroughtForward || 0);
-            }
-        }
     });
 
     // Finalize rates and performance

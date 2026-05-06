@@ -18,6 +18,14 @@ import ReportFooter from '../../components/reports/ReportFooter';
 
 // --- HELPER COMPONENTS ---
 
+const maskPhone = (phone) => {
+    if (!phone) return "";
+    const cleaned = phone.replace(/\D/g, '');
+    if (cleaned.length < 9) return phone;
+    // Show first 3 and last 3, mask the rest
+    return cleaned.slice(0, 3) + "****" + cleaned.slice(-3);
+};
+
 const SkeletonLoader = () => (
     <div className="p-7">
         <div className="d-flex justify-content-between mb-8">
@@ -1619,7 +1627,7 @@ class FeesManagement extends Component {
             searchTerm: '', 
             alphabetFilter: '', 
             activeTab: 'accounts',
-            expandedParentId: parentId,
+            expandedParentId: String(parentId),
             currentPage: 1 
         }, () => {
             // 2. Perform a fresh calculation with cleared filters to find the accurate index
@@ -1631,7 +1639,7 @@ class FeesManagement extends Component {
                 alphabetFilter: ''
             });
 
-            const index = results.processedParents.findIndex(p => p.id === parentId);
+            const index = results.processedParents.findIndex(p => String(p.id) === String(parentId));
             if (index !== -1) {
                 const page = Math.floor(index / this.state.itemsPerPage) + 1;
                 
@@ -1670,10 +1678,19 @@ class FeesManagement extends Component {
                     if (studentClassId !== String(selectedClass)) return;
                 }
 
+                const baseFees = student.finances?.expected || 0;
                 const paid = student.finances?.paid || 0;
-                const balance = student.finances?.balance || 0;
+                
+                // Parity with Statement: Distribute group-level charges and BBF to the first student
+                // This ensures the student list matches the parent-level account balances
+                const isFirstStudent = group.students[0] && String(group.students[0].id || group.students[0]) === String(student.id || student);
+                const studentCharges = isFirstStudent ? (group.totalCharges || 0) : 0;
+                const studentBBF = isFirstStudent ? (group.balanceBroughtForward || 0) : 0;
+                
+                const totalExpected = baseFees + studentCharges;
+                const balance = (totalExpected - paid) + studentBBF;
 
-                // Apply balance filter if active
+                // Apply balance filter if active (using the corrected balance)
                 if (collectionReportBalanceFilter && balance <= 0) return;
 
                 studentReportData.push({
@@ -1681,7 +1698,7 @@ class FeesManagement extends Component {
                     parentId: group.id,
                     parentName: group.parent.name,
                     parentPhone: group.parent.phone,
-                    totalExpected: student.finances?.expected || 0,
+                    totalExpected: totalExpected,
                     totalPaid: paid,
                     balance: balance,
                     lastPayment: (student.finances?.history || []).sort((a, b) => 
@@ -1719,57 +1736,37 @@ class FeesManagement extends Component {
                         </div>
                     </div>
                     <div className="d-flex align-items-center">
-                        <div className="d-flex align-items-center mr-6 bg-light-primary px-4 py-2 rounded">
-                            <span className="font-weight-bold mr-3 text-primary">Outstanding Balances Only</span>
-                            <span className="switch switch-sm switch-icon switch-primary">
-                                <label>
-                                    <input 
-                                        type="checkbox" 
-                                        checked={this.state.collectionReportBalanceFilter} 
-                                        onChange={() => this.setState({ collectionReportBalanceFilter: !this.state.collectionReportBalanceFilter })} 
-                                    />
-                                    <span></span>
-                                </label>
-                            </span>
+                        <div className="d-flex align-items-center mr-6">
+                            <span className="font-weight-bold mr-4 text-dark-75 font-size-sm text-uppercase" style={{ letterSpacing: '0.05rem' }}>Report Filter:</span>
+                            <div className="bg-light-primary p-1 rounded-pill d-flex" style={{ border: '1px solid #ebf0f8' }}>
+                                <button 
+                                    className={`btn btn-xs rounded-pill px-4 py-2 font-weight-bolder transition-all ${!this.state.collectionReportBalanceFilter ? 'btn-primary shadow-sm' : 'btn-clean text-primary'}`}
+                                    onClick={() => this.setState({ collectionReportBalanceFilter: false })}
+                                    style={{ fontSize: '0.75rem' }}
+                                >
+                                    ALL STUDENTS
+                                </button>
+                                <button 
+                                    className={`btn btn-xs rounded-pill px-4 py-2 font-weight-bolder transition-all ${this.state.collectionReportBalanceFilter ? 'btn-primary shadow-sm' : 'btn-clean text-primary'}`}
+                                    onClick={() => this.setState({ collectionReportBalanceFilter: true })}
+                                    style={{ fontSize: '0.75rem' }}
+                                >
+                                    BALANCES ONLY
+                                </button>
+                            </div>
                         </div>
                         <button 
                             className="btn btn-primary btn-sm px-6 font-weight-bold" 
+                            style={{ whiteSpace: 'nowrap' }}
                             onClick={() => this.setState({ showCollectionPrintView: true })}
                             disabled={studentReportData.length === 0}
                         >
-                            <i className="fas fa-print mr-2"></i>Print Report Preview
+                            <i className="fas fa-print mr-2"></i>Print Preview
                         </button>
                     </div>
                 </div>
 
-                <div className="row mb-6">
-                    <div className="col-xl-3 col-md-6">
-                        <div className="card card-custom bg-light-success border-0 shadow-sm h-100">
-                            <div className="card-body p-5">
-                                <div className="text-success font-weight-bolder font-size-h3 mb-1">KES {totalPaid.toLocaleString()}</div>
-                                <div className="text-muted font-weight-bold font-size-sm">Total Collected</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="col-xl-3 col-md-6">
-                        <div className="card card-custom bg-light-info border-0 shadow-sm h-100">
-                            <div className="card-body p-5">
-                                <div className="text-info font-weight-bolder font-size-h3 mb-1">
-                                    {studentReportData.filter(s => s.totalPaid > 0).length} / {studentReportData.length}
-                                </div>
-                                <div className="text-muted font-weight-bold font-size-sm">Paid vs Total Students</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="col-xl-3 col-md-6">
-                        <div className="card card-custom bg-light-warning border-0 shadow-sm h-100">
-                            <div className="card-body p-5">
-                                <div className="text-warning font-weight-bolder font-size-h3 mb-1">KES {totalExpected.toLocaleString()}</div>
-                                <div className="text-muted font-weight-bold font-size-sm">Total Expected (from these students)</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                {/* Table Section */}
 
                 <div className="card card-custom shadow-sm border">
                     <div className="card-body">
@@ -1973,124 +1970,144 @@ class FeesManagement extends Component {
             return (
                 <div className="kt-grid__item kt-grid__item--fluid kt-grid kt-grid--ver kt-page" style={{ backgroundColor: '#f3f4f6' }}>
                     <div className="kt-grid__item kt-grid__item--fluid kt-grid kt-grid--hor kt-wrapper" id="kt_wrapper">
-                        <div className="d-print-none p-4 border-bottom mb-4 d-flex justify-content-between align-items-center bg-white rounded shadow-sm m-6">
-                            <button className="btn btn-secondary font-weight-bold" onClick={() => this.setState({ showCollectionPrintView: false, activeTab: this.state.activeTab === 'accounts' ? 'accounts' : 'collection-report' })}>
-                                <i className="fa fa-arrow-left mr-2"></i> Back
-                            </button>
-                            <h4 className="m-0 font-weight-bold">Collection Report Preview</h4>
-                            <button className="btn btn-primary font-weight-bold" onClick={() => window.print()}>
-                                <i className="fa fa-print mr-2"></i> Print Report
-                            </button>
-                        </div>
-                        
-                        <div id="print-area" className="report-card-container" style={{ 
-                            padding: '1.0cm 1.5cm', 
-                            backgroundColor: 'white', 
-                            minHeight: '29.7cm', 
-                            width: '21cm', 
-                            margin: '0 auto 2cm auto', 
-                            position: 'relative',
-                            fontFamily: "'Inter', 'Roboto', sans-serif",
-                            color: '#1f2937', 
-                            boxSizing: 'border-box',
-                            boxShadow: '0 0 30px rgba(0,0,0,0.1)', 
-                            border: '1px solid #e5e7eb',
-                            display: 'flex',
-                            flexDirection: 'column'
-                        }}>
-                            <ReportHeader 
-                                school={schoolInfo} 
-                                title="PAYMENT COLLECTION REPORT" 
-                                themeColor={themeColor} 
-                            />
-
-                            {/* Report Metadata Block */}
-                            <div style={{ 
-                                display: 'grid', 
-                                gridTemplateColumns: 'repeat(3, 1fr)', 
-                                gap: '15px', 
-                                backgroundColor: '#ffffff', 
-                                padding: '20px', 
-                                borderRadius: '16px', 
-                                marginBottom: '0.8cm',
-                                border: '1px solid #e5e7eb',
-                                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
-                            }}>
-                                <div style={{ borderRight: '1px solid #f3f4f6', paddingRight: '10px' }}>
-                                    <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 700, color: '#9ca3af', marginBottom: '4px' }}>CLASS / GRADE</div>
-                                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#111827' }}>{currentClassName}</div>
-                                </div>
-                                <div style={{ borderRight: '1px solid #f3f4f6', paddingRight: '10px' }}>
-                                    <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 700, color: '#9ca3af', marginBottom: '4px' }}>TERM</div>
-                                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#111827' }}>{currentTermName}</div>
-                                </div>
-                                <div>
-                                    <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 700, color: '#9ca3af', marginBottom: '4px' }}>DATE GENERATED</div>
-                                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#111827' }}>{new Date().toLocaleDateString('en-GB')}</div>
-                                </div>
-                            </div>
-
-                            {/* Collection Table */}
-                            <div style={{ marginBottom: '0.8cm', border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden', flex: 1 }}>
-                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                    <thead>
-                                        <tr style={{ backgroundColor: themeColor }}>
-                                            <th style={{ padding: '12px 18px', textAlign: 'center', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', width: '40px' }}>#</th>
-                                            <th style={{ padding: '12px 18px', textAlign: 'left', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Student Details</th>
-                                            <th style={{ padding: '12px 18px', textAlign: 'left', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Registration</th>
-                                            <th style={{ padding: '12px 18px', textAlign: 'right', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Expected</th>
-                                            <th style={{ padding: '12px 18px', textAlign: 'right', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Paid</th>
-                                            <th style={{ padding: '12px 18px', textAlign: 'right', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Balance</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {studentReportData.length === 0 ? (
-                                            <tr>
-                                                <td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: '#9ca3af', fontStyle: 'italic' }}>
-                                                    No student records match the selected filters.
-                                                </td>
-                                            </tr>
-                                        ) : studentReportData.map((s, idx) => (
-                                            <tr key={s.id} style={{ backgroundColor: idx % 2 === 0 ? '#fff' : '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
-                                                <td style={{ padding: '12px 18px', textAlign: 'center', fontSize: '0.85rem', color: '#6b7280' }}>{idx + 1}</td>
-                                                <td style={{ padding: '12px 18px' }}>
-                                                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#111827' }}>{s.names}</div>
-                                                    <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{s.parentName}</div>
-                                                </td>
-                                                <td style={{ padding: '12px 18px', fontSize: '0.85rem', color: '#4b5563' }}>{s.registration}</td>
-                                                <td style={{ padding: '12px 18px', textAlign: 'right', fontWeight: 600, fontSize: '0.9rem' }}>{s.totalExpected.toLocaleString()}</td>
-                                                <td style={{ padding: '12px 18px', textAlign: 'right', fontWeight: 700, fontSize: '0.95rem', color: s.totalPaid > 0 ? '#10b981' : '#9ca3af' }}>
-                                                    {s.totalPaid.toLocaleString()}
-                                                    {s.totalPaid === 0 && <span style={{ display: 'block', fontSize: '0.65rem', color: '#ef4444', fontWeight: 800 }}>NO PAYMENT</span>}
-                                                </td>
-                                                <td style={{ padding: '12px 18px', textAlign: 'right', fontWeight: 800, fontSize: '1.0rem', color: s.balance > 0 ? '#ef4444' : '#10b981' }}>{s.balance.toLocaleString()}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-
-                            {/* Signature Section */}
-                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1.0cm', marginBottom: '1.0cm', padding: '0 1cm' }}>
-                                <div style={{ width: '220px', textAlign: 'center' }}>
-                                    <div style={{ height: '40px' }}></div>
-                                    <div style={{ borderTop: '2px solid #e5e7eb', paddingTop: '10px' }}>
-                                        <p style={{ margin: 0, fontWeight: 800, color: '#111827', fontSize: '0.85rem', textTransform: 'uppercase' }}>Bursar / Accounts</p>
-                                        <p style={{ margin: '4px 0 0 0', fontSize: '0.65rem', color: '#9ca3af', fontWeight: 600 }}>Signature & Date</p>
+                        <Navbar />
+                        <Subheader links={["Finance", "Collection Report", "Print Preview"]} />
+                        <div className="kt-content kt-grid__item kt-grid__item--fluid">
+                            <div className="kt-container">
+                                <div className="d-print-none p-4 border-bottom mb-8 d-flex justify-content-between align-items-center bg-white rounded shadow-sm">
+                                    <div>
+                                        <button 
+                                            className="btn btn-secondary font-weight-bold" 
+                                            style={{ whiteSpace: 'nowrap' }}
+                                            onClick={() => this.setState({ showCollectionPrintView: false, activeTab: this.state.activeTab === 'accounts' ? 'accounts' : 'collection-report' })}
+                                        >
+                                            <i className="fa fa-arrow-left mr-2"></i> Back
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <h4 className="m-0 font-weight-bold text-dark">Collection Report Preview</h4>
+                                    </div>
+                                    <div>
+                                        <button 
+                                            className="btn btn-primary font-weight-bold px-8" 
+                                            style={{ whiteSpace: 'nowrap' }}
+                                            onClick={() => window.print()}
+                                        >
+                                            <i className="fa fa-print mr-2"></i> Print
+                                        </button>
                                     </div>
                                 </div>
-                                <div style={{ width: '220px', textAlign: 'center' }}>
-                                    <div style={{ height: '40px' }}></div>
-                                    <div style={{ borderTop: '2px solid #e5e7eb', paddingTop: '10px' }}>
-                                        <p style={{ margin: 0, fontWeight: 800, color: '#111827', fontSize: '0.85rem', textTransform: 'uppercase' }}>Principal</p>
-                                        <p style={{ margin: '4px 0 0 0', fontSize: '0.65rem', color: '#9ca3af', fontWeight: 600 }}>Official Stamp & Date</p>
+                                
+                                <div id="print-area" className="report-card-container mx-auto" style={{ 
+                                    padding: '1.0cm 1.5cm', 
+                                    backgroundColor: 'white', 
+                                    minHeight: '29.7cm', 
+                                    width: '21cm', 
+                                    margin: '0 auto 2cm auto', 
+                                    position: 'relative',
+                                    fontFamily: "'Inter', 'Roboto', sans-serif",
+                                    color: '#1f2937', 
+                                    boxSizing: 'border-box',
+                                    boxShadow: '0 0 40px rgba(0,0,0,0.08)', 
+                                    border: '1px solid #e5e7eb',
+                                    display: 'flex',
+                                    flexDirection: 'column'
+                                }}>
+                                    <ReportHeader 
+                                        school={schoolInfo} 
+                                        title={this.state.collectionReportBalanceFilter ? "OUTSTANDING BALANCES REPORT" : "PAYMENT COLLECTION REPORT"} 
+                                        themeColor={themeColor} 
+                                    />
+
+                                    {/* Report Metadata Block */}
+                                    <div style={{ 
+                                        display: 'grid', 
+                                        gridTemplateColumns: 'repeat(3, 1fr)', 
+                                        gap: '15px', 
+                                        backgroundColor: '#ffffff', 
+                                        padding: '20px', 
+                                        borderRadius: '16px', 
+                                        marginBottom: '0.8cm',
+                                        border: '1px solid #e5e7eb',
+                                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                                    }}>
+                                        <div style={{ borderRight: '1px solid #f3f4f6', paddingRight: '10px' }}>
+                                            <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 700, color: '#9ca3af', marginBottom: '4px' }}>CLASS / GRADE</div>
+                                            <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#111827' }}>{currentClassName}</div>
+                                        </div>
+                                        <div style={{ borderRight: '1px solid #f3f4f6', paddingRight: '10px' }}>
+                                            <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 700, color: '#9ca3af', marginBottom: '4px' }}>TERM</div>
+                                            <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#111827' }}>{currentTermName}</div>
+                                        </div>
+                                        <div>
+                                            <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 700, color: '#9ca3af', marginBottom: '4px' }}>DATE GENERATED</div>
+                                            <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#111827' }}>{new Date().toLocaleDateString('en-GB')}</div>
+                                        </div>
+                                    </div>
+
+                                    {/* Collection Table */}
+                                    <div style={{ marginBottom: '0.8cm', border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden', flex: 1 }}>
+                                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                            <thead>
+                                                <tr style={{ backgroundColor: themeColor }}>
+                                                    <th style={{ padding: '12px 18px', textAlign: 'center', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', width: '40px' }}>#</th>
+                                                    <th style={{ padding: '12px 18px', textAlign: 'left', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Student Details</th>
+                                                    <th style={{ padding: '12px 18px', textAlign: 'left', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Registration</th>
+                                                    <th style={{ padding: '12px 18px', textAlign: 'right', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Expected</th>
+                                                    <th style={{ padding: '12px 18px', textAlign: 'right', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Paid</th>
+                                                    <th style={{ padding: '12px 18px', textAlign: 'right', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Balance</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {studentReportData.length === 0 ? (
+                                                    <tr>
+                                                        <td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: '#9ca3af', fontStyle: 'italic' }}>
+                                                            No student records match the selected filters.
+                                                        </td>
+                                                    </tr>
+                                                ) : studentReportData.map((s, idx) => (
+                                                    <tr key={s.id} style={{ backgroundColor: idx % 2 === 0 ? '#fff' : '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
+                                                        <td style={{ padding: '12px 18px', textAlign: 'center', fontSize: '0.85rem', color: '#6b7280' }}>{idx + 1}</td>
+                                                        <td style={{ padding: '12px 18px' }}>
+                                                            <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#111827' }}>{s.names}</div>
+                                                            <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{s.parentName}</div>
+                                                        </td>
+                                                        <td style={{ padding: '12px 18px', fontSize: '0.85rem', color: '#4b5563' }}>{s.registration}</td>
+                                                        <td style={{ padding: '12px 18px', textAlign: 'right', fontWeight: 600, fontSize: '0.9rem' }}>{s.totalExpected.toLocaleString()}</td>
+                                                        <td style={{ padding: '12px 18px', textAlign: 'right', fontWeight: 700, fontSize: '0.95rem', color: s.totalPaid > 0 ? '#10b981' : '#9ca3af' }}>
+                                                            {s.totalPaid.toLocaleString()}
+                                                            {s.totalPaid === 0 && <span style={{ display: 'block', fontSize: '0.65rem', color: '#ef4444', fontWeight: 800 }}>NO PAYMENT</span>}
+                                                        </td>
+                                                        <td style={{ padding: '12px 18px', textAlign: 'right', fontWeight: 800, fontSize: '1.0rem', color: s.balance > 0 ? '#ef4444' : '#10b981' }}>{s.balance.toLocaleString()}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    {/* Signature Section */}
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1.0cm', marginBottom: '1.0cm', padding: '0 1cm' }}>
+                                        <div style={{ width: '220px', textAlign: 'center' }}>
+                                            <div style={{ height: '40px' }}></div>
+                                            <div style={{ borderTop: '2px solid #e5e7eb', paddingTop: '10px' }}>
+                                                <p style={{ margin: 0, fontWeight: 800, color: '#111827', fontSize: '0.85rem', textTransform: 'uppercase' }}>Bursar / Accounts</p>
+                                                <p style={{ margin: '4px 0 0 0', fontSize: '0.65rem', color: '#9ca3af', fontWeight: 600 }}>Signature & Date</p>
+                                            </div>
+                                        </div>
+                                        <div style={{ width: '220px', textAlign: 'center' }}>
+                                            <div style={{ height: '40px' }}></div>
+                                            <div style={{ borderTop: '2px solid #e5e7eb', paddingTop: '10px' }}>
+                                                <p style={{ margin: 0, fontWeight: 800, color: '#111827', fontSize: '0.85rem', textTransform: 'uppercase' }}>Principal</p>
+                                                <p style={{ margin: '4px 0 0 0', fontSize: '0.65rem', color: '#9ca3af', fontWeight: 600 }}>Official Stamp & Date</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Footer */}
+                                    <div style={{ marginTop: 'auto', paddingBottom: '0.5cm' }}>
+                                        <ReportFooter themeColor={themeColor} validationStatus="Financial Record" />
                                     </div>
                                 </div>
-                            </div>
-
-                            {/* Footer */}
-                            <div style={{ marginTop: 'auto', paddingBottom: '0.5cm' }}>
-                                <ReportFooter themeColor={themeColor} validationStatus="Financial Record" />
                             </div>
                         </div>
                         <style>{`
@@ -2250,14 +2267,15 @@ class FeesManagement extends Component {
                                             
                                             <button
                                                 className="btn btn-sm btn-light-success font-weight-bold ml-2"
+                                                style={{ whiteSpace: 'nowrap' }}
                                                 onClick={() => this.setState({ showCollectionPrintView: true })}
                                                 disabled={loading || processedParents.length === 0}
                                             >
-                                                <i className="fa fa-print mr-2"></i> Print Collection Report
+                                                <i className="fa fa-print mr-2"></i> {this.state.activeTab === 'accounts' ? 'Print List' : 'Print Preview'}
                                             </button>
+
                                         </div>
                                     </div>
-                                </div>
                                 </div>
 
                                 <div className="card-body py-0">
@@ -2297,7 +2315,7 @@ class FeesManagement extends Component {
                                                             </thead>
                                                             <tbody>
                                                                 {currentItems.map(group => {
-                                                                    const isExpanded = expandedParentId === group.id;
+                                                                    const isExpanded = String(expandedParentId) === String(group.id);
                                                                     const hasArrears = group.totalBalance > 0;
                                                                     const lastPayment = group.history.length > 0 ? group.history[0] : null;
                                                                     const completedPayments = group.history.filter(p => p.status === 'COMPLETED').length;
@@ -2313,9 +2331,10 @@ class FeesManagement extends Component {
                                                                                         <div className="ml-4">
                                                                                             <div className="text-dark-75 font-weight-bolder font-size-lg mb-0">
                                                                                                 {group.parent.name}
+                                                                                                {group.students.length > 1 && <span className="label label-inline label-light-info ml-2">Multi-student</span>}
                                                                                                 {group.parent.isDeleted && <span className="label label-inline label-light-danger ml-2">Archived</span>}
                                                                                             </div>
-                                                                                            <span className="text-muted font-weight-bold text-hover-primary">{group.parent.phone}</span>
+                                                                                            <span className="text-muted font-weight-bold text-hover-primary">{maskPhone(group.parent.phone)}</span>
                                                                                         </div>
                                                                                     </div>
                                                                                 </td>
@@ -2448,12 +2467,12 @@ class FeesManagement extends Component {
                                                                                                     const unallocatedSum = group.history
                                                                                                         .filter(h => h.studentName === 'Unallocated' && h.status === 'COMPLETED')
                                                                                                         .reduce((sum, h) => sum + parseFloat(h.amount || 0), 0);
-                                                                                                    if (unallocatedSum > 0 && group.students.length > 1) {
+                                                                                                    if (unallocatedSum > 0) {
                                                                                                         return (
-                                                                                                            <div className="alert alert-custom alert-light-warning py-2 mb-0 shadow-sm border-0">
+                                                                                                            <div className="alert alert-custom alert-light-warning py-2 mb-0 shadow-sm border-0 mr-4" style={{ flex: 1 }}>
                                                                                                                 <div className="alert-icon"><i className="flaticon-warning text-warning"></i></div>
                                                                                                                 <div className="alert-text font-size-sm">
-                                                                                                                    <span className="font-weight-bolder">KES {unallocatedSum.toLocaleString()}</span> is unallocated.
+                                                                                                                    <span className="font-weight-bolder">KES {unallocatedSum.toLocaleString()}</span> was found via phone matching ({maskPhone(group.parent.phone)}) and credited here.
                                                                                                                 </div>
                                                                                                             </div>
                                                                                                         );
@@ -3068,7 +3087,7 @@ class FeesManagement extends Component {
                                     {this.state.statementTab === 'sms' && (
                                         <div className="pt-3">
                                             <div className="form-group">
-                                                <label className="font-weight-bold">To: <strong>{this.state.statementGroup.parent.name}</strong> ({this.state.statementGroup.parent.phone})</label>
+                                                <label className="font-weight-bold">To: <strong>{this.state.statementGroup.parent.name}</strong> ({maskPhone(this.state.statementGroup.parent.phone)})</label>
                                                 <textarea
                                                     className="form-control mt-2"
                                                     rows="5"
@@ -3498,6 +3517,7 @@ class FeesManagement extends Component {
                         }
                     }
                 `}</style>
+                </div>
             </div>
         );
     }
