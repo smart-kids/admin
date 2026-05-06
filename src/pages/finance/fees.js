@@ -558,13 +558,15 @@ class FeesManagement extends Component {
         });
     };
 
-    openEditPaymentModal = (payment) => {
+    openEditPaymentModal = (payment, group) => {
         this.setState({
             showEditPaymentModal: true,
             editPaymentData: {
                 ...payment,
                 paymentType: payment.paymentType || payment.type || 'M-Pesa',
-                amount: payment.amount || payment.ammount || 0
+                amount: payment.amount || payment.ammount || 0,
+                studentId: payment.student?.id || payment.student || "",
+                parentGroup: group
             }
         });
     };
@@ -727,6 +729,7 @@ class FeesManagement extends Component {
                 paymentType: editPaymentData.paymentType,
                 ref: editPaymentData.ref || editPaymentData.mpesaReceiptNumber,
                 time: editPaymentData.time || editPaymentData.createdAt,
+                student: editPaymentData.studentId || null, // Include student ID for reassignment
                 metadata: {
                     ...editPaymentData.metadata,
                     method: editPaymentData.paymentType,
@@ -2473,6 +2476,7 @@ class FeesManagement extends Component {
                                                                                                                 <div className="alert-icon"><i className="flaticon-warning text-warning"></i></div>
                                                                                                                 <div className="alert-text font-size-sm">
                                                                                                                     <span className="font-weight-bolder">KES {unallocatedSum.toLocaleString()}</span> was found via phone matching ({maskPhone(group.parent.phone)}) and credited here.
+                                                                                                                    <div className="mt-1 opacity-70">To allocate this to a specific student, use the Edit button in the history list below.</div>
                                                                                                                 </div>
                                                                                                             </div>
                                                                                                         );
@@ -2512,7 +2516,7 @@ class FeesManagement extends Component {
                                                                                                                             </div>
                                                                                                                             <div className="d-flex align-items-center">
                                                                                                                                 <span className="text-success font-weight-bolder font-size-sm mr-2">KES {parseFloat(h.amount || h.ammount || 0).toLocaleString()}</span>
-                                                                                                                                <button className="btn btn-icon btn-xs btn-light-primary" onClick={() => this.openEditPaymentModal(h)} title="Edit"><i className="flaticon2-pen"></i></button>
+                                                                                                                                <button className="btn btn-icon btn-xs btn-light-primary" onClick={() => this.openEditPaymentModal(h, group)} title="Edit"><i className="flaticon2-pen"></i></button>
                                                                                                                                 <button className="btn btn-icon btn-xs btn-light-danger ml-1" onClick={() => this.deletePayment(h)} title="Delete"><i className="flaticon2-trash"></i></button>
                                                                                                                             </div>
                                                                                                                         </div>
@@ -2656,7 +2660,7 @@ class FeesManagement extends Component {
                                                                                                                             <span className={`${isFailed ? 'text-muted text-decoration-line-through' : 'text-success'} font-weight-bolder font-size-sm mr-2`}>
                                                                                                                                 KES {parseFloat(h.amount || h.ammount || 0).toLocaleString()}
                                                                                                                             </span>
-                                                                                                                            <button className="btn btn-icon btn-xs btn-light-primary" onClick={() => this.openEditPaymentModal(h)} title="Edit" disabled={isFailed}><i className="flaticon2-pen"></i></button>
+                                                                                                                            <button className="btn btn-icon btn-xs btn-light-primary" onClick={() => this.openEditPaymentModal(h, group)} title="Edit" disabled={isFailed}><i className="flaticon2-pen"></i></button>
                                                                                                                             <button className="btn btn-icon btn-xs btn-light-danger ml-1" onClick={() => this.deletePayment(h)} title="Delete" disabled={isFailed}><i className="flaticon2-trash"></i></button>
                                                                                                                         </div>
                                                                                                                     </div>
@@ -2980,6 +2984,20 @@ class FeesManagement extends Component {
                                             {this.state.terms && this.state.terms.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                                         </select>
                                         <span className="form-text text-muted">If unset, the payment is matched to a term based on its date.</span>
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Assign to Student</label>
+                                        <select 
+                                            className="form-control" 
+                                            value={this.state.editPaymentData.studentId || ""} 
+                                            onChange={e => this.setState({ editPaymentData: { ...this.state.editPaymentData, studentId: e.target.value } })}
+                                        >
+                                            <option value="">Unallocated (Parent Account)</option>
+                                            {this.state.editPaymentData.parentGroup?.students.map(s => (
+                                                <option key={s.id} value={s.id}>{s.names}</option>
+                                            ))}
+                                        </select>
+                                        <span className="form-text text-muted">Allocating to a student ensures the money is credited to their specific fee balance.</span>
                                     </div>
                                     <div className="form-group"><label>Amount (KES)</label><input type="number" className="form-control" value={this.state.editPaymentData.amount} onChange={e => this.setState({ editPaymentData: { ...this.state.editPaymentData, amount: e.target.value } })} /></div>
                                     <div className="form-group"><label>Reference / Notes</label><input type="text" className="form-control" value={this.state.editPaymentData.ref || this.state.editPaymentData.mpesaReceiptNumber || ''} onChange={e => this.setState({ editPaymentData: { ...this.state.editPaymentData, ref: e.target.value } })} /></div>
