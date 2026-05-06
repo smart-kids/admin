@@ -13,6 +13,8 @@ import SmsBalanceModal from "./components/SmsBalanceModal";
 import SearchAlphabetFilter from '../../components/search-alphabet-filter/SearchAlphabetFilter';
 import { calculateFinancials, aggregateByClass, isSuccessfulPayment } from '../../utils/financialEngine';
 import EnhancedDropdown from '../../components/enhanced-dropdown/EnhancedDropdown';
+import ReportHeader from '../../components/reports/ReportHeader';
+import ReportFooter from '../../components/reports/ReportFooter';
 
 // --- HELPER COMPONENTS ---
 
@@ -167,6 +169,7 @@ class FeesManagement extends Component {
 
         activeTab: 'insights', // 'accounts', 'insights', 'analytics', 'collection-report'
         showCollectionPrintView: false,
+        collectionReportBalanceFilter: false,
 
         // Modal states like results management
         showAddTermModal: false,
@@ -1657,8 +1660,8 @@ class FeesManagement extends Component {
     };
 
     getCollectionReportData = () => {
-        const { processedParents, selectedClass } = this.state;
-        const studentReportData = [];
+        const { processedParents, selectedClass, collectionReportBalanceFilter } = this.state;
+        let studentReportData = [];
         
         processedParents.forEach(group => {
             group.students.forEach(student => {
@@ -1668,6 +1671,11 @@ class FeesManagement extends Component {
                 }
 
                 const paid = student.finances?.paid || 0;
+                const balance = student.finances?.balance || 0;
+
+                // Apply balance filter if active
+                if (collectionReportBalanceFilter && balance <= 0) return;
+
                 studentReportData.push({
                     ...student,
                     parentId: group.id,
@@ -1675,7 +1683,7 @@ class FeesManagement extends Component {
                     parentPhone: group.parent.phone,
                     totalExpected: student.finances?.expected || 0,
                     totalPaid: paid,
-                    balance: student.finances?.balance || 0,
+                    balance: balance,
                     lastPayment: (student.finances?.history || []).sort((a, b) => 
                         new Date(b.time || b.createdAt) - new Date(a.time || a.createdAt)
                     )[0]
@@ -1711,6 +1719,19 @@ class FeesManagement extends Component {
                         </div>
                     </div>
                     <div className="d-flex align-items-center">
+                        <div className="d-flex align-items-center mr-6 bg-light-primary px-4 py-2 rounded">
+                            <span className="font-weight-bold mr-3 text-primary">Outstanding Balances Only</span>
+                            <span className="switch switch-sm switch-icon switch-primary">
+                                <label>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={this.state.collectionReportBalanceFilter} 
+                                        onChange={() => this.setState({ collectionReportBalanceFilter: !this.state.collectionReportBalanceFilter })} 
+                                    />
+                                    <span></span>
+                                </label>
+                            </span>
+                        </div>
                         <button 
                             className="btn btn-primary btn-sm px-6 font-weight-bold" 
                             onClick={() => this.setState({ showCollectionPrintView: true })}
@@ -1943,94 +1964,133 @@ class FeesManagement extends Component {
 
         if (this.state.showCollectionPrintView) {
             const studentReportData = this.getCollectionReportData();
+            const { schoolInfo, selectedTerm, selectedClass, terms, classes } = this.state;
+            const themeColor = schoolInfo?.themeColor || '#1a1a1a';
 
             const currentTermName = selectedTerm ? terms.find(t => t.id === selectedTerm)?.name : "All Terms";
             const currentClassName = selectedClass ? classes.find(c => String(c.id) === selectedClass)?.name : "All Classes";
-            const totalPaid = studentReportData.reduce((sum, s) => sum + s.totalPaid, 0);
 
             return (
-                <div className="kt-grid__item kt-grid__item--fluid kt-grid kt-grid--ver kt-page">
+                <div className="kt-grid__item kt-grid__item--fluid kt-grid kt-grid--ver kt-page" style={{ backgroundColor: '#f3f4f6' }}>
                     <div className="kt-grid__item kt-grid__item--fluid kt-grid kt-grid--hor kt-wrapper" id="kt_wrapper">
-                        <Navbar />
-                        <Subheader links={["Finance", "Collection Report"]} />
-                        <div className="kt-content kt-grid__item kt-grid__item--fluid">
-                            <div className="kt-container">
-                                <div className="d-print-none p-4 border-bottom mb-4 d-flex justify-content-between align-items-center bg-white rounded shadow-sm">
-                                    <button className="btn btn-secondary" onClick={() => this.setState({ showCollectionPrintView: false, activeTab: this.state.activeTab === 'accounts' ? 'accounts' : 'collection-report' })}>
-                                        <i className="fa fa-arrow-left mr-2"></i> Back
-                                    </button>
-                                    <h4 className="m-0 font-weight-bold">Collection Report Preview</h4>
-                                    <button className="btn btn-primary" onClick={() => window.print()}>
-                                        <i className="fa fa-print mr-2"></i> Print Report
-                                    </button>
-                                </div>
-                                    <div id="print-area" className="bg-white p-10 shadow-sm rounded mx-auto" style={{ minHeight: '29.7cm', width: '21cm', boxSizing: 'border-box' }}>
-                                        <div className="d-flex justify-content-between align-items-start mb-5">
-                                            <div style={{ textAlign: 'left' }}>
-                                                <h1 className="font-weight-bolder mb-1 text-primary">{schoolInfo?.name}</h1>
-                                                <div className="text-dark-50 font-weight-bold">{schoolInfo?.address || ''}</div>
-                                                <div className="text-dark-50 font-weight-bold">Phone: {schoolInfo?.phone || ''}</div>
-                                                <div className="text-dark-50 font-weight-bold">Email: {schoolInfo?.email || ''}</div>
-                                            </div>
-                                            <img src={schoolInfo?.logo} alt="Logo" style={{ height: '80px', objectFit: 'contain' }} />
-                                        </div>
-                                        
-                                        <div className="text-center mb-8 py-5 border-top border-bottom bg-light-o-primary">
-                                            <h2 className="font-weight-bold text-uppercase m-0 letter-spacing-px">Payment Collection Report</h2>
-                                            <div className="text-muted font-weight-bold mt-2">
-                                                CLASS: <span className="text-dark">{currentClassName}</span> | TERM: <span className="text-dark">{currentTermName}</span>
-                                            </div>
-                                            <div className="text-muted small mt-1 italic">Generated on: {new Date().toLocaleDateString('en-GB')} at {new Date().toLocaleTimeString()}</div>
-                                        </div>
+                        <div className="d-print-none p-4 border-bottom mb-4 d-flex justify-content-between align-items-center bg-white rounded shadow-sm m-6">
+                            <button className="btn btn-secondary font-weight-bold" onClick={() => this.setState({ showCollectionPrintView: false, activeTab: this.state.activeTab === 'accounts' ? 'accounts' : 'collection-report' })}>
+                                <i className="fa fa-arrow-left mr-2"></i> Back
+                            </button>
+                            <h4 className="m-0 font-weight-bold">Collection Report Preview</h4>
+                            <button className="btn btn-primary font-weight-bold" onClick={() => window.print()}>
+                                <i className="fa fa-print mr-2"></i> Print Report
+                            </button>
+                        </div>
+                        
+                        <div id="print-area" className="report-card-container" style={{ 
+                            padding: '1.0cm 1.5cm', 
+                            backgroundColor: 'white', 
+                            minHeight: '29.7cm', 
+                            width: '21cm', 
+                            margin: '0 auto 2cm auto', 
+                            position: 'relative',
+                            fontFamily: "'Inter', 'Roboto', sans-serif",
+                            color: '#1f2937', 
+                            boxSizing: 'border-box',
+                            boxShadow: '0 0 30px rgba(0,0,0,0.1)', 
+                            border: '1px solid #e5e7eb',
+                            display: 'flex',
+                            flexDirection: 'column'
+                        }}>
+                            <ReportHeader 
+                                school={schoolInfo} 
+                                title="PAYMENT COLLECTION REPORT" 
+                                themeColor={themeColor} 
+                            />
 
-                                    <table className="table table-bordered table-striped" style={{ fontSize: '0.9rem' }}>
-                                        <thead className="thead-light">
-                                            <tr className="text-uppercase font-size-xs">
-                                                <th>#</th>
-                                                <th>Student Name</th>
-                                                <th>Reg No</th>
-                                                <th className="text-right">Expected</th>
-                                                <th className="text-right">Paid</th>
-                                                <th className="text-right">Balance</th>
+                            {/* Report Metadata Block */}
+                            <div style={{ 
+                                display: 'grid', 
+                                gridTemplateColumns: 'repeat(3, 1fr)', 
+                                gap: '15px', 
+                                backgroundColor: '#ffffff', 
+                                padding: '20px', 
+                                borderRadius: '16px', 
+                                marginBottom: '0.8cm',
+                                border: '1px solid #e5e7eb',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+                            }}>
+                                <div style={{ borderRight: '1px solid #f3f4f6', paddingRight: '10px' }}>
+                                    <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 700, color: '#9ca3af', marginBottom: '4px' }}>CLASS / GRADE</div>
+                                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#111827' }}>{currentClassName}</div>
+                                </div>
+                                <div style={{ borderRight: '1px solid #f3f4f6', paddingRight: '10px' }}>
+                                    <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 700, color: '#9ca3af', marginBottom: '4px' }}>TERM</div>
+                                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#111827' }}>{currentTermName}</div>
+                                </div>
+                                <div>
+                                    <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', fontWeight: 700, color: '#9ca3af', marginBottom: '4px' }}>DATE GENERATED</div>
+                                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#111827' }}>{new Date().toLocaleDateString('en-GB')}</div>
+                                </div>
+                            </div>
+
+                            {/* Collection Table */}
+                            <div style={{ marginBottom: '0.8cm', border: '1px solid #e5e7eb', borderRadius: '12px', overflow: 'hidden', flex: 1 }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                                    <thead>
+                                        <tr style={{ backgroundColor: themeColor }}>
+                                            <th style={{ padding: '12px 18px', textAlign: 'center', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', width: '40px' }}>#</th>
+                                            <th style={{ padding: '12px 18px', textAlign: 'left', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Student Details</th>
+                                            <th style={{ padding: '12px 18px', textAlign: 'left', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Registration</th>
+                                            <th style={{ padding: '12px 18px', textAlign: 'right', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Expected</th>
+                                            <th style={{ padding: '12px 18px', textAlign: 'right', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Paid</th>
+                                            <th style={{ padding: '12px 18px', textAlign: 'right', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Balance</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {studentReportData.length === 0 ? (
+                                            <tr>
+                                                <td colSpan="6" style={{ padding: '40px', textAlign: 'center', color: '#9ca3af', fontStyle: 'italic' }}>
+                                                    No student records match the selected filters.
+                                                </td>
                                             </tr>
-                                        </thead>
-                                        <tbody>
-                                            {studentReportData.map((s, idx) => (
-                                                <tr key={s.id} style={{ backgroundColor: s.totalPaid === 0 ? '#fffafa' : 'transparent' }}>
-                                                    <td className="text-center">{idx + 1}</td>
-                                                    <td className="font-weight-bold text-dark-75">
-                                                        {s.names}
-                                                        {s.totalPaid === 0 && <span className="ml-2 small text-danger font-weight-bold">[NO PAYMENT]</span>}
-                                                    </td>
-                                                    <td className="text-muted">{s.registration}</td>
-                                                    <td className="text-right">{s.totalExpected.toLocaleString()}</td>
-                                                    <td className={`text-right font-weight-bolder ${s.totalPaid > 0 ? 'text-success' : 'text-muted'}`}>{s.totalPaid.toLocaleString()}</td>
-                                                    <td className="text-right text-danger font-weight-bold">{s.balance.toLocaleString()}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                        <tfoot className="bg-light">
-                                            <tr className="font-weight-bolder">
-                                                <td colSpan="4" className="text-right font-size-h6">TOTAL COLLECTED</td>
-                                                <td className="text-right font-size-h6 text-success">KES {totalPaid.toLocaleString()}</td>
-                                                <td></td>
+                                        ) : studentReportData.map((s, idx) => (
+                                            <tr key={s.id} style={{ backgroundColor: idx % 2 === 0 ? '#fff' : '#f9fafb', borderBottom: '1px solid #f3f4f6' }}>
+                                                <td style={{ padding: '12px 18px', textAlign: 'center', fontSize: '0.85rem', color: '#6b7280' }}>{idx + 1}</td>
+                                                <td style={{ padding: '12px 18px' }}>
+                                                    <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#111827' }}>{s.names}</div>
+                                                    <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{s.parentName}</div>
+                                                </td>
+                                                <td style={{ padding: '12px 18px', fontSize: '0.85rem', color: '#4b5563' }}>{s.registration}</td>
+                                                <td style={{ padding: '12px 18px', textAlign: 'right', fontWeight: 600, fontSize: '0.9rem' }}>{s.totalExpected.toLocaleString()}</td>
+                                                <td style={{ padding: '12px 18px', textAlign: 'right', fontWeight: 700, fontSize: '0.95rem', color: s.totalPaid > 0 ? '#10b981' : '#9ca3af' }}>
+                                                    {s.totalPaid.toLocaleString()}
+                                                    {s.totalPaid === 0 && <span style={{ display: 'block', fontSize: '0.65rem', color: '#ef4444', fontWeight: 800 }}>NO PAYMENT</span>}
+                                                </td>
+                                                <td style={{ padding: '12px 18px', textAlign: 'right', fontWeight: 800, fontSize: '1.0rem', color: s.balance > 0 ? '#ef4444' : '#10b981' }}>{s.balance.toLocaleString()}</td>
                                             </tr>
-                                        </tfoot>
-                                    </table>
-                                    
-                                    <div className="mt-20 pt-10 border-top d-flex justify-content-between">
-                                        <div className="text-center" style={{ width: '250px' }}>
-                                            <div className="font-weight-bolder">Prepared By:</div>
-                                            <div className="mt-15 border-bottom mx-10"></div>
-                                            <div className="text-muted small mt-2">School Bursar / Admin</div>
-                                        </div>
-                                        <div className="text-center" style={{ width: '250px' }}>
-                                            <div className="font-weight-bolder">Authorized By:</div>
-                                            <div className="mt-15 border-bottom mx-10"></div>
-                                            <div className="text-muted small mt-2">School Stamp & Signature</div>
-                                        </div>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Signature Section */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1.0cm', marginBottom: '1.0cm', padding: '0 1cm' }}>
+                                <div style={{ width: '220px', textAlign: 'center' }}>
+                                    <div style={{ height: '40px' }}></div>
+                                    <div style={{ borderTop: '2px solid #e5e7eb', paddingTop: '10px' }}>
+                                        <p style={{ margin: 0, fontWeight: 800, color: '#111827', fontSize: '0.85rem', textTransform: 'uppercase' }}>Bursar / Accounts</p>
+                                        <p style={{ margin: '4px 0 0 0', fontSize: '0.65rem', color: '#9ca3af', fontWeight: 600 }}>Signature & Date</p>
                                     </div>
                                 </div>
+                                <div style={{ width: '220px', textAlign: 'center' }}>
+                                    <div style={{ height: '40px' }}></div>
+                                    <div style={{ borderTop: '2px solid #e5e7eb', paddingTop: '10px' }}>
+                                        <p style={{ margin: 0, fontWeight: 800, color: '#111827', fontSize: '0.85rem', textTransform: 'uppercase' }}>Principal</p>
+                                        <p style={{ margin: '4px 0 0 0', fontSize: '0.65rem', color: '#9ca3af', fontWeight: 600 }}>Official Stamp & Date</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Footer */}
+                            <div style={{ marginTop: 'auto', paddingBottom: '0.5cm' }}>
+                                <ReportFooter themeColor={themeColor} validationStatus="Financial Record" />
                             </div>
                         </div>
                         <style>{`

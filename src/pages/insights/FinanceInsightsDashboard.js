@@ -275,9 +275,12 @@ class FinanceInsightsDashboard extends Component {
     
     const feeStructures = this.props.feeStructures || this.state.feeStructures || [];
     const selectedTerm = this.props.selectedTerm;
+    const selectedClass = this.props.selectedClass;
 
-    // Map back to the structure expected by the dashboard
-    return classGroups.map(group => {
+    // Map back to the structure expected by the dashboard and filter by selected class if isolation is requested
+    return classGroups
+      .filter(group => !selectedClass || String(group.classId) === String(selectedClass))
+      .map(group => {
       // Calculate fee structure breakdown for this class/term
       const feeStructureBreakdown = {};
       feeStructures.forEach(fs => {
@@ -399,7 +402,35 @@ class FinanceInsightsDashboard extends Component {
 
     // Add comparison data if comparison mode is active
     if (comparisonMode !== 'none') {
-      return this.addComparisonData(timeSeriesData, comparisonMode);
+      const augmentedData = this.addComparisonData(timeSeriesData, comparisonMode);
+      
+      // If isolation mode is active (single class selected) and we have comparison data,
+      // project the comparison as a sibling item so charts can render two distinct lines/bars.
+      if (this.props.selectedClass && augmentedData.length === 1) {
+        const item = augmentedData[0];
+        const comp = item.comparison || item.previousTermData || item.previousYearData;
+        
+        if (comp) {
+          return [
+            { 
+              ...item, 
+              className: `${item.className} (Current)`,
+              isCurrent: true 
+            },
+            { 
+              ...item, 
+              className: `${item.className} (${comp.name || 'Previous Period'})`,
+              totalRevenue: comp.totalRevenue,
+              collectionRate: comp.collectionRate,
+              efficiency: comp.efficiency,
+              periods: comp.periods || [],
+              isComparison: true,
+              color: '#B5B5C3' // Muted grey for comparison
+            }
+          ];
+        }
+      }
+      return augmentedData;
     }
 
     return timeSeriesData;
@@ -636,11 +667,12 @@ class FinanceInsightsDashboard extends Component {
       
       return {
         ...item,
-        previousTermData: {
+        comparison: {
+          name: previousTerm.name,
           totalRevenue: previousRevenue,
           collectionRate: previousCollectionRate,
           efficiency: previousEfficiency,
-          studentCount: classStudents.length
+          periods: this.generateTimeSeriesData(classPayments, this.state.selectedTimeRange)
         }
       };
     });
@@ -704,11 +736,12 @@ class FinanceInsightsDashboard extends Component {
       
       return {
         ...item,
-        previousYearData: {
+        comparison: {
+          name: previousYearTerm.name,
           totalRevenue: previousYearRevenue,
           collectionRate: previousYearCollectionRate,
           efficiency: previousYearEfficiency,
-          studentCount: classStudents.length
+          periods: this.generateTimeSeriesData(classPayments, this.state.selectedTimeRange)
         }
       };
     });
