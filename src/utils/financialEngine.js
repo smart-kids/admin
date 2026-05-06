@@ -166,10 +166,22 @@ export const calculateFinancials = ({
             return belongsToMyStudent || isParentPhoneMatch;
         });
 
-        const processedAllPayments = allParentPayments.map(p => ({
-            ...p,
-            processedAmount: parseFloat(p.amount || p.ammount || 0)
-        }));
+        const processedAllPayments = allParentPayments.map(p => {
+            const amount = parseFloat(p.amount || p.ammount || 0);
+            const pStudentId = String(p.student?.id || p.student || p.metadata?.studentId || "");
+            
+            // If single child, treat unallocated payments as belonging to that child
+            let sName = p.studentName;
+            if (isSingleChild && group.students?.[0] && (!pStudentId || pStudentId === "" || pStudentId === "null" || pStudentId === "undefined")) {
+                sName = group.students[0].names;
+            }
+
+            return {
+                ...p,
+                processedAmount: amount,
+                studentName: sName
+            };
+        });
 
         // Current Term logic
         let totalStudentPaid = 0;

@@ -1959,8 +1959,8 @@ class FeesManagement extends Component {
             const { schoolInfo, selectedTerm, selectedClass, terms, classes } = this.state;
             const themeColor = schoolInfo?.themeColor || '#1a1a1a';
 
-            const currentTermName = selectedTerm ? terms.find(t => t.id === selectedTerm)?.name : "All Terms";
-            const currentClassName = selectedClass ? classes.find(c => String(c.id) === selectedClass)?.name : "All Classes";
+            const currentTermName = selectedTerm && Array.isArray(terms) ? terms.find(t => t.id === selectedTerm)?.name || "Current Term" : "All Terms";
+            const currentClassName = selectedClass && Array.isArray(classes) ? classes.find(c => String(c.id) === selectedClass)?.name || "Current Class" : "All Classes";
 
             return (
                 <div className="kt-grid__item kt-grid__item--fluid kt-grid kt-grid--ver kt-page" style={{ backgroundColor: '#f3f4f6' }}>
@@ -2007,7 +2007,7 @@ class FeesManagement extends Component {
                                     
                                     // Group by class
                                     const groupedByClass = studentReportData.reduce((acc, s) => {
-                                        const cName = s.class?.name || s.studentClassId || "Unassigned";
+                                        const cName = String(s.class?.name || s.studentClassId || "Unassigned");
                                         if (!acc[cName]) acc[cName] = [];
                                         acc[cName].push(s);
                                         return acc;
@@ -2029,7 +2029,7 @@ class FeesManagement extends Component {
                                                         backgroundColor: 'white', 
                                                         minHeight: '29.7cm', 
                                                         width: '21cm', 
-                                                        margin: '0 auto 2cm auto', 
+                                                        margin: '2cm auto', 
                                                         position: 'relative',
                                                         fontFamily: "'Inter', 'Roboto', sans-serif",
                                                         color: '#1f2937', 
@@ -2038,6 +2038,7 @@ class FeesManagement extends Component {
                                                         border: '1px solid #e5e7eb',
                                                         display: 'flex',
                                                         flexDirection: 'column',
+                                                        breakAfter: 'page',
                                                         pageBreakAfter: cIdx === sortedClassNames.length - 1 ? 'auto' : 'always'
                                                     }}>
                                                         <ReportHeader 
@@ -2149,11 +2150,34 @@ class FeesManagement extends Component {
                           #kt_header, #kt_header_mobile, #kt_header_secondary, .kt-subheader, .kt-footer, .kt-aside, .d-print-none { 
                               display: none !important; 
                           }
-                          body, html { background: white !important; margin: 0 !important; padding: 0 !important; }
-                          #kt_wrapper, .kt-content, .kt-container, #print-area { 
-                              background: white !important; padding: 0 !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; 
+                          body, html { background: white !important; margin: 0 !important; padding: 0 !important; width: 100% !important; }
+                          
+                          /* Clear Metronic Grid/Flex Layout for Print */
+                          .kt-page, #kt_wrapper, .kt-content, .kt-container, .kt-grid, .kt-grid__item {
+                              display: block !important;
+                              padding: 0 !important;
+                              margin: 0 !important;
+                              width: 100% !important;
+                              height: auto !important;
+                              min-height: auto !important;
+                              background: white !important;
                           }
-                          #print-area { box-shadow: none !important; border: none !important; }
+
+                          #print-area { 
+                              background: white !important; 
+                              width: 100% !important;
+                              padding: 0 !important;
+                              margin: 0 !important;
+                          }
+
+                          .report-card-container { 
+                              box-shadow: none !important; 
+                              border: none !important; 
+                              margin: 0 !important; 
+                              width: 100% !important;
+                              padding: 1.0cm 1.5cm !important;
+                          }
+
                           .table { width: 100% !important; border-collapse: collapse !important; }
                           .table-bordered th, .table-bordered td { border: 1px solid #dee2e6 !important; }
                       }
