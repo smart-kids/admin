@@ -1740,23 +1740,15 @@ class FeesManagement extends Component {
                     </div>
                     <div className="d-flex align-items-center">
                         <div className="d-flex align-items-center mr-6">
-                            <span className="font-weight-bold mr-4 text-dark-75 font-size-sm text-uppercase" style={{ letterSpacing: '0.05rem' }}>Report Filter:</span>
-                            <div className="bg-light-primary p-1 rounded-pill d-flex" style={{ border: '1px solid #ebf0f8' }}>
-                                <button 
-                                    className={`btn btn-xs rounded-pill px-4 py-2 font-weight-bolder transition-all ${!this.state.collectionReportBalanceFilter ? 'btn-primary shadow-sm' : 'btn-clean text-primary'}`}
-                                    onClick={() => this.setState({ collectionReportBalanceFilter: false })}
-                                    style={{ fontSize: '0.75rem' }}
-                                >
-                                    ALL STUDENTS
-                                </button>
-                                <button 
-                                    className={`btn btn-xs rounded-pill px-4 py-2 font-weight-bolder transition-all ${this.state.collectionReportBalanceFilter ? 'btn-primary shadow-sm' : 'btn-clean text-primary'}`}
-                                    onClick={() => this.setState({ collectionReportBalanceFilter: true })}
-                                    style={{ fontSize: '0.75rem' }}
-                                >
-                                    BALANCES ONLY
-                                </button>
-                            </div>
+                            <label className="checkbox checkbox-lg checkbox-primary mb-0 d-flex align-items-center">
+                                <input 
+                                    type="checkbox" 
+                                    checked={this.state.collectionReportBalanceFilter} 
+                                    onChange={(e) => this.setState({ collectionReportBalanceFilter: e.target.checked })}
+                                />
+                                <span></span>
+                                <span className="font-weight-bold text-dark-75 ml-2" style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05rem', whiteSpace: 'nowrap' }}>Show Balances Only</span>
+                            </label>
                         </div>
                         <button 
                             className="btn btn-primary btn-sm px-6 font-weight-bold" 
@@ -1990,7 +1982,16 @@ class FeesManagement extends Component {
                                     <div>
                                         <h4 className="m-0 font-weight-bold text-dark">Collection Report Preview</h4>
                                     </div>
-                                    <div>
+                                    <div className="d-flex align-items-center">
+                                        <label className="checkbox checkbox-lg checkbox-primary mb-0 mr-8 d-flex align-items-center">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={this.state.collectionReportBalanceFilter} 
+                                                onChange={(e) => this.setState({ collectionReportBalanceFilter: e.target.checked })}
+                                            />
+                                            <span></span>
+                                            <span className="font-weight-bold text-dark-75 ml-2" style={{ fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05rem', whiteSpace: 'nowrap' }}>Balances Only</span>
+                                        </label>
                                         <button 
                                             className="btn btn-primary font-weight-bold px-8" 
                                             style={{ whiteSpace: 'nowrap' }}
@@ -2475,14 +2476,60 @@ class FeesManagement extends Component {
                                                                                                             <div className="alert alert-custom alert-light-warning py-2 mb-0 shadow-sm border-0 mr-4" style={{ flex: 1 }}>
                                                                                                                 <div className="alert-icon"><i className="flaticon-warning text-warning"></i></div>
                                                                                                                 <div className="alert-text font-size-sm">
-                                                                                                                    <span className="font-weight-bolder">KES {unallocatedSum.toLocaleString()}</span> was found via phone matching ({maskPhone(group.parent.phone)}) and credited here.
-                                                                                                                    <div className="mt-1 opacity-70">To allocate this to a specific student, use the Edit button in the history list below.</div>
+                                                                                                                    <span className="font-weight-bolder">KES {unallocatedSum.toLocaleString()}</span> was found via phone matching ({maskPhone(group.parent.phone)}).
+                                                                                                                    <div className="mt-1">
+                                                                                                                        This amount is automatically applied to <span className="font-weight-bolder text-primary">{group.students[0].names}</span> to reduce their balance.
+                                                                                                                        <span className="opacity-70 ml-2">To re-allocate, use the Edit button in the history list below.</span>
+                                                                                                                    </div>
                                                                                                                 </div>
                                                                                                             </div>
                                                                                                         );
                                                                                                     }
                                                                                                     return null;
                                                                                                 })()}
+                                                                                            </div>
+                                                                                            <div className="col-md-12 mb-6">
+                                                                                                <h6 className="font-weight-bold mb-4 d-flex align-items-center">
+                                                                                                    <i className="flaticon-users text-primary mr-2"></i> Individual Student Balances
+                                                                                                </h6>
+                                                                                                <div className="row">
+                                                                                                    {group.students.map((student, sIdx) => {
+                                                                                                        const hasUnallocated = sIdx === 0 && group.history.some(h => h.studentName === 'Unallocated' && h.status === 'COMPLETED');
+                                                                                                        return (
+                                                                                                            <div key={student.id} className="col-md-4 mb-4">
+                                                                                                                <div className="bg-white rounded p-4 shadow-sm border-0 h-100 position-relative" style={{ borderLeft: student.finances?.balance > 0 ? '4px solid #F64E60' : '4px solid #1BC5BD' }}>
+                                                                                                                    <div className="d-flex justify-content-between align-items-start mb-2">
+                                                                                                                        <div>
+                                                                                                                            <div className="text-dark-75 font-weight-bolder font-size-lg">{student.names}</div>
+                                                                                                                            <div className="text-muted font-size-xs">{student.class?.name || student.studentClassId || 'No Class'}</div>
+                                                                                                                        </div>
+                                                                                                                        {hasUnallocated && (
+                                                                                                                            <span className="label label-inline label-light-warning font-size-xs" title="Balance includes unallocated parent payments">
+                                                                                                                                + Unallocated
+                                                                                                                            </span>
+                                                                                                                        )}
+                                                                                                                    </div>
+                                                                                                                    <div className="separator separator-dashed my-3"></div>
+                                                                                                                    <div className="d-flex justify-content-between mb-1">
+                                                                                                                        <span className="text-muted font-size-sm">Expected:</span>
+                                                                                                                        <span className="text-dark-75 font-weight-bold">KES {student.finances?.expected?.toLocaleString() || 0}</span>
+                                                                                                                    </div>
+                                                                                                                    <div className="d-flex justify-content-between mb-1">
+                                                                                                                        <span className="text-muted font-size-sm">Paid:</span>
+                                                                                                                        <span className="text-success font-weight-bold">KES {student.finances?.paid?.toLocaleString() || 0}</span>
+                                                                                                                    </div>
+                                                                                                                    <div className="separator separator-dashed my-2"></div>
+                                                                                                                    <div className="d-flex justify-content-between align-items-center">
+                                                                                                                        <span className="text-muted font-weight-bold">Balance:</span>
+                                                                                                                        <span className={`font-weight-bolder font-size-h6 ${student.finances?.balance > 0 ? 'text-danger' : 'text-success'}`}>
+                                                                                                                            KES {student.finances?.balance?.toLocaleString() || 0}
+                                                                                                                        </span>
+                                                                                                                    </div>
+                                                                                                                </div>
+                                                                                                            </div>
+                                                                                                        );
+                                                                                                    })}
+                                                                                                </div>
                                                                                             </div>
                                                                                             <div className="col-md-12">
                                                                                                 <div className="row">
