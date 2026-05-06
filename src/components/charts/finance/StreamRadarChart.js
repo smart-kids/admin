@@ -16,7 +16,7 @@ export const StreamRadarChart = ({
     if (!data || data.length === 0) {
       return {
         title: {
-          text: 'No Stream Data Available',
+          text: 'No Data Available',
           left: 'center',
           top: 'middle',
           textStyle: { color: '#999', fontSize: 16 }
@@ -24,8 +24,8 @@ export const StreamRadarChart = ({
       };
     }
 
-    // Process stream data
-    const streamNames = data.map(stream => stream.streamName || `Stream ${stream.streamId}`);
+    // Process stream/class data
+    const streamNames = data.map(stream => stream.streamName || stream.className || `Stream ${stream.streamId || stream.classId}`);
     
     // Calculate maximum values for normalization
     const maxValues = {};
@@ -37,13 +37,13 @@ export const StreamRadarChart = ({
 
     // Prepare series data
     const series = data.map((stream, index) => ({
-      name: stream.streamName || `Stream ${stream.streamId}`,
+      name: stream.streamName || stream.className || `Stream ${stream.streamId || stream.classId}`,
       type: 'radar',
       data: [{
         value: metrics.map(metric => 
           normalizeValue(getMetricValue(stream, metric), maxValues[metric])
         ),
-        name: stream.streamName || `Stream ${stream.streamId}`,
+        name: stream.streamName || stream.className || `Stream ${stream.streamId || stream.classId}`,
         itemStyle: {
           color: getStreamColor(index)
         },
@@ -73,7 +73,7 @@ export const StreamRadarChart = ({
 
     return {
       title: {
-        text: 'Stream Performance Comparison',
+        text: 'Performance Comparison',
         left: 'center',
         textStyle: {
           fontSize: 16,
@@ -224,7 +224,7 @@ export const StreamComparisonChart = ({
     if (!data || data.length === 0) {
       return {
         title: {
-          text: 'No Stream Data Available',
+          text: 'No Data Available',
           left: 'center',
           top: 'middle',
           textStyle: { color: '#999', fontSize: 16 }
@@ -244,7 +244,7 @@ export const StreamComparisonChart = ({
 
   const getRadarChartOption = () => {
     // Similar to StreamRadarChart but with enhanced features
-    const streamNames = data.map(stream => stream.streamName || `Stream ${stream.streamId}`);
+    const streamNames = data.map(stream => stream.streamName || stream.className || `Stream ${stream.streamId || stream.classId}`);
     
     const maxValues = {};
     metrics.forEach(metric => {
@@ -254,20 +254,20 @@ export const StreamComparisonChart = ({
     });
 
     const series = data.map((stream, index) => ({
-      name: stream.streamName || `Stream ${stream.streamId}`,
+      name: stream.streamName || stream.className || `Stream ${stream.streamId || stream.classId}`,
       type: 'radar',
       data: [{
         value: metrics.map(metric => 
           normalizeValue(getMetricValue(stream, metric), maxValues[metric])
         ),
-        name: stream.streamName || `Stream ${stream.streamId}`,
+        name: stream.streamName || stream.className || `Stream ${stream.streamId || stream.classId}`,
         itemStyle: { color: getStreamColor(index) }
       }]
     }));
 
     return {
       title: {
-        text: 'Advanced Stream Performance Analysis',
+        text: 'Advanced Performance Analysis',
         left: 'center'
       },
       tooltip: { trigger: 'item' },
@@ -292,7 +292,7 @@ export const StreamComparisonChart = ({
     }));
 
     const parallelData = data.map((stream, index) => ({
-      name: stream.streamName || `Stream ${stream.streamId}`,
+      name: stream.streamName || stream.className || `Stream ${stream.streamId || stream.classId}`,
       value: metrics.map(metric => getMetricValue(stream, metric) || 0),
       lineStyle: {
         color: getStreamColor(index),
@@ -316,7 +316,7 @@ export const StreamComparisonChart = ({
           `;
         }
       },
-      legend: { bottom: 10, data: data.map(stream => stream.streamName || `Stream ${stream.streamId}`) },
+      legend: { bottom: 10, data: data.map(stream => stream.streamName || stream.className || `Stream ${stream.streamId || stream.classId}`) },
       parallelAxis,
       parallel: {
         left: '5%',
@@ -364,7 +364,7 @@ export const StreamComparisonChart = ({
     }
 
     const scatterData = data.map((stream, index) => ({
-      name: stream.streamName || `Stream ${stream.streamId}`,
+      name: stream.streamName || stream.className || `Stream ${stream.streamId || stream.classId}`,
       value: [
         getMetricValue(stream, metrics[0]),
         getMetricValue(stream, metrics[1])
@@ -387,11 +387,11 @@ export const StreamComparisonChart = ({
             <div style="font-weight: bold; margin-bottom: 8px;">${params.name}</div>
             <div>${getMetricLabel(metrics[0])}: ${formatMetricValue(metrics[0], params.value[0])}</div>
             <div>${getMetricLabel(metrics[1])}: ${formatMetricValue(metrics[1], params.value[1])}</div>
-            <div>Student Count: ${data.find(s => (s.streamName || `Stream ${s.streamId}`) === params.name)?.studentCount || 'N/A'}</div>
+            <div>Student Count: ${data.find(s => (s.streamName || s.className || `Stream ${s.streamId || s.classId}`) === params.name)?.studentCount || 'N/A'}</div>
           `;
         }
       },
-      legend: { bottom: 10, data: data.map(stream => stream.streamName || `Stream ${stream.streamId}`) },
+      legend: { bottom: 10, data: data.map(stream => stream.streamName || stream.className || `Stream ${stream.streamId || stream.classId}`) },
       xAxis: {
         type: 'value',
         name: getMetricLabel(metrics[0]),

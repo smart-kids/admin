@@ -26,7 +26,7 @@ export const RevenueTrendChart = ({
     }
 
     // Process data for ECharts
-    const timePeriods = [...new Set(data.flatMap(item => item.periods || []))].sort();
+    const timePeriods = [...new Set(data.flatMap(item => (item.periods || []).map(p => p.period)))].sort();
     const series = data.map((classData, index) => ({
       name: classData.className || `Class ${index + 1}`,
       type: 'line',

@@ -11,6 +11,7 @@ import StatementCard from "./components/StatementCard";
 import BulkReportSmsModal from "../../components/reports/BulkReportSmsModal";
 import SmsBalanceModal from "./components/SmsBalanceModal";
 import SearchAlphabetFilter from '../../components/search-alphabet-filter/SearchAlphabetFilter';
+import { calculateFinancials, aggregateByClass, isSuccessfulPayment } from '../../utils/financialEngine';
 import EnhancedDropdown from '../../components/enhanced-dropdown/EnhancedDropdown';
 
 // --- HELPER COMPONENTS ---
@@ -164,7 +165,8 @@ class FeesManagement extends Component {
         showBulkSmsModal: false,
         bulkSmsRecipients: [],
 
-        activeTab: 'insights', // 'accounts', 'insights', 'analytics'
+        activeTab: 'insights', // 'accounts', 'insights', 'analytics', 'collection-report'
+        showCollectionPrintView: false,
 
         // Modal states like results management
         showAddTermModal: false,
@@ -426,319 +428,30 @@ class FeesManagement extends Component {
      * Running this only when data/filters change (not every render) is key for 500+ items.
      */
     recalculateFinancials = () => {
-        const { students, parents, payments, classes, terms, feeStructures, expected, charges, selectedClass, selectedTerm, searchTerm, alphabetFilter } = this.state;
+        const { students, parents, payments, classes, terms, feeStructures, charges, selectedClass, selectedTerm, searchTerm, alphabetFilter } = this.state;
 
-        // EXIT if any core piece is missing. 
-        // We allow payments to be empty, as students might not have paid yet.
-        if (!students.length || !parents.length || !classes.length) {
-            console.log("Exiting early: missing core data (students, parents, or classes)");
-            return;
-        }
-
-        // 1. Helper: Get Fees for Class using new FeeStructure
-        const getFees = (classId, termId = null) => {
-            if (!classId) return 0;
-            if (!feeStructures || !Array.isArray(feeStructures)) return 0;
-
-            const targetClassId = String(classId?.id || classId);
-            const targetTermId = termId || selectedTerm;
-
-            // Get all active fee structures for this class and term
-            const applicableFees = feeStructures.filter(fs =>
-                String(fs.class?.id || fs.class) === targetClassId &&
-                (!targetTermId || String(fs.term?.id || fs.term) === String(targetTermId)) &&
-                fs.isActive === true
-            );
-
-            // Sum all applicable fees (tuition, transport, etc.)
-            return applicableFees.reduce((total, fs) => total + (parseFloat(fs.amount) || 0), 0);
-        };
-
-
-        // 2. Helper: Get Selected Term
-        const selectedTermData = (Array.isArray(terms) ? terms : []).find(t => t.id === selectedTerm);
-
-        // 3. Filter Students first
-        let filteredStudents = students;
-        if (selectedClass) {
-            const selClsId = String(selectedClass);
-            filteredStudents = students.filter(s => String(s.class?.id || s.class) === selClsId);
-        }
-
-        // 4. Group by Parent
-        const parentMap = {};
-        let studentsWithoutParent = 0;
-
-        filteredStudents.forEach(student => {
-            const pId = String(student.parent?.id || student.parent);
-            if (!pId || pId === "undefined" || pId === "null") {
-                studentsWithoutParent++;
-                return;
-            }
-
-            if (!parentMap[pId]) {
-                const parentObj = parents.find(p => String(p.id) === pId) || student.parent;
-                if (!parentObj) {
-                    // Create a placeholder parent to still show the student
-                    parentMap[pId] = {
-                        id: pId,
-                        parent: {
-                            id: pId,
-                            name: `Parent ${pId}`,
-                            phone: 'Not assigned',
-                            isPlaceholder: true
-                        },
-                        students: [],
-                        totalExpected: 0,
-                        totalPaid: 0,
-                        totalBalance: 0,
-                        history: [],
-                        charges: []
-                    };
-                } else {
-                    parentMap[pId] = {
-                        id: pId,
-                        parent: { ...parentObj }, // Clone to avoid mutation issues
-                        students: [],
-                        totalExpected: 0,
-                        totalPaid: 0,
-                        totalBalance: 0,
-                        history: [],
-                        charges: []
-                    };
-
-                    // CRITICAL: If the parent object is missing a phone, try to find it in the flat parents list
-                    if (!parentMap[pId].parent.phone) {
-                        const fullParent = parents.find(p => String(p.id) === pId);
-                        if (fullParent?.phone) parentMap[pId].parent.phone = fullParent.phone;
-                    }
-                }
-            }
-            parentMap[pId].students.push(student);
-        });
-
-        // Create a special group for students without parents
-        if (studentsWithoutParent > 0) {
-            const studentsWithoutParentList = filteredStudents.filter(student => {
-                const pId = String(student.parent?.id || student.parent);
-                return !pId || pId === "undefined" || pId === "null";
-            });
-
-            if (studentsWithoutParentList.length > 0) {
-                parentMap['no-parent'] = {
-                    id: 'no-parent',
-                    parent: {
-                        id: 'no-parent',
-                        name: 'Students Without Parent Assignment',
-                        phone: 'N/A',
-                        isSpecialGroup: true
-                    },
-                    students: studentsWithoutParentList,
-                    totalExpected: 0,
-                    totalPaid: 0,
-                    totalBalance: 0,
-                    history: [],
-                    charges: []
-                };
-            }
-        }
-
-        // Map charges to parents (filtered by term if selected)
-        if (charges && charges.length > 0) {
-            charges.forEach(charge => {
-                const parentId = String(charge.parent?.id || charge.parent);
-                if (parentMap[parentId]) {
-                    // Filter by term if selectedTerm is set
-                    if (selectedTerm) {
-                        const chargeTermId = String(charge.term?.id || charge.term || "");
-                        if (chargeTermId !== String(selectedTerm)) {
-                            return; // Only include charges that explicitly match selected term
-                        }
-                    }
-                    parentMap[parentId].charges.push(charge);
-                }
-            });
-        }
-
-        // 5. Calculate Finances per Parent Group
-        let grandTotalExpected = 0;
-        let grandTotalPaid = 0;
-        let grandTotalBalance = 0;
-
-        const processedList = Object.values(parentMap).map(group => {
-            const normalizePhone = (p) => p ? p.replace(/\D/g, '').slice(-9) : '';
-            const normParentPhone = normalizePhone(group.parent.phone);
-            const isSingleChild = group.students.length === 1;
-
-            // Gather all relevant payments for this parent (now using pre-processed payments)
-            const allParentPayments = payments.filter(p => {
-                const paymentStudentId = String(p.student?.id || p.student || p.metadata?.studentId || "");
-                const belongsToMyStudent = group.students.some(s => String(s.id) === paymentStudentId);
-                const isParentPhoneMatch = normalizePhone(p.phone) === normParentPhone;
-                return belongsToMyStudent || isParentPhoneMatch;
-            });
-
-            // Use pre-processed payments - no need for heavy processing here
-            const processedAllPayments = allParentPayments.map(p => {
-                // Handle single child assignment for studentName
-                let studentName = p.studentName || 'Unallocated';
-                if (isSingleChild && (studentName === 'Unallocated' || !p.student?.id || p.student?.id === "undefined")) {
-                    studentName = group.students[0].names;
-                }
-                return { ...p, studentName };
-            }).sort((a, b) => new Date(b.time || b.createdAt) - new Date(a.time || b.createdAt));
-
-            // Filter for term History using assignedTermId only
-            // And exclude failed transactions to reduce noise in active term views
-            const relatedPayments = processedAllPayments.filter(p => {
-                const isFailed = p.status === 'FAILED' || p.status === 'FAILED_ON_CALLBACK';
-                const isPendingMpesa = p.status === 'PENDING' && p.type === 'mpesa_init';
-                if (isFailed || isPendingMpesa) return false;
-
-                // If "All Terms" is selected, we show everything (that isn't failed)
-                if (!selectedTerm) return true;
-
-                // Use our pre-calculated assignedTermId for performance
-                return p.assignedTermId && String(p.assignedTermId) === String(selectedTerm);
-            });
-
-
-            // Distribute payments and calculate per-student balances based ONLY on current term payments
-            group.students.forEach(student => {
-                const classFee = getFees(student.class?.id || student.class, selectedTerm);
-
-                const studentPayments = relatedPayments.filter(p => {
-                    const pStudentId = String(p.student?.id || p.student || p.metadata?.studentId || "");
-                    const targetStudentId = String(student.id);
-
-                    if (pStudentId && pStudentId !== "undefined" && pStudentId !== "" && pStudentId !== "null" && pStudentId !== targetStudentId) return false;
-                    if (isSingleChild && (!pStudentId || pStudentId === "undefined" || pStudentId === "null" || pStudentId === "")) return true;
-                    return pStudentId === targetStudentId;
-                });
-
-                const paid = studentPayments.reduce((sum, p) => {
-                    const isValidStatus = p.status === 'COMPLETED' || p.status === 'PENDING';
-                    return isValidStatus ? sum + (p.processedAmount || 0) : sum;
-                }, 0);
-
-                student.finances = { expected: classFee, paid, balance: classFee - paid, history: studentPayments };
-                group.totalExpected += classFee;
-            });
-
-            const allValidPayments = relatedPayments.filter(p => p.status === 'COMPLETED' || p.status === 'PENDING');
-            group.totalPaid = allValidPayments.reduce((sum, p) => sum + (p.processedAmount || 0), 0);
-
-            // Add custom charges to total expected
-            const additionalCharges = group.charges.reduce((sum, c) => sum + Math.round(parseFloat(c.amount || 0)), 0);
-            group.totalCharges = additionalCharges; // Stored so Financial Summary per student can distribute it
-            group.totalExpected += additionalCharges;
-
-            group.totalBalance = group.totalExpected - group.totalPaid;
-
-            // 5b. Calculate Balance Brought Forward (Previous Terms)
-            let balanceBroughtForward = 0;
-            if (selectedTerm && terms.length > 0) {
-                console.log(`DEBUG: All terms:`, terms.map(t => ({id: t.id, name: t.name, order: t.order})));
-                
-                const currentTerm = terms.find(t => t.id === selectedTerm);
-                
-                // Extract term number from name (e.g., "Term 1 2024" -> 1)
-                const extractTermNumber = (termName) => {
-                    const match = termName.match(/Term (\d+)/i);
-                    return match ? parseInt(match[1]) : 0;
-                };
-                
-                const currentTermOrder = currentTerm?.order || extractTermNumber(currentTerm?.name || '') || 0;
-                console.log(`DEBUG: Current term:`, {id: currentTerm?.id, name: currentTerm?.name, order: currentTermOrder});
-                
-                const previousTerms = terms
-                    .filter(t => {
-                        if (t.id === selectedTerm) return false;
-                        const termOrder = t.order || extractTermNumber(t.name || '') || 0;
-                        return termOrder < currentTermOrder;
-                    })
-                    .sort((a, b) => {
-                        const orderA = a.order || extractTermNumber(a.name || '') || 0;
-                        const orderB = b.order || extractTermNumber(b.name || '') || 0;
-                        return orderA - orderB;
-                    });
-
-                console.log(`DEBUG: Group ${group.id}, Selected Term: ${selectedTerm}, Previous Terms:`, previousTerms.map(t => ({id: t.id, name: t.name, order: t.order || extractTermNumber(t.name || '') || 0})));
-                console.log(`DEBUG: Previous terms count:`, previousTerms.length);
-
-                // Calculate net balance for each previous term
-                previousTerms.forEach(prevTerm => {
-                    // 1. Expected fees for this previous term
-                    const termExpectedFees = group.students.reduce((sum, s) => {
-                        const termFee = getFees(s.class?.id || s.class, prevTerm.id);
-                        return sum + termFee;
-                    }, 0);
-
-                    // 2. Charges for this previous term
-                    const termCharges = (charges || []).filter(c => {
-                        const pId = String(c.parent?.id || c.parent);
-                        if (pId !== group.id) return false;
-                        const cTermId = String(c.term?.id || c.term || "");
-                        // Only include charges explicitly for this term
-                        return cTermId === String(prevTerm.id);
-                    }).reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
-
-                    // 3. Payments for this previous term
-                    const termPayments = processedAllPayments.filter(p => {
-                        const isFailed = p.status === 'FAILED' || p.status === 'FAILED_ON_CALLBACK';
-                        const isPendingMpesa = p.status === 'PENDING' && p.type === 'mpesa_init';
-                        if (isFailed || isPendingMpesa) return false;
-                        return String(p.assignedTermId) === String(prevTerm.id);
-                    }).reduce((sum, p) => sum + (p.processedAmount || 0), 0);
-
-                    // Net balance for this term = (Fees + Charges) - Payments
-                    const termBalance = (termExpectedFees + termCharges) - termPayments;
-                    console.log(`DEBUG: Term ${prevTerm.name} - Fees: ${termExpectedFees}, Charges: ${termCharges}, Payments: ${termPayments}, Balance: ${termBalance}`);
-                    balanceBroughtForward += termBalance;
-                });
-
-                console.log(`DEBUG: Final balanceBroughtForward for group ${group.id}: ${balanceBroughtForward}`);
-            }
-
-            const manualBroughtForward = group.students.reduce((sum, s) => sum + (parseFloat(s.balanceBroughtForward) || 0), 0);
-            balanceBroughtForward += manualBroughtForward;
-
-            group.balanceBroughtForward = balanceBroughtForward;
-            group.totalBalance += balanceBroughtForward; // Add BBF to the total outstanding balance
-
-            group.history = relatedPayments;
-            group.allHistory = processedAllPayments;
-
-            return group;
-        });
-
-        // 6. Apply Search Filter
-        const termLower = searchTerm.toLowerCase();
-        const filteredList = processedList.filter(g => {
-            // Apply search filter
-            if (searchTerm) {
-                const matchesSearch = g.parent.name?.toLowerCase().includes(termLower) ||
-                                    g.parent.phone?.includes(termLower) ||
-                                    g.students.some(s => s.names?.toLowerCase().includes(termLower));
-                if (!matchesSearch) return false;
-            }
-            
-            // Apply alphabet filter
-            if (alphabetFilter) {
-                const parentName = g.parent.name || '';
-                const firstLetter = parentName.trim().charAt(0).toUpperCase();
-                if (firstLetter !== alphabetFilter) return false;
-            }
-            
-            return true;
+        const results = calculateFinancials({
+            students,
+            parents,
+            payments,
+            classes,
+            terms,
+            feeStructures,
+            charges,
+            selectedClass,
+            selectedTerm,
+            searchTerm,
+            alphabetFilter
         });
 
         this.setState({
-            processedParents: filteredList
+            processedParents: results.processedParents,
+            fullyProcessedParents: results.fullyProcessedParents,
+            globalFinancialMetrics: results.globalFinancialMetrics
         }, () => {
             // Auto-expand the first item if none is expanded and we have items
-            if (!this.state.expandedParentId && filteredList.length > 0) {
-                this.setState({ expandedParentId: filteredList[0].id });
+            if (!this.state.expandedParentId && results.processedParents.length > 0) {
+                this.setState({ expandedParentId: results.processedParents[0].id });
             }
         });
     };
@@ -1299,82 +1012,32 @@ class FeesManagement extends Component {
     renderAdvancedInsights = () => {
         const { payments, charges, students, classes, feeStructures, selectedClass, selectedTerm, processedParents, terms } = this.state;
 
-        // Filter data based on selectedClass and selectedTerm
-        let filteredPayments = payments || [];
-        let filteredCharges = charges || [];
-        let filteredStudents = students || [];
-        let filteredClasses = classes || [];
-        let filteredProcessedParents = processedParents || [];
-
-        // Apply class filter
-        if (selectedClass) {
-            filteredStudents = students.filter(student => String(student.class?.id || student.class) === selectedClass);
-            filteredClasses = classes.filter(cls => String(cls.id) === selectedClass);
-            filteredPayments = payments.filter(payment => {
-                const student = students.find(s => String(s.id) === String(payment.student?.id || payment.student));
-                return student && String(student.class?.id || student.class) === selectedClass;
-            });
-            filteredCharges = charges.filter(charge => {
-                const student = students.find(s => String(s.id) === String(charge.student?.id || charge.student));
-                return student && String(student.class?.id || student.class) === selectedClass;
-            });
-            filteredProcessedParents = processedParents.filter(parent => {
-                return parent.students.some(student => String(student.class?.id || student.class) === selectedClass);
-            });
-        }
-
-        // Apply term filter
-        if (selectedTerm) {
-            filteredPayments = filteredPayments.filter(payment => {
-                if (payment.assignedTermId) {
-                    return String(payment.assignedTermId) === selectedTerm;
-                }
-                if (payment.metadata?.termId) {
-                    return String(payment.metadata.termId) === selectedTerm;
-                }
-                return false;
-            });
-            
-            filteredCharges = filteredCharges.filter(charge => {
-                const chargeTermId = String(charge.term?.id || charge.term || "");
-                return chargeTermId === selectedTerm;
-            });
-        }
-
-        // Data processing with filtered data
-        const validPayments = filteredPayments.filter(p => !p.status || p.status === 'COMPLETED');
-        const totalCollected = validPayments.reduce((sum, p) => sum + (parseFloat(p.amount || p.ammount) || 0), 0);
-        
-        // Calculate total expected using fee structures
-        const getFees = (classId, termId = null) => {
-            if (!classId || !feeStructures || !Array.isArray(feeStructures)) return 0;
-            
-            const targetClassId = String(classId?.id || classId);
-            const targetTermId = termId || selectedTerm;
-            
-            const applicableFees = feeStructures.filter(fs =>
-                String(fs.class?.id || fs.class) === targetClassId &&
-                (!targetTermId || String(fs.term?.id || fs.term) === String(targetTermId)) &&
-                fs.isActive === true
-            );
-            
-            return applicableFees.reduce((total, fs) => total + (parseFloat(fs.amount) || 0), 0);
+        // Use pre-calculated global metrics from engine
+        const globalMetrics = this.state.globalFinancialMetrics || {
+            totalPaid: 0,
+            totalExpected: 0,
+            totalBalance: 0,
+            studentCount: 0,
+            collectionRate: 0
         };
 
-        const totalExpectedFees = filteredStudents.reduce((sum, student) => {
-            return sum + getFees(student.class?.id || student.class, selectedTerm);
-        }, 0);
-        
-        const totalCharges = filteredCharges.reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0);
-        const totalExpected = totalExpectedFees + totalCharges;
-        const totalArrears = Math.max(0, totalExpected - totalCollected);
-        const collectionRate = totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 0;
+        const totalCollected = globalMetrics.totalPaid;
+        const totalExpected = globalMetrics.totalExpected;
+        const totalArrears = globalMetrics.totalBalance;
+        const collectionRate = Math.round(globalMetrics.collectionRate);
 
-        // Advanced metrics
+        // Advanced metrics - use isSuccessfulPayment from engine for consistency
+        const validPayments = (payments || []).filter(isSuccessfulPayment);
         const averagePaymentAmount = validPayments.length > 0 ? totalCollected / validPayments.length : 0;
         const paymentFrequency = validPayments.length;
-        const overdueAccounts = filteredProcessedParents.filter(p => p.totalBalance > 0).length;
-        const healthyAccounts = filteredProcessedParents.filter(p => p.totalBalance <= 0).length;
+
+        // Class performance analysis - use aggregateByClass from engine for perfect parity
+        const classPerformance = aggregateByClass(this.state.fullyProcessedParents || [], classes || []);
+        
+        // Aging Analysis and Health
+        const filteredProcessedParents = this.state.processedParents || [];
+        const overdueAccounts = (this.state.fullyProcessedParents || []).filter(p => p.totalBalance > 0).length;
+        const healthyAccounts = (this.state.fullyProcessedParents || []).filter(p => p.totalBalance <= 0).length;
 
         // Payment methods breakdown
         const methods = {};
@@ -1406,34 +1069,6 @@ class FeesManagement extends Component {
                 transactions: monthPayments.length
             });
         }
-
-        // Class performance analysis
-        const classPerformance = filteredClasses.map(cls => {
-            const classStudents = filteredStudents.filter(s => String(s.class?.id || s.class) === String(cls.id));
-            const classStudentIds = new Set(classStudents.map(s => s.id));
-            const classPaid = validPayments.filter(p => classStudentIds.has(p.student?.id || p.student)).reduce((sum, p) => sum + (parseFloat(p.amount || p.ammount) || 0), 0);
-            
-            const classFeePerStudent = getFees(cls.id, selectedTerm);
-            const classExpected = classFeePerStudent * classStudents.length;
-            
-            const classCharges = filteredCharges.filter(c => {
-                const student = filteredStudents.find(s => String(s.id) === String(c.student?.id || c.student));
-                return student && String(student.class?.id || student.class) === String(cls.id);
-            }).reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
-            
-            const totalExpected = classExpected + classCharges;
-            const collectionRate = totalExpected > 0 ? (classPaid / totalExpected) * 100 : 0;
-            
-            return {
-                className: cls.name || `Class ${cls.id}`,
-                studentCount: classStudents.length,
-                totalCollected: classPaid,
-                totalExpected,
-                balance: totalExpected - classPaid,
-                collectionRate,
-                performance: collectionRate >= 80 ? 'Excellent' : collectionRate >= 60 ? 'Good' : collectionRate >= 40 ? 'Fair' : 'Poor'
-            };
-        }).sort((a, b) => b.collectionRate - a.collectionRate);
 
         // Aging analysis with real data
         const agingBuckets = {
@@ -1480,7 +1115,19 @@ class FeesManagement extends Component {
                 {/* Header */}
                 <div className="d-flex justify-content-between align-items-center mb-6">
                     <div>
-                        <h2 className="font-weight-bolder text-dark font-size-h2 mb-0">Advanced Insights</h2>
+                        <h2 className="font-weight-bolder text-dark font-size-h2 mb-0">
+                            Advanced Insights
+                            {console.log('Advanced Insights Debug:', { 
+                                selectedTerm, 
+                                terms, 
+                                termName: selectedTerm ? terms?.find(t => t.id === selectedTerm)?.name : null
+                            })}
+                            {selectedTerm && (
+                                <span className="ml-3 badge badge-info badge-pill">
+                                    {terms?.find(t => t.id === selectedTerm)?.name || 'Selected Term'}
+                                </span>
+                            )}
+                        </h2>
                         <div className="text-muted font-weight-bold font-size-sm mt-1">
                             Comprehensive financial performance insights and analysis
                         </div>
@@ -1697,12 +1344,25 @@ class FeesManagement extends Component {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {classPerformance.map((cls, index) => (
-                                                <tr key={index}>
-                                                    <td className="font-weight-bold">{cls.className}</td>
+                                            {classPerformance.map((cls, index) => {
+                                                    const isSelectedClass = selectedClass && String(cls.id) === selectedClass;
+                                                    console.log('Class Performance Debug:', { 
+                                                        className: cls.className, 
+                                                        classId: cls.id, 
+                                                        selectedClass, 
+                                                        isSelectedClass 
+                                                    });
+                                                    return (
+                                                <tr key={index} className={isSelectedClass ? 'bg-light-primary' : ''} style={{ backgroundColor: isSelectedClass ? '#e8f5fe' : 'transparent' }}>
+                                                    <td className={`font-weight-bold ${isSelectedClass ? 'text-primary' : ''}`} style={{ color: isSelectedClass ? '#0056b3' : 'inherit', fontWeight: isSelectedClass ? 'bold' : 'inherit' }}>
+                                                        {cls.className}
+                                                        {isSelectedClass && (
+                                                            <span className="ml-2 badge badge-primary badge-pill" style={{ backgroundColor: '#007bff', color: 'white', fontWeight: 'bold' }}>Selected</span>
+                                                        )}
+                                                    </td>
                                                     <td className="text-right">{cls.studentCount}</td>
                                                     <td className="text-right">KES {cls.totalExpected.toLocaleString()}</td>
-                                                    <td className="text-right text-success font-weight-bolder">KES {cls.totalCollected.toLocaleString()}</td>
+                                                    <td className="text-right text-success font-weight-bolder">KES {cls.totalCollected?.toLocaleString()}</td>
                                                     <td className={`text-right font-weight-bolder ${cls.balance > 0 ? 'text-danger' : 'text-success'}`}>
                                                         KES {cls.balance.toLocaleString()}
                                                     </td>
@@ -1724,7 +1384,8 @@ class FeesManagement extends Component {
                                                         </span>
                                                     </td>
                                                 </tr>
-                                            ))}
+                                                    );
+                                                })}
                                         </tbody>
                                     </table>
                                 </div>
@@ -1949,6 +1610,214 @@ class FeesManagement extends Component {
         }
     };
 
+    jumpToParent = (parentId) => {
+        // 1. Switch tab and clear filters immediately to provide feedback
+        this.setState({ 
+            searchTerm: '', 
+            alphabetFilter: '', 
+            activeTab: 'accounts',
+            expandedParentId: parentId,
+            currentPage: 1 
+        }, () => {
+            // 2. Perform a fresh calculation with cleared filters to find the accurate index
+            const { students, parents, payments, classes, terms, feeStructures, charges, selectedClass, selectedTerm } = this.state;
+            const results = calculateFinancials({
+                students, parents, payments, classes, terms, feeStructures, charges,
+                selectedClass, selectedTerm,
+                searchTerm: '',
+                alphabetFilter: ''
+            });
+
+            const index = results.processedParents.findIndex(p => p.id === parentId);
+            if (index !== -1) {
+                const page = Math.floor(index / this.state.itemsPerPage) + 1;
+                
+                // 3. Update state with processed data and the correct page
+                this.setState({ 
+                    processedParents: results.processedParents,
+                    fullyProcessedParents: results.fullyProcessedParents,
+                    globalFinancialMetrics: results.globalFinancialMetrics,
+                    currentPage: page 
+                }, () => {
+                    // 4. Scroll to the row after a delay to allow the table to render
+                    setTimeout(() => {
+                        const el = document.getElementById(`parent-row-${parentId}`);
+                        if (el) {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            // Highlight the row temporarily
+                            el.style.backgroundColor = '#fff3cd';
+                            setTimeout(() => {
+                                el.style.backgroundColor = ''; 
+                            }, 1500);
+                        }
+                    }, 500);
+                });
+            }
+        });
+    };
+
+    getCollectionReportData = () => {
+        const { processedParents, selectedClass } = this.state;
+        const studentReportData = [];
+        
+        processedParents.forEach(group => {
+            group.students.forEach(student => {
+                if (selectedClass) {
+                    const studentClassId = String(student.class?.id || student.class);
+                    if (studentClassId !== String(selectedClass)) return;
+                }
+
+                const paid = student.finances?.paid || 0;
+                studentReportData.push({
+                    ...student,
+                    parentId: group.id,
+                    parentName: group.parent.name,
+                    parentPhone: group.parent.phone,
+                    totalExpected: student.finances?.expected || 0,
+                    totalPaid: paid,
+                    balance: student.finances?.balance || 0,
+                    lastPayment: (student.finances?.history || []).sort((a, b) => 
+                        new Date(b.time || b.createdAt) - new Date(a.time || a.createdAt)
+                    )[0]
+                });
+            });
+        });
+        
+        return studentReportData.sort((a, b) => {
+            if (a.totalPaid > 0 && b.totalPaid === 0) return -1;
+            if (a.totalPaid === 0 && b.totalPaid > 0) return 1;
+            return a.names.localeCompare(b.names);
+        });
+    };
+
+    renderCollectionReport = () => {
+        const { selectedClass, selectedTerm, terms, classes, loading } = this.state;
+        const studentReportData = this.getCollectionReportData();
+
+        // Summary stats
+        const totalPaid = studentReportData.reduce((sum, s) => sum + s.totalPaid, 0);
+        const totalExpected = studentReportData.reduce((sum, s) => sum + s.totalExpected, 0);
+
+        const currentTermName = selectedTerm ? terms.find(t => t.id === selectedTerm)?.name : "All Terms";
+        const currentClassName = selectedClass ? classes.find(c => String(c.id) === selectedClass)?.name : "All Classes";
+
+        return (
+            <div className="collection-report p-6">
+                <div className="d-flex justify-content-between align-items-center mb-6 bg-white p-5 rounded shadow-sm border">
+                    <div>
+                        <h2 className="font-weight-bolder text-dark font-size-h2 mb-0">Payment Collection Report</h2>
+                        <div className="text-muted font-weight-bold font-size-sm mt-1">
+                            Showing all students for <strong>{currentClassName}</strong> in <strong>{currentTermName}</strong>
+                        </div>
+                    </div>
+                    <div className="d-flex align-items-center">
+                        <button 
+                            className="btn btn-primary btn-sm px-6 font-weight-bold" 
+                            onClick={() => this.setState({ showCollectionPrintView: true })}
+                            disabled={studentReportData.length === 0}
+                        >
+                            <i className="fas fa-print mr-2"></i>Print Report Preview
+                        </button>
+                    </div>
+                </div>
+
+                <div className="row mb-6">
+                    <div className="col-xl-3 col-md-6">
+                        <div className="card card-custom bg-light-success border-0 shadow-sm h-100">
+                            <div className="card-body p-5">
+                                <div className="text-success font-weight-bolder font-size-h3 mb-1">KES {totalPaid.toLocaleString()}</div>
+                                <div className="text-muted font-weight-bold font-size-sm">Total Collected</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="col-xl-3 col-md-6">
+                        <div className="card card-custom bg-light-info border-0 shadow-sm h-100">
+                            <div className="card-body p-5">
+                                <div className="text-info font-weight-bolder font-size-h3 mb-1">
+                                    {studentReportData.filter(s => s.totalPaid > 0).length} / {studentReportData.length}
+                                </div>
+                                <div className="text-muted font-weight-bold font-size-sm">Paid vs Total Students</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="col-xl-3 col-md-6">
+                        <div className="card card-custom bg-light-warning border-0 shadow-sm h-100">
+                            <div className="card-body p-5">
+                                <div className="text-warning font-weight-bolder font-size-h3 mb-1">KES {totalExpected.toLocaleString()}</div>
+                                <div className="text-muted font-weight-bold font-size-sm">Total Expected (from these students)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="card card-custom shadow-sm border">
+                    <div className="card-body">
+                        <div className="table-responsive">
+                            <table className="table table-head-custom table-vertical-center">
+                                <thead className="bg-light">
+                                    <tr>
+                                        <th className="pl-4">Student Name</th>
+                                        <th>Parent</th>
+                                        <th className="text-right">Expected</th>
+                                        <th className="text-right">Paid</th>
+                                        <th className="text-right">Balance</th>
+                                        <th>Last Payment</th>
+                                        <th className="pr-4 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {studentReportData.length === 0 ? (
+                                        <tr><td colSpan="6" className="text-center text-muted py-20 font-size-h4">No students found for these filters.</td></tr>
+                                    ) : studentReportData.map(s => (
+                                        <tr key={s.id} className={`border-bottom ${s.totalPaid === 0 ? 'bg-light-danger' : ''}`}>
+                                            <td className="font-weight-bolder pl-4">
+                                                <div className="text-dark-75 font-weight-bolder font-size-lg">{s.names}</div>
+                                                <div className="text-muted font-size-xs">{s.registration}</div>
+                                                {s.totalPaid === 0 && (
+                                                    <span className="badge badge-danger badge-pill font-size-xs mt-1">NO PAYMENT</span>
+                                                )}
+                                            </td>
+                                            <td>
+                                                <div className="font-size-sm font-weight-bold text-dark-75">{s.parentName}</div>
+                                                <div className="font-size-xs text-muted">{s.parentPhone}</div>
+                                            </td>
+                                            <td className="text-right font-weight-bold">KES {s.totalExpected.toLocaleString()}</td>
+                                            <td className={`text-right font-weight-bolder ${s.totalPaid > 0 ? 'text-success' : 'text-muted'}`}>
+                                                KES {s.totalPaid.toLocaleString()}
+                                            </td>
+                                            <td className={`text-right font-weight-bold ${s.balance > 0 ? 'text-danger' : 'text-success'}`}>
+                                                KES {s.balance.toLocaleString()}
+                                            </td>
+                                            <td className="pr-4">
+                                                {s.lastPayment ? (
+                                                    <div className="d-flex flex-column">
+                                                        <div className="font-size-sm font-weight-bolder text-dark-75">{new Date(s.lastPayment.time || s.lastPayment.createdAt).toLocaleDateString()}</div>
+                                                        <div className="font-size-xs text-muted">KES {parseFloat(s.lastPayment.amount || 0).toLocaleString()}</div>
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-muted font-size-xs">Never Paid</span>
+                                                )}
+                                            </td>
+                                            <td className="pr-4 text-right">
+                                                <button 
+                                                    className="btn btn-icon btn-light-primary btn-sm" 
+                                                    title="Manage Account"
+                                                    onClick={() => this.jumpToParent(s.parentId)}
+                                                >
+                                                    <i className="fa fa-user-cog"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
     render() {
         const {
             classes, terms, selectedClass, selectedTerm, searchTerm,
@@ -2072,6 +1941,117 @@ class FeesManagement extends Component {
             );
         }
 
+        if (this.state.showCollectionPrintView) {
+            const studentReportData = this.getCollectionReportData();
+
+            const currentTermName = selectedTerm ? terms.find(t => t.id === selectedTerm)?.name : "All Terms";
+            const currentClassName = selectedClass ? classes.find(c => String(c.id) === selectedClass)?.name : "All Classes";
+            const totalPaid = studentReportData.reduce((sum, s) => sum + s.totalPaid, 0);
+
+            return (
+                <div className="kt-grid__item kt-grid__item--fluid kt-grid kt-grid--ver kt-page">
+                    <div className="kt-grid__item kt-grid__item--fluid kt-grid kt-grid--hor kt-wrapper" id="kt_wrapper">
+                        <Navbar />
+                        <Subheader links={["Finance", "Collection Report"]} />
+                        <div className="kt-content kt-grid__item kt-grid__item--fluid">
+                            <div className="kt-container">
+                                <div className="d-print-none p-4 border-bottom mb-4 d-flex justify-content-between align-items-center bg-white rounded shadow-sm">
+                                    <button className="btn btn-secondary" onClick={() => this.setState({ showCollectionPrintView: false, activeTab: this.state.activeTab === 'accounts' ? 'accounts' : 'collection-report' })}>
+                                        <i className="fa fa-arrow-left mr-2"></i> Back
+                                    </button>
+                                    <h4 className="m-0 font-weight-bold">Collection Report Preview</h4>
+                                    <button className="btn btn-primary" onClick={() => window.print()}>
+                                        <i className="fa fa-print mr-2"></i> Print Report
+                                    </button>
+                                </div>
+                                    <div id="print-area" className="bg-white p-10 shadow-sm rounded mx-auto" style={{ minHeight: '29.7cm', width: '21cm', boxSizing: 'border-box' }}>
+                                        <div className="d-flex justify-content-between align-items-start mb-5">
+                                            <div style={{ textAlign: 'left' }}>
+                                                <h1 className="font-weight-bolder mb-1 text-primary">{schoolInfo?.name}</h1>
+                                                <div className="text-dark-50 font-weight-bold">{schoolInfo?.address || ''}</div>
+                                                <div className="text-dark-50 font-weight-bold">Phone: {schoolInfo?.phone || ''}</div>
+                                                <div className="text-dark-50 font-weight-bold">Email: {schoolInfo?.email || ''}</div>
+                                            </div>
+                                            <img src={schoolInfo?.logo} alt="Logo" style={{ height: '80px', objectFit: 'contain' }} />
+                                        </div>
+                                        
+                                        <div className="text-center mb-8 py-5 border-top border-bottom bg-light-o-primary">
+                                            <h2 className="font-weight-bold text-uppercase m-0 letter-spacing-px">Payment Collection Report</h2>
+                                            <div className="text-muted font-weight-bold mt-2">
+                                                CLASS: <span className="text-dark">{currentClassName}</span> | TERM: <span className="text-dark">{currentTermName}</span>
+                                            </div>
+                                            <div className="text-muted small mt-1 italic">Generated on: {new Date().toLocaleDateString('en-GB')} at {new Date().toLocaleTimeString()}</div>
+                                        </div>
+
+                                    <table className="table table-bordered table-striped" style={{ fontSize: '0.9rem' }}>
+                                        <thead className="thead-light">
+                                            <tr className="text-uppercase font-size-xs">
+                                                <th>#</th>
+                                                <th>Student Name</th>
+                                                <th>Reg No</th>
+                                                <th className="text-right">Expected</th>
+                                                <th className="text-right">Paid</th>
+                                                <th className="text-right">Balance</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {studentReportData.map((s, idx) => (
+                                                <tr key={s.id} style={{ backgroundColor: s.totalPaid === 0 ? '#fffafa' : 'transparent' }}>
+                                                    <td className="text-center">{idx + 1}</td>
+                                                    <td className="font-weight-bold text-dark-75">
+                                                        {s.names}
+                                                        {s.totalPaid === 0 && <span className="ml-2 small text-danger font-weight-bold">[NO PAYMENT]</span>}
+                                                    </td>
+                                                    <td className="text-muted">{s.registration}</td>
+                                                    <td className="text-right">{s.totalExpected.toLocaleString()}</td>
+                                                    <td className={`text-right font-weight-bolder ${s.totalPaid > 0 ? 'text-success' : 'text-muted'}`}>{s.totalPaid.toLocaleString()}</td>
+                                                    <td className="text-right text-danger font-weight-bold">{s.balance.toLocaleString()}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                        <tfoot className="bg-light">
+                                            <tr className="font-weight-bolder">
+                                                <td colSpan="4" className="text-right font-size-h6">TOTAL COLLECTED</td>
+                                                <td className="text-right font-size-h6 text-success">KES {totalPaid.toLocaleString()}</td>
+                                                <td></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                    
+                                    <div className="mt-20 pt-10 border-top d-flex justify-content-between">
+                                        <div className="text-center" style={{ width: '250px' }}>
+                                            <div className="font-weight-bolder">Prepared By:</div>
+                                            <div className="mt-15 border-bottom mx-10"></div>
+                                            <div className="text-muted small mt-2">School Bursar / Admin</div>
+                                        </div>
+                                        <div className="text-center" style={{ width: '250px' }}>
+                                            <div className="font-weight-bolder">Authorized By:</div>
+                                            <div className="mt-15 border-bottom mx-10"></div>
+                                            <div className="text-muted small mt-2">School Stamp & Signature</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <style>{`
+                      @media print {
+                          #kt_header, #kt_header_mobile, #kt_header_secondary, .kt-subheader, .kt-footer, .kt-aside, .d-print-none { 
+                              display: none !important; 
+                          }
+                          body, html { background: white !important; margin: 0 !important; padding: 0 !important; }
+                          #kt_wrapper, .kt-content, .kt-container, #print-area { 
+                              background: white !important; padding: 0 !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; 
+                          }
+                          #print-area { box-shadow: none !important; border: none !important; }
+                          .table { width: 100% !important; border-collapse: collapse !important; }
+                          .table-bordered th, .table-bordered td { border: 1px solid #dee2e6 !important; }
+                      }
+                  `}</style>
+                    </div>
+                </div>
+            );
+        }
+
         // Pagination Logic
         const indexOfLastItem = currentPage * itemsPerPage;
         const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -2124,6 +2104,16 @@ class FeesManagement extends Component {
                                                 >
                                                     <i className="fas fa-analytics mr-2"></i>
                                                     Advanced Insights
+                                                </a>
+                                            </li>
+                                            <li className="nav-item">
+                                                <a
+                                                    className={`nav-link py-4 px-6 custom-tab-link ${this.state.activeTab === 'collection-report' ? 'active' : ''}`}
+                                                    href="#"
+                                                    onClick={(e) => { e.preventDefault(); this.setState({ activeTab: 'collection-report' }); }}
+                                                >
+                                                    <i className="fas fa-file-invoice-dollar mr-2"></i>
+                                                    Collection Report
                                                 </a>
                                             </li>
                                         </ul>
@@ -2195,7 +2185,15 @@ class FeesManagement extends Component {
                                                 onClick={this.initiateBulkFinanceSms}
                                                 disabled={loading || processedParents.length === 0}
                                             >
-                                                <i className="fa fa-sms"></i> Bulk SMS
+                                                <i className="fa fa-sms mr-2"></i> Bulk SMS
+                                            </button>
+                                            
+                                            <button
+                                                className="btn btn-sm btn-light-success font-weight-bold ml-2"
+                                                onClick={() => this.setState({ showCollectionPrintView: true })}
+                                                disabled={loading || processedParents.length === 0}
+                                            >
+                                                <i className="fa fa-print mr-2"></i> Print Collection Report
                                             </button>
                                         </div>
                                     </div>
@@ -2246,7 +2244,7 @@ class FeesManagement extends Component {
 
                                                                     return (
                                                                         <React.Fragment key={group.id}>
-                                                                            <tr className={`${isExpanded ? "bg-light-primary" : ""}`}>
+                                                                            <tr id={`parent-row-${group.id}`} className={`${isExpanded ? "bg-light-primary" : ""}`}>
                                                                                 <td>
                                                                                     <div className="d-flex align-items-center">
                                                                                         <div className="symbol symbol-40 symbol-light-success flex-shrink-0">
@@ -2618,16 +2616,18 @@ class FeesManagement extends Component {
                                                 </>
                                             ) : this.state.activeTab === 'insights' ? (
                                                 <FinanceInsightsDashboard
-                                                    classes={classes}
-                                                    payments={payments}
-                                                    charges={charges}
-                                                    feeStructures={feeStructures}
-                                                    parents={parents}
-                                                    students={students}
-                                                    terms={terms}
-                                                    selectedClass={selectedClass}
-                                                    selectedTerm={selectedTerm}
-                                                    onFilterChange={(filter, value) => {
+                                                     classes={classes}
+                                                     payments={payments}
+                                                     charges={charges}
+                                                     feeStructures={feeStructures}
+                                                     parents={parents}
+                                                     students={students}
+                                                     terms={terms}
+                                                     selectedClass={selectedClass}
+                                                     selectedTerm={selectedTerm}
+                                                     metrics={this.state.globalFinancialMetrics}
+                                                     processedParents={this.state.fullyProcessedParents}
+                                                     onFilterChange={(filter, value) => {
                                                         const newState = {};
                                                         newState[filter] = value;
                                                         this.setState(newState);
@@ -2635,6 +2635,8 @@ class FeesManagement extends Component {
                                                 />
                                             ) : this.state.activeTab === 'advanced-insights' ? (
                                                 this.renderAdvancedInsights()
+                                            ) : this.state.activeTab === 'collection-report' ? (
+                                                this.renderCollectionReport()
                                             ) : null}
                                 </>
                               )} </div>

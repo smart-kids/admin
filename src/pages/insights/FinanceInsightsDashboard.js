@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import Data from '../../utils/data';
 import ComparisonDataService from '../../services/ComparisonDataService';
 import ComparisonMetricsEngine from '../../services/ComparisonMetricsEngine';
+import { aggregateByClass } from '../../utils/financialEngine';
 
 // Import enhanced components
 import { EnhancedStatCard, AdvancedStatCard } from '../../components/charts/EnhancedStatCard';
@@ -74,6 +75,31 @@ class FinanceInsightsDashboard extends Component {
     this.cleanupSubscriptions();
   }
 
+  componentDidUpdate(prevProps) {
+    // Update data when props change (filter changes)
+    if (prevProps.selectedClass !== this.props.selectedClass || 
+        prevProps.selectedTerm !== this.props.selectedTerm ||
+        prevProps.classes !== this.props.classes ||
+        prevProps.payments !== this.props.payments ||
+        prevProps.charges !== this.props.charges ||
+        prevProps.feeStructures !== this.props.feeStructures ||
+        prevProps.parents !== this.props.parents ||
+        prevProps.students !== this.props.students ||
+        prevProps.terms !== this.props.terms ||
+        prevProps.processedParents !== this.props.processedParents) {
+      
+      this.updateData({ 
+        classes: this.props.classes || [], 
+        payments: this.props.payments || [], 
+        charges: this.props.charges || [], 
+        feeStructures: this.props.feeStructures || [], 
+        parents: this.props.parents || [], 
+        students: this.props.students || [], 
+        terms: this.props.terms || [] 
+      });
+    }
+  }
+
   initializeData = () => {
     // Restore selections from localStorage
     const savedClasses = localStorage.getItem('finance_insights_selectedClasses');
@@ -122,8 +148,37 @@ class FinanceInsightsDashboard extends Component {
 
   processData = () => {
     const { payments, charges, feeStructures, classes, students, parents, terms } = this.state;
-    const { selectedClass, selectedTerm } = this.props;
+    const { selectedClass, selectedTerm, processedParents } = this.props;
     
+    // If unified data is provided from parent, use it for perfect consistency
+    if (processedParents && processedParents.length > 0) {
+      this.setState({ loading: true });
+      try {
+        const processedData = this.processDataFromUnifiedSource(processedParents);
+        const comparisonData = this.generateComparisonData(processedData);
+        const metricsData = this.calculateMetrics(processedData);
+        
+        if (this.props.metrics) {
+          metricsData.totalRevenue = this.props.metrics.totalPaid;
+          metricsData.totalExpected = this.props.metrics.totalExpected;
+          metricsData.collectionRate = this.props.metrics.collectionRate;
+          metricsData.outstandingBalance = this.props.metrics.totalBalance;
+          metricsData.totalStudents = this.props.metrics.studentCount;
+        }
+
+        this.setState({
+          processedData,
+          comparisonData,
+          metricsData,
+          loading: false
+        });
+        return;
+      } catch (error) {
+        console.error('Error processing unified data:', error);
+        // Fallback to local processing if unified fails
+      }
+    }
+
     if (!payments || !classes || !students) {
       this.setState({ loading: false });
       return;
@@ -190,6 +245,15 @@ class FinanceInsightsDashboard extends Component {
       
       // Calculate metrics
       const metricsData = this.calculateMetrics(processedData);
+      
+      // Override with global metrics from props if available (Unified Source of Truth)
+      if (this.props.metrics) {
+        metricsData.totalRevenue = this.props.metrics.totalPaid;
+        metricsData.totalExpected = this.props.metrics.totalExpected;
+        metricsData.collectionRate = this.props.metrics.collectionRate;
+        metricsData.outstandingBalance = this.props.metrics.totalBalance;
+        metricsData.totalStudents = this.props.metrics.studentCount;
+      }
 
       this.setState({
         processedData,
@@ -201,6 +265,44 @@ class FinanceInsightsDashboard extends Component {
       console.error('Error processing data:', error);
       this.setState({ error: error.message, loading: false });
     }
+  };
+
+  processDataFromUnifiedSource = (processedParents) => {
+    const { classes } = this.state;
+    
+    // Use the shared engine to aggregate parent-level data into class-level metrics
+    const classGroups = aggregateByClass(processedParents, classes);
+    
+    const feeStructures = this.props.feeStructures || this.state.feeStructures || [];
+    const selectedTerm = this.props.selectedTerm;
+
+    // Map back to the structure expected by the dashboard
+    return classGroups.map(group => {
+      // Calculate fee structure breakdown for this class/term
+      const feeStructureBreakdown = {};
+      feeStructures.forEach(fs => {
+        const fsClassId = String(fs.class?.id || fs.class);
+        if (fsClassId === String(group.classId) && fs.isActive) {
+          const fsTermId = String(fs.term?.id || fs.term);
+          if (!selectedTerm || fsTermId === String(selectedTerm)) {
+            const feeType = fs.feeType || fs.name || 'Tuition';
+            feeStructureBreakdown[feeType] = (feeStructureBreakdown[feeType] || 0) + parseFloat(fs.amount || 0);
+          }
+        }
+      });
+
+      return {
+        ...group,
+        totalCollected: group.totalPaid,
+        totalExpected: group.totalExpected,
+        totalCharges: group.totalCharges,
+        expectedFees: group.totalExpected - group.totalCharges,
+        payments: group.history || [],
+        charges: group.charges || [],
+        students: group.students || [],
+        feeStructure: feeStructureBreakdown
+      };
+    });
   };
 
   processFinancialData = (payments, charges, feeStructures, classes, students, parents) => {
@@ -286,7 +388,8 @@ class FinanceInsightsDashboard extends Component {
       totalRevenue: classData.payments.reduce((sum, p) => sum + p.processedAmount, 0),
       studentCount: classData.students.length,
       collectionRate: this.calculateCollectionRate(classData),
-      growthRate: this.calculateGrowthRate(classData)
+      growthRate: this.calculateGrowthRate(classData),
+      efficiency: this.calculateEfficiency(classData)
     }));
 
     // Add comparison data if comparison mode is active
@@ -297,11 +400,32 @@ class FinanceInsightsDashboard extends Component {
     return timeSeriesData;
   };
 
+  safeParseDate = (dateStr) => {
+    if (!dateStr) return new Date();
+    if (dateStr instanceof Date) return dateStr;
+    
+    // Try standard parsing
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) return d;
+    
+    // Try DD/MM/YYYY
+    const parts = String(dateStr).split('/');
+    if (parts.length === 3) {
+      const day = parseInt(parts[0]);
+      const month = parseInt(parts[1]) - 1;
+      const year = parseInt(parts[2]);
+      const d2 = new Date(year, month, day);
+      if (!isNaN(d2.getTime())) return d2;
+    }
+    
+    return new Date();
+  };
+
   generateTimeSeriesData = (payments, timeRange) => {
     const timeGroups = {};
     
     payments.forEach(payment => {
-      const date = new Date(payment.time || payment.createdAt || payment.date);
+      const date = this.safeParseDate(payment.time || payment.createdAt || payment.date);
       let key;
       
       switch(timeRange) {
@@ -309,7 +433,8 @@ class FinanceInsightsDashboard extends Component {
           key = date.toISOString().split('T')[0];
           break;
         case 'weekly':
-          const weekStart = new Date(date.setDate(date.getDate() - date.getDay()));
+          const weekStart = new Date(date);
+          weekStart.setDate(date.getDate() - date.getDay());
           key = weekStart.toISOString().split('T')[0];
           break;
         case 'monthly':
@@ -332,11 +457,11 @@ class FinanceInsightsDashboard extends Component {
         };
       }
       
-      timeGroups[key].revenue += payment.processedAmount;
+      timeGroups[key].revenue += payment.processedAmount || 0;
       timeGroups[key].transactions++;
       
       const method = payment.paymentMethod || payment.type || 'unknown';
-      timeGroups[key].methods[method] = (timeGroups[key].methods[method] || 0) + payment.processedAmount;
+      timeGroups[key].methods[method] = (timeGroups[key].methods[method] || 0) + (payment.processedAmount || 0);
     });
     
     return Object.values(timeGroups).sort((a, b) => a.period.localeCompare(b.period));
@@ -362,16 +487,21 @@ class FinanceInsightsDashboard extends Component {
   };
 
   calculateCollectionRate = (classData) => {
-    const totalCharges = classData.charges.reduce((sum, charge) => sum + parseFloat(charge.amount || 0), 0);
-    const totalCollected = classData.payments.reduce((sum, payment) => sum + payment.processedAmount, 0);
+    if (!classData) return 0;
+    const charges = classData.charges || [];
+    const payments = classData.payments || [];
+    
+    const totalCharges = charges.reduce((sum, charge) => sum + parseFloat(charge.amount || 0), 0);
+    const totalCollected = payments.reduce((sum, payment) => sum + (payment.processedAmount || 0), 0);
     
     return totalCharges > 0 ? (totalCollected / totalCharges) * 100 : 0;
   };
 
   calculateGrowthRate = (classData) => {
-    if (classData.payments.length < 2) return 0;
+    const payments = classData?.payments || [];
+    if (payments.length < 2) return 0;
     
-    const sortedPayments = classData.payments.sort((a, b) => 
+    const sortedPayments = [...payments].sort((a, b) => 
       new Date(a.time || a.createdAt) - new Date(b.time || b.createdAt)
     );
     
@@ -383,6 +513,37 @@ class FinanceInsightsDashboard extends Component {
     const lastValue = lastPayment.processedAmount;
     
     return firstValue > 0 ? ((lastValue - firstValue) / firstValue) * 100 : 0;
+  };
+
+  calculateEfficiency = (classData) => {
+    // Efficiency is calculated as: (Collection Rate * Payment Velocity) / Student Count
+    // Higher collection rate and faster payments with fewer students = higher efficiency
+    
+    const collectionRate = this.calculateCollectionRate(classData);
+    const totalCollected = classData.payments.reduce((sum, p) => sum + p.processedAmount, 0);
+    const studentCount = classData.students.length;
+    
+    if (studentCount === 0 || totalCollected === 0) return 0;
+    
+    // Calculate payment velocity (average days to pay)
+    const paymentVelocities = classData.payments.map(payment => {
+      const paymentDate = new Date(payment.time || payment.createdAt);
+      const chargeDate = new Date(payment.chargeDate || payment.createdAt);
+      const daysToPay = Math.max(0, (paymentDate - chargeDate) / (1000 * 60 * 60 * 24));
+      return daysToPay;
+    });
+    
+    const averageDaysToPay = paymentVelocities.length > 0 
+      ? paymentVelocities.reduce((sum, days) => sum + days, 0) / paymentVelocities.length 
+      : 30; // Default to 30 days if no payment data
+    
+    // Normalize payment velocity (faster payments = higher score)
+    const paymentVelocityScore = Math.max(0, 100 - averageDaysToPay);
+    
+    // Calculate efficiency: weighted combination of collection rate and payment velocity
+    const efficiency = (collectionRate * 0.7) + (paymentVelocityScore * 0.3);
+    
+    return Math.min(100, Math.max(0, efficiency)); // Clamp between 0-100
   };
 
   calculateMetrics = (processedData) => {
@@ -420,39 +581,140 @@ class FinanceInsightsDashboard extends Component {
   };
 
   addPreviousTermComparison = (data) => {
-    // Simulate previous term data (in real implementation, this would come from database)
-    return data.map(item => ({
-      ...item,
-      previousTermData: {
-        totalRevenue: item.totalRevenue * 0.85, // Simulate 15% growth
-        collectionRate: item.collectionRate - 5,
-        studentCount: Math.floor(item.studentCount * 0.9)
-      }
-    }));
+    const { payments, charges, feeStructures, classes, students, terms, selectedTerm } = this.state;
+    
+    if (!selectedTerm || !terms || terms.length === 0) return data;
+    
+    // Find previous term
+    const currentTermIndex = terms.findIndex(t => t.id === selectedTerm);
+    if (currentTermIndex <= 0) return data; // No previous term available
+    
+    const previousTerm = terms[currentTermIndex - 1];
+    
+    return data.map(item => {
+      // Calculate previous term metrics for this class
+      const classPayments = payments.filter(p => {
+        const student = students.find(s => String(s.id) === String(p.student?.id || p.student));
+        return student && String(student.class?.id || student.class) === item.classId && 
+               String(p.assignedTermId) === String(previousTerm.id);
+      });
+      
+      const previousRevenue = classPayments.reduce((sum, p) => sum + (parseFloat(p.amount || p.ammount) || 0), 0);
+      
+      // Calculate previous term expected amount
+      const classStudents = students.filter(s => String(s.class?.id || s.class) === item.classId);
+      const previousExpected = classStudents.reduce((sum, student) => {
+        const fees = feeStructures.filter(fs =>
+          String(fs.class?.id || fs.class) === item.classId &&
+          String(fs.term?.id || fs.term) === String(previousTerm.id) &&
+          fs.isActive === true
+        );
+        const studentFees = fees.reduce((total, fs) => total + (parseFloat(fs.amount) || 0), 0);
+        return sum + studentFees;
+      }, 0);
+      
+      const previousCollectionRate = previousExpected > 0 ? (previousRevenue / previousExpected) * 100 : 0;
+      
+      // Calculate previous term efficiency
+      const previousClassData = {
+        payments: classPayments,
+        students: classStudents,
+        charges: charges.filter(c => {
+          const student = students.find(s => String(s.id) === String(c.student?.id || c.student));
+          return student && String(student.class?.id || student.class) === item.classId;
+        })
+      };
+      const previousEfficiency = this.calculateEfficiency(previousClassData);
+      
+      return {
+        ...item,
+        previousTermData: {
+          totalRevenue: previousRevenue,
+          collectionRate: previousCollectionRate,
+          efficiency: previousEfficiency,
+          studentCount: classStudents.length
+        }
+      };
+    });
   };
 
   addPreviousYearComparison = (data) => {
-    // Simulate previous year data
-    return data.map(item => ({
-      ...item,
-      previousYearData: {
-        totalRevenue: item.totalRevenue * 0.7, // Simulate 30% growth
-        collectionRate: item.collectionRate - 10,
-        studentCount: Math.floor(item.studentCount * 0.8)
-      }
-    }));
+    const { payments, charges, feeStructures, classes, students, terms, selectedTerm } = this.state;
+    
+    if (!selectedTerm || !terms || terms.length === 0) return data;
+    
+    // Find current term and same term from previous year
+    const currentTerm = terms.find(t => t.id === selectedTerm);
+    if (!currentTerm) return data;
+    
+    // Try to find same term from previous year
+    const previousYearTerm = terms.find(t => 
+      t.name && currentTerm.name && 
+      t.name.includes(currentTerm.name.split(' ').slice(1).join(' ')) && // Same term name without year
+      t.id !== selectedTerm
+    );
+    
+    if (!previousYearTerm) return data;
+    
+    return data.map(item => {
+      // Calculate previous year metrics for this class
+      const classPayments = payments.filter(p => {
+        const student = students.find(s => String(s.id) === String(p.student?.id || p.student));
+        return student && String(student.class?.id || student.class) === item.classId && 
+               String(p.assignedTermId) === String(previousYearTerm.id);
+      });
+      
+      const previousYearRevenue = classPayments.reduce((sum, p) => sum + (parseFloat(p.amount || p.ammount) || 0), 0);
+      
+      // Calculate previous year expected amount
+      const classStudents = students.filter(s => String(s.class?.id || s.class) === item.classId);
+      const previousYearExpected = classStudents.reduce((sum, student) => {
+        const fees = feeStructures.filter(fs =>
+          String(fs.class?.id || fs.class) === item.classId &&
+          String(fs.term?.id || fs.term) === String(previousYearTerm.id) &&
+          fs.isActive === true
+        );
+        const studentFees = fees.reduce((total, fs) => total + (parseFloat(fs.amount) || 0), 0);
+        return sum + studentFees;
+      }, 0);
+      
+      const previousYearCollectionRate = previousYearExpected > 0 ? (previousYearRevenue / previousYearExpected) * 100 : 0;
+      
+      // Calculate previous year efficiency
+      const previousYearClassData = {
+        payments: classPayments,
+        students: classStudents,
+        charges: charges.filter(c => {
+          const student = students.find(s => String(s.id) === String(c.student?.id || c.student));
+          return student && String(student.class?.id || student.class) === item.classId;
+        })
+      };
+      const previousYearEfficiency = this.calculateEfficiency(previousYearClassData);
+      
+      return {
+        ...item,
+        previousYearData: {
+          totalRevenue: previousYearRevenue,
+          collectionRate: previousYearCollectionRate,
+          efficiency: previousYearEfficiency,
+          studentCount: classStudents.length
+        }
+      };
+    });
   };
 
   addClassComparison = (data) => {
     // Add class-to-class comparison
     const averageRevenue = data.reduce((sum, item) => sum + item.totalRevenue, 0) / data.length;
     const averageCollectionRate = data.reduce((sum, item) => sum + item.collectionRate, 0) / data.length;
+    const averageEfficiency = data.reduce((sum, item) => sum + (item.efficiency || 0), 0) / data.length;
     
     return data.map(item => ({
       ...item,
       classComparison: {
         revenueVsAverage: ((item.totalRevenue - averageRevenue) / averageRevenue) * 100,
         collectionRateVsAverage: item.collectionRate - averageCollectionRate,
+        efficiencyVsAverage: (item.efficiency || 0) - averageEfficiency,
         rank: data.sort((a, b) => b.totalRevenue - a.totalRevenue).indexOf(item) + 1
       }
     }));
@@ -556,8 +818,23 @@ class FinanceInsightsDashboard extends Component {
   };
 
   generateSparklineData = (type) => {
-    // Generate sample sparkline data - in real implementation, this would come from processed data
-    return [100, 120, 115, 130, 125, 140, 135, 150, 145, 160];
+    const { comparisonData } = this.state;
+    if (!comparisonData || comparisonData.length === 0) return [];
+    
+    if (type === 'revenue') {
+      // Generate revenue sparkline from actual payment data
+      const revenueData = [];
+      comparisonData.forEach(classData => {
+        if (classData.periods) {
+          classData.periods.forEach(period => {
+            revenueData.push(period.revenue || 0);
+          });
+        }
+      });
+      return revenueData.slice(-10); // Last 10 periods
+    }
+    
+    return [];
   };
 
   renderMainCharts = () => {
@@ -713,13 +990,54 @@ class FinanceInsightsDashboard extends Component {
   };
 
   generateCollectionFunnelData = () => {
-    const { payments, charges } = this.state;
+    const { payments, charges, selectedClass, selectedTerm, students, feeStructures } = this.state;
     
-    const totalBilled = charges.reduce((sum, charge) => sum + parseFloat(charge.amount || 0), 0);
-    const partialPayments = payments.filter(p => p.status === 'PARTIAL').reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
-    const fullPayments = payments.filter(p => p.status === 'COMPLETED').reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
-    const overdue = charges.filter(c => new Date(c.dueDate) < new Date() && !this.isPaid(c.id)).reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
-    const writtenOff = charges.filter(c => c.status === 'WRITTEN_OFF').reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+    // Filter data based on current selections
+    let filteredCharges = charges || [];
+    let filteredPayments = payments || [];
+    
+    if (selectedClass) {
+      filteredCharges = charges.filter(charge => {
+        const student = students.find(s => String(s.id) === String(charge.student?.id || charge.student));
+        return student && String(student.class?.id || student.class) === selectedClass;
+      });
+      
+      filteredPayments = payments.filter(payment => {
+        const student = students.find(s => String(s.id) === String(payment.student?.id || payment.student));
+        return student && String(student.class?.id || student.class) === selectedClass;
+      });
+    }
+    
+    if (selectedTerm) {
+      filteredCharges = filteredCharges.filter(charge => {
+        const chargeTermId = String(charge.term?.id || charge.term || "");
+        return chargeTermId === selectedTerm;
+      });
+      
+      filteredPayments = filteredPayments.filter(payment => {
+        if (payment.assignedTermId) {
+          return String(payment.assignedTermId) === selectedTerm;
+        }
+        if (payment.metadata?.termId) {
+          return String(payment.metadata.termId) === selectedTerm;
+        }
+        return false;
+      });
+    }
+    
+    // Calculate real metrics from filtered data
+    const totalBilled = filteredCharges.reduce((sum, charge) => sum + parseFloat(charge.amount || 0), 0);
+    const partialPayments = filteredPayments.filter(p => p.status === 'PARTIAL').reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+    const fullPayments = filteredPayments.filter(p => p.status === 'COMPLETED').reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+    
+    // Calculate overdue from actual unpaid charges
+    const overdue = filteredCharges.filter(c => {
+      const dueDate = new Date(c.dueDate);
+      const isPaid = filteredPayments.some(p => p.chargeId === c.id && p.status === 'COMPLETED');
+      return dueDate < new Date() && !isPaid;
+    }).reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+    
+    const writtenOff = filteredCharges.filter(c => c.status === 'WRITTEN_OFF').reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
     
     return {
       totalBilled,
@@ -731,25 +1049,87 @@ class FinanceInsightsDashboard extends Component {
   };
 
   generatePaymentPatternData = () => {
-    const { payments } = this.state;
+    const { payments, selectedClass, selectedTerm, students } = this.state;
     
-    return payments.map(payment => ({
-      paymentMethod: payment.paymentMethod || payment.type,
-      feeCategory: payment.feeCategory || 'Other',
-      amount: parseFloat(payment.amount || 0),
-      date: payment.date || payment.createdAt
-    }));
+    // Filter payments based on current selections
+    let filteredPayments = payments || [];
+    
+    if (selectedClass) {
+      filteredPayments = payments.filter(payment => {
+        const student = students.find(s => String(s.id) === String(payment.student?.id || payment.student));
+        return student && String(student.class?.id || student.class) === selectedClass;
+      });
+    }
+    
+    if (selectedTerm) {
+      filteredPayments = filteredPayments.filter(payment => {
+        if (payment.assignedTermId) {
+          return String(payment.assignedTermId) === selectedTerm;
+        }
+        if (payment.metadata?.termId) {
+          return String(payment.metadata.termId) === selectedTerm;
+        }
+        return false;
+      });
+    }
+    
+    // Only include completed payments for pattern analysis
+    return filteredPayments
+      .filter(p => p.status === 'COMPLETED' || !p.status) // Include if status is undefined (assume completed)
+      .map(payment => ({
+        paymentMethod: payment.paymentMethod || payment.type || 'M-Pesa',
+        feeCategory: payment.feeCategory || 'School Fees',
+        amount: parseFloat(payment.amount || payment.ammount || 0),
+        date: payment.date || payment.time || payment.createdAt
+      }));
   };
 
   generateARAgingData = () => {
-    const { charges, payments } = this.state;
+    const { processedParents, selectedTerm, terms } = this.props;
     
-    return charges.map(charge => ({
-      amount: parseFloat(charge.amount || 0),
-      dueDate: charge.dueDate,
-      paidDate: payments.find(p => p.chargeId === charge.id)?.date,
-      status: charge.status
-    }));
+    if (processedParents && processedParents.length > 0) {
+      const agingData = [];
+      const now = new Date();
+      const currentTerm = terms?.find(t => String(t.id) === String(selectedTerm));
+      const termStartDate = currentTerm?.startDate ? this.safeParseDate(currentTerm.startDate) : now;
+
+      processedParents.forEach(parent => {
+        parent.students.forEach(student => {
+          if (student.finances?.balance > 0) {
+            // Last payment date or term start
+            const lastPayment = student.finances.history && student.finances.history.length > 0 
+              ? this.safeParseDate(student.finances.history[0].time || student.finances.history[0].createdAt)
+              : null;
+            
+            // Aging logic: if no payments, assume debt started at term start
+            const baseDate = lastPayment || termStartDate;
+
+            agingData.push({
+              amount: student.finances.balance,
+              dueDate: baseDate,
+              status: 'UNPAID',
+              studentId: student.id
+            });
+          }
+        });
+      });
+      return agingData;
+    }
+
+    const { charges, payments, selectedClass, students } = this.state;
+    // Fallback to local charges if no unified source
+    // Fallback logic
+    const filteredCharges = charges || [];
+    return filteredCharges.map(charge => {
+      const payment = payments.find(p => p.chargeId === charge.id && p.status === 'COMPLETED');
+      return {
+        amount: parseFloat(charge.amount || 0),
+        dueDate: charge.dueDate,
+        paidDate: payment ? (payment.date || payment.time || payment.createdAt) : null,
+        status: charge.status,
+        daysOverdue: charge.dueDate ? Math.floor((new Date() - new Date(charge.dueDate)) / (1000 * 60 * 60 * 24)) : 0
+      };
+    });
   };
 
   isPaid = (chargeId) => {
@@ -778,6 +1158,42 @@ class FinanceInsightsDashboard extends Component {
 
     return (
       <div className="finance-insights-dashboard">
+        {/* Active Filters Indicator */}
+        <div className="card card-custom mb-4 border-left-3 border-left-primary">
+          <div className="card-body py-3">
+            <div className="d-flex align-items-center">
+              <div className="symbol symbol-30px bg-light-primary mr-3">
+                <span className="symbol-label text-primary font-weight-bolder">
+                  <i className="fas fa-filter"></i>
+                </span>
+              </div>
+              <div className="d-flex flex-column">
+                <div className="font-weight-bolder text-dark">Active Filters</div>
+                <div className="text-muted font-size-sm">
+                  {console.log('FinanceInsights Debug:', { 
+                    selectedClass: this.props.selectedClass, 
+                    selectedTerm: this.props.selectedTerm,
+                    classes: this.props.classes,
+                    terms: this.props.terms
+                  })}
+                  {this.props.selectedClass && (
+                    <span className="mr-3">
+                      <strong>Class:</strong> {this.props.classes?.find(c => c.id === this.props.selectedClass)?.name || 'Selected Class'}
+                    </span>
+                  )}
+                  {this.props.selectedTerm && (
+                    <span>
+                      <strong>Term:</strong> {this.props.terms?.find(t => t.id === this.props.selectedTerm)?.name || 'Selected Term'}
+                    </span>
+                  )}
+                  {!this.props.selectedClass && !this.props.selectedTerm && (
+                    <span className="text-muted">Showing all data</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
         {this.renderFilters()}
         {this.renderKPIs()}
         {this.renderMainCharts()}

@@ -1257,12 +1257,21 @@ class ResultsMatrix extends React.Component {
                         <EnhancedDropdown
                             value={selectedClass}
                             onChange={(value) => this.handleFilterChange('selectedClass', value)}
-                            options={availableClasses}
+                            options={availableClasses.map(cls => ({
+                                ...cls,
+                                studentCount: this.getFilteredStudents().filter(student => {
+                                    const studentClassId = student.class?.id || student.class || student.class_id;
+                                    return studentClassId && String(studentClassId) === String(cls.id);
+                                }).length,
+                            }))}
                             placeholder="Class (Students)..."
                             searchable={true}
                             width="250px"
                             className="mr-2"
                             showEmptySearchResults={true}
+                            showCount={true}
+                            countKey="studentCount"
+                            countLabel="students"
                         />
                         {!isTeacher && (
                             <div className="ml-1 d-flex">
@@ -1282,9 +1291,9 @@ class ResultsMatrix extends React.Component {
                             onChange={(value) => this.handleFilterChange('selectedGrade', value)}
                             options={availableGrades.map(grade => ({
                                 ...grade,
-                                studentCount: this.getFilteredStudents().filter(student => {
-                                    const studentGradeId = student.class?.grade?.id || student.class?.grade || student.grade_id;
-                                    return studentGradeId && String(studentGradeId) === String(grade.id);
+                                subjectCount: filteredSubjectsList.filter(subject => {
+                                    const subjectGradeId = subject.grade?.id || subject.grade;
+                                    return subjectGradeId && String(subjectGradeId) === String(grade.id);
                                 }).length,
                             }))}
                             placeholder="Grade (Subjects)..."
@@ -1292,6 +1301,9 @@ class ResultsMatrix extends React.Component {
                             width="220px"
                             className="mr-2"
                             showEmptySearchResults={true}
+                            showCount={true}
+                            countKey="subjectCount"
+                            countLabel="subjects"
                         />
                         {!isTeacher && (
                             <div className="ml-1 d-flex">
