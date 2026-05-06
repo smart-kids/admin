@@ -306,6 +306,7 @@ class FinanceInsightsDashboard extends Component {
   };
 
   processFinancialData = (payments, charges, feeStructures, classes, students, parents) => {
+    const { selectedTerm } = this.props;
     // Group payments by class and stream
     const classGroups = {};
     
@@ -358,7 +359,11 @@ class FinanceInsightsDashboard extends Component {
     // Process fee structures
     feeStructures.forEach(fs => {
       const classId = String(fs.class?.id || fs.class);
-      if (classGroups[classId] && fs.isActive) {
+      // Ensure we only sum fee structures for the selected term and active ones
+      const fsTermId = String(fs.term?.id || fs.term);
+      const isCorrectTerm = !selectedTerm || fsTermId === String(selectedTerm);
+      
+      if (classGroups[classId] && fs.isActive && isCorrectTerm) {
         const feeType = fs.feeType || 'Other';
         classGroups[classId].feeStructure[feeType] = (classGroups[classId].feeStructure[feeType] || 0) + parseFloat(fs.amount || 0);
       }
@@ -585,11 +590,14 @@ class FinanceInsightsDashboard extends Component {
     
     if (!selectedTerm || !terms || terms.length === 0) return data;
     
+    // Sort terms by startDate to ensure index-based comparison works
+    const sortedTerms = [...terms].sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+    
     // Find previous term
-    const currentTermIndex = terms.findIndex(t => t.id === selectedTerm);
+    const currentTermIndex = sortedTerms.findIndex(t => t.id === selectedTerm);
     if (currentTermIndex <= 0) return data; // No previous term available
     
-    const previousTerm = terms[currentTermIndex - 1];
+    const previousTerm = sortedTerms[currentTermIndex - 1];
     
     return data.map(item => {
       // Calculate previous term metrics for this class
@@ -647,12 +655,15 @@ class FinanceInsightsDashboard extends Component {
     const currentTerm = terms.find(t => t.id === selectedTerm);
     if (!currentTerm) return data;
     
-    // Try to find same term from previous year
-    const previousYearTerm = terms.find(t => 
-      t.name && currentTerm.name && 
-      t.name.includes(currentTerm.name.split(' ').slice(1).join(' ')) && // Same term name without year
-      t.id !== selectedTerm
-    );
+    // Try to find same term from previous year by matching name and checking the year in the startDate
+    const currentTermDate = new Date(currentTerm.startDate);
+    const previousYearTerm = terms.find(t => {
+      const tDate = new Date(t.startDate);
+      const isPreviousYear = tDate.getFullYear() === currentTermDate.getFullYear() - 1;
+      const isSameTermName = t.name && currentTerm.name && 
+                            t.name.toLowerCase().includes(currentTerm.name.toLowerCase().replace(/[0-9]/g, '').trim());
+      return isPreviousYear && isSameTermName && t.id !== selectedTerm;
+    });
     
     if (!previousYearTerm) return data;
     

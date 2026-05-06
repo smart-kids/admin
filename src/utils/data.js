@@ -1294,19 +1294,20 @@ var Data = (function () {
                         const schoolId = localStorage.getItem("school");
                         const response = await api(`
                             query GetFeeStructuresByClass($schoolId: String!, $classId: String!, $termId: String) {
-                                feeStructures: feeStructures(where: {
-                                    school: $schoolId,
-                                    class: $classId,
-                                    term: $termId
-                                }) {
-                                    id
-                                    feeType
-                                    amount
-                                    description
-                                    isRequired
-                                    isActive
-                                    class { id name }
-                                    term { id name startDate endDate }
+                                school(id: $schoolId) {
+                                    feeStructures(where: {
+                                        class: $classId,
+                                        term: $termId
+                                    }) {
+                                        id
+                                        feeType
+                                        amount
+                                        description
+                                        isRequired
+                                        isActive
+                                        class { id name }
+                                        term { id name startDate endDate }
+                                    }
                                 }
                             }
                         `, {
@@ -1315,7 +1316,7 @@ var Data = (function () {
                             termId
                         });
                         
-                        resolve(response.feeStructures || []);
+                        resolve(response.school?.feeStructures || []);
                     } catch (error) {
                         console.error('Failed to fetch fee structures by class:', error);
                         reject(error);
