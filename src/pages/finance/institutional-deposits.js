@@ -88,118 +88,7 @@ const Pagination = ({ total, itemsPerPage, currentPage, onPageChange }) => {
 
 class InstitutionalDeposits extends Component {
     state = {
-        invoices: [
-            // Unpaid invoices first (for school admins)
-            {
-                id: '20260401123456',
-                status: 'Unpaid',
-                created: 'Apr 1, 2026',
-                amount: 'KES 45,000',
-                description: 'Term 2 School Management System Subscription',
-                dueDate: 'Apr 15, 2026',
-                schoolId: 'school_001'
-            },
-            {
-                id: '20260328789012',
-                status: 'Unpaid',
-                created: 'Mar 28, 2026',
-                amount: 'KES 12,500',
-                description: 'SMS Bundle Package - 10,000 messages',
-                dueDate: 'Apr 11, 2026',
-                schoolId: 'school_001'
-            },
-            {
-                id: '20260315456789',
-                status: 'Unpaid',
-                created: 'Mar 15, 2026',
-                amount: 'KES 8,000',
-                description: 'Teacher Training Module - Professional Development',
-                dueDate: 'Mar 30, 2026',
-                schoolId: 'school_002'
-            },
-            // Paid invoices
-            {
-                id: '20260216089025',
-                status: 'Paid',
-                created: 'Feb 16, 2026',
-                amount: 'KES 45,000',
-                description: 'Term 1 School Management System Subscription',
-                dueDate: 'Mar 16, 2026',
-                schoolId: 'school_001'
-            },
-            {
-                id: '20260216884677',
-                status: 'Paid',
-                created: 'Feb 16, 2026',
-                amount: 'KES 12,500',
-                description: 'SMS Bundle Package - 10,000 messages',
-                dueDate: 'Mar 16, 2026',
-                schoolId: 'school_001'
-            },
-            {
-                id: '20251229899973',
-                status: 'Paid',
-                created: 'Dec 29, 2025',
-                amount: 'KES 35,000',
-                description: 'Annual License Fee - St. Mary\'s Primary School',
-                dueDate: 'Jan 29, 2026',
-                schoolId: 'school_003'
-            },
-            {
-                id: '20251229798023',
-                status: 'Paid',
-                created: 'Dec 29, 2025',
-                amount: 'KES 8,500',
-                description: 'Parent-Teacher Communication Module',
-                dueDate: 'Jan 29, 2026',
-                schoolId: 'school_002'
-            },
-            {
-                id: '20251110466424',
-                status: 'Paid',
-                created: 'Nov 10, 2025',
-                amount: 'KES 15,000',
-                description: 'Exam Management System Setup',
-                dueDate: 'Dec 10, 2025',
-                schoolId: 'school_004'
-            },
-            {
-                id: '20251110709733',
-                status: 'Paid',
-                created: 'Nov 10, 2025',
-                amount: 'KES 22,000',
-                description: 'Library Management Module - Junior School',
-                dueDate: 'Dec 10, 2025',
-                schoolId: 'school_005'
-            },
-            {
-                id: '20250925605461',
-                status: 'Paid',
-                created: 'Sep 25, 2025',
-                amount: 'KES 5,000',
-                description: 'Transport Route Optimization Service',
-                dueDate: 'Oct 25, 2025',
-                schoolId: 'school_001'
-            },
-            {
-                id: '20250925231299',
-                status: 'Paid',
-                created: 'Sep 25, 2025',
-                amount: 'KES 18,000',
-                description: 'Student Registration Package - 500 students',
-                dueDate: 'Oct 25, 2025',
-                schoolId: 'school_002'
-            },
-            {
-                id: '20250808155915',
-                status: 'Paid',
-                created: 'Aug 8, 2025',
-                amount: 'KES 7,500',
-                description: 'Report Card Generation Software',
-                dueDate: 'Sep 8, 2025',
-                schoolId: 'school_003'
-            }
-        ],
+        invoices: [],
         loading: false,
         currentPage: 1,
         itemsPerPage: 10,
@@ -372,10 +261,6 @@ class InstitutionalDeposits extends Component {
         const paymentMethod = this.state.paymentMethod || localStorage.getItem('paymentMethod') || 'mpesa';
         const billingPhone = this.state.billingPhone || localStorage.getItem('billingPhone') || '';
         
-        console.log('Pay Invoice - Payment Method:', paymentMethod);
-        console.log('Pay Invoice - Billing Phone:', billingPhone);
-        console.log('Pay Invoice - State:', this.state.paymentMethod, this.state.billingPhone);
-        
         if (paymentMethod === 'mpesa' && !billingPhone) {
             errorToast.show({ message: 'Please set up your M-Pesa billing number first' });
             this.handleManageBilling();
@@ -388,6 +273,24 @@ class InstitutionalDeposits extends Component {
             this.setState({ selectedInvoice: invoice, showPaymentModal: true });
         }
     };
+
+    handleConfirmPayment = () => {
+        const { selectedInvoice, billingPhone } = this.state;
+        
+        if (!billingPhone || billingPhone.length < 10) {
+            errorToast.show({ message: 'Please enter a valid M-Pesa phone number' });
+            return;
+        }
+
+        // Simulate M-Pesa STK Push
+        successToast.show({ 
+            message: `M-Pesa payment of ${selectedInvoice.amount} initiated to ${billingPhone}. Please check your phone for the STK push prompt.`,
+            header: 'Payment Initiated'
+        });
+
+        this.setState({ showPaymentModal: false });
+    };
+
 
     handlePayWithSavedCard = (cardId) => {
         // For now, just show a success message with the card used
@@ -1323,79 +1226,62 @@ class InstitutionalDeposits extends Component {
         if (!showPaymentModal || !selectedInvoice) return null;
 
         return (
-            <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                <div className="modal-dialog">
-                    <div className="modal-content">
-                        <div className="modal-header">
-                            <h4 className="modal-title">
-                                <i className="la la-credit-card"></i> Pay Invoice
-                            </h4>
-                            <button 
-                                type="button" 
-                                className="close" 
-                                onClick={() => this.setState({ showPaymentModal: false })}
-                            >
-                                <span>&times;</span>
+            <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(5px)' }}>
+                <div className="modal-dialog modal-dialog-centered">
+                    <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '1.2rem' }}>
+                        <div className="modal-header border-0 pb-0">
+                            <h5 className="modal-title font-weight-boldest text-dark" style={{ fontSize: '1.5rem' }}>Settling Invoice</h5>
+                            <button type="button" className="close" onClick={() => this.setState({ showPaymentModal: false })}>
+                                <i className="ki ki-close"></i>
                             </button>
                         </div>
-                        <div className="modal-body">
-                            <div className="alert alert-info">
-                                <h5>Invoice Details</h5>
-                                <p><strong>Invoice Number:</strong> {selectedInvoice.id}</p>
-                                <p><strong>Amount:</strong> {selectedInvoice.amount}</p>
-                                <p><strong>Due Date:</strong> {selectedInvoice.dueDate}</p>
-                                <p><strong>Description:</strong> {selectedInvoice.description}</p>
-                            </div>
-                            
-                            <div className="form-group">
-                                <label>Payment Method</label>
-                                <div className="form-control">
-                                    <i className="la la-mobile-phone"></i> M-Pesa Payment
+                        <div className="modal-body pt-8">
+                            <div className="d-flex align-items-center bg-light-primary p-5 rounded mb-8" style={{ borderRadius: '1rem' }}>
+                                <div className="symbol symbol-50 symbol-light-primary mr-4">
+                                    <span className="symbol-label"><i className="flaticon2-file-1 text-primary" style={{ fontSize: '1.5rem' }}></i></span>
                                 </div>
-                            </div>
-                            
-                            <div className="form-group">
-                                <label>Billing Phone Number</label>
-                                <div className="input-group">
-                                    <input 
-                                        type="tel" 
-                                        className="form-control" 
-                                        value={billingPhone}
-                                        readOnly
-                                    />
-                                    <div className="input-group-append">
-                                        <button 
-                                            className="btn btn-outline-secondary"
-                                            type="button"
-                                            onClick={this.handleManageBilling}
-                                        >
-                                            <i className="la la-edit"></i> Change
-                                        </button>
-                                    </div>
+                                <div className="flex-grow-1">
+                                    <div className="font-weight-boldest text-dark" style={{ fontSize: '1.1rem' }}>{selectedInvoice.description}</div>
+                                    <div className="text-muted font-weight-bold">Invoice #{selectedInvoice.id}</div>
                                 </div>
-                                <small className="form-text text-muted">
-                                    Payment will be processed via M-Pesa to this number
-                                </small>
+                                <div className="text-right">
+                                    <div className="font-weight-boldest text-primary" style={{ fontSize: '1.3rem' }}>{selectedInvoice.amount}</div>
+                                    <div className="text-muted small font-weight-bold">DUE {selectedInvoice.dueDate}</div>
+                                </div>
                             </div>
 
-                            <div className="alert alert-warning">
-                                <i className="la la-info-circle"></i> Click "Confirm Payment" to initiate the M-Pesa payment process. You will receive a prompt on your phone to complete the transaction.
+                            <div className="form-group mb-8">
+                                <label className="font-weight-bold text-muted text-uppercase mb-3" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>M-Pesa Confirmation Number</label>
+                                <div className="input-group input-group-lg input-group-solid">
+                                    <div className="input-group-prepend">
+                                        <span className="input-group-text border-0 bg-light"><i className="la la-phone text-primary"></i></span>
+                                    </div>
+                                    <input 
+                                        type="tel" 
+                                        className="form-control border-0 bg-light font-weight-boldest" 
+                                        value={billingPhone}
+                                        onChange={e => this.setState({ billingPhone: e.target.value })}
+                                        placeholder="07XXXXXXXX"
+                                        style={{ borderRadius: '0 0.8rem 0.8rem 0' }}
+                                    />
+                                </div>
+                                <div className="d-flex justify-content-between mt-3">
+                                    <span className="text-muted font-weight-bold small">STK Push will be sent to this number</span>
+                                    <a href="#" className="text-primary font-weight-bold small" onClick={(e) => { e.preventDefault(); this.handleManageBilling(); }}>Change default</a>
+                                </div>
+                            </div>
+
+                            <div className="bg-light-warning p-5 rounded d-flex" style={{ borderRadius: '0.8rem' }}>
+                                <i className="flaticon-info text-warning mr-4 mt-1"></i>
+                                <div className="font-weight-bold text-dark-50" style={{ fontSize: '0.9rem', lineHeight: '1.5' }}>
+                                    Ensure your phone is unlocked and near you. You will be prompted to enter your <span className="text-dark">M-Pesa PIN</span> to complete the payment.
+                                </div>
                             </div>
                         </div>
-                        <div className="modal-footer">
-                            <button 
-                                type="button" 
-                                className="btn btn-secondary" 
-                                onClick={() => this.setState({ showPaymentModal: false })}
-                            >
-                                Cancel
-                            </button>
-                            <button 
-                                type="button" 
-                                className="btn btn-success"
-                                onClick={this.handleConfirmPayment}
-                            >
-                                <i className="la la-check"></i> Confirm Payment
+                        <div className="modal-footer border-0 pt-0">
+                            <button className="btn btn-light-danger font-weight-bold px-8 py-3" onClick={() => this.setState({ showPaymentModal: false })} style={{ borderRadius: '0.8rem' }}>Cancel</button>
+                            <button className="btn btn-success font-weight-bold px-12 py-3" onClick={this.handleConfirmPayment} style={{ borderRadius: '0.8rem', boxShadow: '0 4px 15px rgba(27, 197, 189, 0.3)' }}>
+                                Confirm & Pay
                             </button>
                         </div>
                     </div>
@@ -1403,6 +1289,7 @@ class InstitutionalDeposits extends Component {
             </div>
         );
     };
+
 
     renderInvoicesList = () => {
         const { invoices, loading, currentPage, itemsPerPage, totalInvoices } = this.state;
@@ -1444,6 +1331,7 @@ class InstitutionalDeposits extends Component {
                                         <th>Status</th>
                                         <th>Created</th>
                                         <th>Due Date</th>
+                                        <th>Age</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -1466,6 +1354,19 @@ class InstitutionalDeposits extends Component {
                                             </td>
                                             <td>{invoice.created}</td>
                                             <td>{invoice.dueDate}</td>
+                                            <td>
+                                                {(() => {
+                                                    const createdDate = new Date(invoice.created);
+                                                    const today = new Date();
+                                                    const diffTime = Math.abs(today - createdDate);
+                                                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                                    return (
+                                                        <span className={`kt-font-bold ${diffDays > 30 ? 'text-danger' : diffDays > 14 ? 'text-warning' : 'text-success'}`}>
+                                                            {diffDays} days
+                                                        </span>
+                                                    );
+                                                })()}
+                                            </td>
                                             <td>
                                                 <div className="d-flex align-items-center gap-1">
                                                     {/* Pay button - more prominent for unpaid invoices */}
@@ -1684,13 +1585,16 @@ class InstitutionalDeposits extends Component {
                     id="kt_wrapper"
                 >
                     <Navbar />
-                    <Subheader links={["Finance", "Billing"]} />
+                    <div style={{ marginTop: '65px' }}>
+                        <Subheader title="Finance" breadcrumbs={[{ title: "Institutional Deposits", url: "#" }]} />
+                    </div>
 
                     <div
-                        className="kt-content  kt-grid__item kt-grid__item--fluid kt-grid kt-grid--hor"
-                        style={{height:"100vh"}}
+                        className="kt-content kt-grid__item kt-grid__item--fluid kt-grid kt-grid--hor"
+                        style={{ height: "auto", minHeight: 'calc(100vh - 120px)' }}
                         id="kt_content"
                     >
+
                         <div className="kt-container  kt-grid__item kt-grid__item--fluid">
                             {this.renderInvoicesList()}
                             {this.renderInvoiceModal()}

@@ -25,10 +25,12 @@ class Subheader extends React.Component {
   }
 
   render() {
-    const { links, actions } = this.props;
+    const { links, actions, breadcrumbs, title } = this.props;
     const { selectedSchool } = this.state;
 
-    const showBreadcrumbs = links && links.length > 0;
+    const actualLinks = links || (breadcrumbs ? breadcrumbs.map(b => b.title) : []);
+    const showBreadcrumbs = false
+    
     // Ensure selectedSchool and selectedSchool.financial exist before accessing balance
     const showLowBalanceNotification =
       selectedSchool &&
@@ -132,8 +134,9 @@ class Subheader extends React.Component {
             <div className="kt-container kt-container--fluid">
               <div className="kt-subheader__main d-flex justify-content-between align-items-center">
                 <div className="kt-subheader__title">
+                  {title && <h3 className="kt-subheader__title" style={{ marginRight: '15px', borderRight: '1px solid #e2e8f0', paddingRight: '15px' }}>{title}</h3>}
                   <div className="kt-subheader__breadcrumbs">
-                    {links.map((link, index) => (
+                    {actualLinks.map((link, index) => (
                       <React.Fragment key={link + index}>
                         <span className="kt-subheader__breadcrumbs-separator">
                           {index !== 0 && (
@@ -166,6 +169,7 @@ class Subheader extends React.Component {
             </div>
           </div>
         )}
+
       </div>
     );
   }

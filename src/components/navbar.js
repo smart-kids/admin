@@ -770,7 +770,7 @@ class Navbar extends React.Component {
                 {!isTeacher && (
                     <li className="kt-menu__item kt-menu__item--submenu kt-menu__item--rel" data-ktmenu-submenu-toggle="click" aria-haspopup="true">
                         <a href="!#" onClick={e => e.preventDefault()} className="kt-menu__link kt-menu__toggle">
-                        <span className="kt-menu__link-text" style={{ ...topNavlinkStyle, fontWeight: '500' }}>Billing & Invoices {showLowBalanceIndicator && <span className="balance-dot" title="Low Balance Notice"></span>}</span>
+                        <span className="kt-menu__link-text" style={{ ...topNavlinkStyle, fontWeight: '500' }}>Billing {showLowBalanceIndicator && <span className="balance-dot" title="Low Balance Notice"></span>}</span>
                         <i className="kt-menu__hor-arrow la la-angle-down" style={{ ...topNavIconStyle, color: effectiveTopBarTextColor }} />
                     </a>
                     <div className="kt-menu__submenu kt-menu__submenu--classic kt-menu__submenu--left">
@@ -954,7 +954,9 @@ class Navbar extends React.Component {
                                     <a href="javascript:;" onClick={e => { e.preventDefault(); e.stopPropagation(); this.setState({ showManageData: !this.state.showManageData, showSchoolSelector: false }); }} className="kt-menu__link manage-data-cog-btn" style={{ textDecoration: 'none', padding: '0 10px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         <i className="la la-cog" style={{ fontSize: '1.4rem', color: 'var(--text-primary)', transition: 'all 0.3s ease' }} />
                                         <span style={{ fontWeight: '700', color: 'var(--text-primary)', fontSize: '0.9rem', whiteSpace: 'nowrap' }}>Manage Data</span>
+                                        <i className={`la la-angle-down`} style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', transition: 'transform 0.3s ease', transform: this.state.showManageData ? 'rotate(180deg)' : 'none' }} />
                                     </a>
+
                                     {this.state.showManageData && (
                                         <div className="kt-menu__submenu kt-menu__submenu--classic kt-menu__submenu--left" style={{ display: 'block', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', zIndex: 1200, marginTop: '10px', width: '500px' }}>
                                             <div style={{ padding: '10px 15px', borderBottom: '1px solid var(--border-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
