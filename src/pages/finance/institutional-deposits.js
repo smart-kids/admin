@@ -643,319 +643,102 @@ class InstitutionalDeposits extends Component {
     };
 
     renderBillingModal = () => {
-        const { showBillingModal, billingPhone, selectedSchool } = this.state;
+        const { showBillingModal, billingPhone, selectedSchool, paymentMethod } = this.state;
         
         if (!showBillingModal) return null;
 
         return (
-            <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-                <div className="modal-dialog modal-lg modal-dialog-centered">
-                    <div className="modal-content" style={{ borderRadius: '16px', border: '1px solid #e5e7eb', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
-                        <div className="modal-header" style={{ borderBottom: '1px solid #f3f4f6', padding: '24px 32px' }}>
-                            <h5 className="modal-title" style={{ fontSize: '20px', fontWeight: '600', color: '#111827', margin: 0 }}>
-                                <i className="flaticon2-settings text-primary mr-3" style={{ fontSize: '24px' }}></i>
-                                Billing Management
-                            </h5>
-                            <button 
-                                type="button" 
-                                className="close" 
-                                onClick={() => this.setState({ showBillingModal: false })}
-                                style={{ fontSize: '24px', color: '#6b7280', background: 'none', border: 'none', padding: '0' }}
-                            >
-                                <span>&times;</span>
+            <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(5px)' }}>
+                <div className="modal-dialog modal-dialog-centered">
+                    <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '1.2rem' }}>
+                        <div className="modal-header border-0 pb-0">
+                            <h5 className="modal-title font-weight-boldest text-dark" style={{ fontSize: '1.5rem' }}>Billing & Payments</h5>
+                            <button type="button" className="close" onClick={() => this.setState({ showBillingModal: false })}>
+                                <i className="ki ki-close"></i>
                             </button>
                         </div>
-                        <div className="modal-body">
-                           
-                            
-                            <div className="form-group mb-4">
-                               
-                                <div className="row">
-                                    <div className="col-md-6">
-                                        <div className={`payment-method-card ${this.state.paymentMethod === 'mpesa' ? 'selected' : ''}`} onClick={() => this.setState({ paymentMethod: 'mpesa' })}>
-                                            <div className="payment-method-header">
-                                                <div className={`payment-radio ${this.state.paymentMethod === 'mpesa' ? 'checked' : ''}`}>
-                                                    <span className="radio-inner"></span>
-                                                </div>
-                                                <div className="payment-icon">
-                                                    <i className="flaticon2-smart-phone"></i>
-                                                </div>
-                                                <div className="payment-title">
-                                                    <h6 className="mb-0">M-Pesa</h6>
-                                                    <small className="text-muted">Instant mobile payments</small>
-                                                </div>
-                                            </div>
-                                            <div className="payment-method-body">
-                                                <ul className="list-unstyled mb-0">
-                                                    <li className="d-flex align-items-center mb-1">
-                                                        <i className="flaticon2-check-mark text-success mr-2"></i>
-                                                        <small>Instant confirmation</small>
-                                                    </li>
-                                                    <li className="d-flex align-items-center">
-                                                        <i className="flaticon2-check-mark text-success mr-2"></i>
-                                                        <small>Mobile money transfer</small>
-                                                    </li>
-                                                </ul>
-                                            </div>
-                                        </div>
+                        <div className="modal-body pt-8">
+                            <div className="bg-light-primary p-6 rounded mb-8" style={{ borderRadius: '1rem' }}>
+                                <div className="d-flex align-items-center mb-4">
+                                    <div className="symbol symbol-50 symbol-light-primary mr-4">
+                                        <span className="symbol-label font-weight-boldest" style={{ fontSize: '1.2rem' }}>{selectedSchool?.name?.charAt(0)}</span>
                                     </div>
-                                    <div className="col-md-6">
-                                        <div className={`payment-method-card ${this.state.paymentMethod === 'bank' ? 'selected' : ''}`} onClick={() => this.setState({ paymentMethod: 'bank' })}>
-                                            <div className="payment-method-header">
-                                                <div className={`payment-radio ${this.state.paymentMethod === 'bank' ? 'checked' : ''}`}>
-                                                    <span className="radio-inner"></span>
-                                                </div>
-                                                <div className="payment-icon">
-                                                    <i className="flaticon2-bank"></i>
-                                                </div>
-                                                <div className="payment-title">
-                                                    <h6 className="mb-0">Bank Transfer</h6>
-                                                    <small className="text-muted">Direct bank deposit</small>
-                                                </div>
-                                            </div>
-                                            <div className="payment-method-body">
-                                                <ul className="list-unstyled mb-0">
-                                                    <li className="d-flex align-items-center mb-1">
-                                                        <i className="flaticon2-check-mark text-success mr-2"></i>
-                                                        <small>Bank account transfer</small>
-                                                    </li>
-                                                    <li className="d-flex align-items-center">
-                                                        <i className="flaticon2-check-mark text-success mr-2"></i>
-                                                        <small>Admin confirmation required</small>
-                                                    </li>
-                                                </ul>
-                                            </div>
-                                        </div>
+                                    <div>
+                                        <div className="font-weight-boldest text-dark" style={{ fontSize: '1.1rem' }}>{selectedSchool?.name || 'School Information'}</div>
+                                        <div className="text-muted font-weight-bold small">{selectedSchool?.email || 'Billing email pending'}</div>
                                     </div>
                                 </div>
-                                
-                                <style jsx>{`
-                                    .payment-method-card {
-                                        border: 2px solid #e5e7eb;
-                                        border-radius: 12px;
-                                        padding: 16px;
-                                        cursor: pointer;
-                                        transition: all 0.3s ease;
-                                        background: white;
-                                        position: relative;
-                                        overflow: hidden;
-                                    }
-                                    
-                                    .payment-method-card:hover {
-                                        border-color: #3699ff;
-                                        box-shadow: 0 4px 12px rgba(54, 153, 255, 0.15);
-                                        transform: translateY(-2px);
-                                    }
-                                    
-                                    .payment-method-card.selected {
-                                        border-color: #3699ff;
-                                        background: #f8fbff;
-                                        box-shadow: 0 6px 20px rgba(54, 153, 255, 0.25);
-                                    }
-                                    
-                                    .payment-method-header {
-                                        display: flex;
-                                        align-items: center;
-                                        margin-bottom: 12px;
-                                    }
-                                    
-                                    .payment-radio {
-                                        width: 20px;
-                                        height: 20px;
-                                        border: 2px solid #d1d5db;
-                                        border-radius: 50%;
-                                        display: flex;
-                                        align-items: center;
-                                        justify-content: center;
-                                        margin-right: 12px;
-                                        transition: all 0.3s ease;
-                                    }
-                                    
-                                    .payment-radio.checked {
-                                        border-color: #3699ff;
-                                        background: #3699ff;
-                                    }
-                                    
-                                    .radio-inner {
-                                        width: 8px;
-                                        height: 8px;
-                                        background: white;
-                                        border-radius: 50%;
-                                        opacity: 0;
-                                        transition: opacity 0.3s ease;
-                                    }
-                                    
-                                    .payment-radio.checked .radio-inner {
-                                        opacity: 1;
-                                    }
-                                    
-                                    .payment-icon {
-                                        width: 40px;
-                                        height: 40px;
-                                        background: #3699ff;
-                                        border-radius: 10px;
-                                        display: flex;
-                                        align-items: center;
-                                        justify-content: center;
-                                        margin-right: 12px;
-                                    }
-                                    
-                                    .payment-icon i {
-                                        color: white;
-                                        font-size: 18px;
-                                    }
-                                    
-                                    .payment-title {
-                                        flex: 1;
-                                    }
-                                    
-                                    .payment-method-card.selected .payment-icon {
-                                        background: #3699ff;
-                                        box-shadow: 0 4px 12px rgba(54, 153, 255, 0.3);
-                                    }
-                                `}</style>
+                                <div className="separator separator-dashed separator-border-2 mb-4"></div>
+                                <div className="row">
+                                    <div className="col-6">
+                                        <div className="text-muted font-weight-bold small text-uppercase mb-1">Status</div>
+                                        <div className="font-weight-boldest text-primary">Active Institution</div>
+                                    </div>
+                                    <div className="col-6 text-right">
+                                        <div className="text-muted font-weight-bold small text-uppercase mb-1">Balance</div>
+                                        <div className="font-weight-boldest text-success">KSH {parseFloat(selectedSchool?.financial?.balance || 0).toLocaleString()}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="form-group mb-6">
+                                <label className="font-weight-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>Billing Phone Number</label>
+                                <div className="input-group input-group-solid input-group-lg">
+                                    <div className="input-group-prepend">
+                                        <span className="input-group-text border-0 bg-light"><i className="la la-phone text-primary"></i></span>
+                                    </div>
+                                    <input 
+                                        type="text" 
+                                        className="form-control border-0 bg-light font-weight-bold" 
+                                        value={billingPhone}
+                                        onChange={e => this.setState({ billingPhone: e.target.value })}
+                                        placeholder="07XXXXXXXX"
+                                        style={{ borderRadius: '0 0.8rem 0.8rem 0' }}
+                                    />
+                                </div>
+                                <span className="form-text text-muted font-weight-bold mt-2 small">M-Pesa prompts will be sent to this number by default.</span>
                             </div>
                             
-                            {this.state.paymentMethod === 'bank' ? (
-                                <div className="form-group mb-4">
-                                    <label className="font-weight-bold text-dark">
-                                        <i className="flaticon2-bank mr-2"></i>
-                                        Bank Transfer Details
-                                    </label>
-                                    <div className="row">
-                                        <div className="col-md-7">
-                                            <div className="bg-light p-3 rounded">
-                                                <div className="font-size-sm text-dark mb-2">
-                                                    <strong>Bank:</strong> {this.state.bankPaymentDetails.bankName}
-                                                </div>
-                                                <div className="font-size-sm text-dark mb-2">
-                                                    <strong>Account Name:</strong> {this.state.bankPaymentDetails.accountName}
-                                                </div>
-                                                <div className="font-size-sm text-dark mb-2">
-                                                    <strong>Account Number:</strong> {this.state.bankPaymentDetails.accountNumber}
-                                                </div>
-                                                <div className="font-size-sm text-dark mb-2">
-                                                    <strong>Branch:</strong> {this.state.bankPaymentDetails.branch}
-                                                </div>
-                                                <div className="font-size-sm text-dark">
-                                                    <strong>SWIFT Code:</strong> {this.state.bankPaymentDetails.swiftCode}
-                                                </div>
+                            <div className="form-group mb-0">
+                                <label className="font-weight-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>Preferred Payment Method</label>
+                                <div className="row">
+                                    <div className="col-6">
+                                        <div 
+                                            className={`p-4 rounded border ${paymentMethod === 'mpesa' ? 'border-primary bg-light-primary' : 'border-light bg-light'}`}
+                                            onClick={() => this.setState({ paymentMethod: 'mpesa' })}
+                                            style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}
+                                        >
+                                            <div className="d-flex align-items-center">
+                                                <i className={`la la-mobile-phone mr-3 ${paymentMethod === 'mpesa' ? 'text-primary' : 'text-muted'}`} style={{ fontSize: '1.5rem' }}></i>
+                                                <span className={`font-weight-boldest small ${paymentMethod === 'mpesa' ? 'text-primary' : 'text-muted'}`}>M-PESA</span>
                                             </div>
                                         </div>
-                                        <div className="col-md-5">
-                                            <label className="font-weight-bold text-dark mb-2">
-                                                <i className="flaticon2-credit-card mr-2"></i>
-                                                Card Payment
-                                            </label>
-                                            <div className="bg-light p-3 rounded">
-                                                <div className="form-group mb-3">
-                                                    <small className="text-muted">Card Number</small>
-                                                    <input
-                                                        type="text"
-                                                        className="form-control form-control-sm"
-                                                        placeholder="1234 5678 9012 3456"
-                                                        maxLength={19}
-                                                    />
-                                                </div>
-                                                <div className="row">
-                                                    <div className="col-6">
-                                                        <div className="form-group mb-3">
-                                                            <small className="text-muted">MM/YY</small>
-                                                            <input
-                                                                type="text"
-                                                                className="form-control form-control-sm"
-                                                                placeholder="12/25"
-                                                                maxLength={5}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                    <div className="col-6">
-                                                        <div className="form-group mb-3">
-                                                            <small className="text-muted">CVV</small>
-                                                            <input
-                                                                type="text"
-                                                                className="form-control form-control-sm"
-                                                                placeholder="123"
-                                                                maxLength={3}
-                                                            />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="form-group mb-3">
-                                                    <small className="text-muted">Cardholder Name</small>
-                                                    <input
-                                                        type="text"
-                                                        className="form-control form-control-sm"
-                                                        placeholder="John Doe"
-                                                    />
-                                                </div>
-                                                <button 
-                                                    className="btn btn-sm btn-primary btn-block"
-                                                    onClick={() => this.handleCardPayment()}
-                                                >
-                                                    <i className="flaticon2-pay mr-2"></i>
-                                                    Pay with Card
-                                                </button>
+                                    </div>
+                                    <div className="col-6">
+                                        <div 
+                                            className={`p-4 rounded border ${paymentMethod === 'bank' ? 'border-primary bg-light-primary' : 'border-light bg-light'}`}
+                                            onClick={() => this.setState({ paymentMethod: 'bank' })}
+                                            style={{ cursor: 'pointer', transition: 'all 0.2s ease' }}
+                                        >
+                                            <div className="d-flex align-items-center">
+                                                <i className={`la la-bank mr-3 ${paymentMethod === 'bank' ? 'text-primary' : 'text-muted'}`} style={{ fontSize: '1.5rem' }}></i>
+                                                <span className={`font-weight-boldest small ${paymentMethod === 'bank' ? 'text-primary' : 'text-muted'}`}>BANK</span>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            ) : (
-                                <div className="form-group mb-4">
-                                    <label className="font-weight-bold text-dark">
-                                        <i className="flaticon2-phone mr-2"></i>
-                                        M-Pesa Billing Number
-                                    </label>
-                                    <div className="input-group">
-                                        <div className="input-group-prepend">
-                                            <span className="input-group-text">
-                                                <i className="flaticon2-smart-phone"></i>
-                                            </span>
-                                        </div>
-                                        <input
-                                            type="tel"
-                                            className="form-control"
-                                            placeholder="Enter M-Pesa number (e.g., 07XX XXX XXX)"
-                                            value={billingPhone}
-                                            onChange={(e) => this.setState({ billingPhone: e.target.value })}
-                                            pattern="[0-9]{10}"
-                                            maxLength={10}
-                                        />
-                                    </div>
-                                    <small className="text-muted font-size-xs mt-2 d-block">
-                                        Enter the 10-digit M-Pesa number without country code (e.g., 0724736012)
-                                    </small>
-                                </div>
-                            )}
-                            
-                            
-                            
-                           
+                            </div>
                         </div>
-                        <div className="modal-footer">
-                            <button 
-                                type="button" 
-                                className="btn btn-secondary" 
-                                onClick={() => this.setState({ showBillingModal: false })}
-                            >
-                                <i className="flaticon2-cross mr-2"></i>
-                                Cancel
-                            </button>
-                            <button 
-                                type="button" 
-                                className="btn btn-primary"
-                                onClick={this.handleSaveBillingDetails}
-                                disabled={(this.state.paymentMethod === 'mpesa' && (!billingPhone || billingPhone.length !== 10))}
-                            >
-                                <i className="flaticon2-check-mark mr-2"></i>
-                                Save Payment Settings
-                            </button>
+                        <div className="modal-footer border-0 pt-0">
+                            <button className="btn btn-light-danger font-weight-bold px-8 py-3" onClick={() => this.setState({ showBillingModal: false })} style={{ borderRadius: '0.8rem' }}>Close</button>
+                            <button className="btn btn-primary font-weight-bold px-10 py-3" onClick={this.handleSaveBillingDetails} style={{ borderRadius: '0.8rem', boxShadow: '0 4px 15px rgba(54, 153, 255, 0.3)' }}>Save Preferences</button>
                         </div>
                     </div>
                 </div>
             </div>
         );
     };
+
 
     renderBankPaymentModal = () => {
         const { showBankPaymentModal, bankPaymentIdentifier, selectedInvoice, bankPaymentDetails } = this.state;
@@ -963,167 +746,86 @@ class InstitutionalDeposits extends Component {
         if (!showBankPaymentModal || !selectedInvoice) return null;
 
         return (
-            <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+            <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(5px)' }}>
                 <div className="modal-dialog modal-lg modal-dialog-centered">
-                    <div className="modal-content" style={{ borderRadius: '16px', border: '1px solid #e5e7eb', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
-                        <div className="modal-header">
-                            <h5 className="modal-title">
-                                <i className="flaticon2-bank text-primary mr-2"></i>
-                                Bank Transfer Payment
-                            </h5>
-                            <button 
-                                type="button" 
-                                className="close" 
-                                onClick={() => this.setState({ showBankPaymentModal: false })}
-                            >
-                                <span>&times;</span>
+                    <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '1.2rem' }}>
+                        <div className="modal-header border-0 pb-0">
+                            <h5 className="modal-title font-weight-boldest text-dark" style={{ fontSize: '1.5rem' }}>Bank Transfer Details</h5>
+                            <button type="button" className="close" onClick={() => this.setState({ showBankPaymentModal: false })}>
+                                <i className="ki ki-close"></i>
                             </button>
                         </div>
-                        <div className="modal-body">
-                            
-                            
-                            <div className="form-group mb-4">
-                                <div className="row">
-                                    <div className="col-md-6">
-                                        <label className="font-weight-bold text-dark">
-                                            <i className="flaticon2-bank mr-2"></i>
-                                            Bank Transfer Details
-                                        </label>
-                                        <div className="bg-light p-3 rounded">
-                                            <div className="font-size-sm text-dark mb-2">
-                                                <strong>Bank:</strong> {bankPaymentDetails.bankName}
-                                            </div>
-                                            <div className="font-size-sm text-dark mb-2">
-                                                <strong>Account Name:</strong> {bankPaymentDetails.accountName}
-                                            </div>
-                                            <div className="font-size-sm text-dark mb-2">
-                                                <strong>Account Number:</strong> {bankPaymentDetails.accountNumber}
-                                            </div>
-                                            <div className="font-size-sm text-dark mb-2">
-                                                <strong>Branch:</strong> {bankPaymentDetails.branch}
-                                            </div>
-                                            <div className="font-size-sm text-dark">
-                                                <strong>SWIFT Code:</strong> {bankPaymentDetails.swiftCode}
-                                            </div>
+                        <div className="modal-body pt-8">
+                            <div className="row mb-8">
+                                <div className="col-md-6">
+                                    <div className="bg-light p-6 rounded h-100" style={{ borderRadius: '1rem' }}>
+                                        <h6 className="font-weight-boldest text-primary text-uppercase mb-4" style={{ fontSize: '0.8rem', letterSpacing: '1px' }}>Recipient Account</h6>
+                                        <div className="mb-3">
+                                            <div className="text-muted small font-weight-bold">Bank Name</div>
+                                            <div className="font-weight-boldest text-dark">{bankPaymentDetails.bankName}</div>
+                                        </div>
+                                        <div className="mb-3">
+                                            <div className="text-muted small font-weight-bold">Account Name</div>
+                                            <div className="font-weight-boldest text-dark">{bankPaymentDetails.accountName}</div>
+                                        </div>
+                                        <div className="mb-3">
+                                            <div className="text-muted small font-weight-bold">Account Number</div>
+                                            <div className="font-weight-boldest text-dark" style={{ fontSize: '1.1rem' }}>{bankPaymentDetails.accountNumber}</div>
+                                        </div>
+                                        <div>
+                                            <div className="text-muted small font-weight-bold">Branch / SWIFT</div>
+                                            <div className="font-weight-boldest text-dark">{bankPaymentDetails.branch} / {bankPaymentDetails.swiftCode}</div>
                                         </div>
                                     </div>
-                                    <div className="col-md-6">
-                                        <label className="font-weight-bold text-dark">
-                                            <i className="flaticon2-file mr-2"></i>
-                                            Invoice Details
-                                        </label>
-                                        <div className="bg-light p-3 rounded">
-                                            <div className="font-size-sm text-dark mb-2">
-                                                <strong>Invoice Number:</strong> {selectedInvoice.id}
-                                            </div>
-                                            <div className="font-size-sm text-dark mb-2">
-                                                <strong>Amount:</strong> {selectedInvoice.amount}
-                                            </div>
-                                            <div className="font-size-sm text-dark">
-                                                <strong>Description:</strong> {selectedInvoice.description}
-                                            </div>
+                                </div>
+                                <div className="col-md-6">
+                                    <div className="bg-light-primary p-6 rounded h-100" style={{ borderRadius: '1rem' }}>
+                                        <h6 className="font-weight-boldest text-primary text-uppercase mb-4" style={{ fontSize: '0.8rem', letterSpacing: '1px' }}>Invoice Summary</h6>
+                                        <div className="mb-3">
+                                            <div className="text-muted small font-weight-bold">Invoice Number</div>
+                                            <div className="font-weight-boldest text-dark">#{selectedInvoice.id}</div>
+                                        </div>
+                                        <div className="mb-3">
+                                            <div className="text-muted small font-weight-bold">Total Amount</div>
+                                            <div className="font-weight-boldest text-primary" style={{ fontSize: '1.3rem' }}>{selectedInvoice.amount}</div>
+                                        </div>
+                                        <div>
+                                            <div className="text-muted small font-weight-bold">Description</div>
+                                            <div className="font-weight-bold text-dark-50">{selectedInvoice.description}</div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            
-                            <div className="form-group mb-4">
-                                <label className="font-weight-bold text-dark">
-                                    <i className="flaticon2-credit-card mr-2"></i>
-                                    Saved Cards
-                                </label>
-                                <div className="row">
-                                    <div className="col-md-6">
-                                        <div className="card mb-3" style={{ border: '1px solid #e5e7eb', borderRadius: '8px' }}>
-                                            <div className="card-body p-3">
-                                                <div className="d-flex justify-content-between align-items-center mb-2">
-                                                    <div className="d-flex align-items-center">
-                                                        <i className="flaticon2-visa text-primary mr-2" style={{ fontSize: '24px' }}></i>
-                                                        <div>
-                                                            <div className="font-weight-bold text-dark">Visa ending in 4242</div>
-                                                            <small className="text-muted">Expires 12/25</small>
-                                                        </div>
-                                                    </div>
-                                                    <button 
-                                                        className="btn btn-sm btn-success"
-                                                        onClick={() => this.handlePayWithSavedCard('visa_4242')}
-                                                    >
-                                                        <i className="flaticon2-pay mr-1"></i> Pay
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
+
+                            <div className="form-group mb-0">
+                                <label className="font-weight-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>Transaction Reference Number</label>
+                                <div className="input-group input-group-solid input-group-lg">
+                                    <div className="input-group-prepend">
+                                        <span className="input-group-text border-0 bg-light"><i className="la la-file-text text-primary"></i></span>
                                     </div>
-                                    <div className="col-md-6">
-                                        <div className="card mb-3" style={{ border: '1px solid #e5e7eb', borderRadius: '8px' }}>
-                                            <div className="card-body p-3">
-                                                <div className="d-flex justify-content-between align-items-center mb-2">
-                                                    <div className="d-flex align-items-center">
-                                                        <i className="flaticon2-mastercard text-warning mr-2" style={{ fontSize: '24px' }}></i>
-                                                        <div>
-                                                            <div className="font-weight-bold text-dark">Mastercard ending in 8888</div>
-                                                            <small className="text-muted">Expires 09/24</small>
-                                                        </div>
-                                                    </div>
-                                                    <button 
-                                                        className="btn btn-sm btn-success"
-                                                        onClick={() => this.handlePayWithSavedCard('mastercard_8888')}
-                                                    >
-                                                        <i className="flaticon2-pay mr-1"></i> Pay
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <input 
+                                        type="text" 
+                                        className="form-control border-0 bg-light font-weight-bold" 
+                                        placeholder="Enter Bank Ref / Transaction ID"
+                                        value={bankPaymentIdentifier}
+                                        onChange={(e) => this.setState({ bankPaymentIdentifier: e.target.value })}
+                                        style={{ borderRadius: '0 0.8rem 0.8rem 0' }}
+                                    />
                                 </div>
-                                <div className="text-center mt-3">
-                                    <button className="btn btn-outline-primary btn-sm">
-                                        <i className="flaticon2-plus mr-2"></i> Add New Card
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div className="form-group mb-4">
-                                <label className="font-weight-bold text-dark">
-                                    <i className="flaticon2-tag mr-2"></i>
-                                    Transaction Reference Number
-                                </label>
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    placeholder="Enter transaction reference (e.g., M-Pesa transaction ID, bank reference)"
-                                    value={bankPaymentIdentifier}
-                                    onChange={(e) => this.setState({ bankPaymentIdentifier: e.target.value })}
-                                />
-                                <small className="text-muted font-size-xs mt-2 d-block">
-                                    Enter the reference number from your bank transfer or M-Pesa transaction
-                                </small>
+                                <span className="form-text text-muted font-weight-bold mt-2 small">Enter the unique reference from your bank receipt to help us verify your payment.</span>
                             </div>
                         </div>
-                        <div className="modal-footer">
-                            <button 
-                                type="button" 
-                                className="btn btn-secondary" 
-                                onClick={() => this.setState({ showBankPaymentModal: false })}
-                            >
-                                <i className="flaticon2-cross mr-2"></i>
-                                Cancel
-                            </button>
-                            <button 
-                                type="button" 
-                                className="btn btn-primary"
-                                onClick={this.handleBankPaymentSubmit}
-                                disabled={!bankPaymentIdentifier || !bankPaymentIdentifier.trim()}
-                            >
-                                <i className="flaticon2-check-mark mr-2"></i>
-                                Submit Payment Reference
-                            </button>
+                        <div className="modal-footer border-0 pt-0">
+                            <button className="btn btn-light-danger font-weight-bold px-8 py-3" onClick={() => this.setState({ showBankPaymentModal: false })} style={{ borderRadius: '0.8rem' }}>Cancel</button>
+                            <button className="btn btn-primary font-weight-bold px-10 py-3" onClick={this.handleBankPaymentSubmit} style={{ borderRadius: '0.8rem', boxShadow: '0 4px 15px rgba(54, 153, 255, 0.3)' }}>Submit Verification</button>
                         </div>
                     </div>
                 </div>
             </div>
         );
     };
+
+
 
     renderCreateInvoiceModal = () => {
         const { showCreateInvoiceModal, newInvoice } = this.state;
@@ -1133,87 +835,76 @@ class InstitutionalDeposits extends Component {
         return (
             <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
                 <div className="modal-dialog">
-                    <div className="modal-content">
-                        <div className="modal-header">
-                            <h4 className="modal-title">
-                                <i className="la la-plus"></i> Create New Invoice
-                            </h4>
-                            <button 
-                                type="button" 
-                                className="close" 
-                                onClick={() => this.setState({ showCreateInvoiceModal: false })}
-                            >
-                                <span>&times;</span>
+                    <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '1.2rem' }}>
+                        <div className="modal-header border-0 pb-0">
+                            <h5 className="modal-title font-weight-boldest text-dark" style={{ fontSize: '1.5rem' }}>Generate New Invoice</h5>
+                            <button type="button" className="close" onClick={() => this.setState({ showCreateInvoiceModal: false })}>
+                                <i className="ki ki-close"></i>
                             </button>
                         </div>
-                        <div className="modal-body">
-                            <div className="form-group">
-                                <label>Amount (KES)</label>
-                                <input 
-                                    type="number" 
-                                    className="form-control" 
-                                    placeholder="Enter amount in KES"
-                                    value={newInvoice.amount}
-                                    onChange={(e) => this.setState({ 
-                                        newInvoice: { ...newInvoice, amount: e.target.value }
-                                    })}
-                                    step="100"
-                                    min="0"
-                                />
-                                <small className="form-text text-muted">Enter amount in Kenyan Shillings (e.g., 45000)</small>
+                        <div className="modal-body pt-8">
+                            <div className="form-group mb-6">
+                                <label className="font-weight-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>Amount (KES)</label>
+                                <div className="input-group input-group-solid input-group-lg">
+                                    <div className="input-group-prepend">
+                                        <span className="input-group-text border-0 bg-light"><i className="la la-money text-primary"></i></span>
+                                    </div>
+                                    <input 
+                                        type="number" 
+                                        className="form-control border-0 bg-light font-weight-bold" 
+                                        placeholder="0.00"
+                                        value={newInvoice.amount}
+                                        onChange={(e) => this.setState({ newInvoice: { ...newInvoice, amount: e.target.value }})}
+                                        style={{ borderRadius: '0 0.8rem 0.8rem 0' }}
+                                    />
+                                </div>
                             </div>
-                            <div className="form-group">
-                                <label>Description</label>
+                            
+                            <div className="form-group mb-6">
+                                <label className="font-weight-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>Service Description</label>
                                 <textarea 
-                                    className="form-control" 
+                                    className="form-control border-0 bg-light font-weight-bold" 
                                     rows="3"
-                                    placeholder="Enter invoice description (e.g., Term 2 Subscription, SMS Bundle, Teacher Training)"
+                                    placeholder="Enter details about this invoice..."
                                     value={newInvoice.description}
-                                    onChange={(e) => this.setState({ 
-                                        newInvoice: { ...newInvoice, description: e.target.value }
-                                    })}
+                                    onChange={(e) => this.setState({ newInvoice: { ...newInvoice, description: e.target.value }})}
+                                    style={{ borderRadius: '0.8rem' }}
                                 ></textarea>
                             </div>
-                            <div className="form-group">
-                                <label>School ID</label>
-                                <input 
-                                    type="text" 
-                                    className="form-control" 
-                                    placeholder="Enter school ID (e.g., school_001)"
-                                    value={newInvoice.schoolId}
-                                    onChange={(e) => this.setState({ 
-                                        newInvoice: { ...newInvoice, schoolId: e.target.value }
-                                    })}
-                                />
-                            </div>
-                            <div className="form-group">
-                                <label>Due Date</label>
-                                <input 
-                                    type="date" 
-                                    className="form-control" 
-                                    value={newInvoice.dueDate}
-                                    onChange={(e) => this.setState({ 
-                                        newInvoice: { ...newInvoice, dueDate: e.target.value }
-                                    })}
-                                />
+
+                            <div className="row">
+                                <div className="col-6">
+                                    <div className="form-group mb-0">
+                                        <label className="font-weight-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>Target Institution</label>
+                                        <input 
+                                            type="text" 
+                                            className="form-control border-0 bg-light font-weight-bold" 
+                                            placeholder="Institution ID"
+                                            value={newInvoice.schoolId}
+                                            onChange={(e) => this.setState({ newInvoice: { ...newInvoice, schoolId: e.target.value }})}
+                                            style={{ borderRadius: '0.8rem' }}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="col-6">
+                                    <div className="form-group mb-0">
+                                        <label className="font-weight-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>Due Date</label>
+                                        <input 
+                                            type="date" 
+                                            className="form-control border-0 bg-light font-weight-bold" 
+                                            value={newInvoice.dueDate}
+                                            onChange={(e) => this.setState({ newInvoice: { ...newInvoice, dueDate: e.target.value }})}
+                                            style={{ borderRadius: '0.8rem' }}
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                        <div className="modal-footer">
-                            <button 
-                                type="button" 
-                                className="btn btn-secondary" 
-                                onClick={() => this.setState({ showCreateInvoiceModal: false })}
-                            >
-                                Cancel
-                            </button>
-                            <button 
-                                type="button" 
-                                className="btn btn-success"
-                                onClick={this.handleSaveInvoice}
-                            >
-                                <i className="la la-save"></i> Create Invoice
-                            </button>
+                        <div className="modal-footer border-0 pt-0">
+                            <button className="btn btn-light-danger font-weight-bold px-8 py-3" onClick={() => this.setState({ showCreateInvoiceModal: false })} style={{ borderRadius: '0.8rem' }}>Discard</button>
+                            <button className="btn btn-primary font-weight-bold px-10 py-3" onClick={this.handleSaveInvoice} style={{ borderRadius: '0.8rem', boxShadow: '0 4px 15px rgba(54, 153, 255, 0.3)' }}>Create Invoice</button>
                         </div>
+
                     </div>
                 </div>
             </div>
