@@ -57,7 +57,8 @@ class FinanceInsightsDashboard extends Component {
     layoutMode: 'grid', // 'grid', 'list', 'compact'
     showComparison: false,
     showSparklines: true,
-    comparisonMode: 'none' // 'none', 'previousTerm', 'previousYear', 'classCompare'
+    comparisonMode: 'none', // 'none', 'previousTerm', 'previousYear', 'classCompare'
+    isMobile: window.innerWidth < 991
   };
 
   constructor(props) {
@@ -69,10 +70,16 @@ class FinanceInsightsDashboard extends Component {
   componentDidMount() {
     this.initializeData();
     this.setupSubscriptions();
+    window.addEventListener('resize', this.handleResize);
   }
+
+  handleResize = () => {
+    this.setState({ isMobile: window.innerWidth < 991 });
+  };
 
   componentWillUnmount() {
     this.cleanupSubscriptions();
+    window.removeEventListener('resize', this.handleResize);
   }
 
   componentDidUpdate(prevProps) {
@@ -822,41 +829,41 @@ class FinanceInsightsDashboard extends Component {
 
     return (
       <div className="row">
-        <div className="col-md-3">
+        <div className="col-6 col-md-3 mb-4">
           <EnhancedStatCard
             title="Total Revenue"
             value={metricsData.totalRevenue}
-            subtext={`Across ${metricsData.classCount} classes`}
+            subtext={this.state.isMobile ? "" : `Across ${metricsData.classCount} classes`}
             icon="flaticon2-graph-1"
             color="#3699ff"
             showSparkline={this.state.showSparklines}
             sparklineData={this.generateSparklineData('revenue')}
           />
         </div>
-        <div className="col-md-3">
+        <div className="col-6 col-md-3 mb-4">
           <EnhancedStatCard
             title="Collection Rate"
             value={`${metricsData.collectionRate.toFixed(1)}%`}
-            subtext="Overall efficiency"
+            subtext={this.state.isMobile ? "" : "Overall efficiency"}
             icon="flaticon2-percentage"
             color="#10b981"
             trend={metricsData.collectionRate > 80 ? 5 : -2}
           />
         </div>
-        <div className="col-md-3">
+        <div className="col-6 col-md-3 mb-4">
           <EnhancedStatCard
             title="Total Students"
             value={metricsData.totalStudents}
-            subtext="Active enrollments"
+            subtext={this.state.isMobile ? "" : "Active enrollments"}
             icon="flaticon2-group"
             color="#f6c23e"
           />
         </div>
-        <div className="col-md-3">
+        <div className="col-6 col-md-3 mb-4">
           <EnhancedStatCard
             title="Avg Transaction"
             value={`KES ${metricsData.averageTransaction.toFixed(0)}`}
-            subtext={`${metricsData.totalTransactions} total`}
+            subtext={this.state.isMobile ? "" : `${metricsData.totalTransactions} total`}
             icon="flaticon2-money"
             color="#e74c3c"
           />
@@ -988,12 +995,13 @@ class FinanceInsightsDashboard extends Component {
       <div className="card card-custom mb-4">
         <div className="card-body">
           <div className="row">
-            <div className="col-md-4">
-              <label className="form-label">Class</label>
+            <div className="col-12 col-md-4 mb-3 mb-md-0">
+              <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Class</label>
               <select 
-                className="form-control"
+                className="form-control form-control-solid"
                 value={selectedClass || ""}
                 onChange={(e) => onFilterChange('selectedClass', e.target.value)}
+                style={{ borderRadius: '8px' }}
               >
                 <option value="">ALL Classes</option>
                 {(Array.isArray(classes) ? classes : []).map(cls => (
@@ -1003,12 +1011,13 @@ class FinanceInsightsDashboard extends Component {
                 ))}
               </select>
             </div>
-            <div className="col-md-4">
-              <label className="form-label">Term</label>
+            <div className="col-12 col-md-4 mb-3 mb-md-0">
+              <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Term</label>
               <select 
-                className="form-control"
+                className="form-control form-control-solid"
                 value={selectedTerm || ""}
                 onChange={(e) => onFilterChange('selectedTerm', e.target.value)}
+                style={{ borderRadius: '8px' }}
               >
                 <option value="">ALL Terms</option>
                 {(Array.isArray(terms) ? terms : []).map(term => (
@@ -1018,12 +1027,13 @@ class FinanceInsightsDashboard extends Component {
                 ))}
               </select>
             </div>
-            <div className="col-md-4">
-              <label className="form-label">Comparison</label>
+            <div className="col-12 col-md-4">
+              <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Comparison</label>
               <select 
-                className="form-control"
+                className="form-control form-control-solid"
                 value={this.state.comparisonMode || "none"}
                 onChange={(e) => this.setState({ comparisonMode: e.target.value }, this.processData)}
+                style={{ borderRadius: '8px' }}
               >
                 <option value="none">No Comparison</option>
                 <option value="previousTerm">Previous Term</option>

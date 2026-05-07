@@ -1733,6 +1733,30 @@ var Data = (function () {
             }
         },
         schools: {
+            setSchool: (id) => {
+                schoolID = id;
+                localStorage.setItem("school", id);
+                
+                // Clear flat cache for all entities except schools
+                Object.keys(allData).forEach(key => {
+                    if (key !== 'schools') {
+                        allData[key] = [];
+                    }
+                });
+                
+                // Re-trigger all initial data queries for the new school context
+                init();
+                
+                // Manually trigger a notification to school subscribers so UI updates immediately
+                if (Array.isArray(subs.schools)) {
+                    const safeSchools = Array.isArray(allData.schools) ? allData.schools : [];
+                    const activeSchool = safeSchools.find(s => String(s.id) === String(id)) || {};
+                    subs.schools.forEach(cb => cb({
+                        schools: [...safeSchools],
+                        selectedSchool: activeSchool
+                    }));
+                }
+            },
             list: () => allData.schools,
             subscribe: (cb) => {
                 if (!Array.isArray(subs.schools)) { subs.schools = []; }

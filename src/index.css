@@ -768,3 +768,274 @@ code {
     color: #ffffff !important;
   }
 }
+
+/* --- SUPERCHARGED MOBILE OPTIMIZATIONS --- */
+
+@media (max-width: 991px) {
+  .kt-container, .container, .container-fluid {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .kt-content {
+    padding: 10px 0 !important;
+  }
+
+  .kt-portlet, .card {
+    border-radius: 12px !important;
+    margin-bottom: 15px !important;
+  }
+
+  /* Maximize horizontal space */
+  .row {
+    margin-left: -5px !important;
+    margin-right: -5px !important;
+  }
+
+  .col, [class*="col-"] {
+    padding-left: 5px !important;
+    padding-right: 5px !important;
+  }
+
+  /* Bottom Navigation Placeholder Spacer */
+  body {
+    padding-bottom: 80px !important;
+  }
+}
+
+/* Global Table Responsiveness */
+.table-responsive, 
+.dataTables_wrapper .table,
+table {
+  width: 100% !important;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+  vertical-align: top;
+  border-color: var(--border-primary);
+}
+
+@media (max-width: 991px) {
+  table:not(.no-responsive) {
+    display: block;
+    width: 100%;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Modern Scrollbar for Tables */
+  table::-webkit-scrollbar {
+    height: 4px;
+  }
+  
+  table::-webkit-scrollbar-track {
+    background: var(--bg-tertiary);
+    border-radius: 10px;
+  }
+  
+  table::-webkit-scrollbar-thumb {
+    background: var(--border-secondary);
+    border-radius: 10px;
+  }
+}
+
+/* --- BOTTOM NAVIGATION STYLES --- */
+.mobile-bottom-nav {
+  position: fixed;
+  bottom: 15px;
+  left: 15px;
+  right: 15px;
+  height: 65px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(15px) saturate(180%);
+  -webkit-backdrop-filter: blur(15px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 1003;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  padding: 0 10px;
+  animation: slideUpNav 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpNav {
+  from { transform: translateY(100px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.bottom-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: var(--text-secondary);
+  flex: 1;
+  height: 100%;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.bottom-nav-item i {
+  font-size: 1.4rem;
+  margin-bottom: 4px;
+  transition: transform 0.3s ease, color 0.3s ease;
+}
+
+.bottom-nav-item span {
+  font-size: 0.7rem;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.bottom-nav-item.active {
+  color: #3966ff !important;
+}
+
+.bottom-nav-item.active i {
+  transform: translateY(-2px);
+  color: #3966ff !important;
+}
+
+.bottom-nav-item.active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 25px;
+  height: 3px;
+  background: #3966ff;
+  border-radius: 0 0 4px 4px;
+  box-shadow: 0 2px 6px rgba(57, 102, 255, 0.4);
+}
+
+/* Glassmorphism Header Improvements */
+.kt-header-mobile, #kt_header, #kt_header_secondary {
+  transition: all 0.3s ease !important;
+}
+
+#kt_header_secondary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* --- DASHBOARD & FILTER OPTIMIZATIONS --- */
+
+@media (max-width: 991px) {
+  /* Horizontal Scroll for Tabs */
+  .nav-tabs.custom-tabs-container, 
+  .nav-tabs:not(.nav-tabs-vertical) {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    border-bottom: 1px solid var(--border-primary) !important;
+    margin-bottom: 15px !important;
+    padding-bottom: 5px !important;
+  }
+
+  .nav-tabs .nav-item {
+    flex: 0 0 auto !important;
+  }
+
+  .nav-tabs::-webkit-scrollbar {
+    height: 0px; /* Hide scrollbar but allow scrolling */
+    background: transparent;
+  }
+
+  /* Optimized Filter Layout */
+  .card-header .card-toolbar {
+    width: 100% !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    margin-top: 10px !important;
+    gap: 10px !important;
+  }
+
+  .card-toolbar .dropdown-inline,
+  .card-toolbar .dropdown {
+    width: 100% !important;
+    margin-right: 0 !important;
+  }
+
+  /* Force charts and dash cards to stack and use full width */
+  .col-lg-8, .col-lg-4, .col-lg-6, .col-md-3, .col-md-4, .col-md-6 {
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 0 0 100% !important;
+    margin-bottom: 15px !important;
+  }
+
+  /* Ensure charts have consistent minimum height on mobile */
+  .card-custom .card-body canvas, 
+  .card-custom .card-body .apexcharts-canvas {
+    min-height: 250px !important;
+  }
+
+  /* Compact KPI cards on mobile */
+  .stat-card-v2, .card-custom.gutter-b {
+    margin-bottom: 15px !important;
+  }
+}
+
+/* Enhanced Tab Styles */
+.custom-tab-link {
+  white-space: nowrap !important;
+  padding: 10px 15px !important;
+  font-size: 0.9rem !important;
+}
+
+.custom-tab-link.active {
+  background: rgba(57, 102, 255, 0.05) !important;
+  border-bottom: 3px solid #3966ff !important;
+}
+/* Modern Compact Card Header for Mobile */
+@media (max-width: 991px) {
+    .card-header.modern-mobile-header {
+        padding: 0.75rem 1rem !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        gap: 15px;
+    }
+    
+    .modern-mobile-header .nav-tabs {
+        flex-wrap: nowrap !important;
+        border: none !important;
+    }
+    
+    .modern-mobile-header .nav-item {
+        white-space: nowrap;
+    }
+    
+    .modern-mobile-header .nav-link {
+        padding: 0.5rem 0.75rem !important;
+        font-size: 0.85rem !important;
+    }
+    
+    .modern-mobile-header .card-toolbar {
+        margin-left: auto;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .modern-mobile-header::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.custom-tabs-container {
+    scrollbar-width: none;
+}
+.custom-tabs-container::-webkit-scrollbar {
+    display: none;
+}

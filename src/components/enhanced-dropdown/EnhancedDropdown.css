@@ -2,7 +2,7 @@
 .enhanced-dropdown {
   position: relative;
   display: inline-block;
-  width: 100%;
+  width: auto;
 }
 
 .enhanced-dropdown-trigger {
@@ -225,8 +225,8 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .enhanced-dropdown-trigger {
-    padding: 0.75rem 0.875rem;
-    min-height: 44px;
+    padding: 0.5rem 0.75rem;
+    min-height: 36px;
   }
   
   .enhanced-dropdown-text {
@@ -265,8 +265,8 @@
   }
   
   .enhanced-dropdown-trigger {
-    padding: 0.625rem 0.75rem;
-    min-height: 40px;
+    padding: 0.4rem 0.6rem;
+    min-height: 32px;
   }
   
   .enhanced-dropdown-text {

@@ -57,6 +57,27 @@ class Navbar extends React.Component {
     isMobile: window.innerWidth < 1024,
     isMobileMenuOpen: false, // State to control mobile menu
     openMobileSubmenu: null, // State for mobile accordion submenus
+    showSchoolSelector: false, // State for desktop school selector dropdown
+    showManageData: false, // State for manage data dropdown
+  };
+
+  schoolSelectorRef = React.createRef();
+  manageDataRef = React.createRef();
+
+  getUserFlags = () => {
+    const storedUser = JSON.parse(localStorage.getItem("user")) || {};
+    const effectiveRole = this.state.userRole || storedUser.userType || storedUser.role;
+    
+    const isSuperAdmin = effectiveRole === 'super_admin' || effectiveRole === 'superadmin' || effectiveRole === 'Super Admin' || 
+                        effectiveRole === 'sAdmin' || effectiveRole === 'sadmin' ||
+                        (storedUser && !!storedUser.isSuperAdmin) || 
+                        (storedUser && storedUser.role === 'super_admin') ||
+                        (storedUser && storedUser.userType === 'sAdmin');
+    
+    // Super admins are never treated as teachers/parents in terms of UI restrictions
+    const isTeacher = !isSuperAdmin && (effectiveRole === 'teacher' || effectiveRole === 'Teacher' || effectiveRole === 'parent' || effectiveRole === 'Parent');
+    
+    return { isSuperAdmin, isTeacher, effectiveRole, storedUser };
   };
 
   componentDidMount() {
@@ -137,15 +158,26 @@ class Navbar extends React.Component {
     // Initial menu setup
     setTimeout(() => this.initDesktopMenu(), 500);
     window.addEventListener('resize', this.handleResize);
+    document.addEventListener('mousedown', this.handleClickOutside);
   }
 
   componentWillUnmount() {
     window.removeEventListener('resize', this.handleResize);
+    document.removeEventListener('mousedown', this.handleClickOutside);
     if (this.loadingTimeout) {
       clearTimeout(this.loadingTimeout);
     }
     if (this.schoolsSubscription) {
       this.schoolsSubscription();
+    }
+  }
+
+  handleClickOutside = (event) => {
+    if (this.schoolSelectorRef.current && !this.schoolSelectorRef.current.contains(event.target)) {
+      this.setState({ showSchoolSelector: false });
+    }
+    if (this.manageDataRef.current && !this.manageDataRef.current.contains(event.target)) {
+      this.setState({ showManageData: false });
     }
   }
   
@@ -162,11 +194,14 @@ class Navbar extends React.Component {
 
   initDesktopMenu = () => {
     if (this.state.isMobile) return;
-    const desktopTopMenu = KTUtil.get('kt_header_menu');
-    if (desktopTopMenu) {
-        // KTMenu is part of Metronic's core JS. Re-initializing it ensures listeners are attached correctly to newly rendered DOM parts.
-        new KTMenu(desktopTopMenu, {});
-    }
+    
+    // Use a small delay to ensure DOM is ready
+    setTimeout(() => {
+        const desktopTopMenu = KTUtil.get('kt_header_menu');
+        if (desktopTopMenu) {
+            new KTMenu(desktopTopMenu, {});
+        }
+    }, 200);
   }
 
   handleResize = () => {
@@ -251,9 +286,15 @@ class Navbar extends React.Component {
   }
 
   switchSchools = (newSchool) => {
-    this.setState({ selectedSchool: newSchool, fetchingSchools: false, isMobileMenuOpen: false });
-    localStorage.setItem("school", newSchool.id);
-    window.location.reload();
+    this.setState({ 
+      selectedSchool: newSchool, 
+      fetchingSchools: false, 
+      isMobileMenuOpen: false,
+      showSchoolSelector: false,
+      showManageData: false
+    });
+    Data.schools.setSchool(newSchool.id);
+    if (window.toastr) window.toastr.success(`Switched to ${newSchool.name}`);
   }
 
   handleInstallApp = () => {
@@ -272,37 +313,27 @@ class Navbar extends React.Component {
 
   renderMobileNav = () => {
     const { isMobileMenuOpen, availableSchools, selectedSchool, openMobileSubmenu } = this.state;
-    const userData = JSON.parse(localStorage.getItem("user")) || {};
-    const effectiveRole = this.state.userRole || userData.userType || userData.role;
     
-    // Check for enhanced user data (parents with teacher details)
-    const enhancedUser = JSON.parse(localStorage.getItem("enhancedUser")) || userData;
-    
-    // Treat all parents as teachers in admin interface
-    const isTeacher = effectiveRole === 'teacher' || effectiveRole === 'Teacher' || effectiveRole === 'parent' || effectiveRole === 'Parent';
+    // Theme calculation for mobile nav
+    const useSchoolTheme = selectedSchool && selectedSchool.theme_color;
+    const effectiveTopBarBgColor = useSchoolTheme ? selectedSchool.theme_color : DEFAULT_TOP_NAV_BG_COLOR;
+    const { isTeacher, isSuperAdmin, effectiveRole, storedUser: userData } = this.getUserFlags();
     const showLowBalanceIndicator = selectedSchool && selectedSchool.financial && typeof selectedSchool.financial.balance === 'number' && selectedSchool.financial.balance < 300;
     const manageDataItems = [
-        { path: "/schools", label: "Schools" }, { path: "/admins", label: "Admins" },
-        { path: "/invitations", label: "Invitations" }, { path: "/drivers", label: "Drivers" },
-        { path: "/buses", label: "Buses" }, { path: "/routes", label: "Routes" },
-        { path: "/schedules", label: "Schedules" }, { path: "/classes", label: "Classes" },
-        { path: "/teachers", label: "Teachers" }, { path: "/students", label: "Students" },
-        { path: "/parents", label: "Parents" }, { path: "/settings/school", label: "School Details" },
-        { path: "/fee-structures", label: "Fee Structures" },
-        { path: "/finance/fees", label: "Payment" },
-        { path: "/finance/charge-types", label: "Charge Types" },
-        { path: "/results", label: "Results" },
-        { path: "/terms", label: "Terms" },
-        { path: "/assessment-types", label: "Assessment Types" },
-        { path: "/rubrics", label: "Rubrics" },
+        { path: "/schools", label: "Schools", IconComponent: SvgSchoolsIcon }, { path: "/admins", label: "Admins", IconComponent: SvgAdminsIcon },
+        { path: "/invitations", label: "Invitations", IconComponent: SvgInvitationsIcon }, { path: "/drivers", label: "Drivers", IconComponent: SvgDriversIcon },
+        { path: "/buses", label: "Buses", IconComponent: SvgBusesIcon }, { path: "/routes", label: "Routes", IconComponent: SvgRoutesIcon },
+        { path: "/schedules", label: "Schedules", IconComponent: SvgSchedulesIcon }, { path: "/classes", label: "Classes", IconComponent: SvgClassesIcon },
+        { path: "/teachers", label: "Teachers", IconComponent: SvgTeachersIcon }, { path: "/students", label: "Students", IconComponent: SvgStudentsIcon },
+        { path: "/parents", label: "Parents", IconComponent: SvgParentsIcon }, { path: "/library", label: "Library", IconComponent: SvgLibraryIcon }, { path: "/settings/school", label: "School Details", IconComponent: SvgSettingsIcon },
+        { path: "/fee-structures", label: "Fee Structures", IconComponent: SvgFinanceIcon },
+        { path: "/finance/fees", label: "Payment", IconComponent: SvgFinanceIcon },
+        { path: "/finance/charge-types", label: "Charge Types", IconComponent: SvgFinanceIcon },
+        { path: "/results", label: "Results", IconComponent: SvgResultsIcon },
+        { path: "/terms", label: "Terms", IconComponent: SvgSchedulesIcon },
+        { path: "/assessment-types", label: "Assessment Types", IconComponent: SvgResultsIcon },
+        { path: "/rubrics", label: "Rubrics", IconComponent: SvgResultsIcon },
     ].filter(item => {
-        // Check if user is super admin for schools access
-        const isSuperAdmin = effectiveRole === 'super_admin' || effectiveRole === 'superadmin' || effectiveRole === 'Super Admin' || 
-                            effectiveRole === 'sAdmin' || effectiveRole === 'sadmin' ||
-                            (userData && userData.isSuperAdmin) || 
-                            (userData && userData.role === 'super_admin') ||
-                            (userData && userData.userType === 'sAdmin');
-        
         if (isTeacher) {
             const forbidden = ["/schools", "/admins", "/invitations", "/finance/fees", "/finance/charge-types", "/settings/school", "/terms", "/assessment-types", "/rubrics"];
             return !forbidden.includes(item.path);
@@ -322,13 +353,12 @@ class Navbar extends React.Component {
     ];
 
     const mobileMenuStyle = {
-      position: 'fixed', top: 0, left: 0, width: '280px', maxWidth: '85%', height: 'calc(100% - 20px)', margin: '10px',
-      borderRadius: '16px', backgroundColor: 'var(--glass-bg)', zIndex: 1005,
-      backdropFilter: GLASS_BACKDROP,
-      transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(-110%)',
+      position: 'fixed', top: 0, right: 0, width: '300px', maxWidth: '85%', height: '100%',
+      backgroundColor: 'var(--bg-primary)', zIndex: 1005,
+      transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(100%)',
       transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)', 
-      boxShadow: 'var(--shadow-heavy)',
-      overflowY: 'auto', padding: '25px', color: 'var(--text-primary)'
+      boxShadow: '-10px 0 30px rgba(0,0,0,0.1)',
+      overflowY: 'auto', padding: '0', color: 'var(--text-primary)'
     };
     const overlayStyle = {
       position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
@@ -351,15 +381,35 @@ class Navbar extends React.Component {
       <>
         <div style={overlayStyle} onClick={this.toggleMobileMenu}></div>
         <div style={mobileMenuStyle}>
-            <div style={{ padding: '0 5px 20px 5px', borderBottom: '1px solid var(--border-primary)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    {selectedSchool?.logo ? (
-                        <img src={selectedSchool.logo} alt={selectedSchool.name} style={{ height: '32px', width: 'auto', borderRadius: '4px' }} />
-                    ) : null}
-                    <span style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)' }}>{selectedSchool?.name || 'Shule Plus'}</span>
+            <div style={{ 
+                padding: '30px 20px', 
+                background: useSchoolTheme ? effectiveTopBarBgColor : 'var(--bg-tertiary)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '15px',
+                borderBottom: '1px solid var(--border-primary)',
+                position: 'relative'
+            }}>
+                <div style={{ 
+                    width: '60px', 
+                    height: '60px', 
+                    borderRadius: '12px', 
+                    backgroundColor: '#fff', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                    overflow: 'hidden'
+                }}>
+                    <img src={selectedSchool?.logo || '/assets/media/logos/ic_launcher.png'} alt="Logo" style={{ width: '85%', height: 'auto' }} />
                 </div>
-                <button onClick={this.toggleMobileMenu} style={{ border: 'none', background: 'var(--bg-tertiary)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
-                    <i className="la la-close"></i>
+                <div style={{ textAlign: 'center' }}>
+                    <div style={{ color: useSchoolTheme ? '#fff' : 'var(--text-primary)', fontWeight: 700, fontSize: '1.2rem' }}>{selectedSchool?.name || "Shule Plus"}</div>
+                    <div style={{ color: useSchoolTheme ? 'rgba(255,255,255,0.7)' : 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '2px' }}>Administrative Panel</div>
+                </div>
+                <button onClick={this.toggleMobileMenu} style={{ position: 'absolute', top: '15px', right: '15px', background: 'rgba(0,0,0,0.1)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: useSchoolTheme ? '#fff' : 'var(--text-primary)' }}>
+                    <i className="la la-close" style={{ fontSize: '1.2rem' }}></i>
                 </button>
             </div>
             <ul style={{ listStyle: 'none', padding: '10px 0 0 0', margin: 0 }}>
@@ -379,73 +429,75 @@ class Navbar extends React.Component {
                     <div style={{ height: '1px', background: 'var(--border-primary)', margin: '10px 15px' }}></div>
                 </li>
                 {/* School Switcher */}
-                <li>
-                    <button onClick={() => this.toggleMobileSubmenu('schools')} style={buttonStyle}>
-                        {selectedSchool?.name || "Select School"} <i className={`la la-angle-${openMobileSubmenu === 'schools' ? 'down' : 'right'}`} style={{marginLeft: 'auto'}}></i>
-                    </button>
-                    {openMobileSubmenu === 'schools' && (
-                        <ul style={{listStyle: 'none', padding: 0, margin: '0 0 10px 0', backgroundColor: 'var(--bg-tertiary)'}}>
-                            {availableSchools.map(schoolItem => (
-                                <li key={schoolItem.id}>
-                                    <button onClick={() => this.switchSchools(schoolItem)} style={{ ...subButtonStyle, display: 'flex', alignItems: 'center', padding: '10px 15px' }}>
-                                        {/* School Logo */}
-                                        <div style={{ 
-                                          width: '28px', 
-                                          height: '28px', 
-                                          borderRadius: '4px', 
-                                          marginRight: '10px', 
-                                          backgroundColor: schoolItem.theme_color || 'var(--bg-tertiary)',
-                                          display: 'flex', 
-                                          alignItems: 'center', 
-                                          justifyContent: 'center',
-                                          overflow: 'hidden',
-                                          flexShrink: 0
-                                        }}>
-                                          {schoolItem.logo ? (
-                                            <img src={schoolItem.logo} alt={schoolItem.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                          ) : (
-                                            <i className="la la-school" style={{ color: '#fff', fontSize: '14px' }}></i>
-                                          )}
-                                        </div>
-                                        
-                                        {/* School Info */}
-                                        <div style={{ flex: 1, textAlign: 'left' }}>
-                                          <div style={{ 
-                                            color: 'var(--text-primary)', 
-                                            fontWeight: '500', 
-                                            fontSize: '0.9rem',
-                                            marginBottom: '2px'
-                                          }}>
-                                            {schoolItem.name}
-                                          </div>
-                                          <div style={{ 
-                                            color: 'var(--text-secondary)', 
-                                            fontSize: '0.75rem',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '6px'
-                                          }}>
-                                            <span style={{ 
-                                              display: 'inline-block',
-                                              width: '6px',
-                                              height: '6px',
-                                              borderRadius: '50%',
-                                              backgroundColor: schoolItem.theme_color || 'var(--brand-color)'
-                                            }}></span>
-                                            {schoolItem.students?.length || schoolItem.studentCount || 0} students
-                                          </div>
-                                        </div>
-                                        
-                                        {/* Selection Indicator */}
-                                        {selectedSchool?.id === schoolItem.id && (
-                                          <i className="la la-check" style={{ color: 'var(--brand-color)', fontSize: '0.9rem', marginLeft: '8px' }}></i>
-                                        )}
-                                    </button>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                </li>
+                {availableSchools.length > 1 && (
+                    <li>
+                        <button onClick={() => this.toggleMobileSubmenu('schools')} style={buttonStyle}>
+                            <i className="la la-school" style={{marginRight: '12px', fontSize: '1.2rem', color: 'var(--text-tertiary)'}}></i> {selectedSchool?.name || "Select School"} <i className={`la la-angle-${openMobileSubmenu === 'schools' ? 'down' : 'right'}`} style={{marginLeft: 'auto'}}></i>
+                        </button>
+                        {openMobileSubmenu === 'schools' && (
+                            <ul style={{listStyle: 'none', padding: 0, margin: '0 0 10px 0', backgroundColor: 'var(--bg-tertiary)'}}>
+                                {availableSchools.map(schoolItem => (
+                                    <li key={schoolItem.id}>
+                                        <button onClick={() => this.switchSchools(schoolItem)} style={{ ...subButtonStyle, display: 'flex', alignItems: 'center', padding: '10px 15px' }}>
+                                            {/* School Logo */}
+                                            <div style={{ 
+                                              width: '28px', 
+                                              height: '28px', 
+                                              borderRadius: '4px', 
+                                              marginRight: '10px', 
+                                              backgroundColor: schoolItem.theme_color || 'var(--bg-tertiary)',
+                                              display: 'flex', 
+                                              alignItems: 'center', 
+                                              justifyContent: 'center',
+                                              overflow: 'hidden',
+                                              flexShrink: 0
+                                            }}>
+                                              {schoolItem.logo ? (
+                                                <img src={schoolItem.logo} alt={schoolItem.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                              ) : (
+                                                <i className="la la-school" style={{ color: '#fff', fontSize: '14px' }}></i>
+                                              )}
+                                            </div>
+                                            
+                                            {/* School Info */}
+                                            <div style={{ flex: 1, textAlign: 'left' }}>
+                                              <div style={{ 
+                                                color: 'var(--text-primary)', 
+                                                fontWeight: '500', 
+                                                fontSize: '0.9rem',
+                                                marginBottom: '2px'
+                                              }}>
+                                                {schoolItem.name}
+                                              </div>
+                                              <div style={{ 
+                                                color: 'var(--text-secondary)', 
+                                                fontSize: '0.75rem',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '6px'
+                                              }}>
+                                                <span style={{ 
+                                                  display: 'inline-block',
+                                                  width: '6px',
+                                                  height: '6px',
+                                                  borderRadius: '50%',
+                                                  backgroundColor: schoolItem.theme_color || 'var(--brand-color)'
+                                                }}></span>
+                                                {schoolItem.students?.length || schoolItem.studentCount || 0} students
+                                              </div>
+                                            </div>
+                                            
+                                            {/* Selection Indicator */}
+                                            {selectedSchool?.id === schoolItem.id && (
+                                              <i className="la la-check" style={{ color: 'var(--brand-color)', fontSize: '0.9rem', marginLeft: '8px' }}></i>
+                                            )}
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </li>
+                )}
                                 {/* Main Links */}
                 {!isTeacher && <li><Link to="/home" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-dashboard" style={{marginRight: '12px', fontSize: '1.2rem', color: 'var(--text-tertiary)'}}></i> Reports</Link></li>}
                 <li><Link to="/comms" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-bullhorn" style={{marginRight: '12px', fontSize: '1.2rem', color: 'var(--text-tertiary)'}}></i> SMS & Email</Link></li>
@@ -459,10 +511,15 @@ class Navbar extends React.Component {
                         <button onClick={() => this.toggleMobileSubmenu('manage')} style={buttonStyle}>
                             <i className="la la-database" style={{marginRight: '12px', fontSize: '1.2rem', color: 'var(--text-tertiary)'}}></i> Manage Data <i className={`la la-angle-${openMobileSubmenu === 'manage' ? 'down' : 'right'}`} style={{marginLeft: 'auto', fontSize: '0.8rem', opacity: 0.5}}></i>
                         </button>
-                        <div style={{ maxHeight: openMobileSubmenu === 'manage' ? '600px' : '0', overflow: 'hidden', transition: 'all 0.4s ease-in-out', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', margin: '0 10px' }}>
+                        <div style={{ maxHeight: openMobileSubmenu === 'manage' ? '400px' : '0', overflowY: 'auto', transition: 'all 0.4s ease-in-out', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', margin: '0 10px', boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.05)' }}>
                             <ul style={{listStyle: 'none', padding: '5px 0', margin: 0 }}>
                                 {manageDataItems.map(item => (
-                                    <li key={item.path}><Link to={item.path} style={subLinkStyle} onClick={this.toggleMobileMenu}>{item.label}</Link></li>
+                                    <li key={item.path}>
+                                        <Link to={item.path} style={{ ...subLinkStyle, display: 'flex', alignItems: 'center' }} onClick={this.toggleMobileMenu}>
+                                            {item.IconComponent && <item.IconComponent style={{ width: '18px', height: '18px', marginRight: '12px', opacity: 0.7 }} />}
+                                            {item.label}
+                                        </Link>
+                                    </li>
                                 ))}
                             </ul>
                         </div>
@@ -474,10 +531,15 @@ class Navbar extends React.Component {
                         <button onClick={() => this.toggleMobileSubmenu('finance')} style={buttonStyle}>
                             <i className="la la-money" style={{marginRight: '12px', fontSize: '1.2rem', color: 'var(--text-tertiary)'}}></i> SMS Balance {showLowBalanceIndicator && <span className="balance-dot" title="Low Balance Notice"></span>} <i className={`la la-angle-${openMobileSubmenu === 'finance' ? 'down' : 'right'}`} style={{marginLeft: 'auto', fontSize: '0.8rem', opacity: 0.5}}></i>
                         </button>
-                        <div style={{ maxHeight: openMobileSubmenu === 'finance' ? '200px' : '0', overflow: 'hidden', transition: 'all 0.4s ease-in-out', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', margin: '0 10px' }}>
+                        <div style={{ maxHeight: openMobileSubmenu === 'finance' ? '200px' : '0', overflowY: 'auto', transition: 'all 0.4s ease-in-out', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', margin: '0 10px' }}>
                             <ul style={{listStyle: 'none', padding: '5px 0', margin: 0 }}>
                                 {financeItems.map(item => (
-                                    <li key={item.path}><Link to={item.path} style={subLinkStyle} onClick={this.toggleMobileMenu}>{item.label}</Link></li>
+                                    <li key={item.path}>
+                                        <Link to={item.path} style={{ ...subLinkStyle, display: 'flex', alignItems: 'center' }} onClick={this.toggleMobileMenu}>
+                                            <SvgFinanceIcon style={{ width: '18px', height: '18px', marginRight: '12px', opacity: 0.7 }} />
+                                            {item.label}
+                                        </Link>
+                                    </li>
                                 ))}
                             </ul>
                         </div>
@@ -489,10 +551,52 @@ class Navbar extends React.Component {
     );
   }
 
+  renderBottomNav = () => {
+    const { isMobile } = this.state;
+    if (!isMobile) return null;
+
+    const { isTeacher, isSuperAdmin } = this.getUserFlags();
+
+    const navItems = isSuperAdmin ? [
+      { path: "/comms", label: "SMS & Email", icon: "la-envelope" },
+      { path: "/learning", label: "Learning", icon: "la-graduation-cap" },
+      { path: "/library", label: "Library", icon: "la-book" },
+      { path: "/results", label: "Results", icon: "la-bar-chart" },
+      { path: "/time-tables", label: "Time Tables", icon: "la-calendar-check-o" },
+      { path: "/finance/fees", label: "Fee", icon: "la-money" }
+    ] : [
+      { path: "/home", label: "Reports", icon: "la-dashboard", hideFromTeacher: true },
+      { path: "/finance/fees", label: "Fees", icon: "la-money", hideFromTeacher: true },
+      { path: "/comms", label: "Comms", icon: "la-bullhorn", hideFromTeacher: false },
+      { path: "/learning", label: "Learning", icon: "la-graduation-cap", hideFromTeacher: false },
+      { path: "/results", label: "Results", icon: "la-bar-chart", hideFromTeacher: false },
+    ].filter(item => !(item.hideFromTeacher && isTeacher));
+
+    return (
+      <div className="mobile-bottom-nav">
+        {navItems.map(item => {
+          const isActive = this.isActiveRoute(item.path);
+          return (
+            <Link key={item.path} to={item.path} className={`bottom-nav-item ${isActive ? 'active' : ''}`}>
+              <i className={`la ${item.icon}`}></i>
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
+        <button 
+          className="bottom-nav-item" 
+          onClick={this.toggleMobileMenu}
+          style={{ border: 'none', background: 'none', outline: 'none' }}
+        >
+          <i className="la la-ellipsis-h"></i>
+          <span>More</span>
+        </button>
+      </div>
+    );
+  }
+
   render() {
-    const storedUser = JSON.parse(localStorage.getItem("user")) || {};
-    console.log("Navbar - storedUser:", storedUser);
-    console.log("Navbar - storedUser.userType:", storedUser.userType);
+    const { isSuperAdmin, isTeacher, effectiveRole, storedUser } = this.getUserFlags();
     let user = storedUser.names || "Guest";
 
     const {
@@ -520,14 +624,7 @@ class Navbar extends React.Component {
     const paceLoaderColor = effectiveTopBarTextColor;
     const fixedContentSpacerHeight = firstBarHeight + gapBetweenNavbars;
 
-    const effectiveRole = this.state.userRole || storedUser.userType || storedUser.role;
-    // Check for enhanced user data (parents with teacher details)
-    const enhancedUserData = JSON.parse(localStorage.getItem("enhancedUser")) || storedUser;
-    
-    // Treat all parents as teachers in admin interface
-    const isTeacher = effectiveRole === 'teacher' || effectiveRole === 'Teacher' || effectiveRole === 'parent' || effectiveRole === 'Parent';
-    console.log("Navbar - enhancedUserData:", enhancedUserData);
-    console.log("Navbar - isTeacher:", isTeacher);
+    const showLowBalanceIndicator = selectedSchool && selectedSchool.financial && typeof selectedSchool.financial.balance === 'number' && selectedSchool.financial.balance < 300;
     const manageDataItems = [
       { path: "/schools", label: "Schools", IconComponent: SvgSchoolsIcon }, { path: "/admins", label: "Admins", IconComponent: SvgAdminsIcon },
       { path: "/invitations", label: "Invitations", IconComponent: SvgInvitationsIcon }, { path: "/drivers", label: "Drivers", IconComponent: SvgDriversIcon },
@@ -544,12 +641,6 @@ class Navbar extends React.Component {
       { path: "/assessment-types", label: "Assessment Types", IconComponent: SvgSettingsIcon },
       { path: "/rubrics", label: "Rubrics", IconComponent: SvgSettingsIcon },
     ].filter(item => {
-        // Check if user is super admin for schools access
-        const isSuperAdmin = effectiveRole === 'super_admin' || effectiveRole === 'superadmin' || effectiveRole === 'Super Admin' || 
-                            effectiveRole === 'sAdmin' || effectiveRole === 'sadmin' ||
-                            (storedUser && storedUser.isSuperAdmin) || 
-                            (storedUser && storedUser.role === 'super_admin') ||
-                            (storedUser && storedUser.userType === 'sAdmin');
         
         if (isTeacher) {
             const forbidden = ["/schools", "/admins", "/invitations", "/finance/fees", "/finance/charge-types", "/settings/school", "/terms", "/assessment-types", "/rubrics"];
@@ -566,7 +657,6 @@ class Navbar extends React.Component {
     const financeItems = [
       { path: "/finance/topup", label: "Top Up SMS: " + `${selectedSchool?.financial?.balanceFormated || "0 SMS's"}`
       }, { path: "/finance/charges", label: "SMS Usage History" },
-      { path: "/finance/institutional-deposits", label: "Billing" },
     ];
 
     const customHoverStyle = `
@@ -585,6 +675,12 @@ class Navbar extends React.Component {
         .kt-menu__submenu .kt-menu__item:hover > .kt-menu__link,
         .kt-menu__submenu .kt-menu__item.kt-menu__item--hover > .kt-menu__link { background-color: ${LIGHT_GREY_HOVER_BG} !important; }
         .balance-dot { height: 8px; width: 8px; background-color: #FA064B; border-radius: 50%; display: inline-block; margin-left: 5px; vertical-align: middle; box-shadow: 0 0 4px rgba(250, 6, 75, 0.5); }
+        
+        @keyframes badgePulse { 
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(250, 6, 75, 0.7); } 
+            70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(250, 6, 75, 0); } 
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(250, 6, 75, 0); } 
+        }
         
         /* Enhanced navbar styles */
         .kt-header-menu .kt-menu__nav > .kt-menu__item > .kt-menu__link {
@@ -616,122 +712,79 @@ class Navbar extends React.Component {
             background: rgba(255, 255, 255, 0.1) !important;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
+        
+        /* New Context Control Styles */
+        .context-control-container {
+            display: flex;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.03);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            border-radius: 12px;
+            padding: 4px;
+            transition: all 0.3s ease;
+        }
+        [data-theme='dark'] .context-control-container {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+        .context-control-container:hover {
+            background: rgba(0, 0, 0, 0.05);
+            border-color: rgba(0, 0, 0, 0.1);
+        }
+        [data-theme='dark'] .context-control-container:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+        .context-divider {
+            width: 1px;
+            height: 20px;
+            background: rgba(0, 0, 0, 0.1);
+            margin: 0 4px;
+        }
+        [data-theme='dark'] .context-divider {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .manage-data-cog-btn {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .manage-data-cog-btn:hover i {
+            transform: rotate(90deg);
+            color: var(--brand-color) !important;
+            opacity: 1 !important;
+        }
+        .school-selector-btn {
+            padding: 6px 12px !important;
+            border-radius: 8px !important;
+            transition: all 0.2s ease !important;
+        }
+        .school-selector-btn:hover {
+            background: rgba(0, 0, 0, 0.05) !important;
+        }
+        [data-theme='dark'] .school-selector-btn:hover {
+            background: rgba(255, 255, 255, 0.05) !important;
+        }
     `;
-
-    const showLowBalanceIndicator = selectedSchool && selectedSchool.financial && typeof selectedSchool.financial.balance === 'number' && selectedSchool.financial.balance < 300;
 
     return (
       <>
         <style>{customHoverStyle}</style>
         {isMobile && this.renderMobileNav()}
+        {isMobile && this.renderBottomNav()}
         {fetchingSchools && <Pace color={paceLoaderColor} height={5} style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 2000 }} />}
 
         {/* DESKTOP TOP NAVBAR (Remains Fixed) */}
-        <div id="kt_header" className="kt-header kt-grid__item d-none d-lg-flex" style={{ backgroundColor: useSchoolTheme ? effectiveTopBarBgColor : GLASS_BG, backdropFilter: GLASS_BACKDROP, alignItems: 'center', justifyContent: 'space-between', height: `${topNavbarHeight}px`, zIndex: 1002, position: 'fixed', top: `${gapBetweenNavbars}px`, left: `${secondaryNavbarHorizontalMargin}px`, right: `${secondaryNavbarHorizontalMargin}px`, borderRadius: '16px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.05)', padding: `0 30px`, border: '1px solid rgba(255, 255, 255, 0.4)' }}>
+        <div id="kt_header" className="kt-header kt-grid__item d-none d-lg-flex" style={{ backgroundColor: useSchoolTheme ? effectiveTopBarBgColor : GLASS_BG, backdropFilter: GLASS_BACKDROP, alignItems: 'center', justifyContent: 'space-between', height: `${topNavbarHeight}px`, zIndex: 1002, position: 'fixed', top: `${gapBetweenNavbars}px`, left: `${secondaryNavbarHorizontalMargin}px`, right: `${secondaryNavbarHorizontalMargin}px`, borderRadius: '16px', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)', padding: `0 30px`, border: '1px solid rgba(255, 255, 255, 0.4)', transition: 'all 0.3s ease' }}>
           <div className="kt-header__brand" style={{ padding: 0 }}>
-            {!selectedSchool || Object.keys(selectedSchool).length === 0 || !selectedSchool.name ? ( <div className="kt-spinner kt-spinner--sm kt-spinner--brand" /> ) : ( <Link to="/home"> <img alt="School Logo" style={{ maxHeight: '42px', width: 'auto', borderRadius: '8px' }} src={selectedSchool.logo || '/assets/media/logos/ic_launcher.png'} /> </Link> )}
+            {!selectedSchool || Object.keys(selectedSchool).length === 0 || !selectedSchool.name ? ( <div className="kt-spinner kt-spinner--sm kt-spinner--brand" /> ) : ( <Link to="/home"> <img alt="School Logo" style={{ maxHeight: '52px', width: 'auto', borderRadius: '8px', transition: 'all 0.3s ease' }} src={selectedSchool.logo || '/assets/media/logos/ic_launcher.png'} onMouseOver={e => e.currentTarget.style.transform = 'scale(1.05)'} onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'} /> </Link> )}
           </div>
           
-          <div className="kt-header-menu-wrapper" style={{ flex: '1', display: 'flex', justifyContent: 'center' }}>
+          
+          
+          <div className="kt-header__topbar">
+            <div className="kt-header-menu-wrapper" style={{ flex: '1', display: 'flex', justifyContent: 'center' }}>
             <div id="kt_header_menu" className="kt-header-menu kt-header-menu-mobile">
               <ul className="kt-menu__nav">
-                {availableSchools.length > 1 && (
-                  <li className="kt-menu__item kt-menu__item--submenu kt-menu__item--rel" data-ktmenu-submenu-toggle="click" aria-haspopup="true">
-                    <a href="!#" onClick={e => e.preventDefault()} className="kt-menu__link kt-menu__toggle">
-                      <span className="kt-menu__link-text class-selector-highlight" style={{ ...topNavlinkStyle, fontWeight: '500', padding: '6px 14px', borderRadius: '8px' }}>
-                        <i className="la la-school" style={{ marginRight: '6px', fontSize: '0.9rem' }}></i>
-                        {selectedSchool?.name || "Select School"}
-                      </span>
-                      <i className="kt-menu__hor-arrow la la-angle-down" style={topNavIconStyle} />
-                    </a>
-                    <div className="kt-menu__submenu kt-menu__submenu--classic kt-menu__submenu--left">
-                      <ul className="kt-menu__subnav">
-                        {availableSchools.map(schoolItem => (
-                          <li key={schoolItem.id} onClick={() => this.switchSchools(schoolItem)} className="kt-menu__item" aria-haspopup="true" style={{ position: 'relative' }}>
-                            <a href="!#" onClick={e => e.preventDefault()} className="kt-menu__link" style={{ display: 'flex', alignItems: 'center', padding: '8px 12px' }}>
-                                {/* School Logo */}
-                                <div style={{ 
-                                  width: '32px', 
-                                  height: '32px', 
-                                  borderRadius: '6px', 
-                                  marginRight: '12px', 
-                                  backgroundColor: schoolItem.theme_color || 'var(--bg-tertiary)',
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  justifyContent: 'center',
-                                  overflow: 'hidden'
-                                }}>
-                                  {schoolItem.logo ? (
-                                    <img src={schoolItem.logo} alt={schoolItem.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                  ) : (
-                                    <i className="la la-school" style={{ color: '#fff', fontSize: '16px' }}></i>
-                                  )}
-                                </div>
-                                
-                                {/* School Info */}
-                                <div style={{ flex: 1 }}>
-                                  <div style={{ 
-                                    color: DEFAULT_TOP_NAV_TEXT_COLOR, 
-                                    fontWeight: '500', 
-                                    fontSize: '0.9rem',
-                                    marginBottom: '2px'
-                                  }}>
-                                    {schoolItem.name}
-                                  </div>
-                                  <div style={{ 
-                                    color: 'var(--text-secondary)', 
-                                    fontSize: '0.8rem',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px'
-                                  }}>
-                                    <span style={{ 
-                                      display: 'inline-block',
-                                      width: '8px',
-                                      height: '8px',
-                                      borderRadius: '50%',
-                                      backgroundColor: schoolItem.theme_color || 'var(--brand-color)'
-                                    }}></span>
-                                    {schoolItem.students?.length || schoolItem.studentCount || 0} students
-                                  </div>
-                                </div>
-                                
-                                {/* Selection Indicator */}
-                                {selectedSchool?.id === schoolItem.id && (
-                                  <i className="la la-check" style={{ color: 'var(--brand-color)', fontSize: '1rem' }}></i>
-                                )}
-                            </a>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </li>
-                )}
                   
-                {!isTeacher && (
-                  <li className="kt-menu__item kt-menu__item--submenu kt-menu__item--rel" data-ktmenu-submenu-toggle="click" aria-haspopup="true">
-                    <a href="!#" onClick={e => e.preventDefault()} className="kt-menu__link kt-menu__toggle">
-                      <span className="kt-menu__link-text" style={{ ...topNavlinkStyle, fontWeight: '500' }}>Manage Data</span>
-                      <i className="kt-menu__hor-arrow la la-angle-down" style={{ ...topNavIconStyle, color: effectiveTopBarTextColor }} />
-                    </a>
-                    <div className="kt-menu__submenu kt-menu__submenu--classic kt-menu__submenu--left">
-                      <ul className="kt-menu__subnav">
-                        {manageDataItems.map(item => (
-                          <li key={item.path} className="kt-menu__item" aria-haspopup="true">
-                            <Link to={item.path} className="kt-menu__link">
-                              <span className="kt-menu__link-icon kt-menu__link-icon--md" style={{ marginRight: '8px' }}>
-                                <item.IconComponent style={{ width: '18px', height: '18px', color: effectiveTopBarTextColor }} />
-                              </span>
-                              <span className="kt-menu__link-text" style={{ color: effectiveTopBarTextColor }}>
-                                {item.label}
-                              </span>
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </li>
-                )}
                 
                 {!isTeacher && (
                     <li className="kt-menu__item kt-menu__item--submenu kt-menu__item--rel" data-ktmenu-submenu-toggle="click" aria-haspopup="true">
@@ -757,8 +810,22 @@ class Navbar extends React.Component {
               </ul>
             </div>
           </div>
-          
-          <div className="kt-header__topbar">
+            {/* Billing & Invoices Link */}
+            <div className="kt-header__topbar-item" style={{ marginRight: '15px' }}>
+              <Link 
+                to="/finance/institutional-deposits"
+                className="kt-header__topbar-wrapper" 
+                style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px', display: 'flex', alignItems: 'center', position: 'relative', textDecoration: 'none' }}
+                title="Billing & Invoices"
+              >
+                <i className="la la-credit-card" style={{ color: effectiveTopBarTextColor, fontSize: '1.4rem' }}></i>
+                {selectedSchool?.financial?.unpaidInvoicesCount > 0 && (
+                  <span style={{ position: 'absolute', top: '2px', right: '2px', backgroundColor: '#FA064B', color: '#fff', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold', border: '2px solid var(--glass-bg)', animation: 'badgePulse 2s infinite' }}>
+                    !
+                  </span>
+                )}
+              </Link>
+            </div>
             {/* Dark Mode Toggle Button */}
             <div className="kt-header__topbar-item" style={{ marginRight: '15px' }}>
               <div 
@@ -806,98 +873,170 @@ class Navbar extends React.Component {
 
         {/* MOBILE TOP NAVBAR (Remains Fixed) */}
         {}
-        <div id="kt_header_mobile" className="kt-header-mobile kt-header-mobile--fixed d-lg-none" style={{ backgroundColor: useSchoolTheme ? effectiveTopBarBgColor : GLASS_BG, backdropFilter: GLASS_BACKDROP, height: `${mobileTopBarHeight}px`, top: `${gapBetweenNavbars}px`, left: `${secondaryNavbarHorizontalMargin}px`, right: `${secondaryNavbarHorizontalMargin}px`, borderRadius: '12px', boxShadow: 'var(--shadow-medium)', zIndex: 1002, padding: '0 15px', border: '1px solid var(--glass-border)' }}>
-          <div className="kt-header-mobile__toolbar" style={{ padding: 0, width: '40px' }}>
-            <button className="kt-header-mobile__toolbar-toggler kt-header-mobile__toolbar-toggler--left" onClick={this.toggleMobileMenu} style={{ marginLeft: 0 }}>
-              <span style={{backgroundColor: useSchoolTheme ? '#fff' : 'var(--text-primary)'}} />
-            </button>
-          </div>
-          <div className="kt-header-mobile__logo" style={{ flexGrow: 1, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Link to="/home" style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px'}}>
-                  {selectedSchool?.logo && <img alt="School Logo" style={{ maxHeight: '30px', width: 'auto', borderRadius: '6px' }} src={selectedSchool.logo} />}
-                  <span style={{ fontSize: '0.95rem', fontWeight: 600, color: effectiveTopBarTextColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}> {selectedSchool?.name || 'Shule Plus'} </span>
+        <div id="kt_header_mobile" className="kt-header-mobile kt-header-mobile--fixed d-lg-none" style={{ 
+            backgroundColor: useSchoolTheme ? effectiveTopBarBgColor : GLASS_BG, 
+            backdropFilter: GLASS_BACKDROP, 
+            height: `${mobileTopBarHeight}px`, 
+            top: `10px`, 
+            left: `10px`, 
+            right: `10px`, 
+            borderRadius: '12px', 
+            boxShadow: '0 4px 15px rgba(0,0,0,0.1)', 
+            zIndex: 1002, 
+            padding: '0 15px', 
+            border: '1px solid var(--glass-border)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+        }}>
+          <div className="kt-header-mobile__logo" style={{ display: 'flex', alignItems: 'center' }}>
+              <Link to="/home" style={{display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none'}}>
+                  <div style={{ 
+                      backgroundColor: '#fff', 
+                      padding: '2px', 
+                      borderRadius: '6px', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+                      height: '32px',
+                      width: '32px',
+                      overflow: 'hidden'
+                  }}>
+                      <img alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} src={selectedSchool?.logo || '/assets/media/logos/ic_launcher.png'} />
+                  </div>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 800, color: effectiveTopBarTextColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}> 
+                    {selectedSchool?.name || 'Shule Plus'} 
+                  </span>
               </Link>
           </div>
-          <div className="kt-header-mobile__toolbar" style={{ padding: 0, width: '40px', justifyContent: 'flex-end' }}>
-            <button className="kt-header-mobile__toolbar-topbar-toggler" id="kt_header_mobile_topbar_toggler" style={{ marginRight: 0 }}>
-              <img alt="User" src={storedUser?.avatar || `https://picsum.photos/30/30?random=${storedUser?.id || 1027}`} style={{ width: '32px', height: '32px', borderRadius: '50%', border: '2px solid var(--glass-border)'}}/>
+
+          <div className="kt-header-mobile__toolbar" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{ textAlign: 'right' }}>
+                <div style={{ color: effectiveTopBarTextColor, fontSize: '0.65rem', opacity: 0.8, lineHeight: 1 }}>Welcome,</div>
+                <div style={{ color: effectiveTopBarTextColor, fontSize: '0.8rem', fontWeight: 700, lineHeight: 1.2 }}>{user}</div>
+            </div>
+            <button className="kt-header-mobile__toolbar-topbar-toggler" id="kt_header_mobile_topbar_toggler" style={{ margin: 0, padding: 0, border: 'none', background: 'none' }}>
+              <img alt="User" src={storedUser?.avatar || `https://picsum.photos/30/30?random=${storedUser?.id || 1027}`} style={{ width: '32px', height: '32px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)'}}/>
             </button>
           </div>
         </div>
 
         <div style={{ height: `${(fixedContentSpacerHeight-60)}px` }} />
 
-        {/* SECONDARY NAVBAR (Scrolling) */}
-        <div id="kt_header_secondary" className="d-none d-lg-flex" style={{ backgroundColor: GLASS_BG, backdropFilter: GLASS_BACKDROP, justifyContent: 'space-between', alignItems: 'center', height: `${secondaryNavbarEffectiveHeight}px`, position: 'relative', marginLeft: `${secondaryNavbarHorizontalMargin}px`, marginRight: `${secondaryNavbarHorizontalMargin}px`, marginBottom: `${gapBetweenNavbars}px`, borderRadius: '16px', boxShadow: 'var(--shadow-light)', padding: '0 30px', border: '1px solid var(--glass-border)', }}>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-                <Link to="/home" style={{ textDecoration: 'none' }}>
-                    <span style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>{selectedSchool?.name || 'Shule Plus'}</span>
-                </Link>
+        {/* SECONDARY NAVBAR (Bottom Section) */}
+        <div id="kt_header_secondary" className="d-none d-lg-flex" style={{ backgroundColor: GLASS_BG, backdropFilter: GLASS_BACKDROP, justifyContent: 'space-between', alignItems: 'center', height: `${secondaryNavbarEffectiveHeight}px`, position: 'relative', marginLeft: `${secondaryNavbarHorizontalMargin}px`, marginRight: `${secondaryNavbarHorizontalMargin}px`, marginBottom: `${gapBetweenNavbars}px`, borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)', padding: '0 30px', border: '1px solid var(--glass-border)', transition: 'all 0.3s ease', zIndex: 1001 }}>
+            <div className="context-control-container">
+                {/* SCHOOL SELECTOR */}
+                <div className="kt-header-menu-wrapper" style={{ zIndex: 1100 }} ref={this.schoolSelectorRef}>
+                    <div id="kt_header_school_selector" className="kt-header-menu kt-header-menu-mobile">
+                        <ul className="kt-menu__nav" style={{margin: 0, padding: 0}}>
+                            <li className={`kt-menu__item ${availableSchools.length > 1 ? 'kt-menu__item--submenu kt-menu__item--rel' : ''} ${this.state.showSchoolSelector ? 'kt-menu__item--hover' : ''}`} aria-haspopup="true">
+                                <a href="javascript:;" onClick={e => { e.preventDefault(); e.stopPropagation(); this.setState({ showSchoolSelector: !this.state.showSchoolSelector, showManageData: false }); }} className={`kt-menu__link school-selector-btn ${availableSchools.length > 1 ? 'kt-menu__toggle' : ''}`} style={{ textDecoration: 'none' }}>
+                                    <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', letterSpacing: '-0.2px' }}>
+                                        {selectedSchool?.name || 'Shule Plus'}
+                                    </span>
+                                    {availableSchools.length > 1 && <i className="la la-angle-down ml-2" style={{fontSize: '0.7rem', opacity: 0.5, color: 'var(--text-primary)', transition: 'transform 0.3s ease', transform: this.state.showSchoolSelector ? 'rotate(180deg)' : 'none'}} />}
+                                </a>
+                                {availableSchools.length > 1 && this.state.showSchoolSelector && (
+                                    <div className="kt-menu__submenu kt-menu__submenu--classic kt-menu__submenu--left" style={{ display: 'block', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', zIndex: 1200, marginTop: '10px', width: '500px' }}>
+                                        <ul className="kt-menu__subnav" style={{ padding: '15px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                                            {availableSchools.map(schoolItem => (
+                                                <li key={schoolItem.id} className="kt-menu__item" aria-haspopup="true" style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', backgroundColor: selectedSchool?.id === schoolItem.id ? 'var(--bg-tertiary)' : 'transparent' }}>
+                                                    <a href="javascript:;" onClick={e => { e.preventDefault(); this.switchSchools(schoolItem); }} className="kt-menu__link" style={{ display: 'flex', alignItems: 'center', padding: '10px', transition: 'all 0.2s ease' }}>
+                                                        <div style={{ width: '32px', height: '32px', borderRadius: '6px', marginRight: '10px', backgroundColor: schoolItem.theme_color || 'var(--bg-tertiary)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                                                            {schoolItem.logo ? (
+                                                                <img src={schoolItem.logo} alt={schoolItem.name} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '2px' }} />
+                                                            ) : (
+                                                                <i className="la la-school" style={{ color: '#fff', fontSize: '16px' }}></i>
+                                                            )}
+                                                        </div>
+                                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                                            <div style={{ color: 'var(--text-primary)', fontWeight: '600', fontSize: '0.85rem', marginBottom: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                                {schoolItem.name}
+                                                            </div>
+                                                            <div style={{ color: 'var(--text-tertiary)', fontSize: '0.7rem' }}>
+                                                                {schoolItem.students?.length || schoolItem.studentCount || 0} Students
+                                                            </div>
+                                                        </div>
+                                                        {selectedSchool?.id === schoolItem.id && <i className="la la-check-circle" style={{ color: 'var(--brand-color)', fontSize: '1.1rem' }}></i>}
+                                                    </a>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div className="context-divider"></div>
+
+                {/* MANAGE DATA COG */}
+                {!isTeacher && (
+                    <div className="kt-header-menu-wrapper" style={{ zIndex: 1100 }} ref={this.manageDataRef}>
+                        <div className="kt-header-menu">
+                            <ul className="kt-menu__nav" style={{margin: 0, padding: 0}}>
+                                <li className={`kt-menu__item kt-menu__item--submenu kt-menu__item--rel ${this.state.showManageData ? 'kt-menu__item--hover' : ''}`} aria-haspopup="true">
+                                    <a href="javascript:;" onClick={e => { e.preventDefault(); e.stopPropagation(); this.setState({ showManageData: !this.state.showManageData, showSchoolSelector: false }); }} className="kt-menu__link manage-data-cog-btn" style={{ textDecoration: 'none', padding: '8px', borderRadius: '8px', backgroundColor: this.state.showManageData ? 'rgba(0,0,0,0.05)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <i className="la la-cog" style={{ fontSize: '1.2rem', color: 'var(--text-primary)', opacity: this.state.showManageData ? 1 : 0.6, transition: 'all 0.3s ease' }} />
+                                    </a>
+                                    {this.state.showManageData && (
+                                        <div className="kt-menu__submenu kt-menu__submenu--classic kt-menu__submenu--left" style={{ display: 'block', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', zIndex: 1200, marginTop: '10px', width: '500px' }}>
+                                            <div style={{ padding: '12px 15px', borderBottom: '1px solid var(--border-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem' }}>Manage Data</span>
+                                                <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>{manageDataItems.length} Modules</span>
+                                            </div>
+                                            <ul className="kt-menu__subnav" style={{ padding: '10px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+                                                {manageDataItems.map(item => (
+                                                    <li key={item.path} className="kt-menu__item" aria-haspopup="true">
+                                                        <Link to={item.path} onClick={() => this.setState({ showManageData: false })} className="kt-menu__link" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', padding: '10px 5px', borderRadius: '8px', transition: 'all 0.2s ease', textAlign: 'center' }}>
+                                                            <div style={{ width: '36px', height: '36px', borderRadius: '8px', backgroundColor: `${selectedSchool?.theme_color || '#3966ff'}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '2px', transition: 'all 0.2s ease' }} className="manage-data-icon-wrapper">
+                                                                <item.IconComponent style={{ width: '18px', height: '18px', color: selectedSchool?.theme_color || 'var(--brand-color)' }} />
+                                                            </div>
+                                                            <span className="kt-menu__link-text" style={{ color: 'var(--text-primary)', fontWeight: '600', fontSize: '0.72rem', lineHeight: '1.2' }}>
+                                                                {item.label}
+                                                            </span>
+                                                        </Link>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                )}
             </div>
+
             <div id="kt_bottom_nav_menu_container" className="kt-header-menu-wrapper" style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <div className="kt-header-menu">
-                    <ul className="kt-menu__nav" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        {[
-                            { path: '/comms', label: 'SMS & Email', hideFromTeacher: false, icon: 'la-bullhorn' },
-                            { path: '/learning', label: 'Learning', hideFromTeacher: false, icon: 'la-graduation-cap' },
-                            { path: '/library', label: 'Library', hideFromTeacher: true, icon: 'la-book' },
-                            { path: '/results', label: 'Results', hideFromTeacher: false, icon: 'la-bar-chart' },
-                            { path: '/time-tables', label: 'Time Tables', hideFromTeacher: false, icon: 'la-calendar' },
+                <div id="kt_header_menu" className="kt-header-menu kt-header-menu-mobile">
+                    <ul className="kt-menu__nav" style={{ display: 'flex', listStyle: 'none', margin: 0, padding: 0, alignItems: 'center' }}>
+                        {(isSuperAdmin ? [
+                            { path: "/comms", label: "SMS & Email", icon: "la-envelope" },
+                            { path: "/learning", label: "Learning", icon: "la-graduation-cap" },
+                            { path: "/library", label: "Library", icon: "la-book" },
+                            { path: "/results", label: "Results", icon: "la-bar-chart" },
+                            { path: "/time-tables", label: "Time Tables", icon: "la-calendar-check-o" },
+                            { path: "/finance/fees", label: "Fee", icon: "la-money" }
+                        ] : [
+                            { path: '/home', label: 'Dashboard', icon: 'la-dashboard' },
+                            { path: '/manage/students', label: 'Students', icon: 'la-users' },
                             { path: '/finance/fees', label: 'Fee', hideFromTeacher: true, icon: 'la-money' }
-                        ].map((item) => {
+                        ]).map((item) => {
                             if (item.hideFromTeacher && isTeacher) return null;
                             if (item.hidden) return null;
-                            
                             const isActive = this.isActiveRoute(item.path);
                             return (
-                                <li key={item.path} className={`kt-menu__item ${isActive ? 'kt-menu__item--active' : ''}`} style={{
-                                    margin: 0,
-                                    padding: '0 4px'
-                                }}>
-                                    <Link to={item.path} className="kt-menu__link" style={{
-                                        textDecoration: 'none',
-                                        padding: '8px 16px',
-                                        borderRadius: '8px',
-                                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '8px',
-                                        position: 'relative',
-                                        backgroundColor: isActive ? 'rgba(57, 102, 255, 0.1)' : 'transparent',
-                                        border: isActive ? '1px solid rgba(57, 102, 255, 0.2)' : '1px solid transparent'
-                                    }}>
-                                        <i className={`la ${item.icon}`} style={{
-                                            fontSize: '1rem',
-                                            color: isActive ? 'var(--brand-color)' : 'var(--text-secondary)',
-                                            transition: 'color 0.3s ease'
-                                        }} />
-                                        <span className="kt-menu__link-text" style={{
-                                            ...bottomNavCommonLinkStyle,
-                                            ...(isActive ? { 
-                                                color: 'var(--brand-color)', 
-                                                fontWeight: '600'
-                                            } : {
-                                                color: 'var(--text-primary)',
-                                                fontWeight: '500'
-                                            }),
-                                            position: 'relative',
-                                            paddingBottom: '2px',
-                                            transition: 'all 0.3s ease',
-                                            fontSize: '0.9rem'
-                                        }}>
+                                <li key={item.path} className={`kt-menu__item ${isActive ? 'kt-menu__item--active' : ''}`} style={{ margin: 0, padding: '0 4px' }}>
+                                    <Link to={item.path} className="kt-menu__link" style={{ textDecoration: 'none', padding: '8px 16px', borderRadius: '8px', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)', display: 'flex', alignItems: 'center', gap: '8px', position: 'relative', backgroundColor: isActive ? 'rgba(57, 102, 255, 0.1)' : 'transparent', border: isActive ? '1px solid rgba(57, 102, 255, 0.2)' : '1px solid transparent' }}>
+                                        <i className={`la ${item.icon}`} style={{ fontSize: '1rem', color: isActive ? 'var(--brand-color)' : 'var(--text-secondary)', transition: 'color 0.3s ease' }} />
+                                        <span className="kt-menu__link-text" style={{ ...bottomNavCommonLinkStyle, ...(isActive ? { color: 'var(--brand-color)', fontWeight: '600' } : { color: 'var(--text-primary)', fontWeight: '500' }), position: 'relative', paddingBottom: '2px', transition: 'all 0.3s ease', fontSize: '0.9rem' }}>
                                             {item.label}
                                             {isActive && (
-                                                <span style={{
-                                                    position: 'absolute',
-                                                    bottom: '-4px',
-                                                    left: '50%',
-                                                    transform: 'translateX(-50%)',
-                                                    width: '20px',
-                                                    height: '3px',
-                                                    backgroundColor: 'var(--brand-color)',
-                                                    borderRadius: '2px',
-                                                    boxShadow: '0 2px 4px rgba(57, 102, 255, 0.3)'
-                                                }} />
+                                                <span style={{ position: 'absolute', bottom: '-4px', left: '50%', transform: 'translateX(-50%)', width: '20px', height: '3px', backgroundColor: 'var(--brand-color)', borderRadius: '2px', boxShadow: '0 2px 4px rgba(57, 102, 255, 0.3)' }} />
                                             )}
                                         </span>
                                     </Link>
@@ -916,16 +1055,14 @@ class Navbar extends React.Component {
                 <a href="!#" onClick={e => e.preventDefault()} className="kt-offcanvas-panel__close" id="kt_offcanvas_toolbar_profile_close" style={{ fontSize: '1.2rem' }}><i className="la la-times" /></a>
             </div>
             <div className="kt-offcanvas-panel__body" style={{ padding: '20px' }}>
-                {/* User Info */}
                 <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
                     <img alt="User avatar" src={storedUser?.avatar || `https://picsum.photos/40/40?random=${storedUser?.id || 1027}`} style={{ width: '40px', height: '40px', borderRadius: '50%', marginRight: '12px' }} />
-                    <div>
-                        <div style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '0.95rem' }}>{storedUser?.names || user}</div>
-                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>{storedUser?.userType ? storedUser.userType.charAt(0).toUpperCase() + storedUser.userType.slice(1) : ''}</div>
+                    <div style={{ flex: 1, overflow: 'hidden' }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', textTransform: 'capitalize' }}>{this.state.userRole || storedUser.role || 'User'}</div>
                     </div>
                 </div>
                 
-                {/* Email */}
                 {storedUser?.email && (
                     <div style={{ marginBottom: '20px', padding: '10px', backgroundColor: 'var(--bg-tertiary)', borderRadius: '6px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
@@ -935,32 +1072,16 @@ class Navbar extends React.Component {
                     </div>
                 )}
                 
-                {/* Action Buttons */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <button 
-                        className="btn btn-sm btn-bold compact-profile-btn" 
-                        style={{ backgroundColor: 'var(--brand-color)', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 12px', fontSize: '0.85rem' }}
-                        type="button" 
-                        onClick={() => this.props.history.push({ pathname: "/settings/user" })}
-                    >
+                    <button className="btn btn-sm btn-bold compact-profile-btn" style={{ backgroundColor: 'var(--brand-color)', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 12px', fontSize: '0.85rem' }} type="button" onClick={() => this.props.history.push({ pathname: "/settings/user" })}>
                         <i className="la la-cog" style={{ marginRight: '6px' }}></i> Profile Settings
                     </button>
                     {typeof window.matchMedia === 'function' && !window.matchMedia('(display-mode: standalone)').matches && typeof window.deferredInstallPrompt !== 'undefined' && (
-                        <button 
-                            className="btn btn-sm btn-bold compact-profile-btn" 
-                            style={{ backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 12px', fontSize: '0.85rem' }}
-                            type="button" 
-                            onClick={this.handleInstallApp}
-                        >
+                        <button className="btn btn-sm btn-bold compact-profile-btn" style={{ backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 12px', fontSize: '0.85rem' }} type="button" onClick={this.handleInstallApp}>
                             <i className="la la-download" style={{ marginRight: '6px' }}></i> Install App
                         </button>
                     )}
-                    <button 
-                        className="btn btn-sm btn-bold compact-profile-btn" 
-                        style={{ backgroundColor: '#dc3545', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 12px', fontSize: '0.85rem' }}
-                        type="button" 
-                        onClick={() => { localStorage.clear(); window.location.href = '/'; }}
-                    >
+                    <button className="btn btn-sm btn-bold compact-profile-btn" style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: 'none', borderRadius: '6px', padding: '8px 12px', fontSize: '0.85rem' }} type="button" onClick={() => { localStorage.clear(); window.location.href = '/'; }}>
                         <i className="la la-sign-out" style={{ marginRight: '6px' }}></i> Log Out
                     </button>
                 </div>

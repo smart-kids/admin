@@ -1203,32 +1203,31 @@ class ResultsMatrix extends React.Component {
 
     return (
       <div className="card card-custom">
-        <div className="card-header border-0 py-5 d-flex flex-column align-items-stretch">
-            
-
-            <div className="d-flex align-items-center justify-content-between">
-                <ul className="nav nav-tabs nav-tabs-space nav-tabs-line nav-bold nav-tabs-line-3x border-0 mb-0 custom-tabs-container">
-                    <li className="nav-item">
-                        <a 
-                            className={`nav-link py-4 px-6 custom-tab-link ${activeTab === 'insights' ? 'active' : ''}`}
-                            href="#" 
-                            onClick={(e) => { e.preventDefault(); this.setState({ activeTab: 'insights' }); }}
-                        >
-                            <i className="fas fa-chart-line mr-2"></i>
-                            <strong>Insights</strong>
-                        </a>
-                    </li>
-                    <li className="nav-item">
-                        <a 
-                            className={`nav-link py-4 px-6 custom-tab-link ${activeTab === 'grid' ? 'active' : ''}`}
-                            href="#" 
-                            onClick={(e) => { e.preventDefault(); this.setState({ activeTab: 'grid' }); }}
-                        >
-                            <i className="fas fa-th mr-2"></i>
-                            Score Sheet
-                        </a>
-                    </li>
-                </ul>
+        <div className="card-header border-0 modern-mobile-header">
+                <div className="d-flex align-items-center flex-grow-1 overflow-hidden">
+                    <ul className="nav nav-tabs nav-tabs-space nav-tabs-line nav-bold nav-tabs-line-3x border-0 mb-0 custom-tabs-container flex-nowrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                        <li className="nav-item">
+                            <a 
+                                className={`nav-link py-4 px-6 custom-tab-link ${activeTab === 'insights' ? 'active' : ''}`}
+                                href="#" 
+                                onClick={(e) => { e.preventDefault(); this.setState({ activeTab: 'insights' }); }}
+                            >
+                                <i className="fas fa-chart-line mr-2"></i>
+                                <strong>Insights</strong>
+                            </a>
+                        </li>
+                        <li className="nav-item">
+                            <a 
+                                className={`nav-link py-4 px-6 custom-tab-link ${activeTab === 'grid' ? 'active' : ''}`}
+                                href="#" 
+                                onClick={(e) => { e.preventDefault(); this.setState({ activeTab: 'grid' }); }}
+                            >
+                                <i className="fas fa-th mr-2"></i>
+                                Score Sheet
+                            </a>
+                        </li>
+                    </ul>
+                </div>
 
                 <div className="card-toolbar d-flex align-items-center">
                     <div className="dropdown dropdown-inline mr-2 d-flex align-items-center">
@@ -1238,8 +1237,9 @@ class ResultsMatrix extends React.Component {
                             options={terms}
                             placeholder="Term..."
                             searchable={true}
-                            width="200px"
-                            className="mr-2"
+                            width={window.innerWidth < 991 ? "130px" : "200px"}
+                            minWidth={window.innerWidth < 991 ? "0" : "200px"}
+                            className="mr-lg-2 mb-2 mb-lg-0"
                         />
                         {!isTeacher && (
                             <div className="ml-1 d-flex">
@@ -1266,8 +1266,9 @@ class ResultsMatrix extends React.Component {
                             }))}
                             placeholder="Class (Students)..."
                             searchable={true}
-                            width="250px"
-                            className="mr-2"
+                            width={window.innerWidth < 991 ? "150px" : "250px"}
+                            minWidth={window.innerWidth < 991 ? "0" : "200px"}
+                            className="mr-lg-2 mb-2 mb-lg-0"
                             showEmptySearchResults={true}
                             showCount={true}
                             countKey="studentCount"
@@ -1298,8 +1299,9 @@ class ResultsMatrix extends React.Component {
                             }))}
                             placeholder="Grade (Subjects)..."
                             searchable={true}
-                            width="220px"
-                            className="mr-2"
+                            width={window.innerWidth < 991 ? "150px" : "220px"}
+                            minWidth={window.innerWidth < 991 ? "0" : "200px"}
+                            className="mr-lg-2 mb-2 mb-lg-0"
                             showEmptySearchResults={true}
                             showCount={true}
                             countKey="subjectCount"
@@ -1323,7 +1325,6 @@ class ResultsMatrix extends React.Component {
                         <button className="btn btn-sm btn-light-primary font-weight-bold" onClick={this.initiateBulkResultsSms} disabled={!selectedClass || !selectedTerm}><i className="fa fa-sms"></i> SMS</button>
                     </div>
                 </div>
-            </div>
         </div>
         <div className="card-body">
 

@@ -2206,10 +2206,8 @@ class FeesManagement extends Component {
                     <div className="kt-content kt-grid__item kt-grid__item--fluid pt-0" style={{ height: "100vh" }} id="kt_content">
                         <div className="kt-container pt-0">
                             <div className="card card-custom gutter-b">
-                                <div className="card-header border-0 pt-5 pb-2 d-flex flex-column align-items-stretch">
-                                    
-
-                                    <div className="d-flex align-items-center justify-content-between">
+                                <div className="card-header border-0 modern-mobile-header">
+                                    <div className="d-flex align-items-center">
                                         <ul className="nav nav-tabs nav-tabs-space nav-tabs-line nav-bold nav-tabs-line-3x border-0 mb-0 custom-tabs-container">
                                             <li className="nav-item">
                                                 <a
@@ -2266,9 +2264,10 @@ class FeesManagement extends Component {
                                                     ]}
                                                     placeholder="Term..."
                                                     searchable={true}
-                                                    width="200px"
+                                                    width={window.innerWidth < 991 ? "130px" : "200px"}
+                                                    minWidth={window.innerWidth < 991 ? "0" : "200px"}
                                                     showCount={false}
-                                                    className="mr-2"
+                                                    className="mr-lg-2 mb-2 mb-lg-0"
                                                 />
                                                 {!isTeacher && (
                                                     <div className="ml-1 d-flex">
@@ -2297,7 +2296,8 @@ class FeesManagement extends Component {
                                                     ]}
                                                     placeholder="Class..."
                                                     searchable={true}
-                                                    width="250px"
+                                                    width={window.innerWidth < 991 ? "150px" : "250px"}
+                                                    minWidth={window.innerWidth < 991 ? "0" : "200px"}
                                                     showCount={true}
                                                     countKey="studentCount"
                                                     countLabel=""
