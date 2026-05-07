@@ -6,7 +6,7 @@ export class V8DataTable extends Component {
   state = {
     expandedRows: new Set(),
     selectedRows: new Set(),
-    sortBy: 'revenue',
+    sortBy: 'studentsCount',
     sortOrder: 'desc',
     currentPage: 1,
     itemsPerPage: 10
@@ -78,10 +78,12 @@ export class V8DataTable extends Component {
         totalRevenue,
         transactionCount,
         averageTransaction,
-        studentCount: school.students ? school.students.length : 0,
+        studentsCount: school.studentsCount || (school.students ? school.students.length : 0),
         teacherCount: school.teachers ? school.teachers.length : 0,
         classCount: school.classes ? school.classes.length : 0,
-        revenuePerStudent: school.students && school.students.length > 0 ? totalRevenue / school.students.length : 0
+        revenuePerStudent: (school.studentsCount || (school.students ? school.students.length : 0)) > 0 
+          ? totalRevenue / (school.studentsCount || (school.students ? school.students.length : 0)) 
+          : 0
       };
     });
 
@@ -230,11 +232,15 @@ export class V8DataTable extends Component {
                   {paginatedData.map((school, index) => {
                     const isExpanded = expandedRows.has(school.id);
                     const isSelected = selectedRows.has(school.id);
-                    const isActive = school.isActive !== false;
+                    const isDeleted = school.isDeleted === true;
+                    const isActive = !isDeleted && school.isActive !== false;
                     
                     return (
                       <React.Fragment key={school.id}>
-                        <tr className={`${isExpanded ? 'bg-light-primary' : ''} ${isSelected ? 'bg-light-success' : ''}`}>
+                        <tr 
+                          className={`${isExpanded ? 'bg-light-primary' : ''} ${isSelected ? 'bg-light-success' : ''}`}
+                          style={isDeleted ? { opacity: 0.6, backgroundColor: '#f3f6f9' } : {}}
+                        >
                           <td className="pl-6">
                             <label className="checkbox checkbox-single">
                               <input
@@ -252,24 +258,24 @@ export class V8DataTable extends Component {
                                   src={school.logo}
                                   alt={school.name}
                                   className="symbol symbol-40 mr-3"
-                                  style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '8px' }}
+                                  style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '8px', filter: isDeleted ? 'grayscale(100%)' : 'none' }}
                                 />
                               )}
                               <div>
-                                <div className="font-weight-bold text-dark">{school.name}</div>
+                                <div className={`font-weight-bold ${isDeleted ? 'text-muted' : 'text-dark'}`}>{school.name}</div>
                                 <div className="text-muted small">{school.address || 'No address'}</div>
                               </div>
                             </div>
                           </td>
                           <td>
-                            <div className="font-weight-bolder text-primary">
+                            <div className={`font-weight-bolder ${isDeleted ? 'text-muted' : 'text-primary'}`}>
                               {formatCurrency(school.totalRevenue)}
                             </div>
                           </td>
                           <td>
                             <div className="d-flex align-items-center">
-                              <span className="font-weight-bold">{formatNumber(school.studentCount)}</span>
-                              {school.studentCount > 0 && (
+                              <span className="font-weight-bold">{formatNumber(school.studentsCount)}</span>
+                              {school.studentsCount > 0 && !isDeleted && (
                                 <span className="ml-2 badge badge-success badge-pill">
                                   {formatCurrency(school.revenuePerStudent)}
                                 </span>
@@ -280,13 +286,13 @@ export class V8DataTable extends Component {
                             <span className="font-weight-bold">{school.transactionCount}</span>
                           </td>
                           <td>
-                            <span className="font-weight-bolder text-info">
+                            <span className={`font-weight-bolder ${isDeleted ? 'text-muted' : 'text-info'}`}>
                               {school.revenuePerStudent > 0 ? formatCurrency(school.revenuePerStudent) : 'N/A'}
                             </span>
                           </td>
                           <td>
-                            <span className={`badge badge-${isActive ? 'success' : 'danger'} badge-pill`}>
-                              {isActive ? 'Active' : 'Inactive'}
+                            <span className={`badge badge-${isDeleted ? 'secondary' : (isActive ? 'success' : 'danger')} badge-pill`}>
+                              {isDeleted ? 'Deleted' : (isActive ? 'Active' : 'Inactive')}
                             </span>
                           </td>
                           <td className="text-right pr-6">
@@ -294,12 +300,37 @@ export class V8DataTable extends Component {
                               <button
                                 className="btn btn-sm btn-light-primary"
                                 onClick={() => this.handleRowExpand(school.id)}
+                                title="Details"
                               >
                                 <i className={`la la-${isExpanded ? 'compress' : 'expand'}`}></i>
                               </button>
-                              <button className="btn btn-sm btn-light-info">
-                                <i className="la la-eye"></i>
-                              </button>
+                              
+                              {isDeleted ? (
+                                <button 
+                                  className="btn btn-sm btn-light-success"
+                                  onClick={() => this.props.onRestore && this.props.onRestore(school)}
+                                  title="Restore School"
+                                >
+                                  <i className="la la-undo"></i>
+                                </button>
+                              ) : (
+                                <>
+                                  <button 
+                                    className="btn btn-sm btn-light-info"
+                                    onClick={() => this.props.onEdit && this.props.onEdit(school)}
+                                    title="Edit School"
+                                  >
+                                    <i className="la la-edit"></i>
+                                  </button>
+                                  <button 
+                                    className="btn btn-sm btn-light-danger"
+                                    onClick={() => this.props.onDelete && this.props.onDelete(school)}
+                                    title="Delete School"
+                                  >
+                                    <i className="la la-trash"></i>
+                                  </button>
+                                </>
+                              )}
                             </div>
                           </td>
                         </tr>

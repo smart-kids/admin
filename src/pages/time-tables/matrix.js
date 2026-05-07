@@ -9,7 +9,6 @@ import Data from "../../utils/data";
 const TimeTableMatrix = () => {
   const [selectedClass, setSelectedClass] = useState(null);
   const [selectedTerm, setSelectedTerm] = useState(null);
-  const [selectedGrade, setSelectedGrade] = useState(null);
   const [classes, setClasses] = useState([]);
   const [terms, setTerms] = useState([]);
   const [grades, setGrades] = useState([]);
@@ -112,31 +111,7 @@ const TimeTableMatrix = () => {
     return slots;
   }, [config]);
 
-  // Load initial data and restore selections from localStorage
   useEffect(() => {
-    // Restore selections from localStorage
-    const savedClass = localStorage.getItem('timeTables_selectedClass');
-    const savedTerm = localStorage.getItem('timeTables_selectedTerm');
-    const savedGrade = localStorage.getItem('timeTables_selectedGrade');
-    
-    if (savedClass) {
-      try {
-        const parsedClass = JSON.parse(savedClass);
-        setSelectedClass(parsedClass);
-      } catch (error) {
-        console.error('Error parsing saved class:', error);
-        localStorage.removeItem('timeTables_selectedClass');
-      }
-    }
-    
-    if (savedTerm) {
-      setSelectedTerm(savedTerm);
-    }
-    
-    if (savedGrade) {
-      setSelectedGrade(savedGrade);
-    }
-    
     // Load school info
     const schoolInfo = Data.schools.getSelected();
     setSchoolInfo(schoolInfo);
@@ -158,7 +133,7 @@ const TimeTableMatrix = () => {
     // Check for defaults as data arrives
     const checkAutoSelect = setInterval(() => {
       if (classes.length > 0 && terms.length > 0) {
-        autoSelectDefaults(classes, terms, grades);
+        // No longer using autoSelectDefaults, let EnhancedDropdown handle it
         clearInterval(checkAutoSelect);
       }
     }, 500);
@@ -174,7 +149,7 @@ const TimeTableMatrix = () => {
       if (unsubSchools) unsubSchools();
       clearInterval(checkAutoSelect);
     };
-  }, [classes, terms, grades]);
+  }, [classes, terms]);
 
   // Save viewMode to localStorage when it changes
   useEffect(() => {
@@ -213,53 +188,7 @@ const TimeTableMatrix = () => {
     return { availableSubjects, availableGrades, availableClasses, terms };
   };
 
-  const autoSelectDefaults = (classesData, termsData, gradesData) => {
-    const { availableClasses, availableGrades } = getAvailableData();
-    let shouldUpdate = false;
-    let updates = {};
-
-    // Auto-select first class if none selected
-    if (!selectedClass && availableClasses?.length > 0) {
-      const firstClass = availableClasses[0];
-      updates.selectedClass = firstClass;
-      localStorage.setItem('timeTables_selectedClass', JSON.stringify(firstClass));
-      shouldUpdate = true;
-    }
-
-    // Auto-select first term if none selected
-    if (!selectedTerm && termsData?.length > 0) {
-      updates.selectedTerm = String(termsData[0].id);
-      localStorage.setItem('timeTables_selectedTerm', updates.selectedTerm);
-      shouldUpdate = true;
-    }
-
-    // Auto-select grade based on selected class
-    if (!selectedGrade && availableGrades?.length > 0) {
-      const classToUse = updates.selectedClass || selectedClass;
-      if (classToUse) {
-        const currentClass = availableClasses.find(c => c.id === classToUse.id);
-        const gradeId = currentClass?.grade?.id || currentClass?.grade;
-        if (gradeId) {
-          updates.selectedGrade = String(gradeId);
-          localStorage.setItem('timeTables_selectedGrade', updates.selectedGrade);
-          shouldUpdate = true;
-        }
-      }
-      
-      // Fallback to first grade
-      if (!updates.selectedGrade && availableGrades.length > 0) {
-        updates.selectedGrade = String(availableGrades[0].id);
-        localStorage.setItem('timeTables_selectedGrade', updates.selectedGrade);
-        shouldUpdate = true;
-      }
-    }
-
-    if (shouldUpdate) {
-      if (updates.selectedClass) setSelectedClass(updates.selectedClass);
-      if (updates.selectedTerm) setSelectedTerm(updates.selectedTerm);
-      if (updates.selectedGrade) setSelectedGrade(updates.selectedGrade);
-    }
-  };
+  // Removed autoSelectDefaults in favor of EnhancedDropdown defaulting to "ALL"
 
   // Load time table data when class changes
   useEffect(() => {
@@ -310,33 +239,14 @@ const TimeTableMatrix = () => {
 
   // Handle class selection
   const handleClassChange = useCallback((classId) => {
-    const { availableClasses, availableGrades } = getAvailableData();
+    const { availableClasses } = getAvailableData();
     const classData = availableClasses.find(c => String(c.id) === String(classId));
     setSelectedClass(classData || null);
-    if (classData) {
-      localStorage.setItem('timeTables_selectedClass', JSON.stringify(classData));
-      
-      // Auto-select grade based on class
-      const gradeId = classData?.grade?.id || classData?.grade;
-      if (gradeId) {
-        setSelectedGrade(String(gradeId));
-        localStorage.setItem('timeTables_selectedGrade', String(gradeId));
-      }
-    } else {
-      localStorage.removeItem('timeTables_selectedClass');
-    }
   }, [getAvailableData]);
 
   // Handle term selection
   const handleTermChange = useCallback((termId) => {
     setSelectedTerm(termId);
-    localStorage.setItem('timeTables_selectedTerm', termId);
-  }, []);
-
-  // Handle grade selection
-  const handleGradeChange = useCallback((gradeId) => {
-    setSelectedGrade(gradeId);
-    localStorage.setItem('timeTables_selectedGrade', gradeId);
   }, []);
 
   // Handle slot click
@@ -431,75 +341,7 @@ const TimeTableMatrix = () => {
     localStorage.setItem('timeTablesPrint_orientation', orientation);
   }, []);
 
-  const generatePrintContent = () => {
-    const days = config.workingDays;
-    const subjectColors = {
-      'Mathematics': '#4F46E5',
-      'English': '#059669',
-      'Science': '#DC2626',
-      'History': '#EA580C',
-      'Geography': '#0891B2',
-      'Art': '#7C3AED',
-      'Physical Education': '#16A34A',
-      'Music': '#DB2777',
-      'Computer Science': '#6B7280'
-    };
-
-    return `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>Time Table - ${selectedClass?.name || 'Class'}</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 20px; }
-          h1 { text-align: center; margin-bottom: 30px; }
-          table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-          th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-          th { background-color: #f2f2f2; font-weight: bold; }
-          .break-cell { background-color: #FEF3C7; color: #666; }
-          .subject-cell { padding: 4px; font-size: 12px; }
-          .teacher-name { font-size: 10px; color: #666; margin-top: 2px; }
-        </style>
-      </head>
-      <body>
-        <h1>Time Table - ${selectedClass?.name || 'Class'}</h1>
-        <p><strong>Generated:</strong> ${new Date().toLocaleDateString()}</p>
-        <table>
-          <thead>
-            <tr>
-              <th>Time</th>
-              ${days.map(day => `<th>${day}</th>`).join('')}
-            </tr>
-          </thead>
-          <tbody>
-            ${timeSlots.map(slot => `
-              <tr>
-                <td><strong>${slot.time}</strong></td>
-                ${days.map(day => {
-                  const key = `${day}-${slot.time}`;
-                  const allocation = timeTableData[key];
-                  if (slot.isBreak) {
-                    return '<td class="break-cell">BREAK</td>';
-                  }
-                  if (allocation) {
-                    const color = subjectColors[allocation.subject?.name] || '#3699ff';
-                    return `
-                      <td class="subject-cell" style="background-color: ${color}20; border-left: 3px solid ${color};">
-                        <div style="font-weight: bold;">${allocation.subject?.name || ''}</div>
-                        <div class="teacher-name">${allocation.teacher?.name || ''}</div>
-                      </td>
-                    `;
-                  }
-                  return '<td></td>';
-                }).join('')}
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </body>
-      </html>
-    `;
-  };
+  // Handle print all
 
   // Handle print all
   const handlePrintAll = useCallback(() => {
@@ -606,12 +448,12 @@ const TimeTableMatrix = () => {
                 <EnhancedDropdown
                   value={selectedTerm || ''}
                   onChange={handleTermChange}
-                  options={terms || []}
+                  options={[{ id: '', name: 'ALL Terms' }, ...(terms || [])]}
                   placeholder="Select Term..."
                   className="w-100"
                   searchable={true}
                   showCount={true}
-                  
+                  persistenceKey="timetables_matrix_term"
                 />
               </div>
 
@@ -621,13 +463,14 @@ const TimeTableMatrix = () => {
                 <EnhancedDropdown
                   value={selectedClass?.id || ''}
                   onChange={handleClassChange}
-                  options={classes || []}
+                  options={[{ id: '', name: 'ALL Classes' }, ...(classes || [])]}
                   placeholder="Select Class..."
                   className="w-100"
                   searchable={true}
                   showCount={true}
                   countKey="students"
                   countLabel="students"
+                  persistenceKey="timetables_matrix_class"
                 />
               </div>
             </div>

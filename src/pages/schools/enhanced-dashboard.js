@@ -8,6 +8,11 @@ import { V8DataTable, RevenueTable, PerformanceTable } from '../../components/da
 import { ModernChart, RevenueGrowthChart, EntityChart } from '../../components/dashboard/enhanced/Charts';
 import { QuickActions, FilterPanel } from '../../components/dashboard/enhanced/Controls';
 import { SchoolRevenueBreakdown, BusinessSummaryCard } from '../../components/dashboard/enhanced/SchoolRevenueBreakdown';
+import EditModal from '../settings/school/components/edit_school_details';
+import DeleteModal from './delete';
+
+const editModalInstance = new EditModal();
+const deleteModalInstance = new DeleteModal();
 
 class EnhancedSchoolsDashboard extends Component {
   state = {
@@ -47,7 +52,11 @@ class EnhancedSchoolsDashboard extends Component {
     },
     searchTerm: '',
     sortBy: 'revenue',
-    sortOrder: 'desc'
+    sortOrder: 'desc',
+    
+    // Action state
+    schoolToEdit: null,
+    schoolToDelete: null
   };
 
   componentDidMount() {
@@ -575,6 +584,52 @@ class EnhancedSchoolsDashboard extends Component {
     this.setState({ sortBy, sortOrder });
   };
 
+  handleEditSchool = (school) => {
+    this.setState({ schoolToEdit: school }, () => {
+      editModalInstance.show();
+    });
+  };
+
+  handleDeleteSchool = (school) => {
+    this.setState({ schoolToDelete: school }, () => {
+      deleteModalInstance.show();
+    });
+  };
+
+  handleRestoreSchool = async (school) => {
+    try {
+      this.setState({ refreshing: true });
+      await Data.schools.restore(school);
+      // Data subscription will handle the update
+      this.setState({ refreshing: false });
+    } catch (error) {
+      console.error("Error restoring school:", error);
+      this.setState({ refreshing: false });
+    }
+  };
+
+  saveSchoolEdit = async (schoolData) => {
+    try {
+      const validFields = ['id', 'name', 'phone', 'email', 'address', 'schoolSize', 'inviteSmsText', 'logo', 'themeColor'];
+      const filteredData = {};
+      validFields.forEach(f => { if (schoolData[f] !== undefined) filteredData[f] = schoolData[f]; });
+      
+      await Data.schools.update(filteredData);
+      // Data subscription will handle the update
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  confirmDeleteSchool = async (school) => {
+    try {
+      await Data.schools.delete(school);
+      // Data subscription will handle the update
+    } catch (error) {
+      throw error;
+    }
+  };
+
   exportData = () => {
     const { saasMetrics, entityMetrics, financialMetrics, engagementMetrics, revenueProjections } = this.state;
     
@@ -787,9 +842,22 @@ class EnhancedSchoolsDashboard extends Component {
               sortOrder={sortOrder}
               onSearch={this.handleSearch}
               onSort={this.handleSort}
+              onEdit={this.handleEditSchool}
+              onDelete={this.handleDeleteSchool}
+              onRestore={this.handleRestoreSchool}
             />
           </div>
         </div>
+        
+        {/* Modals */}
+        <EditModal 
+          edit={this.state.schoolToEdit} 
+          save={this.saveSchoolEdit} 
+        />
+        <DeleteModal 
+          remove={this.state.schoolToDelete} 
+          delete={this.confirmDeleteSchool} 
+        />
       </div>
     );
   };

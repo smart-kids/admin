@@ -59,7 +59,7 @@ class ResultsMatrix extends React.Component {
     showAddClassModal: false,
     showAddGradeModal: false,
     showSelectSubjectModal: false,
-    selectedGrade: localStorage.getItem('matrix_selectedGrade') || "",
+    selectedGrade: "",
   };
 
   componentDidMount() {
@@ -95,36 +95,18 @@ class ResultsMatrix extends React.Component {
         this.setState({ schoolInfo: selectedSchool });
     });
 
-    // Check for defaults as data arrives
-    this.checkAutoSelect = setInterval(() => {
-        if (this.state.classes.length > 0 && this.state.terms.length > 0) {
-            this.autoSelectDefaults();
-            clearInterval(this.checkAutoSelect);
-        }
-    }, 500);
+    // Initial assessments fetch if values are already set (e.g. from state defaults)
+    if (this.state.selectedClass && this.state.selectedTerm) {
+        this.fetchAssessments();
+    }
 
-    // Fallback timeout to ensure loading is eventually set to false
     this.loadingTimeout = setTimeout(() => {
         if (this.state.loading) {
-            console.warn('Loading timeout reached - setting loading to false');
             this.setState({ loading: false });
         }
-        if (this.checkAutoSelect) {
-            clearInterval(this.checkAutoSelect);
-        }
-    }, 10000); // 10 seconds timeout
+    }, 5000);
 
-    const schoolInfo = Data.schools.getSelected();
-    
-    let restoredGrade = localStorage.getItem('matrix_selectedGrade');
-    if (restoredGrade === 'null' || restoredGrade === 'undefined') restoredGrade = "";
-
-    this.setState({ 
-        schoolInfo,
-        selectedClass: localStorage.getItem('matrix_selectedClass') || "",
-        selectedTerm: localStorage.getItem('matrix_selectedTerm') || "",
-        selectedGrade: restoredGrade || ""
-    });
+    this.setState({ schoolInfo: Data.schools.getSelected() });
   }
 
   getAvailableData = () => {
@@ -160,59 +142,10 @@ class ResultsMatrix extends React.Component {
     return { availableSubjects, availableGrades, availableClasses, terms };
   }
 
-  autoSelectDefaults = () => {
-    const { selectedClass, selectedTerm, selectedGrade, loading } = this.state;
-    const { availableClasses, availableGrades, terms } = this.getAvailableData();
-    let updates = {};
-    let shouldUpdate = false;
-
-    if (!selectedClass && availableClasses?.length > 0) {
-        updates.selectedClass = String(availableClasses[0].id);
-        localStorage.setItem('matrix_selectedClass', updates.selectedClass);
-        shouldUpdate = true;
-    }
-
-    if (!selectedTerm && terms?.length > 0) {
-        updates.selectedTerm = String(terms[0].id);
-        localStorage.setItem('matrix_selectedTerm', updates.selectedTerm);
-        shouldUpdate = true;
-    }
-
-    if (!selectedGrade && availableGrades?.length > 0) {
-        const classId = updates.selectedClass || selectedClass;
-        if (classId) {
-            const currentClass = availableClasses.find(c => String(c.id) === String(classId));
-            const gradeId = currentClass?.grade?.id || currentClass?.grade;
-            if (gradeId) {
-                updates.selectedGrade = String(gradeId);
-                localStorage.setItem('matrix_selectedGrade', updates.selectedGrade);
-                shouldUpdate = true;
-            }
-        }
-        
-        if (!updates.selectedGrade && availableGrades.length > 0) {
-            updates.selectedGrade = String(availableGrades[0].id);
-            localStorage.setItem('matrix_selectedGrade', updates.selectedGrade);
-            shouldUpdate = true;
-        }
-    }
-
-    if (shouldUpdate) {
-        this.setState(updates, () => {
-            if (this.state.selectedClass && this.state.selectedTerm) {
-                this.fetchAssessments();
-            }
-        });
-    } else if (selectedClass && selectedTerm && loading) {
-        this.fetchAssessments();
-    }
-    
-    if (loading) this.setState({ loading: false });
-  }
+  // Removed autoSelectDefaults in favor of EnhancedDropdown defaulting to "ALL"
 
   handleFilterChange = (filterName, value) => {
       this.setState({ [filterName]: value }, () => {
-          localStorage.setItem(`matrix_${filterName}`, value);
           if (filterName === 'selectedClass' || filterName === 'selectedTerm') {
               this.fetchAssessments();
           }
@@ -221,15 +154,12 @@ class ResultsMatrix extends React.Component {
   
   componentDidUpdate(prevProps, prevState) {
       if (this.state.selectedClass !== prevState.selectedClass) {
-          localStorage.setItem('matrix_selectedClass', this.state.selectedClass);
           // Proactively set grade if class changed
           const newGradeId = this.detectGradeId();
           if (newGradeId) {
               this.setState({ selectedGrade: newGradeId });
           }
       }
-      if (this.state.selectedTerm !== prevState.selectedTerm) localStorage.setItem('matrix_selectedTerm', this.state.selectedTerm);
-      if (this.state.selectedGrade !== prevState.selectedGrade) localStorage.setItem('matrix_selectedGrade', this.state.selectedGrade);
 
       if ((this.state.selectedClass && this.state.selectedTerm) &&
           (this.state.selectedClass !== prevState.selectedClass || this.state.selectedTerm !== prevState.selectedTerm)) {
@@ -1203,12 +1133,12 @@ class ResultsMatrix extends React.Component {
 
     return (
       <div className="card card-custom">
-        <div className="card-header border-0 modern-mobile-header">
+        <div className="card-header border-0 modern-mobile-header px-4">
                 <div className="d-flex align-items-center flex-grow-1 overflow-hidden">
                     <ul className="nav nav-tabs nav-tabs-space nav-tabs-line nav-bold nav-tabs-line-3x border-0 mb-0 custom-tabs-container flex-nowrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                         <li className="nav-item">
                             <a 
-                                className={`nav-link py-4 px-6 custom-tab-link ${activeTab === 'insights' ? 'active' : ''}`}
+                                className={`nav-link py-2 px-6 custom-tab-link ${activeTab === 'insights' ? 'active' : ''}`}
                                 href="#" 
                                 onClick={(e) => { e.preventDefault(); this.setState({ activeTab: 'insights' }); }}
                             >
@@ -1218,7 +1148,7 @@ class ResultsMatrix extends React.Component {
                         </li>
                         <li className="nav-item">
                             <a 
-                                className={`nav-link py-4 px-6 custom-tab-link ${activeTab === 'grid' ? 'active' : ''}`}
+                                className={`nav-link py-2 px-6 custom-tab-link ${activeTab === 'grid' ? 'active' : ''}`}
                                 href="#" 
                                 onClick={(e) => { e.preventDefault(); this.setState({ activeTab: 'grid' }); }}
                             >
@@ -1234,12 +1164,13 @@ class ResultsMatrix extends React.Component {
                         <EnhancedDropdown
                             value={selectedTerm}
                             onChange={(value) => this.handleFilterChange('selectedTerm', value)}
-                            options={terms}
+                            options={[{ id: '', name: 'ALL Terms' }, ...(terms || [])]}
                             placeholder="Term..."
                             searchable={true}
                             width={window.innerWidth < 991 ? "130px" : "200px"}
                             minWidth={window.innerWidth < 991 ? "0" : "200px"}
                             className="mr-lg-2 mb-2 mb-lg-0"
+                            persistenceKey="results_matrix_term"
                         />
                         {!isTeacher && (
                             <div className="ml-1 d-flex">
@@ -1257,13 +1188,16 @@ class ResultsMatrix extends React.Component {
                         <EnhancedDropdown
                             value={selectedClass}
                             onChange={(value) => this.handleFilterChange('selectedClass', value)}
-                            options={availableClasses.map(cls => ({
-                                ...cls,
-                                studentCount: this.getFilteredStudents().filter(student => {
-                                    const studentClassId = student.class?.id || student.class || student.class_id;
-                                    return studentClassId && String(studentClassId) === String(cls.id);
-                                }).length,
-                            }))}
+                            options={[
+                                { id: '', name: 'ALL Classes' },
+                                ...availableClasses.map(cls => ({
+                                    ...cls,
+                                    studentCount: this.getFilteredStudents().filter(student => {
+                                        const studentClassId = student.class?.id || student.class || student.class_id;
+                                        return studentClassId && String(studentClassId) === String(cls.id);
+                                    }).length,
+                                }))
+                            ]}
                             placeholder="Class (Students)..."
                             searchable={true}
                             width={window.innerWidth < 991 ? "150px" : "250px"}
@@ -1273,6 +1207,7 @@ class ResultsMatrix extends React.Component {
                             showCount={true}
                             countKey="studentCount"
                             countLabel="students"
+                            persistenceKey="results_matrix_class"
                         />
                         {!isTeacher && (
                             <div className="ml-1 d-flex">
@@ -1290,13 +1225,16 @@ class ResultsMatrix extends React.Component {
                         <EnhancedDropdown
                             value={selectedGrade}
                             onChange={(value) => this.handleFilterChange('selectedGrade', value)}
-                            options={availableGrades.map(grade => ({
-                                ...grade,
-                                subjectCount: filteredSubjectsList.filter(subject => {
-                                    const subjectGradeId = subject.grade?.id || subject.grade;
-                                    return subjectGradeId && String(subjectGradeId) === String(grade.id);
-                                }).length,
-                            }))}
+                            options={[
+                                { id: '', name: 'ALL Grades' },
+                                ...availableGrades.map(grade => ({
+                                    ...grade,
+                                    subjectCount: filteredSubjectsList.filter(subject => {
+                                        const subjectGradeId = subject.grade?.id || subject.grade;
+                                        return subjectGradeId && String(subjectGradeId) === String(grade.id);
+                                    }).length,
+                                }))
+                            ]}
                             placeholder="Grade (Subjects)..."
                             searchable={true}
                             width={window.innerWidth < 991 ? "150px" : "220px"}
@@ -1306,6 +1244,7 @@ class ResultsMatrix extends React.Component {
                             showCount={true}
                             countKey="subjectCount"
                             countLabel="subjects"
+                            persistenceKey="results_matrix_grade"
                         />
                         {!isTeacher && (
                             <div className="ml-1 d-flex">
@@ -1387,6 +1326,23 @@ class ResultsMatrix extends React.Component {
                         border-bottom: 1px solid #e9ecef;
                         padding: 0;
                         position: relative;
+                        height: 100%;
+                    }
+                    
+                    .modern-mobile-header {
+                        padding-top: 0 !important;
+                        padding-bottom: 0 !important;
+                        min-height: 48px !important;
+                        display: flex !important;
+                        align-items: stretch !important;
+                        justify-content: space-between !important;
+                    }
+
+                    @media (min-width: 992px) {
+                        .modern-mobile-header {
+                            padding-left: 25px !important;
+                            padding-right: 25px !important;
+                        }
                     }
                     
                     .custom-tabs-container::after {
@@ -1408,7 +1364,7 @@ class ResultsMatrix extends React.Component {
                         color: #6c757d;
                         background: transparent;
                         transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-                        padding: 14px 18px !important;
+                        padding: 8px 18px !important;
                         border-radius: 8px 8px 0 0;
                         position: relative;
                         letter-spacing: 0.2px;

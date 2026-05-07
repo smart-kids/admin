@@ -50,6 +50,14 @@ const allData = {
 // Centralized subscriptions object. Each key will hold an array of callbacks.
 const subs = {};
 let schoolID = undefined;
+let isLoading = false;
+
+const notifyLoading = (state) => {
+    isLoading = state;
+    if (Array.isArray(subs.loading)) {
+        subs.loading.forEach(cb => cb({ loading: state }));
+    }
+};
 
 /**
  * =================================================================
@@ -342,7 +350,7 @@ var Data = (function () {
 
     const init = () => {
         const FRAGMENT_USER_DATA = `fragment UserData on user { names email phone }`;
-        const FRAGMENT_SCHOOL_DETAILS = `fragment schoolDetails on school { id name phone email address logo themeColor studentsCount parentsCount gradeOrder }`;
+        const FRAGMENT_SCHOOL_DETAILS = `fragment schoolDetails on school { id name phone email address logo themeColor studentsCount parentsCount gradeOrder isDeleted }`;
         const FRAGMENT_GRADES_DATA = `fragment GradesData on school {
             grades { 
                 id name subjectsOrder 
@@ -907,14 +915,19 @@ var Data = (function () {
             return;
         }
 
-        queries.forEach(({ query: qStr, variables = {} }) => {
-            query(qStr, variables)
+        notifyLoading(true);
+        const promises = queries.map(({ query: qStr, variables = {} }) => {
+            return query(qStr, variables)
                 .then((response) => mergeAndNotify(response))
                 .catch(err => {
                     if (err?.response?.status !== 401) {
                         console.error("GraphQL Query Failed:", err);
                     }
                 });
+        });
+
+        Promise.allSettled(promises).then(() => {
+            notifyLoading(false);
         });
     };
 
@@ -1660,6 +1673,15 @@ var Data = (function () {
     });
 
     instance = {
+        loading: {
+            subscribe: (callback) => {
+                if (!subs.loading) subs.loading = [];
+                subs.loading.push(callback);
+                // Trigger immediately with current state
+                callback({ loading: isLoading });
+                return () => { subs.loading = subs.loading.filter(cb => cb !== callback); };
+            }
+        },
         ...generatedApis,
         init,
         auth: {
@@ -1798,15 +1820,45 @@ var Data = (function () {
                 const currentSchoolId = localStorage.getItem("school");
                 return allData.schools.find(s => String(s.id) === String(currentSchoolId)) || {};
             },
-            archive: () => new Promise(async (resolve, reject) => {
-                const school = instance.schools.getSelected();
-                if (!school.id) return reject("No school selected");
-                await mutate(`mutation ($data: Uschool!) { schools { archive(school: $data) { id } } }`, { data: { id: school.id } });
-                allData.schools = allData.schools.filter(s => String(s.id) !== String(school.id));
-                if (Array.isArray(subs.schools)) {
-                    subs.schools.forEach(sCb => sCb({ schools: [...allData.schools] }));
+            delete: (school) => instance.schools.archive(school),
+            archive: (schoolToDelete) => new Promise(async (resolve, reject) => {
+                try {
+                    const school = schoolToDelete || instance.schools.getSelected();
+                    if (!school.id) return reject("No school selected");
+                    await mutate(`mutation ($data: Uschool!) { schools { archive(school: $data) { id } } }`, { data: { id: school.id } });
+                    
+                    // Soft delete: mark as isDeleted instead of filtering out
+                    const cachedSchool = allData.schools.find(s => String(s.id) === String(school.id));
+                    if (cachedSchool) cachedSchool.isDeleted = true;
+                    
+                    if (Array.isArray(subs.schools)) {
+                        const selectedSchool = allData.schools.find(s => String(s.id) === String(schoolID));
+                        subs.schools.forEach(sCb => sCb({ schools: [...allData.schools], selectedSchool: selectedSchool || {} }));
+                    }
+                    resolve(cachedSchool);
+                } catch (error) {
+                    console.error("Error archiving school:", error);
+                    reject(error);
                 }
-                resolve(school);
+            }),
+            restore: (schoolToRestore) => new Promise(async (resolve, reject) => {
+                try {
+                    const { id } = schoolToRestore;
+                    await mutate(`mutation ($data: Uschool!) { schools { restore(school: $data) { id } } }`, { data: { id } });
+                    
+                    // Un-archive
+                    const cachedSchool = allData.schools.find(s => String(s.id) === String(id));
+                    if (cachedSchool) cachedSchool.isDeleted = false;
+                    
+                    if (Array.isArray(subs.schools)) {
+                        const selectedSchool = allData.schools.find(s => String(s.id) === String(schoolID));
+                        subs.schools.forEach(sCb => sCb({ schools: [...allData.schools], selectedSchool: selectedSchool || {} }));
+                    }
+                    resolve(cachedSchool);
+                } catch (error) {
+                    console.error("Error restoring school:", error);
+                    reject(error);
+                }
             }),
             charge: (phone, amount, metadata = {}, forcedSchoolId) => {
                 const schoolId = forcedSchoolId || instance.schools.getSelected()?.id;

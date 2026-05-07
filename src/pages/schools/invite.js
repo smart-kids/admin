@@ -64,7 +64,7 @@ class Modal extends React.Component {
                 </button>
               </div>
               <div className="modal-body">
-                <p>{`Are you sure you want to send a school invite SMS to: "${this.props.school.name}"?`}</p>
+                <p>{`Are you sure you want to send a school invite SMS to: "${this.props.school?.name || ''}"?`}</p>
               </div>
               <div className="modal-footer">
                 {!this.state.loading ? (

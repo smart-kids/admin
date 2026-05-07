@@ -59,6 +59,7 @@ class Navbar extends React.Component {
     openMobileSubmenu: null, // State for mobile accordion submenus
     showSchoolSelector: false, // State for desktop school selector dropdown
     showManageData: false, // State for manage data dropdown
+    isDataLoading: false, // State to track data loading from Data utility
   };
 
   schoolSelectorRef = React.createRef();
@@ -96,7 +97,7 @@ class Navbar extends React.Component {
     });
 
     this.schoolsSubscription = Data.schools.subscribe(({ schools, selectedSchool }) => {
-      const schoolsArray = schools || [];
+      const schoolsArray = (schools || []).filter(s => s && s.id && !s.isDeleted);
       console.log("Navbar - subscription callback:", { schoolsArray: schoolsArray.length, selectedSchool });
       
       // Force fetchingSchools to false if we have schools data
@@ -153,6 +154,10 @@ class Navbar extends React.Component {
     // Initialize dark mode
     this.initializeDarkMode();
 
+    this.loadingSubscription = Data.loading.subscribe(({ loading }) => {
+      this.setState({ isDataLoading: loading });
+    });
+
     app.init();
     this.initProfileOffcanvas();
     // Initial menu setup
@@ -169,6 +174,9 @@ class Navbar extends React.Component {
     }
     if (this.schoolsSubscription) {
       this.schoolsSubscription();
+    }
+    if (this.loadingSubscription) {
+      this.loadingSubscription();
     }
   }
 
@@ -717,32 +725,8 @@ class Navbar extends React.Component {
         .context-control-container {
             display: flex;
             align-items: center;
-            background: rgba(0, 0, 0, 0.03);
-            border: 1px solid rgba(0, 0, 0, 0.05);
-            border-radius: 12px;
-            padding: 4px;
+            gap: 15px;
             transition: all 0.3s ease;
-        }
-        [data-theme='dark'] .context-control-container {
-            background: rgba(255, 255, 255, 0.05);
-            border-color: rgba(255, 255, 255, 0.1);
-        }
-        .context-control-container:hover {
-            background: rgba(0, 0, 0, 0.05);
-            border-color: rgba(0, 0, 0, 0.1);
-        }
-        [data-theme='dark'] .context-control-container:hover {
-            background: rgba(255, 255, 255, 0.08);
-            border-color: rgba(255, 255, 255, 0.15);
-        }
-        .context-divider {
-            width: 1px;
-            height: 20px;
-            background: rgba(0, 0, 0, 0.1);
-            margin: 0 4px;
-        }
-        [data-theme='dark'] .context-divider {
-            background: rgba(255, 255, 255, 0.1);
         }
         .manage-data-cog-btn {
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -753,15 +737,12 @@ class Navbar extends React.Component {
             opacity: 1 !important;
         }
         .school-selector-btn {
-            padding: 6px 12px !important;
+            padding: 8px 0 !important;
             border-radius: 8px !important;
             transition: all 0.2s ease !important;
         }
         .school-selector-btn:hover {
-            background: rgba(0, 0, 0, 0.05) !important;
-        }
-        [data-theme='dark'] .school-selector-btn:hover {
-            background: rgba(255, 255, 255, 0.05) !important;
+            opacity: 0.8;
         }
     `;
 
@@ -770,7 +751,7 @@ class Navbar extends React.Component {
         <style>{customHoverStyle}</style>
         {isMobile && this.renderMobileNav()}
         {isMobile && this.renderBottomNav()}
-        {fetchingSchools && <Pace color={paceLoaderColor} height={5} style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 2000 }} />}
+        {(fetchingSchools || this.state.isDataLoading) && <Pace color={paceLoaderColor} height={5} style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 2000 }} />}
 
         {/* DESKTOP TOP NAVBAR (Remains Fixed) */}
         <div id="kt_header" className="kt-header kt-grid__item d-none d-lg-flex" style={{ backgroundColor: useSchoolTheme ? effectiveTopBarBgColor : GLASS_BG, backdropFilter: GLASS_BACKDROP, alignItems: 'center', justifyContent: 'space-between', height: `${topNavbarHeight}px`, zIndex: 1002, position: 'fixed', top: `${gapBetweenNavbars}px`, left: `${secondaryNavbarHorizontalMargin}px`, right: `${secondaryNavbarHorizontalMargin}px`, borderRadius: '16px', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)', padding: `0 30px`, border: '1px solid rgba(255, 255, 255, 0.4)', transition: 'all 0.3s ease' }}>
@@ -789,11 +770,18 @@ class Navbar extends React.Component {
                 {!isTeacher && (
                     <li className="kt-menu__item kt-menu__item--submenu kt-menu__item--rel" data-ktmenu-submenu-toggle="click" aria-haspopup="true">
                         <a href="!#" onClick={e => e.preventDefault()} className="kt-menu__link kt-menu__toggle">
-                        <span className="kt-menu__link-text" style={{ ...topNavlinkStyle, fontWeight: '500' }}>SMS Balance {showLowBalanceIndicator && <span className="balance-dot" title="Low Balance Notice"></span>}</span>
+                        <span className="kt-menu__link-text" style={{ ...topNavlinkStyle, fontWeight: '500' }}>Billing & Invoices {showLowBalanceIndicator && <span className="balance-dot" title="Low Balance Notice"></span>}</span>
                         <i className="kt-menu__hor-arrow la la-angle-down" style={{ ...topNavIconStyle, color: effectiveTopBarTextColor }} />
                     </a>
                     <div className="kt-menu__submenu kt-menu__submenu--classic kt-menu__submenu--left">
                         <ul className="kt-menu__subnav">
+                            <li className="kt-menu__item" aria-haspopup="true">
+                            <Link to="/finance/institutional-deposits" className="kt-menu__link">
+                                <span className="kt-menu__link-text" style={{ color: effectiveTopBarTextColor }}>
+                                Billing & Invoices
+                                </span>
+                            </Link>
+                            </li>
                         {financeItems.map(item => (
                             <li key={item.path} className="kt-menu__item" aria-haspopup="true">
                             <Link to={item.path} className="kt-menu__link">
@@ -811,21 +799,7 @@ class Navbar extends React.Component {
             </div>
           </div>
             {/* Billing & Invoices Link */}
-            <div className="kt-header__topbar-item" style={{ marginRight: '15px' }}>
-              <Link 
-                to="/finance/institutional-deposits"
-                className="kt-header__topbar-wrapper" 
-                style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.1)', borderRadius: '8px', padding: '10px', display: 'flex', alignItems: 'center', position: 'relative', textDecoration: 'none' }}
-                title="Billing & Invoices"
-              >
-                <i className="la la-credit-card" style={{ color: effectiveTopBarTextColor, fontSize: '1.4rem' }}></i>
-                {selectedSchool?.financial?.unpaidInvoicesCount > 0 && (
-                  <span style={{ position: 'absolute', top: '2px', right: '2px', backgroundColor: '#FA064B', color: '#fff', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold', border: '2px solid var(--glass-bg)', animation: 'badgePulse 2s infinite' }}>
-                    !
-                  </span>
-                )}
-              </Link>
-            </div>
+            
             {/* Dark Mode Toggle Button */}
             <div className="kt-header__topbar-item" style={{ marginRight: '15px' }}>
               <div 
@@ -933,10 +907,10 @@ class Navbar extends React.Component {
                         <ul className="kt-menu__nav" style={{margin: 0, padding: 0}}>
                             <li className={`kt-menu__item ${availableSchools.length > 1 ? 'kt-menu__item--submenu kt-menu__item--rel' : ''} ${this.state.showSchoolSelector ? 'kt-menu__item--hover' : ''}`} aria-haspopup="true">
                                 <a href="javascript:;" onClick={e => { e.preventDefault(); e.stopPropagation(); this.setState({ showSchoolSelector: !this.state.showSchoolSelector, showManageData: false }); }} className={`kt-menu__link school-selector-btn ${availableSchools.length > 1 ? 'kt-menu__toggle' : ''}`} style={{ textDecoration: 'none' }}>
-                                    <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap', letterSpacing: '-0.2px' }}>
+                                    <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', letterSpacing: '-0.5px' }}>
                                         {selectedSchool?.name || 'Shule Plus'}
                                     </span>
-                                    {availableSchools.length > 1 && <i className="la la-angle-down ml-2" style={{fontSize: '0.7rem', opacity: 0.5, color: 'var(--text-primary)', transition: 'transform 0.3s ease', transform: this.state.showSchoolSelector ? 'rotate(180deg)' : 'none'}} />}
+                                    {availableSchools.length > 1 && <i className="la la-angle-down ml-3" style={{fontSize: '1.4rem', color: 'var(--text-primary)', transition: 'transform 0.3s ease', transform: this.state.showSchoolSelector ? 'rotate(180deg)' : 'none'}} />}
                                 </a>
                                 {availableSchools.length > 1 && this.state.showSchoolSelector && (
                                     <div className="kt-menu__submenu kt-menu__submenu--classic kt-menu__submenu--left" style={{ display: 'block', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', zIndex: 1200, marginTop: '10px', width: '500px' }}>
@@ -971,31 +945,29 @@ class Navbar extends React.Component {
                     </div>
                 </div>
 
-                <div className="context-divider"></div>
-
                 {/* MANAGE DATA COG */}
                 {!isTeacher && (
                     <div className="kt-header-menu-wrapper" style={{ zIndex: 1100 }} ref={this.manageDataRef}>
                         <div className="kt-header-menu">
                             <ul className="kt-menu__nav" style={{margin: 0, padding: 0}}>
                                 <li className={`kt-menu__item kt-menu__item--submenu kt-menu__item--rel ${this.state.showManageData ? 'kt-menu__item--hover' : ''}`} aria-haspopup="true">
-                                    <a href="javascript:;" onClick={e => { e.preventDefault(); e.stopPropagation(); this.setState({ showManageData: !this.state.showManageData, showSchoolSelector: false }); }} className="kt-menu__link manage-data-cog-btn" style={{ textDecoration: 'none', padding: '8px', borderRadius: '8px', backgroundColor: this.state.showManageData ? 'rgba(0,0,0,0.05)' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <i className="la la-cog" style={{ fontSize: '1.2rem', color: 'var(--text-primary)', opacity: this.state.showManageData ? 1 : 0.6, transition: 'all 0.3s ease' }} />
+                                    <a href="javascript:;" onClick={e => { e.preventDefault(); e.stopPropagation(); this.setState({ showManageData: !this.state.showManageData, showSchoolSelector: false }); }} className="kt-menu__link manage-data-cog-btn" style={{ textDecoration: 'none', padding: '0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <i className="la la-cog" style={{ fontSize: '1.4rem', color: 'var(--text-primary)', transition: 'all 0.3s ease' }} />
                                     </a>
                                     {this.state.showManageData && (
                                         <div className="kt-menu__submenu kt-menu__submenu--classic kt-menu__submenu--left" style={{ display: 'block', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', zIndex: 1200, marginTop: '10px', width: '500px' }}>
-                                            <div style={{ padding: '12px 15px', borderBottom: '1px solid var(--border-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.9rem' }}>Manage Data</span>
-                                                <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>{manageDataItems.length} Modules</span>
+                                            <div style={{ padding: '10px 15px', borderBottom: '1px solid var(--border-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.85rem', letterSpacing: '-0.2px' }}>Manage Data</span>
+                                                <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 700, opacity: 0.8 }}>{manageDataItems.length} MODULES</span>
                                             </div>
-                                            <ul className="kt-menu__subnav" style={{ padding: '10px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+                                            <ul className="kt-menu__subnav" style={{ padding: '10px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
                                                 {manageDataItems.map(item => (
                                                     <li key={item.path} className="kt-menu__item" aria-haspopup="true">
-                                                        <Link to={item.path} onClick={() => this.setState({ showManageData: false })} className="kt-menu__link" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', padding: '10px 5px', borderRadius: '8px', transition: 'all 0.2s ease', textAlign: 'center' }}>
-                                                            <div style={{ width: '36px', height: '36px', borderRadius: '8px', backgroundColor: `${selectedSchool?.theme_color || '#3966ff'}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '2px', transition: 'all 0.2s ease' }} className="manage-data-icon-wrapper">
-                                                                <item.IconComponent style={{ width: '18px', height: '18px', color: selectedSchool?.theme_color || 'var(--brand-color)' }} />
+                                                        <Link to={item.path} onClick={() => this.setState({ showManageData: false })} className="kt-menu__link" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 5px', borderRadius: '10px', transition: 'all 0.2s ease', textAlign: 'center', width: '100%' }}>
+                                                            <div style={{ width: '42px', height: '42px', borderRadius: '10px', backgroundColor: `${selectedSchool?.theme_color || '#3966ff'}12`, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s ease', marginBottom: '6px' }} className="manage-data-icon-wrapper">
+                                                                <item.IconComponent style={{ width: '24px', height: '24px', color: selectedSchool?.theme_color || 'var(--brand-color)' }} />
                                                             </div>
-                                                            <span className="kt-menu__link-text" style={{ color: 'var(--text-primary)', fontWeight: '600', fontSize: '0.72rem', lineHeight: '1.2' }}>
+                                                            <span className="kt-menu__link-text" style={{ color: 'var(--text-primary)', fontWeight: '800', fontSize: '0.75rem', lineHeight: '1.2', display: 'block', maxWidth: '100%' }}>
                                                                 {item.label}
                                                             </span>
                                                         </Link>

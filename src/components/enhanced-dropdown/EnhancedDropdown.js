@@ -5,7 +5,7 @@ import './DropdownButtonFixes.css';
 const EnhancedDropdown = ({ 
   value, 
   onChange, 
-  options, 
+  options = [], 
   placeholder = "Select...",
   labelKey = 'name',
   valueKey = 'id',
@@ -16,13 +16,48 @@ const EnhancedDropdown = ({
   minWidth = '0',
   showCount = false,
   countKey = null,
-  emptyMessage = "No options available"
+  emptyMessage = "No options available",
+  persistenceKey = null
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const dropdownRef = useRef(null);
   const searchRef = useRef(null);
+
+  // Persistence & "All" Defaulting logic
+  useEffect(() => {
+    if (!options || options.length === 0) return;
+
+    // Only attempt to default/restore if current value is empty
+    if (value === undefined || value === null || value === '') {
+      let targetValue = null;
+
+      // 1. Try to restore from localStorage
+      if (persistenceKey) {
+        const savedValue = localStorage.getItem(`ed_pref_${persistenceKey}`);
+        if (savedValue && options.find(o => String(o[valueKey]) === savedValue)) {
+          targetValue = savedValue;
+        }
+      }
+
+      // 2. Default to "All" if no valid persisted value
+      if (targetValue === null) {
+        const allOption = options.find(o => {
+          const label = String(o[labelKey] || '').toLowerCase();
+          const val = String(o[valueKey] || '').toLowerCase();
+          return label.includes('all') || val === 'all' || val === '';
+        });
+        if (allOption) {
+          targetValue = allOption[valueKey];
+        }
+      }
+
+      if (targetValue !== null && String(targetValue) !== String(value)) {
+        onChange(targetValue);
+      }
+    }
+  }, [options, persistenceKey, value, onChange, labelKey, valueKey]);
 
   // Filter options based on search term
   const filteredOptions = useMemo(() => {
@@ -93,7 +128,14 @@ const EnhancedDropdown = ({
   };
 
   const handleOptionSelect = (option) => {
-    onChange(option[valueKey]);
+    const newVal = option[valueKey];
+    onChange(newVal);
+    
+    // Persist choice
+    if (persistenceKey) {
+      localStorage.setItem(`ed_pref_${persistenceKey}`, String(newVal));
+    }
+
     setIsOpen(false);
     setSearchTerm('');
     setHighlightedIndex(-1);

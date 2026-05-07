@@ -109,6 +109,15 @@ class BasicTable extends React.Component {
     }
   }
 
+  restoreSchool = async (school) => {
+    try {
+      await Data.schools.restore(school);
+      ISuccessMessage.show({ message: "School has been restored successfuly!", header: "Restore School" });
+    } catch (error) {
+      throw new Error(error.message)
+    }
+  }
+
   render() {
     const { edit, schoolToInvite, remove, schools, filteredSchools, admin } = this.state;
     return (
@@ -194,6 +203,9 @@ class BasicTable extends React.Component {
                   this.setState({ remove: school }, () => {
                     deleteModalInstance.show();
                   });
+                }}
+                restore={school => {
+                  this.restoreSchool(school);
                 }}
                 invite={school => {
                   this.setState({ schoolToInvite: school }, () => {

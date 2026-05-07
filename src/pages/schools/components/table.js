@@ -122,75 +122,95 @@ export default props => {
           </tr>
         </thead>
         <tbody>
-          {data.map((row, rowIndex) => (
-            <tr key={row.id || `row-${rowIndex}`}> {/* Ensure row.id is unique if possible */}
-              {headers.map(header => (
-                <td key={`${header.key || header.label}-${row.id || rowIndex}`}>
-                  {row[header.key]}
-                </td>
-              ))}
+          {data.map((row, rowIndex) => {
+            const isDeleted = row.isDeleted === true;
+            return (
+              <tr 
+                key={row.id || `row-${rowIndex}`}
+                style={isDeleted ? { opacity: 0.6, backgroundColor: '#f3f6f9' } : {}}
+              >
+                {headers.map(header => (
+                  <td key={`${header.key || header.label}-${row.id || rowIndex}`}>
+                    {row[header.key]}
+                  </td>
+                ))}
 
-              {hasActions && (
-                <td
-                  data-field="Actions"
-                  data-autohide-disabled="false"
-                  className="kt-datatable__cell" // Keep if this class is relevant for your styling
-                >
-                  <span
-                    style={{
-                      overflow: "visible",
-                      position: "relative",
-                      display: "inline-flex",
-                      gap: "0.5rem" // Consistent spacing for buttons
-                    }}
+                {hasActions && (
+                  <td
+                    data-field="Actions"
+                    data-autohide-disabled="false"
+                    className="kt-datatable__cell"
                   >
-                    {options.editable === true && typeof edit === 'function' && (
-                      <button
-                        title="Edit details"
-                        type="button"
-                        className="btn btn-sm btn-clean btn-icon btn-icon-md"
-                        onClick={() => edit(row)}
-                      >
-                        <i style={{ color: "#1dc9b7" }} className="la la-edit" />
-                      </button>
-                    )}
-                    {options.deleteable === true && typeof deleteItem === 'function' && (
-                      <button
-                        title="Delete"
-                        type="button"
-                        className="btn btn-sm btn-clean btn-icon btn-icon-md"
-                        onClick={() => deleteItem(row)}
-                      >
-                        <i style={{ color: "#fd397a" }} className="la la-trash" />
-                      </button>
-                    )}
-                    {typeof invite === 'function' && (
-                       <button
-                          title="Invite"
+                    <span
+                      style={{
+                        overflow: "visible",
+                        position: "relative",
+                        display: "inline-flex",
+                        gap: "0.5rem"
+                      }}
+                    >
+                      {isDeleted ? (
+                        <button
+                          title="Restore"
                           type="button"
-                          className="btn btn-sm btn-outline-primary"
-                          onClick={() => invite(row)}
+                          className="btn btn-sm btn-clean btn-icon btn-icon-md"
+                          onClick={() => props.restore && props.restore(row)}
                         >
-                          <i className="la la-envelope" />
-                          <strong>Invite</strong>
+                          <i style={{ color: "#1dc9b7" }} className="la la-undo" />
                         </button>
-                    )}
-                    {options.adminable === true && typeof transfer === 'function' && (
-                      <button
-                        title="Transfer Ownership"
-                        type="button"
-                        className="btn btn-sm btn-outline-danger"
-                        onClick={() => transfer(row)}
-                      >
-                        <i className="la la-random" />
-                        <strong>Transfer</strong>
-                      </button>
-                    )}
-                  </span>
-                </td>
-              )}
-            </tr>
-          ))}
+                      ) : (
+                        <>
+                          {options.editable === true && typeof edit === 'function' && (
+                            <button
+                              title="Edit details"
+                              type="button"
+                              className="btn btn-sm btn-clean btn-icon btn-icon-md"
+                              onClick={() => edit(row)}
+                            >
+                              <i style={{ color: "#1dc9b7" }} className="la la-edit" />
+                            </button>
+                          )}
+                          {options.deleteable === true && typeof deleteItem === 'function' && (
+                            <button
+                              title="Delete"
+                              type="button"
+                              className="btn btn-sm btn-clean btn-icon btn-icon-md"
+                              onClick={() => deleteItem(row)}
+                            >
+                              <i style={{ color: "#fd397a" }} className="la la-trash" />
+                            </button>
+                          )}
+                        </>
+                      )}
+                      
+                      {typeof invite === 'function' && !isDeleted && (
+                         <button
+                            title="Invite"
+                            type="button"
+                            className="btn btn-sm btn-outline-primary"
+                            onClick={() => invite(row)}
+                          >
+                            <i className="la la-envelope" />
+                            <strong>Invite</strong>
+                          </button>
+                      )}
+                      {options.adminable === true && typeof transfer === 'function' && !isDeleted && (
+                        <button
+                          title="Transfer Ownership"
+                          type="button"
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={() => transfer(row)}
+                        >
+                          <i className="la la-random" />
+                          <strong>Transfer</strong>
+                        </button>
+                      )}
+                    </span>
+                  </td>
+                )}
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

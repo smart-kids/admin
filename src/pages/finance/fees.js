@@ -121,8 +121,8 @@ class FeesManagement extends Component {
         feeStructures: [],
 
         // Filters & Search - with localStorage persistence like results management
-        selectedClass: localStorage.getItem('fees_selectedClass') || "",
-        selectedTerm: localStorage.getItem('fees_selectedTerm') || "",
+        selectedClass: "",
+        selectedTerm: "",
         searchTerm: "",
         alphabetFilter: localStorage.getItem('fees_alphabetFilter') || "",
 
@@ -185,16 +185,6 @@ class FeesManagement extends Component {
     };
 
     componentDidMount() {
-        // Restore selections from localStorage like results management
-        let restoredClass = localStorage.getItem('fees_selectedClass');
-        let restoredTerm = localStorage.getItem('fees_selectedTerm');
-        if (restoredClass === 'null' || restoredClass === 'undefined') restoredClass = "";
-        if (restoredTerm === 'null' || restoredTerm === 'undefined') restoredTerm = "";
-
-        this.setState({
-            selectedClass: restoredClass || "",
-            selectedTerm: restoredTerm || ""
-        });
 
         this.unsubClasses = Data.classes.subscribe(({ classes }) => {
             console.log("Classes Update:", classes?.length);
@@ -2206,12 +2196,12 @@ class FeesManagement extends Component {
                     <div className="kt-content kt-grid__item kt-grid__item--fluid pt-0" style={{ height: "100vh" }} id="kt_content">
                         <div className="kt-container pt-0">
                             <div className="card card-custom gutter-b">
-                                <div className="card-header border-0 modern-mobile-header">
+                                <div className="card-header border-0 modern-mobile-header px-4">
                                     <div className="d-flex align-items-center">
                                         <ul className="nav nav-tabs nav-tabs-space nav-tabs-line nav-bold nav-tabs-line-3x border-0 mb-0 custom-tabs-container">
                                             <li className="nav-item">
                                                 <a
-                                                    className={`nav-link py-4 px-6 custom-tab-link ${this.state.activeTab === 'accounts' ? 'active' : ''}`}
+                                                    className={`nav-link py-2 px-6 custom-tab-link ${this.state.activeTab === 'accounts' ? 'active' : ''}`}
                                                     href="#"
                                                     onClick={(e) => { e.preventDefault(); this.setState({ activeTab: 'accounts' }); }}
                                                 >
@@ -2221,7 +2211,7 @@ class FeesManagement extends Component {
                                             </li>
                                             <li className="nav-item">
                                                 <a
-                                                    className={`nav-link py-4 px-6 custom-tab-link ${this.state.activeTab === 'insights' ? 'active' : ''}`}
+                                                    className={`nav-link py-2 px-6 custom-tab-link ${this.state.activeTab === 'insights' ? 'active' : ''}`}
                                                     href="#"
                                                     onClick={(e) => { e.preventDefault(); this.setState({ activeTab: 'insights' }); }}
                                                 >
@@ -2231,7 +2221,7 @@ class FeesManagement extends Component {
                                             </li>
                                             <li className="nav-item">
                                                 <a
-                                                    className={`nav-link py-4 px-6 custom-tab-link ${this.state.activeTab === 'advanced-insights' ? 'active' : ''}`}
+                                                    className={`nav-link py-2 px-6 custom-tab-link ${this.state.activeTab === 'advanced-insights' ? 'active' : ''}`}
                                                     href="#"
                                                     onClick={(e) => { e.preventDefault(); this.setState({ activeTab: 'advanced-insights' }); }}
                                                 >
@@ -2241,7 +2231,7 @@ class FeesManagement extends Component {
                                             </li>
                                             <li className="nav-item">
                                                 <a
-                                                    className={`nav-link py-4 px-6 custom-tab-link ${this.state.activeTab === 'collection-report' ? 'active' : ''}`}
+                                                    className={`nav-link py-2 px-6 custom-tab-link ${this.state.activeTab === 'collection-report' ? 'active' : ''}`}
                                                     href="#"
                                                     onClick={(e) => { e.preventDefault(); this.setState({ activeTab: 'collection-report' }); }}
                                                 >
@@ -2268,6 +2258,7 @@ class FeesManagement extends Component {
                                                     minWidth={window.innerWidth < 991 ? "0" : "200px"}
                                                     showCount={false}
                                                     className="mr-lg-2 mb-2 mb-lg-0"
+                                                    persistenceKey="finance_fees_term"
                                                 />
                                                 {!isTeacher && (
                                                     <div className="ml-1 d-flex">
@@ -2302,6 +2293,7 @@ class FeesManagement extends Component {
                                                     countKey="studentCount"
                                                     countLabel=""
                                                     className="mr-2"
+                                                    persistenceKey="finance_fees_class"
                                                 />
                                                 {!isTeacher && (
                                                     <div className="ml-1 d-flex">
@@ -3507,6 +3499,23 @@ class FeesManagement extends Component {
                         border-bottom: 1px solid #e9ecef;
                         padding: 0;
                         position: relative;
+                        height: 100%;
+                    }
+                    
+                    .modern-mobile-header {
+                        padding-top: 0 !important;
+                        padding-bottom: 0 !important;
+                        min-height: 48px !important;
+                        display: flex !important;
+                        align-items: stretch !important;
+                        justify-content: space-between !important;
+                    }
+
+                    @media (min-width: 992px) {
+                        .modern-mobile-header {
+                            padding-left: 25px !important;
+                            padding-right: 25px !important;
+                        }
                     }
                     
                     .custom-tabs-container::after {
@@ -3528,7 +3537,7 @@ class FeesManagement extends Component {
                         color: #6c757d;
                         background: transparent;
                         transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-                        padding: 14px 18px !important;
+                        padding: 8px 18px !important;
                         border-radius: 8px 8px 0 0;
                         position: relative;
                         letter-spacing: 0.2px;
