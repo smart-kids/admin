@@ -951,8 +951,9 @@ class Navbar extends React.Component {
                         <div className="kt-header-menu">
                             <ul className="kt-menu__nav" style={{margin: 0, padding: 0}}>
                                 <li className={`kt-menu__item kt-menu__item--submenu kt-menu__item--rel ${this.state.showManageData ? 'kt-menu__item--hover' : ''}`} aria-haspopup="true">
-                                    <a href="javascript:;" onClick={e => { e.preventDefault(); e.stopPropagation(); this.setState({ showManageData: !this.state.showManageData, showSchoolSelector: false }); }} className="kt-menu__link manage-data-cog-btn" style={{ textDecoration: 'none', padding: '0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <a href="javascript:;" onClick={e => { e.preventDefault(); e.stopPropagation(); this.setState({ showManageData: !this.state.showManageData, showSchoolSelector: false }); }} className="kt-menu__link manage-data-cog-btn" style={{ textDecoration: 'none', padding: '0 10px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         <i className="la la-cog" style={{ fontSize: '1.4rem', color: 'var(--text-primary)', transition: 'all 0.3s ease' }} />
+                                        <span style={{ fontWeight: '700', color: 'var(--text-primary)', fontSize: '0.9rem', whiteSpace: 'nowrap' }}>Manage Data</span>
                                     </a>
                                     {this.state.showManageData && (
                                         <div className="kt-menu__submenu kt-menu__submenu--classic kt-menu__submenu--left" style={{ display: 'block', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', zIndex: 1200, marginTop: '10px', width: '500px' }}>

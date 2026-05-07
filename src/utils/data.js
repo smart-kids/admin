@@ -45,6 +45,7 @@ const allData = {
     record_of_works: [],
     lesson_plans: [],
     iep_templates: [],
+    invoices: [],
 };
 
 // Centralized subscriptions object. Each key will hold an array of callbacks.
@@ -1665,6 +1666,40 @@ var Data = (function () {
             parentKey: "strand",
             createFields: ['school', 'student', 'strand', 'substrands', 'strengths', 'needs', 'outcome', 'experience', 'resources', 'methods', 'initiationDate', 'terminationDate', 'reflection'],
             updateFields: ['student', 'strand', 'substrands', 'strengths', 'needs', 'outcome', 'experience', 'resources', 'methods', 'initiationDate', 'terminationDate', 'reflection']
+        },
+        {
+            name: "invoices",
+            singularName: "invoice",
+            createFields: ['school', 'amount', 'description', 'status', 'dueDate', 'createdDate'],
+            updateFields: ['id', 'school', 'amount', 'description', 'status', 'dueDate', 'paymentMethod', 'paymentIdentifier', 'confirmedBy', 'confirmedDate'],
+            customMethods: (allData, subs, api) => ({
+                getInvoices: (params = {}) => new Promise(async (resolve, reject) => {
+                    try {
+                        const { school, status } = params;
+                        const queryStr = `
+                            query GetInvoices($school: String, $status: String) {
+                                invoices(school: $school, status: $status) {
+                                    id amount description status dueDate createdDate paymentMethod paymentIdentifier confirmedBy confirmedDate createdAt updatedAt
+                                    school { id name }
+                                }
+                            }
+                        `;
+                        const response = await query(queryStr, { school, status });
+                        const fetchedInvoices = response.invoices || [];
+                        
+                        // Update cache
+                        allData.invoices = fetchedInvoices;
+                        if (Array.isArray(subs.invoices)) {
+                            subs.invoices.forEach(cb => cb({ invoices: [...allData.invoices] }));
+                        }
+                        
+                        resolve(fetchedInvoices);
+                    } catch (error) {
+                        console.error('Failed to fetch invoices:', error);
+                        reject(error);
+                    }
+                })
+            })
         },
     ];
     const generatedApis = {};
