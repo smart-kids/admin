@@ -29,6 +29,21 @@ const TimeTableMatrix = () => {
     workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
   });
 
+  const [showConfig, setShowConfig] = useState(false);
+  const [allocationModal, setAllocationModal] = useState({
+    isOpen: false,
+    slot: null,
+    day: null,
+    time: null
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [showPrintView, setShowPrintView] = useState(false);
+  const [schoolInfo, setSchoolInfo] = useState(null);
+  const [allTimeTablesData, setAllTimeTablesData] = useState({});
+  const [viewMode, setViewMode] = useState(localStorage.getItem('timeTables_viewMode') || 'horizontal'); // 'vertical' or 'horizontal'
+  const [printOrientation, setPrintOrientation] = useState(localStorage.getItem('timeTablesPrint_orientation') || 'portrait');
+
   // Load saved config from schoolInfo when it becomes available
   useEffect(() => {
     if (schoolInfo?.timeTableConfig) {
@@ -49,20 +64,6 @@ const TimeTableMatrix = () => {
       console.error('Error saving timetable config:', err);
     }
   }, []);
-  const [showConfig, setShowConfig] = useState(false);
-  const [allocationModal, setAllocationModal] = useState({
-    isOpen: false,
-    slot: null,
-    day: null,
-    time: null
-  });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [showPrintView, setShowPrintView] = useState(false);
-  const [schoolInfo, setSchoolInfo] = useState(null);
-  const [allTimeTablesData, setAllTimeTablesData] = useState({});
-  const [viewMode, setViewMode] = useState(localStorage.getItem('timeTables_viewMode') || 'horizontal'); // 'vertical' or 'horizontal'
-  const [printOrientation, setPrintOrientation] = useState(localStorage.getItem('timeTablesPrint_orientation') || 'portrait');
 
   // Generate time slots based on configuration
   const timeSlots = useMemo(() => {
