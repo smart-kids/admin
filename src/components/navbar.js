@@ -997,9 +997,10 @@ class Navbar extends React.Component {
                             { path: "/time-tables", label: "Time Tables", icon: "la-calendar-check-o" },
                             { path: "/finance/fees", label: "Fee", icon: "la-money" }
                         ] : [
-                            { path: '/home', label: 'Dashboard', icon: 'la-dashboard' },
-                            { path: '/manage/students', label: 'Students', icon: 'la-users' },
-                            { path: '/finance/fees', label: 'Fee', hideFromTeacher: true, icon: 'la-money' }
+                            { path: "/learning", label: "Learning", icon: "la-graduation-cap" },
+                            { path: "/library", label: "Library", icon: "la-book" },
+                            { path: "/results", label: "Results", icon: "la-bar-chart" },
+                            { path: "/time-tables", label: "Time Tables", icon: "la-calendar-check-o" }
                         ]).map((item) => {
                             if (item.hideFromTeacher && isTeacher) return null;
                             if (item.hidden) return null;

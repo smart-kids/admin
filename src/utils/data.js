@@ -458,6 +458,7 @@ var Data = (function () {
           }
         }
       }
+    }
     timeTableConfig
   }
 `;
