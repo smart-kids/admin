@@ -1080,7 +1080,7 @@ class ResultsMatrix extends React.Component {
     const students = this.getFilteredStudents();
     const currentTerm = terms?.find(t => t.id === selectedTerm) || { name: 'Term' };
     
-    const { selectedGrade } = this.state;
+    const { selectedGrade, grades } = this.state;
     const filteredSubjectsList = availableSubjects.filter(s => {
         if (!s) return false;
         const sGradeId = s.grade?.id || s.grade;
@@ -1190,7 +1190,7 @@ class ResultsMatrix extends React.Component {
                             onChange={(value) => this.handleFilterChange('selectedClass', value)}
                             options={[
                                 { id: '', name: 'ALL Classes' },
-                                ...availableClasses.map(cls => ({
+                                ...classes.map(cls => ({
                                     ...cls,
                                     studentCount: this.getFilteredStudents().filter(student => {
                                         const studentClassId = student.class?.id || student.class || student.class_id;
@@ -1227,7 +1227,7 @@ class ResultsMatrix extends React.Component {
                             onChange={(value) => this.handleFilterChange('selectedGrade', value)}
                             options={[
                                 { id: '', name: 'ALL Grades' },
-                                ...availableGrades.map(grade => ({
+                                ...grades.map(grade => ({
                                     ...grade,
                                     subjectCount: filteredSubjectsList.filter(subject => {
                                         const subjectGradeId = subject.grade?.id || subject.grade;

@@ -16,6 +16,7 @@ const EnhancedDropdown = ({
   minWidth = '0',
   showCount = false,
   countKey = null,
+  countLabel = 'students',
   emptyMessage = "No options available",
   persistenceKey = null
 }) => {
@@ -169,8 +170,8 @@ const EnhancedDropdown = ({
         if (typeof countValue === 'object' && countValue !== null) {
           countValue = Object.keys(countValue).length;
         }
-        const countLabel = selectedOption.countLabel || 'students';
-        return `${label} (${countValue} ${countLabel})`;
+        const finalCountLabel = selectedOption.countLabel || countLabel;
+        return `${label} (${countValue} ${finalCountLabel})`;
       }
       return label;
     }
@@ -231,7 +232,7 @@ const EnhancedDropdown = ({
                     {showCount && countKey && option[countKey] !== undefined && (
                       <span className="enhanced-dropdown-option-count">
                         <span className="enhanced-dropdown-count-shape">
-                          {Array.isArray(option[countKey]) ? option[countKey].length : option[countKey]} {option.countLabel || 'students'}
+                          {Array.isArray(option[countKey]) ? option[countKey].length : option[countKey]} {option.countLabel || countLabel}
                         </span>
                       </span>
                     )}
