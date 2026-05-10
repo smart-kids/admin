@@ -366,6 +366,7 @@ var Data = (function () {
                     } 
                 } 
             }
+            timeTableConfig
         }`;
         const FRAGMENT_PLANNING_DATA = `
   fragment PlanningData on school {
@@ -457,7 +458,7 @@ var Data = (function () {
           }
         }
       }
-    }
+    timeTableConfig
   }
 `;
         const FRAGMENT_GRADES_IMAGES_DATA = `fragment GradesImagesData on school {
@@ -2048,29 +2049,24 @@ var Data = (function () {
                 });
                 return timeTableData;
             },
-            save: async (classId, timeTableData) => {
+            save: async (classId, gridData) => {
                 const schoolId = localStorage.getItem("school");
-                
-                // Convert timeTableData object to array for mutation
-                const allocations = Object.entries(timeTableData).map(([key, allocation]) => ({
+                const allocations = Object.values(gridData).map(item => ({
+                    day: item.day,
+                    time: item.time,
+                    subject: item.subject?.id || item.subject,
+                    teacher: item.teacher?.id || item.teacher,
                     class: classId,
-                    day: allocation.day,
-                    time: allocation.time,
-                    subject: allocation.subject.id,
-                    teacher: allocation.teacher.id,
                     school: schoolId
                 }));
                 
-                const response = await mutate(`mutation SaveTimeTable($allocations: [TimeTableInput]!) {
-                    timeTables {
-                        bulkSave(allocations: $allocations) {
-                            id
-                            success
-                        }
-                    }
-                }`, { allocations });
-                
-                return response.timeTables?.bulkSave || [];
+                return mutate(`mutation BulkSaveTimeTable($allocations: [TimeTableInput]!) { timeTables { bulkSave(allocations: $allocations) { success message } } }`, { allocations });
+            },
+            saveConfig: async (config) => {
+                const id = localStorage.getItem("school");
+                return mutate(`mutation UpdateSchoolConfig($school: USchool!) { school { update(school: $school) { id timeTableConfig } } }`, { 
+                    school: { id, timeTableConfig: config } 
+                });
             },
             getTeacherAvailability: async (teacherId, day, time) => {
                 const schoolId = localStorage.getItem("school");

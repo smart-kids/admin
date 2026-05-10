@@ -28,6 +28,27 @@ const TimeTableMatrix = () => {
     endTime: '15:30', // Updated to 15:30
     workingDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
   });
+
+  // Load saved config from schoolInfo when it becomes available
+  useEffect(() => {
+    if (schoolInfo?.timeTableConfig) {
+      console.log('Loading saved timetable config:', schoolInfo.timeTableConfig);
+      setConfig(prev => ({
+        ...prev,
+        ...schoolInfo.timeTableConfig
+      }));
+    }
+  }, [schoolInfo?.id]);
+
+  // Save config when it changes
+  const saveConfig = useCallback(async (newConfig) => {
+    try {
+      console.log('Saving timetable config:', newConfig);
+      await Data.timeTables.saveConfig(newConfig);
+    } catch (err) {
+      console.error('Error saving timetable config:', err);
+    }
+  }, []);
   const [showConfig, setShowConfig] = useState(false);
   const [allocationModal, setAllocationModal] = useState({
     isOpen: false,
@@ -288,6 +309,12 @@ const TimeTableMatrix = () => {
       console.error('Error saving allocation:', error);
     }
   }, [allocationModal, selectedClass, timeTableData]);
+
+  // Update handleConfigChange to save to backend
+  const handleConfigChange = useCallback((newConfig) => {
+    setConfig(newConfig);
+    saveConfig(newConfig);
+  }, [saveConfig]);
 
   // Check for teacher conflicts
   const checkTeacherConflict = useCallback((teacher, day, time, excludeCurrentSlot = false) => {
@@ -574,7 +601,7 @@ const TimeTableMatrix = () => {
               }}>
                 <TimeTableConfig 
                   config={config}
-                  onConfigChange={setConfig}
+                  onConfigChange={handleConfigChange}
                   onClose={() => setShowConfig(false)}
                 />
               </div>
