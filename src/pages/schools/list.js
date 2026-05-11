@@ -35,7 +35,9 @@ class BasicTable extends React.Component {
     admin: false,
     remove: {},
     schoolToEdit: "",
-    selectedSchool: "",
+    isEditModalOpen: false,
+    showDeleted: false,
+    searchQuery: "",
     schools: [],
     filteredSchools: []
   };
@@ -47,18 +49,57 @@ class BasicTable extends React.Component {
       this.setState({ admin: true });
     }
 
-    const schools = Data.schools.list();
-    this.setState({ schools, filteredSchools: schools });
-
-    Data.schools.subscribe(({ schools }) => {
-      this.setState({ schools, filteredSchools: schools });
+    this.unsubscribe = Data.schools.subscribe(({ schools }) => {
+      this.setState({ schools }, () => {
+        this.updateFilteredSchools();
+      });
     });
   }
 
-  onSearch = e => {
-    const { schools } = this.state
-    const filteredSchools = schools.filter(school => school.name.toLowerCase().match(e.target.value.toLowerCase()))
-    this.setState({ filteredSchools })
+  componentWillUnmount() {
+    if (this.unsubscribe) this.unsubscribe();
+  }
+
+  onSearch = (query) => {
+    this.setState({ searchQuery: query }, () => {
+      this.updateFilteredSchools();
+    });
+  }
+
+  updateFilteredSchools = () => {
+    const { schools, searchQuery, showDeleted } = this.state;
+    
+    let filtered = schools;
+
+    // 1. Filter by deleted status
+    if (!showDeleted) {
+      filtered = filtered.filter(s => !s.isDeleted);
+    }
+
+    // 2. Filter by search query
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(s => 
+        (s.name && s.name.toLowerCase().includes(q)) ||
+        (s.phone && s.phone.toLowerCase().includes(q)) ||
+        (s.email && s.email.toLowerCase().includes(q))
+      );
+    }
+
+    // 3. Sort by student numbers (highest to lowest)
+    filtered.sort((a, b) => {
+      const countA = parseInt(a.studentsCount || 0);
+      const countB = parseInt(b.studentsCount || 0);
+      return countB - countA;
+    });
+
+    this.setState({ filteredSchools: filtered });
+  }
+
+  onToggleDeleted = (e) => {
+    this.setState({ showDeleted: e.target.checked }, () => {
+      this.updateFilteredSchools();
+    });
   }
 
   sendInvite = async (school) => {
@@ -90,7 +131,7 @@ class BasicTable extends React.Component {
 
   editSchool = async (school) => {
     try {
-      const validSchoolFields = ['id', 'name', 'phone', 'email', 'localStorage', 'themeColor', 'address', 'inviteSmsText', 'gradeOrder', 'termOrder'];
+      const validSchoolFields = ['id', 'name', 'phone', 'email', 'localStorage', 'themeColor', 'address', 'schoolSize', 'schoolType', 'schoolLevel', 'numberOfStudents', 'logo', 'inviteSmsText', 'gradeOrder', 'termOrder'];
       const filteredSchoolData = keepOnlyKeys(school, validSchoolFields);
       await Data.schools.update(filteredSchoolData);
       ISuccessMessage.show({ message: "School has been updated successfuly!", header: "Edit School" });
@@ -100,7 +141,6 @@ class BasicTable extends React.Component {
   }
 
   deleteSchool = async (school) => {
-    console.dir(Data.schools);
     try {
       await Data.schools.delete(school);
       ISuccessMessage.show({ message: "School has been deleted successfuly!", header: "Delete School" });
@@ -119,7 +159,7 @@ class BasicTable extends React.Component {
   }
 
   render() {
-    const { edit, schoolToInvite, remove, schools, filteredSchools, admin } = this.state;
+    const { edit, schoolToInvite, remove, filteredSchools } = this.state;
     return (
       <div className="kt-quick-panel--right kt-demo-panel--right kt-offcanvas-panel--right kt-header--fixed kt-header-mobile--fixed kt-aside--enabled kt-aside--left kt-aside--fixed kt-aside--offcanvas-default kt-page--loading">
         <div className="kt-grid kt-grid--hor kt-grid--root">
@@ -134,22 +174,25 @@ class BasicTable extends React.Component {
               <div className="kt-form kt-fork--label-right kt-margin-t-20 kt-margin-b-10">
                 <div className="row align-items-center">
                   <div className="col-xl-8 order-2 order-xl-1">
-                    <div className="row align-items-center">
-                      <div className="col-md-4 kt-margin-b-20-tablet-and-mobile">
-                        <div className="kt-input-icon kt-input-icon--left">
-                          <input
-                            type="text"
-                            className="form-control"
-                            placeholder="Search..."
-                            onChange={this.onSearch}
-                            id="generalSearch"
-                          />
-                          <span className="kt-input-icon__icon kt-input-icon__icon--left">
-                            <span>
-                              <i className="la la-search" />
-                            </span>
-                          </span>
-                        </div>
+                    <div className="d-flex align-items-center">
+                      <input
+                        className="form-control mr-3"
+                        type="text"
+                        placeholder="Search schools..."
+                        onChange={(e) => this.onSearch(e.target.value)}
+                        style={{ width: '250px' }}
+                      />
+                      <div className="custom-control custom-switch">
+                        <input
+                          type="checkbox"
+                          className="custom-control-input"
+                          id="showDeletedToggle"
+                          checked={this.state.showDeleted}
+                          onChange={this.onToggleDeleted}
+                        />
+                        <label className="custom-control-label text-muted" htmlFor="showDeletedToggle" style={{ cursor: 'pointer' }}>
+                          Show Deleted
+                        </label>
                       </div>
                     </div>
                   </div>
@@ -185,12 +228,38 @@ class BasicTable extends React.Component {
                     key: "phone"
                   },
                   {
+                    label: "Students",
+                    key: "studentsCount",
+                    render: (val) => <span className="font-weight-bold text-primary">{val || 0}</span>
+                  },
+                  {
                     label: "Email",
                     key: "email"
                   },
                   {
                     label: "Address",
                     key: "address"
+                  },
+                  {
+                    label: "Type",
+                    key: "schoolType"
+                  },
+                  {
+                    label: "Level",
+                    key: "schoolLevel"
+                  },
+                  {
+                    label: "Size",
+                    key: "schoolSize"
+                  },
+                  {
+                    label: "Students (Reg)",
+                    key: "numberOfStudents"
+                  },
+                  {
+                    label: "Status",
+                    key: "isDeleted",
+                    render: (val) => val ? <span className="badge badge-danger">Deleted</span> : <span className="badge badge-success">Active</span>
                   }
                 ]}
                 data={this.state.filteredSchools}

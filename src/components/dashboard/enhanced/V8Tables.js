@@ -9,13 +9,18 @@ export class V8DataTable extends Component {
     sortBy: 'studentsCount',
     sortOrder: 'desc',
     currentPage: 1,
-    itemsPerPage: 10
+    itemsPerPage: 10,
+    showDeleted: false
   };
 
   componentDidMount() {
     const { sortBy, sortOrder } = this.props;
     if (sortBy) this.setState({ sortBy, sortOrder });
   }
+
+  toggleShowDeleted = () => {
+    this.setState(prevState => ({ showDeleted: !prevState.showDeleted }));
+  };
 
   handleSort = (column) => {
     const { sortBy, sortOrder } = this.state;
@@ -59,12 +64,18 @@ export class V8DataTable extends Component {
 
   processData = () => {
     const { data, payments, searchTerm } = this.props;
-    const { sortBy, sortOrder } = this.state;
+    const { sortBy, sortOrder, showDeleted } = this.state;
 
     if (!data || !payments) return [];
 
+    // Filter by deleted status first
+    let filteredData = data;
+    if (!showDeleted) {
+      filteredData = data.filter(school => !school.isDeleted);
+    }
+
     // Process data with metrics
-    const processedData = data.map(school => {
+    const processedData = filteredData.map(school => {
       const schoolPayments = payments.filter(p => 
         p.schoolId === school.id || (p.school && p.school.id === school.id)
       );
@@ -88,23 +99,36 @@ export class V8DataTable extends Component {
     });
 
     // Filter by search term
-    let filteredData = processedData;
+    let resultData = processedData;
     if (searchTerm) {
-      filteredData = processedData.filter(item => 
+      resultData = processedData.filter(item => 
         item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.address?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     // Sort data
-    return filteredData.sort((a, b) => {
-      const aValue = a[sortBy] || 0;
-      const bValue = b[sortBy] || 0;
+    return resultData.sort((a, b) => {
+      let aValue = a[sortBy];
+      let bValue = b[sortBy];
+
+      // Handle numerical sorting
+      if (typeof aValue === 'string') {
+        const parsedA = parseFloat(aValue.replace(/[^0-9.-]+/g, ""));
+        if (!isNaN(parsedA)) aValue = parsedA;
+      }
+      if (typeof bValue === 'string') {
+        const parsedB = parseFloat(bValue.replace(/[^0-9.-]+/g, ""));
+        if (!isNaN(parsedB)) bValue = parsedB;
+      }
+
+      const aVal = parseFloat(aValue) || 0;
+      const bVal = parseFloat(bValue) || 0;
       
       if (sortOrder === 'asc') {
-        return aValue > bValue ? 1 : -1;
+        return aVal - bVal;
       } else {
-        return aValue < bValue ? 1 : -1;
+        return bVal - aVal;
       }
     });
   };
@@ -120,7 +144,7 @@ export class V8DataTable extends Component {
 
   render() {
     const { loading } = this.props;
-    const { expandedRows, selectedRows, currentPage, itemsPerPage } = this.state;
+    const { expandedRows, selectedRows, currentPage, itemsPerPage, showDeleted, sortBy, sortOrder } = this.state;
 
     if (loading) {
       return (
@@ -165,6 +189,15 @@ export class V8DataTable extends Component {
                     Select All
                   </button>
                 </div>
+                <div className="btn-group">
+                  <button 
+                    className={`btn btn-sm ${showDeleted ? 'btn-primary' : 'btn-light-primary'}`} 
+                    onClick={this.toggleShowDeleted}
+                  >
+                    <i className={`la ${showDeleted ? 'la-eye' : 'la-eye-slash'} mr-1`}></i>
+                    {showDeleted ? 'Hide Deleted' : 'Show Deleted'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -192,34 +225,44 @@ export class V8DataTable extends Component {
                     >
                       School Name {this.renderSortIcon('name')}
                     </th>
+                    
                     <th 
                       className="font-weight-bold text-muted cursor-pointer"
-                      onClick={() => this.handleSort('totalRevenue')}
-                      style={{ minWidth: '150px' }}
-                    >
-                      Revenue {this.renderSortIcon('totalRevenue')}
-                    </th>
-                    <th 
-                      className="font-weight-bold text-muted cursor-pointer"
-                      onClick={() => this.handleSort('studentCount')}
+                      onClick={() => this.handleSort('schoolType')}
                       style={{ minWidth: '120px' }}
                     >
-                      Students {this.renderSortIcon('studentCount')}
+                      Type {this.renderSortIcon('schoolType')}
                     </th>
                     <th 
                       className="font-weight-bold text-muted cursor-pointer"
-                      onClick={() => this.handleSort('transactionCount')}
+                      onClick={() => this.handleSort('schoolLevel')}
                       style={{ minWidth: '120px' }}
                     >
-                      Transactions {this.renderSortIcon('transactionCount')}
+                      Level {this.renderSortIcon('schoolLevel')}
                     </th>
                     <th 
                       className="font-weight-bold text-muted cursor-pointer"
-                      onClick={() => this.handleSort('revenuePerStudent')}
-                      style={{ minWidth: '150px' }}
+                      onClick={() => this.handleSort('schoolSize')}
+                      style={{ minWidth: '100px' }}
                     >
-                      Revenue/Student {this.renderSortIcon('revenuePerStudent')}
+                      Size {this.renderSortIcon('schoolSize')}
                     </th>
+                    <th 
+                      className="font-weight-bold text-muted cursor-pointer"
+                      onClick={() => this.handleSort('studentsCount')}
+                      style={{ minWidth: '120px' }}
+                    >
+                      Students {this.renderSortIcon('studentsCount')}
+                    </th>
+                    <th 
+                      className="font-weight-bold text-muted cursor-pointer"
+                      onClick={() => this.handleSort('numberOfStudents')}
+                      style={{ minWidth: '120px' }}
+                    >
+                      Reg. Count {this.renderSortIcon('numberOfStudents')}
+                    </th>
+                    
+                    
                     <th className="font-weight-bold text-muted" style={{ minWidth: '100px' }}>
                       Status
                     </th>
@@ -267,29 +310,26 @@ export class V8DataTable extends Component {
                               </div>
                             </div>
                           </td>
+                          
                           <td>
-                            <div className={`font-weight-bolder ${isDeleted ? 'text-muted' : 'text-primary'}`}>
-                              {formatCurrency(school.totalRevenue)}
-                            </div>
+                            <span className="font-weight-bold text-dark-75">{school.schoolType || '-'}</span>
+                          </td>
+                          <td>
+                            <span className="font-weight-bold text-dark-75">{school.schoolLevel || '-'}</span>
+                          </td>
+                          <td>
+                            <span className="font-weight-bold text-dark-75">{school.schoolSize || '-'}</span>
                           </td>
                           <td>
                             <div className="d-flex align-items-center">
-                              <span className="font-weight-bold">{formatNumber(school.studentsCount)}</span>
-                              {school.studentsCount > 0 && !isDeleted && (
-                                <span className="ml-2 badge badge-success badge-pill">
-                                  {formatCurrency(school.revenuePerStudent)}
-                                </span>
-                              )}
+                              <span className="font-weight-bolder text-primary">{formatNumber(school.studentsCount)}</span>
                             </div>
                           </td>
                           <td>
-                            <span className="font-weight-bold">{school.transactionCount}</span>
+                            <span className="font-weight-bold text-dark-75">{formatNumber(school.numberOfStudents) || '-'}</span>
                           </td>
-                          <td>
-                            <span className={`font-weight-bolder ${isDeleted ? 'text-muted' : 'text-info'}`}>
-                              {school.revenuePerStudent > 0 ? formatCurrency(school.revenuePerStudent) : 'N/A'}
-                            </span>
-                          </td>
+                         
+                          
                           <td>
                             <span className={`badge badge-${isDeleted ? 'secondary' : (isActive ? 'success' : 'danger')} badge-pill`}>
                               {isDeleted ? 'Deleted' : (isActive ? 'Active' : 'Inactive')}

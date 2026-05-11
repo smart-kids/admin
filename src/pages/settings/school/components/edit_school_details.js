@@ -23,6 +23,9 @@ class Modal extends React.Component {
       email: "",
       address: "",
       schoolSize: "", // Number of students
+      schoolType: "",
+      schoolLevel: "",
+      numberOfStudents: "",
       inviteSmsText: "Hello {{username}}, you've been invited to join {{team_name}}. Your temporary password is {{password}}.", // Default
       logo: null, // For base64 string or URL
       themeColor: "#4e73df", // Default theme color (e.g., a nice blue)
@@ -96,6 +99,7 @@ class Modal extends React.Component {
     // Default state structure including themeColor
     const defaultEditState = {
         id: null, name: "", phone: "", email: "", address: "", schoolSize: "",
+        schoolType: "", schoolLevel: "", numberOfStudents: "",
         inviteSmsText: "Hello {{username}}, you've been invited to join {{team_name}}. Your temporary password is {{password}}.",
         logo: null,
         themeColor: "#4e73df", // Ensure default is here
@@ -193,7 +197,7 @@ class Modal extends React.Component {
   };
 
   render() {
-    const { name, phone, email, address, schoolSize, inviteSmsText, themeColor } = this.state.edit; // Added themeColor and schoolSize
+    const { name, phone, email, address, schoolSize, schoolType, schoolLevel, numberOfStudents, inviteSmsText, themeColor } = this.state.edit; // Added new fields
     const { loading, logoPreview } = this.state;
     const currentModalId = modalNumber;
     const currentFormId = modalNumber + "form";
@@ -259,27 +263,63 @@ class Modal extends React.Component {
                         onChange={this.handleChange} disabled={loading}
                       />
                     </div>
-                    <div className="form-group col-md-6">
+                    <div className="form-group col-md-4">
+                      <label htmlFor={`${currentFormId}_schoolSize`}>School Size:</label>
+                      <select
+                        className="form-control" id={`${currentFormId}_schoolSize`} name="schoolSize"
+                        value={schoolSize || ""} onChange={this.handleChange} disabled={loading}
+                      >
+                        <option value="">Select Size</option>
+                        <option value="small">Small (1-50 students)</option>
+                        <option value="medium">Medium (51-200 students)</option>
+                        <option value="large">Large (201-500 students)</option>
+                        <option value="xlarge">Extra Large (500+ students)</option>
+                      </select>
+                    </div>
+                    <div className="form-group col-md-4">
+                      <label htmlFor={`${currentFormId}_schoolType`}>School Type:</label>
+                      <select
+                        className="form-control" id={`${currentFormId}_schoolType`} name="schoolType"
+                        value={schoolType || ""} onChange={this.handleChange} disabled={loading}
+                      >
+                        <option value="">Select Type</option>
+                        <option value="public">Public School</option>
+                        <option value="private">Private School</option>
+                        <option value="charter">Charter School</option>
+                        <option value="international">International School</option>
+                      </select>
+                    </div>
+                    <div className="form-group col-md-4">
+                      <label htmlFor={`${currentFormId}_schoolLevel`}>School Level:</label>
+                      <select
+                        className="form-control" id={`${currentFormId}_schoolLevel`} name="schoolLevel"
+                        value={schoolLevel || ""} onChange={this.handleChange} disabled={loading}
+                      >
+                        <option value="">Select Level</option>
+                        <option value="primary">Primary School</option>
+                        <option value="secondary">Secondary School</option>
+                        <option value="both">Primary & Secondary</option>
+                        <option value="kindergarten">Kindergarten</option>
+                        <option value="college">College/University</option>
+                      </select>
+                    </div>
+                    <div className="form-group col-md-12">
+                      <label htmlFor={`${currentFormId}_numberOfStudents`}>Approximate Number of Students:</label>
+                      <input
+                        type="number" className="form-control" id={`${currentFormId}_numberOfStudents`} name="numberOfStudents"
+                        placeholder="e.g. 250" value={numberOfStudents || ""}
+                        onChange={this.handleChange} disabled={loading}
+                      />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group col-md-12">
                       <label htmlFor={`${currentFormId}_address`}>Address:</label>
                       <input
                         type="text" className="form-control" id={`${currentFormId}_address`} name="address"
                         placeholder="Enter physical address" value={address}
                         onChange={this.handleChange} disabled={loading}
                       />
-                    </div>
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group col-md-6">
-                      <label htmlFor={`${currentFormId}_schoolSize`}>School Size (Number of Students):</label>
-                      <input
-                        type="number" className="form-control" id={`${currentFormId}_schoolSize`} name="schoolSize"
-                        placeholder="Enter number of students" min="0" value={schoolSize}
-                        onChange={this.handleChange} disabled={loading}
-                      />
-                      <small className="form-text text-muted">Total number of students enrolled in the school.</small>
-                    </div>
-                    <div className="form-group col-md-6">
-                      {/* This column can be used for future fields or left empty */}
                     </div>
                   </div>
 

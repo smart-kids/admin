@@ -351,7 +351,7 @@ var Data = (function () {
 
     const init = () => {
         const FRAGMENT_USER_DATA = `fragment UserData on user { names email phone }`;
-        const FRAGMENT_SCHOOL_DETAILS = `fragment schoolDetails on school { id name phone email address logo themeColor studentsCount parentsCount gradeOrder isDeleted }`;
+        const FRAGMENT_SCHOOL_DETAILS = `fragment schoolDetails on school { id name phone email address logo themeColor studentsCount parentsCount schoolSize schoolType schoolLevel numberOfStudents gradeOrder isDeleted }`;
         const FRAGMENT_GRADES_DATA = `fragment GradesData on school {
             grades { 
                 id name subjectsOrder 
@@ -883,7 +883,7 @@ var Data = (function () {
         };
 
         const queries = [
-            { query: `query GetschoolsAndUser { user { ...UserData } schools { ...schoolDetails } }${FRAGMENT_USER_DATA}${FRAGMENT_SCHOOL_DETAILS}` },
+            { query: `query GetschoolsAndUser { user { ...UserData } schools(limit: 1000) { ...schoolDetails } }${FRAGMENT_USER_DATA}${FRAGMENT_SCHOOL_DETAILS}` },
             { query: `query GetStudents { schools { id ...StudentsData } } ${FRAGMENT_STUDENTS_DATA}` },
             { query: `query GetParents { schools { id ...ParentsData } } ${FRAGMENT_PARENTS_DATA}` },
             { query: `query GetClasses { schools { id ...ClassesData } } ${FRAGMENT_CLASSES_DATA}` }, // Classes moved up to prioritize loading
@@ -1831,9 +1831,11 @@ var Data = (function () {
                 try {
                     const { id, ...payload } = data;
                     const response = await mutate(`mutation ($data: USchool!) { schools { update(school: $data) { id } } }`, { data: { id, ...payload } });
-                    const updatedSchool = { ...data, id: response.schools.update.id };
                     const itemIndexFlat = allData.schools.findIndex(item => String(item.id) === String(id));
-                    if (itemIndexFlat > -1) { allData.schools[itemIndexFlat] = updatedSchool; }
+                    if (itemIndexFlat > -1) { 
+                      allData.schools[itemIndexFlat] = { ...allData.schools[itemIndexFlat], ...data }; 
+                    }
+                    const updatedSchool = allData.schools[itemIndexFlat];
                     if (Array.isArray(subs.schools)) {
                         const selectedSchool = allData.schools.find(s => String(s.id) === String(schoolID));
                         subs.schools.forEach(cb => cb({ schools: [...allData.schools], selectedSchool: selectedSchool || {} }));
@@ -1862,7 +1864,7 @@ var Data = (function () {
                 try {
                     const school = schoolToDelete || instance.schools.getSelected();
                     if (!school.id) return reject("No school selected");
-                    await mutate(`mutation ($data: Uschool!) { schools { archive(school: $data) { id } } }`, { data: { id: school.id } });
+                    await mutate(`mutation ($data: USchool!) { schools { archive(school: $data) { id } } }`, { data: { id: school.id } });
                     
                     // Soft delete: mark as isDeleted instead of filtering out
                     const cachedSchool = allData.schools.find(s => String(s.id) === String(school.id));
@@ -1881,7 +1883,7 @@ var Data = (function () {
             restore: (schoolToRestore) => new Promise(async (resolve, reject) => {
                 try {
                     const { id } = schoolToRestore;
-                    await mutate(`mutation ($data: Uschool!) { schools { restore(school: $data) { id } } }`, { data: { id } });
+                    await mutate(`mutation ($data: USchool!) { schools { restore(school: $data) { id } } }`, { data: { id } });
                     
                     // Un-archive
                     const cachedSchool = allData.schools.find(s => String(s.id) === String(id));

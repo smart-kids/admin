@@ -132,7 +132,9 @@ class Navbar extends React.Component {
     });
 
     this.schoolsSubscription = Data.schools.subscribe(({ schools, selectedSchool }) => {
-      const schoolsArray = (schools || []).filter(s => s && s.id && !s.isDeleted);
+      const schoolsArray = (schools || [])
+        .filter(s => s && s.id && !s.isDeleted)
+        .sort((a, b) => (b.studentsCount || 0) - (a.studentsCount || 0));
       console.log("Navbar - subscription callback:", { schoolsArray: schoolsArray.length, selectedSchool });
       
       // Force fetchingSchools to false if we have schools data

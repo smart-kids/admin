@@ -131,7 +131,7 @@ export default props => {
               >
                 {headers.map(header => (
                   <td key={`${header.key || header.label}-${row.id || rowIndex}`}>
-                    {row[header.key]}
+                    {header.render ? header.render(row[header.key], row) : row[header.key]}
                   </td>
                 ))}
 
