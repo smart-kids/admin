@@ -81,6 +81,41 @@ class Navbar extends React.Component {
     return { isSuperAdmin, isTeacher, effectiveRole, storedUser };
   };
 
+  getSecondaryNavItems = () => {
+    const { isSuperAdmin, isTeacher } = this.getUserFlags();
+    
+    if (isSuperAdmin) {
+      return [
+        { path: "/comms", label: "SMS & Email", icon: "la-envelope" },
+        { path: "/learning", label: "Learning", icon: "la-graduation-cap" },
+        { path: "/library", label: "Library", icon: "la-book" },
+        { path: "/results", label: "Results", icon: "la-bar-chart" },
+        { path: "/time-tables", label: "Time Tables", icon: "la-calendar-check-o" },
+        { path: "/finance/fees", label: "Fee", icon: "la-money" }
+      ];
+    }
+    
+    if (isTeacher) {
+      return [
+        { path: "/comms", label: "SMS & Email", icon: "la-envelope" },
+        { path: "/learning", label: "Learning", icon: "la-graduation-cap" },
+        { path: "/library", label: "Library", icon: "la-book" },
+        { path: "/results", label: "Results", icon: "la-bar-chart" },
+        { path: "/time-tables", label: "Time Tables", icon: "la-calendar-check-o" }
+      ];
+    }
+    
+    // Regular Admin
+    return [
+      { path: "/home", label: "Reports", icon: "la-dashboard" },
+      { path: "/comms", label: "SMS & Email", icon: "la-envelope" },
+      { path: "/learning", label: "Learning", icon: "la-graduation-cap" },
+      { path: "/results", label: "Results", icon: "la-bar-chart" },
+      { path: "/time-tables", label: "Time Tables", icon: "la-calendar-check-o" },
+      { path: "/finance/fees", label: "Fee", icon: "la-money" },
+    ];
+  };
+
   componentDidMount() {
     const userData = JSON.parse(localStorage.getItem("user")) || {};
     const schools = Data.schools.list() || [];
@@ -565,20 +600,7 @@ class Navbar extends React.Component {
 
     const { isTeacher, isSuperAdmin } = this.getUserFlags();
 
-    const navItems = isSuperAdmin ? [
-      { path: "/comms", label: "SMS & Email", icon: "la-envelope" },
-      { path: "/learning", label: "Learning", icon: "la-graduation-cap" },
-      { path: "/library", label: "Library", icon: "la-book" },
-      { path: "/results", label: "Results", icon: "la-bar-chart" },
-      { path: "/time-tables", label: "Time Tables", icon: "la-calendar-check-o" },
-      { path: "/finance/fees", label: "Fee", icon: "la-money" }
-    ] : [
-      { path: "/home", label: "Reports", icon: "la-dashboard", hideFromTeacher: true },
-      { path: "/finance/fees", label: "Fees", icon: "la-money", hideFromTeacher: true },
-      { path: "/comms", label: "Comms", icon: "la-bullhorn", hideFromTeacher: false },
-      { path: "/learning", label: "Learning", icon: "la-graduation-cap", hideFromTeacher: false },
-      { path: "/results", label: "Results", icon: "la-bar-chart", hideFromTeacher: false },
-    ].filter(item => !(item.hideFromTeacher && isTeacher));
+    const navItems = this.getSecondaryNavItems();
 
     return (
       <div className="mobile-bottom-nav">
@@ -989,19 +1011,7 @@ class Navbar extends React.Component {
             <div id="kt_bottom_nav_menu_container" className="kt-header-menu-wrapper" style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <div id="kt_header_menu" className="kt-header-menu kt-header-menu-mobile">
                     <ul className="kt-menu__nav" style={{ display: 'flex', listStyle: 'none', margin: 0, padding: 0, alignItems: 'center' }}>
-                        {(isSuperAdmin ? [
-                            { path: "/comms", label: "SMS & Email", icon: "la-envelope" },
-                            { path: "/learning", label: "Learning", icon: "la-graduation-cap" },
-                            { path: "/library", label: "Library", icon: "la-book" },
-                            { path: "/results", label: "Results", icon: "la-bar-chart" },
-                            { path: "/time-tables", label: "Time Tables", icon: "la-calendar-check-o" },
-                            { path: "/finance/fees", label: "Fee", icon: "la-money" }
-                        ] : [
-                            { path: "/learning", label: "Learning", icon: "la-graduation-cap" },
-                            { path: "/library", label: "Library", icon: "la-book" },
-                            { path: "/results", label: "Results", icon: "la-bar-chart" },
-                            { path: "/time-tables", label: "Time Tables", icon: "la-calendar-check-o" }
-                        ]).map((item) => {
+                        {this.getSecondaryNavItems().map((item) => {
                             if (item.hideFromTeacher && isTeacher) return null;
                             if (item.hidden) return null;
                             const isActive = this.isActiveRoute(item.path);

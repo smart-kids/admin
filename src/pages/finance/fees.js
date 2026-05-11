@@ -112,7 +112,7 @@ class FeesManagement extends Component {
     state = {
         // Raw Data
         classes: [],
-        terms: Data.terms || [],
+        terms: [],
         students: [],
         payments: [],
         parents: [],

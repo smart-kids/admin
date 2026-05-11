@@ -1148,7 +1148,8 @@ class FinanceInsightsDashboard extends Component {
     if (processedParents && processedParents.length > 0) {
       const agingData = [];
       const now = new Date();
-      const currentTerm = terms?.find(t => String(t.id) === String(selectedTerm));
+      const termsArray = Array.isArray(terms) ? terms : [];
+      const currentTerm = termsArray.find(t => String(t.id) === String(selectedTerm));
       const termStartDate = currentTerm?.startDate ? this.safeParseDate(currentTerm.startDate) : now;
 
       processedParents.forEach(parent => {
