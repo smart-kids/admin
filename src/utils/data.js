@@ -1297,8 +1297,8 @@ var Data = (function () {
         }, {
             name: "charges",
             singularName: "charge",
-            createFields: ['school', 'amount', 'reason', 'time', 'parent', 'chargeType', 'term'],
-            updateFields: ['amount', 'reason', 'time', 'parent', 'chargeType', 'term']
+            createFields: ['school', 'amount', 'reason', 'time', 'parent', 'student', 'chargeType', 'term'],
+            updateFields: ['amount', 'reason', 'time', 'parent', 'student', 'chargeType', 'term']
         }, {
             name: "feeStructures",
             singularName: "feeStructure",

@@ -156,7 +156,8 @@ export const calculateFinancials = ({
     // 3. Map charges and payments
     const processedList = Object.values(parentMap).map(group => {
         const normParentPhone = normalizePhone(group.parent.phone);
-        const isSingleChild = group.students.length === 1;
+        const studentCount = group.students.length;
+        const isSingleChild = studentCount === 1;
 
         // All history for this parent
         const allParentPayments = payments.filter(p => {
@@ -183,7 +184,7 @@ export const calculateFinancials = ({
             };
         });
 
-        // Current Term logic
+        // 1. Initial Pass: Expected Fees and Directly Assigned Payments
         let totalStudentPaid = 0;
         group.students.forEach(student => {
             const classFee = getFeesForClass(student.class?.id || student.class, selectedTerm, feeStructures);
@@ -198,7 +199,6 @@ export const calculateFinancials = ({
                 if (pStudentId && pStudentId !== "undefined" && pStudentId !== "" && pStudentId !== "null" && pStudentId !== targetStudentId) return false;
                 
                 // If single child, take all unassigned payments.
-                // If multiple children, unassigned payments will be handled later or assigned to the first student.
                 if (isSingleChild && (!pStudentId || pStudentId === "undefined" || pStudentId === "null" || pStudentId === "")) return true;
                 
                 return pStudentId === targetStudentId;
@@ -210,7 +210,7 @@ export const calculateFinancials = ({
                 totalExpected: classFee,
                 paid, 
                 balance: classFee - paid, 
-                history: studentTermPayments,
+                history: [...studentTermPayments],
                 charges: 0,
                 bbf: 0
             };
@@ -219,28 +219,8 @@ export const calculateFinancials = ({
             group.history = [...group.history, ...studentTermPayments];
         });
 
-        // Handle unassigned payments for multi-student groups (Assign to first student)
-        if (!isSingleChild && group.students[0]) {
-            const unassignedPayments = processedAllPayments.filter(p => {
-                if (!isSuccessfulPayment(p)) return false;
-                if (selectedTerm && String(p.assignedTermId) !== String(selectedTerm)) return false;
-                const pStudentId = String(p.student?.id || p.student || p.metadata?.studentId || "");
-                return !pStudentId || pStudentId === "undefined" || pStudentId === "null" || pStudentId === "";
-            });
-            
-            const unassignedPaid = unassignedPayments.reduce((sum, p) => sum + p.processedAmount, 0);
-            if (unassignedPaid > 0) {
-                group.students[0].finances.paid += unassignedPaid;
-                group.students[0].finances.balance -= unassignedPaid;
-                group.students[0].finances.history = [...group.students[0].finances.history, ...unassignedPayments];
-                totalStudentPaid += unassignedPaid;
-                group.history = [...group.history, ...unassignedPayments];
-            }
-        }
-        group.totalPaid = totalStudentPaid;
-
-        // Add charges for current term
-        const groupCharges = (charges || []).filter(c => {
+        // 2. Add charges for current term (Identify assigned vs shared)
+        const termCharges = (charges || []).filter(c => {
             const pId = String(c.parent?.id || c.parent);
             if (pId !== group.id) return false;
             if (selectedTerm) {
@@ -249,24 +229,79 @@ export const calculateFinancials = ({
             }
             return true;
         });
-        
-        group.totalCharges = groupCharges.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+
+        const assignedCharges = termCharges.filter(c => c.student?.id || c.student);
+        const sharedCharges = termCharges.filter(c => !c.student?.id && !c.student);
+        const sharedChargeTotal = sharedCharges.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+        const perStudentSharedCharge = sharedChargeTotal / studentCount;
+
+        group.students.forEach(student => {
+            const myAssignedCharges = assignedCharges.filter(c => String(c.student?.id || c.student) === String(student.id));
+            const myAssignedTotal = myAssignedCharges.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
+            
+            student.finances.charges = myAssignedTotal + perStudentSharedCharge;
+            student.finances.totalExpected += student.finances.charges;
+            student.finances.balance += student.finances.charges;
+        });
+
+        group.totalCharges = termCharges.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
         group.totalExpected += group.totalCharges;
-        group.charges = groupCharges;
+        group.charges = termCharges;
 
-        // Calculate BBF
-        const bbf = calculateBBF(group, terms, selectedTerm, charges, processedAllPayments, feeStructures);
-        const manualBBF = group.students.reduce((sum, s) => sum + (parseFloat(s.balanceBroughtForward) || 0), 0);
-        group.balanceBroughtForward = bbf + manualBBF;
+        // 3. Handle unassigned payments for multi-student groups (Waterfall Allocation)
+        if (!isSingleChild) {
+            const unassignedPayments = processedAllPayments.filter(p => {
+                if (!isSuccessfulPayment(p)) return false;
+                if (selectedTerm && String(p.assignedTermId) !== String(selectedTerm)) return false;
+                const pStudentId = String(p.student?.id || p.student || p.metadata?.studentId || "");
+                return !pStudentId || pStudentId === "undefined" || pStudentId === "null" || pStudentId === "";
+            });
+            
+            let unassignedRemaining = unassignedPayments.reduce((sum, p) => sum + p.processedAmount, 0);
+            
+            if (unassignedRemaining > 0) {
+                // Waterfall: Fill up students with debt first
+                group.students.forEach(student => {
+                    if (unassignedRemaining <= 0) return;
+                    const canAbsorb = Math.max(0, student.finances.balance);
+                    const applied = Math.min(canAbsorb, unassignedRemaining);
+                    
+                    student.finances.paid += applied;
+                    student.finances.balance -= applied;
+                    unassignedRemaining -= applied;
+                    
+                    // Show in history but mark as allocated from pool? 
+                    // For now just append unassigned payments to all students history if they got a share
+                    if (applied > 0) {
+                        student.finances.history = [...student.finances.history, ...unassignedPayments];
+                    }
+                });
+                
+                // If there is STILL money left (overpayment), give it to the first student
+                if (unassignedRemaining > 0 && group.students[0]) {
+                    group.students[0].finances.paid += unassignedRemaining;
+                    group.students[0].finances.balance -= unassignedRemaining;
+                }
 
-        // Distribute charges and BBF to first student for report parity
-        if (group.students[0]) {
-            group.students[0].finances.charges = group.totalCharges;
-            group.students[0].finances.bbf = group.balanceBroughtForward;
-            group.students[0].finances.totalExpected = group.students[0].finances.expected + group.totalCharges;
-            // Balance reflects the full group state for this student branch
-            group.students[0].finances.balance = (group.totalExpected - group.totalPaid) + group.balanceBroughtForward;
+                totalStudentPaid += unassignedPayments.reduce((sum, p) => sum + p.processedAmount, 0);
+                group.history = [...group.history, ...unassignedPayments];
+            }
         }
+        group.totalPaid = totalStudentPaid;
+
+        // 4. Calculate and Distribute BBF
+        const bbfTotal = calculateBBF(group, terms, selectedTerm, charges, processedAllPayments, feeStructures);
+        const manualBBFTotal = group.students.reduce((sum, s) => sum + (parseFloat(s.balanceBroughtForward) || 0), 0);
+        const totalBBF = bbfTotal + manualBBFTotal;
+        
+        group.balanceBroughtForward = totalBBF;
+        const perStudentBBF = totalBBF / studentCount;
+
+        group.students.forEach(student => {
+            student.finances.bbf = perStudentBBF;
+            student.finances.totalExpected += perStudentBBF;
+            student.finances.balance += perStudentBBF;
+        });
 
         group.totalBalance = (group.totalExpected - group.totalPaid) + group.balanceBroughtForward;
         group.allHistory = processedAllPayments;

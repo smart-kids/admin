@@ -533,7 +533,8 @@ class FeesManagement extends Component {
             parentGroup,
             selectedChargeType: "",
             chargeNotes: "",
-            selectedChargeTermId: this.state.selectedTerm || ""
+            selectedChargeTermId: this.state.selectedTerm || "",
+            selectedChargeStudentId: parentGroup.students.length === 1 ? parentGroup.students[0].id : ""
         });
     };
 
@@ -543,7 +544,8 @@ class FeesManagement extends Component {
             parentGroup,
             editChargeData: {
                 ...charge,
-                termId: charge.term?.id || charge.term || ""
+                termId: charge.term?.id || charge.term || "",
+                studentId: charge.student?.id || charge.student || ""
             }
         });
     };
@@ -562,7 +564,7 @@ class FeesManagement extends Component {
     };
 
     recordCharge = async () => {
-        const { selectedChargeType, chargeNotes, parentGroup, selectedTerm } = this.state;
+        const { selectedChargeType, chargeNotes, parentGroup, selectedChargeStudentId } = this.state;
         if (!selectedChargeType || !parentGroup) return;
 
         const chargeType = this.state.chargeTypes.find(c => String(c.id) === String(selectedChargeType));
@@ -573,6 +575,7 @@ class FeesManagement extends Component {
             await Data.charges.create({
                 school: localStorage.getItem('school'),
                 parent: parentGroup.id,
+                student: selectedChargeStudentId || undefined,
                 amount: parseFloat(chargeType.amount),
                 reason: chargeNotes || chargeType.name,
                 chargeType: selectedChargeType,
@@ -599,7 +602,8 @@ class FeesManagement extends Component {
                 id: editChargeData.id,
                 reason: editChargeData.reason,
                 amount: String(editChargeData.amount),
-                term: editChargeData.termId || undefined
+                term: editChargeData.termId || undefined,
+                student: editChargeData.studentId || undefined
             });
             if (window.toastr) window.toastr.success("Charge updated successfully!");
             this.setState({ showEditChargeModal: false, editChargeData: null });
@@ -2524,8 +2528,8 @@ class FeesManagement extends Component {
                                                                                                                 <div className="alert-text font-size-sm">
                                                                                                                     <span className="font-weight-bolder">KES {unallocatedSum.toLocaleString()}</span> was found via phone matching ({maskPhone(group.parent.phone)}).
                                                                                                                     <div className="mt-1">
-                                                                                                                        This amount is automatically applied to <span className="font-weight-bolder text-primary">{group.students[0].names}</span> to reduce their balance.
-                                                                                                                        <span className="opacity-70 ml-2">To re-allocate, use the Edit button in the history list below.</span>
+                                                                                                                        This amount is automatically distributed across children to reduce their individual balances.
+                                                                                                                        <span className="opacity-70 ml-2">To manually re-allocate, use the Edit button in the history list below.</span>
                                                                                                                     </div>
                                                                                                                 </div>
                                                                                                             </div>
@@ -2557,12 +2561,24 @@ class FeesManagement extends Component {
                                                                                                                     </div>
                                                                                                                     <div className="separator separator-dashed my-3"></div>
                                                                                                                     <div className="d-flex justify-content-between mb-1">
-                                                                                                                        <span className="text-muted font-size-sm">Expected:</span>
+                                                                                                                        <span className="text-muted font-size-sm">Fees:</span>
                                                                                                                         <span className="text-dark-75 font-weight-bold">KES {student.finances?.expected?.toLocaleString() || 0}</span>
                                                                                                                     </div>
+                                                                                                                    {student.finances?.charges > 0 && (
+                                                                                                                        <div className="d-flex justify-content-between mb-1">
+                                                                                                                            <span className="text-muted font-size-sm">Charges:</span>
+                                                                                                                            <span className="text-dark-75 font-weight-bold">+ KES {student.finances?.charges?.toLocaleString() || 0}</span>
+                                                                                                                        </div>
+                                                                                                                    )}
+                                                                                                                    {student.finances?.bbf > 0 && (
+                                                                                                                        <div className="d-flex justify-content-between mb-1">
+                                                                                                                            <span className="text-muted font-size-sm">Arrears (BBF):</span>
+                                                                                                                            <span className="text-dark-75 font-weight-bold">+ KES {student.finances?.bbf?.toLocaleString() || 0}</span>
+                                                                                                                        </div>
+                                                                                                                    )}
                                                                                                                     <div className="d-flex justify-content-between mb-1">
                                                                                                                         <span className="text-muted font-size-sm">Paid:</span>
-                                                                                                                        <span className="text-success font-weight-bold">KES {student.finances?.paid?.toLocaleString() || 0}</span>
+                                                                                                                        <span className="text-success font-weight-bold">- KES {student.finances?.paid?.toLocaleString() || 0}</span>
                                                                                                                     </div>
                                                                                                                     <div className="separator separator-dashed my-2"></div>
                                                                                                                     <div className="d-flex justify-content-between align-items-center">
@@ -3269,6 +3285,20 @@ class FeesManagement extends Component {
                                             {this.state.terms && this.state.terms.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                                         </select>
                                     </div>
+                                    <div className="form-group">
+                                        <label>Assign to Student</label>
+                                        <select 
+                                            className="form-control" 
+                                            value={this.state.selectedChargeStudentId} 
+                                            onChange={e => this.setState({ selectedChargeStudentId: e.target.value })}
+                                        >
+                                            <option value="">Shared (Family Charge)</option>
+                                            {this.state.parentGroup?.students.map(s => (
+                                                <option key={s.id} value={s.id}>{s.names}</option>
+                                            ))}
+                                        </select>
+                                        <span className="form-text text-muted">Allocating to a student ensures the charge is added only to their specific balance.</span>
+                                    </div>
                                     <div className="form-group"><label>Notes (Optional)</label><input type="text" className="form-control" value={this.state.chargeNotes} onChange={e => this.setState({ chargeNotes: e.target.value })} /></div>
                                 </div>
                                 <div className="modal-footer">
@@ -3303,6 +3333,19 @@ class FeesManagement extends Component {
                                         <select className="form-control" value={this.state.editChargeData.termId || ""} onChange={e => this.setState({ editChargeData: { ...this.state.editChargeData, termId: e.target.value } })}>
                                             <option value="">No Term</option>
                                             {this.state.terms && this.state.terms.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Assign to Student</label>
+                                        <select 
+                                            className="form-control" 
+                                            value={this.state.editChargeData.studentId || ""} 
+                                            onChange={e => this.setState({ editChargeData: { ...this.state.editChargeData, studentId: e.target.value } })}
+                                        >
+                                            <option value="">Shared (Family Charge)</option>
+                                            {this.state.parentGroup?.students.map(s => (
+                                                <option key={s.id} value={s.id}>{s.names}</option>
+                                            ))}
                                         </select>
                                     </div>
                                 </div>
