@@ -3035,7 +3035,7 @@ class FeesManagement extends Component {
                                     <button type="button" className="close" onClick={() => this.setState({ showManualPaymentModal: false })}><span>&times;</span></button>
                                 </div>
                                 <div className="modal-body">
-                                    <p>Recording payment for <strong>{this.state.paymentStudent?.names}</strong></p>
+                                    <p>Recording payment for family of <strong>{this.state.parentGroup?.parent?.name}</strong></p>
                                     <div className="form-group">
                                         <label>Method</label>
                                         <select className="form-control" value={this.state.manualPaymentMethod} onChange={e => this.setState({ manualPaymentMethod: e.target.value })}>
@@ -3053,6 +3053,20 @@ class FeesManagement extends Component {
                                             {this.state.terms && this.state.terms.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                                         </select>
                                         <span className="form-text text-muted">If unset, the payment is matched to a term based on its date.</span>
+                                    </div>
+                                    <div className="form-group">
+                                        <label>Assign to Student</label>
+                                        <select 
+                                            className="form-control" 
+                                            value={this.state.selectedStudentId || ""} 
+                                            onChange={e => this.setState({ selectedStudentId: e.target.value })}
+                                        >
+                                            <option value="">Unallocated (Parent Account)</option>
+                                            {this.state.parentGroup?.students.map(s => (
+                                                <option key={s.id} value={s.id}>{s.names}</option>
+                                            ))}
+                                        </select>
+                                        <span className="form-text text-muted">Allocating to a student ensures the money is credited to their specific fee balance.</span>
                                     </div>
                                     <div className="form-group"><label>Amount (KES)</label><input type="number" className="form-control" value={this.state.paymentAmount} onChange={e => this.setState({ paymentAmount: e.target.value })} /></div>
                                     <div className="form-group"><label>Reference / Notes</label><input type="text" className="form-control" value={this.state.manualPaymentNotes} onChange={e => this.setState({ manualPaymentNotes: e.target.value })} /></div>
