@@ -2,6 +2,7 @@ import React from "react";
 import Data from "../../utils/data";
 import ReportCard from "./components/ReportCard";
 import ResultsGrid from "./components/ResultsGrid";
+import ResultsReport from "./components/ResultsReport";
 import BulkReportSmsModal from "../../components/reports/BulkReportSmsModal";
 import AddSubjectModal from "../learning/subjects/add";
 import AddClassModal from "../classes/add";
@@ -42,6 +43,7 @@ class ResultsMatrix extends React.Component {
     saving: false,
     sendingSms: false,
     showPrintView: false,
+    showReportPrintView: false,
     schoolInfo: null,
     fetchingAssessments: false,
     showBulkModal: false,
@@ -1131,6 +1133,40 @@ class ResultsMatrix extends React.Component {
         );
     }
 
+    if (this.state.showReportPrintView) {
+        return (
+            <div className="p-10 min-h-100vh" style={{ backgroundColor: '#f3f4f6' }}>
+                <div className="d-print-none p-4 border-bottom mb-4 d-flex justify-content-between align-items-center bg-white rounded shadow-sm">
+                    <button className="btn btn-secondary font-weight-bold" onClick={() => this.setState({ showReportPrintView: false })}>
+                        <i className="fa fa-arrow-left"></i> Back to Matrix
+                    </button>
+                    <div>
+                        <h4 className="m-0 font-weight-bold">Results Report Preview</h4>
+                    </div>
+                    <div>
+                        <button className="btn btn-primary font-weight-bold" onClick={() => window.print()}>
+                            <i className="fa fa-print mr-2"></i> Print Report
+                        </button>
+                    </div>
+                </div>
+                <div id="print-area">
+                    <ResultsReport
+                        students={students}
+                        subjects={filteredSubjectsList}
+                        assessments={currentViewAssessments}
+                        assessmentTypes={assessmentTypes}
+                        rubrics={assessmentRubrics}
+                        loading={fetchingAssessments || loading}
+                        selectedClassName={classes.find(c => String(c.id) === String(selectedClass))?.name}
+                        selectedTermName={terms.find(t => String(t.id) === String(selectedTerm))?.name}
+                        schoolInfo={schoolInfo}
+                        isPrintView={true}
+                    />
+                </div>
+            </div>
+        );
+    }
+
     return (
       <div className="card card-custom">
         <div className="card-header border-0 modern-mobile-header px-4">
@@ -1154,6 +1190,16 @@ class ResultsMatrix extends React.Component {
                             >
                                 <i className="fas fa-th mr-2"></i>
                                 Score Sheet
+                            </a>
+                        </li>
+                        <li className="nav-item">
+                            <a 
+                                className={`nav-link py-2 px-6 custom-tab-link ${activeTab === 'results-report' ? 'active' : ''}`}
+                                href="#" 
+                                onClick={(e) => { e.preventDefault(); this.setState({ activeTab: 'results-report' }); }}
+                            >
+                                <i className="fas fa-list-alt mr-2"></i>
+                                Results Report
                             </a>
                         </li>
                     </ul>
@@ -1290,6 +1336,21 @@ class ResultsMatrix extends React.Component {
                         onSendSms={this.handleSmsClick} 
                     />
                 ) : <div className="alert alert-light-primary text-center py-10">Select Term and Class to view results</div>
+            ) : activeTab === 'results-report' ? (
+                selectedClass && selectedTerm ? (
+                    <ResultsReport
+                        students={students}
+                        subjects={filteredSubjectsList}
+                        assessments={currentViewAssessments}
+                        assessmentTypes={assessmentTypes}
+                        rubrics={assessmentRubrics}
+                        loading={fetchingAssessments || loading}
+                        selectedClassName={classes.find(c => String(c.id) === String(selectedClass))?.name}
+                        selectedTermName={terms.find(t => String(t.id) === String(selectedTerm))?.name}
+                        schoolInfo={schoolInfo}
+                        onPrintClick={() => this.setState({ showReportPrintView: true })}
+                    />
+                ) : <div className="alert alert-light-primary text-center py-10">Select Term and Class to view report</div>
             ) : this.renderInsights()}
         </div>
         

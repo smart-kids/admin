@@ -42,15 +42,18 @@ const EnhancedDropdown = ({
         }
       }
 
-      // 2. Default to "All" if no valid persisted value
+      // 2. Default to the first actual item (not 'All') if no valid persisted value
       if (targetValue === null) {
-        const allOption = options.find(o => {
+        const firstRealOption = options.find(o => {
           const label = String(o[labelKey] || '').toLowerCase();
           const val = String(o[valueKey] || '').toLowerCase();
-          return label.includes('all') || val === 'all' || val === '';
+          return !(label.includes('all') && (val === 'all' || val === ''));
         });
-        if (allOption) {
-          targetValue = allOption[valueKey];
+        
+        if (firstRealOption) {
+          targetValue = firstRealOption[valueKey];
+        } else if (options.length > 0) {
+          targetValue = options[0][valueKey];
         }
       }
 
