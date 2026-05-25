@@ -159,9 +159,19 @@ export const calculateFinancials = ({
         const studentCount = group.students.length;
         const isSingleChild = studentCount === 1;
 
+        const getStudentId = (p) => {
+            let sId = "";
+            if (p.student && typeof p.student === 'object') {
+                sId = p.student.id || "";
+            } else if (p.student) {
+                sId = p.student || "";
+            }
+            return String(sId);
+        };
+
         // All history for this parent
         const allParentPayments = payments.filter(p => {
-            const paymentStudentId = String(p.student?.id || p.student || p.metadata?.studentId || "");
+            const paymentStudentId = getStudentId(p);
             const belongsToMyStudent = group.students.some(s => String(s.id) === paymentStudentId);
             const isParentPhoneMatch = normalizePhone(p.phone) === normParentPhone;
             return belongsToMyStudent || isParentPhoneMatch;
@@ -169,7 +179,7 @@ export const calculateFinancials = ({
 
         const processedAllPayments = allParentPayments.map(p => {
             const amount = parseFloat(p.amount || p.ammount || 0);
-            const pStudentId = String(p.student?.id || p.student || p.metadata?.studentId || "");
+            const pStudentId = getStudentId(p);
             
             // If single child, treat unallocated payments as belonging to that child
             let sName = p.studentName;
@@ -193,7 +203,7 @@ export const calculateFinancials = ({
                 if (!isSuccessfulPayment(p)) return false;
                 if (selectedTerm && String(p.assignedTermId) !== String(selectedTerm)) return false;
                 
-                const pStudentId = String(p.student?.id || p.student || p.metadata?.studentId || "");
+                const pStudentId = getStudentId(p);
                 const targetStudentId = String(student.id);
 
                 if (pStudentId && pStudentId !== "undefined" && pStudentId !== "" && pStudentId !== "null" && pStudentId !== targetStudentId) return false;
@@ -253,7 +263,7 @@ export const calculateFinancials = ({
             const unassignedPayments = processedAllPayments.filter(p => {
                 if (!isSuccessfulPayment(p)) return false;
                 if (selectedTerm && String(p.assignedTermId) !== String(selectedTerm)) return false;
-                const pStudentId = String(p.student?.id || p.student || p.metadata?.studentId || "");
+                const pStudentId = getStudentId(p);
                 return !pStudentId || pStudentId === "undefined" || pStudentId === "null" || pStudentId === "";
             });
             

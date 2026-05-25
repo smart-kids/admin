@@ -116,9 +116,9 @@ const ResultsReport = ({
 
             <div className={`card card-custom ${isPrintView ? '' : 'shadow-sm border'} print-card`} style={paperStyles}>
                 {/* Print Header (Visible only when printing or in print preview mode) */}
-                <div className={`${isPrintView ? 'd-block' : 'd-none d-print-block'} print-header mb-8`}>
+                <div className={`${isPrintView ? 'd-block' : 'd-none d-print-block'} print-header mb-4`} style={{ zoom: 0.8 }}>
                     <ReportHeader school={schoolInfo} title="Results Report" themeColor={themeColor} />
-                    <div className="text-right" style={{ marginTop: '-10px', marginBottom: '20px' }}>
+                    <div className="text-right" style={{ marginTop: '-15px', marginBottom: '10px' }}>
                         <div style={{ fontSize: '0.9rem', color: '#495057' }}>
                             <strong>Term:</strong> {selectedTermName}<br/>
                             <strong>Class:</strong> {selectedClassName}
@@ -126,15 +126,15 @@ const ResultsReport = ({
                     </div>
                 </div>
 
-                <div className={`${isPrintView ? '' : 'card-body p-0'} print-body`} style={{ flex: 1 }}>
-                    <div className="table-responsive" style={{ overflowX: 'hidden' }}>
-                        <table className="table table-bordered table-vertical-center m-0 print-table results-report-table" style={{ borderCollapse: 'collapse', width: '100%', tableLayout: 'auto' }}>
+                <div className={`${isPrintView ? '' : 'card-body p-0'} print-body`} style={{ flex: 1, overflowX: 'auto' }}>
+                    <div className="table-responsive" style={{ overflowX: 'auto' }}>
+                        <table className="table table-bordered table-vertical-center m-0 print-table results-report-table" style={{ borderCollapse: 'collapse', width: '100%' }}>
                             <thead className="bg-light" style={{ backgroundColor: '#f8f9fa' }}>
                                 <tr>
                                     <th className="font-weight-bolder print-num" style={{ textAlign: 'center', borderBottom: '2px solid #dee2e6' }}>#</th>
-                                    <th className="font-weight-bolder print-student" style={{ borderBottom: '2px solid #dee2e6', whiteSpace: 'nowrap' }}>Student Details</th>
+                                    <th className="font-weight-bolder print-student" style={{ borderBottom: '2px solid #dee2e6' }}>Student Details</th>
                                     {subjects?.map(subj => (
-                                        <th key={subj.id} className="text-center font-weight-bolder print-th" style={{ borderBottom: '2px solid #dee2e6', whiteSpace: 'nowrap', padding: '1px' }}>
+                                        <th key={subj.id} className="text-center font-weight-bolder print-th" style={{ borderBottom: '2px solid #dee2e6', padding: '1px' }}>
                                             <div className="print-subject-name" style={{ paddingBottom: '1px', borderBottom: '1px solid #dee2e6', marginBottom: '1px' }}>
                                                 {subj.name}
                                             </div>
@@ -147,7 +147,7 @@ const ResultsReport = ({
                                             </div>
                                         </th>
                                     ))}
-                                    <th className="text-center font-weight-bolder print-total" style={{ borderBottom: '2px solid #dee2e6', whiteSpace: 'nowrap' }}>Points</th>
+                                    <th className="text-center font-weight-bolder print-total" style={{ borderBottom: '2px solid #dee2e6' }}>Points</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -241,13 +241,9 @@ const ResultsReport = ({
                         margin: 1cm;
                     }
                     .results-report-table {
-                        zoom: 0.67 !important;
-                        /* Fallback for browsers that strip zoom during print */
-                        -webkit-transform: scale(0.67);
-                        transform: scale(0.67);
-                        transform-origin: top left;
-                        width: 149% !important; /* 100 / 0.67 to fill page */
+                        zoom: 0.67;
                     }
+
                     body * {
                         visibility: hidden;
                     }
@@ -279,18 +275,11 @@ const ResultsReport = ({
                         width: 100% !important;
                     }
                 /* Compact table styles for both on-screen and print */
-                .results-report-table {
-                    table-layout: fixed;
-                    width: 100% !important;
-                    zoom: 0.67;
-                }
                 .results-report-table th, .results-report-table td {
                     padding: 2px !important;
                     font-size: 10px !important;
                     white-space: nowrap !important;
                     text-transform: uppercase;
-                    overflow: hidden;
-                    text-overflow: ellipsis;
                 }
                 .results-report-table th {
                     background-color: #f8f9fa !important;
@@ -298,18 +287,18 @@ const ResultsReport = ({
                     -webkit-print-color-adjust: exact;
                     print-color-adjust: exact;
                 }
-                .results-report-table .print-num { font-size: 10px !important; padding: 2px !important; width: 25px; }
-                .results-report-table .print-student { padding: 2px 4px !important; width: 140px; }
-                .results-report-table .print-name { font-size: 12px !important; font-weight: 800; white-space: nowrap !important; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; }
+                .results-report-table .print-num { font-size: 10px !important; padding: 2px !important; white-space: nowrap; }
+                .results-report-table .print-student { padding: 2px 4px !important; white-space: nowrap; }
+                .results-report-table .print-name { font-size: 12px !important; font-weight: 800; white-space: nowrap !important; text-transform: uppercase; }
                 .results-report-table .print-adm { font-size: 9px !important; white-space: nowrap !important; text-transform: uppercase; }
                 
-                .results-report-table .print-subject-name { font-size: 11px !important; font-weight: 800; text-transform: uppercase; white-space: normal !important; word-wrap: break-word; overflow: hidden; line-height: 1.1; }
+                .results-report-table .print-subject-name { font-size: 11px !important; font-weight: 800; text-transform: uppercase; white-space: nowrap !important; }
                 .results-report-table .print-cell { padding: 2px !important; }
                 .results-report-table .print-type-name { font-size: 8px !important; color: #6c757d; font-weight: 800; text-transform: uppercase; white-space: nowrap; }
-                .results-report-table .print-type-val { font-size: 10px !important; font-weight: 800; }
-                .results-report-table .print-overall-val { font-size: 11px !important; font-weight: 900; color: #212529; }
+                .results-report-table .print-type-val { font-size: 10px !important; font-weight: 800; white-space: nowrap; }
+                .results-report-table .print-overall-val { font-size: 11px !important; font-weight: 900; color: #212529; white-space: nowrap; }
                 .results-report-table .print-overall-rubric { font-size: 8px !important; padding: 1px 2px !important; font-weight: 800; white-space: nowrap; text-transform: uppercase; }
-                .results-report-table .print-total { font-size: 12px !important; width: 40px; }
+                .results-report-table .print-total { font-size: 12px !important; white-space: nowrap; }
 
                 @media print {
                     @page {

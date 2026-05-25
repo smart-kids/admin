@@ -291,9 +291,20 @@ class FeesManagement extends Component {
             }
 
             // 2. Identify Student Name
-            const pStudentId = String(p.student?.id || p.student || metadata?.studentId || "");
+            let pStudentId = "";
+            if (p.student && typeof p.student === 'object') {
+                pStudentId = p.student.id || "";
+            } else if (p.student) {
+                pStudentId = p.student || "";
+            }
+            pStudentId = String(pStudentId);
+            
+            const isUnallocated = !pStudentId || pStudentId === "undefined" || pStudentId === "null" || pStudentId === "";
             const student = students.find(s => String(s.id) === pStudentId);
-            const studentName = student ? student.names : 'Unallocated';
+            const studentName = student ? student.names : (p.student?.names || p.student?.name || 'Unallocated');
+
+            // Debug logging for payment matching
+            console.log(`[Payment Mapping] ID: ${p.id} | Amount: ${p.amount} | Raw Student:`, p.student, `| Parsed pStudentId: ${pStudentId} | isUnallocated: ${isUnallocated} | Found locally: ${!!student} | Final studentName: ${studentName}`);
 
             // 3. Assign Term - rely only on explicit termId for bring forward calculations
             let assignedTermName = "Unknown Term";
@@ -313,6 +324,8 @@ class FeesManagement extends Component {
                 metadata,
                 assignedTerm: assignedTermName,
                 assignedTermId,
+                studentId: pStudentId,
+                isUnallocated,
                 studentName,
                 processedAmount: parseFloat(p.amount || p.ammount || 0)
             };
@@ -727,7 +740,7 @@ class FeesManagement extends Component {
                 metadata: {
                     ...editPaymentData.metadata,
                     method: editPaymentData.paymentType,
-                    termId: editPaymentData.metadata?.termId // Ensure termId is passed back
+                    termId: editPaymentData.metadata?.termId || undefined
                 }
             });
             if (window.toastr) window.toastr.success("Payment updated successfully!");
@@ -860,7 +873,7 @@ class FeesManagement extends Component {
 
             // Check for unallocated payments
             const unallocatedSum = (history || [])
-                .filter(h => h.studentName === 'Unallocated' && h.status === 'COMPLETED')
+                .filter(h => h.isUnallocated && h.status === 'COMPLETED')
                 .reduce((sum, h) => sum + (h.processedAmount || 0), 0);
 
             // Build comprehensive statement message
@@ -2519,7 +2532,7 @@ class FeesManagement extends Component {
                                                                                                 {/* UNALLOCATED ALERT for multi-child families */}
                                                                                                 {(() => {
                                                                                                     const unallocatedSum = group.history
-                                                                                                        .filter(h => h.studentName === 'Unallocated' && h.status === 'COMPLETED')
+                                                                                                        .filter(h => h.isUnallocated && h.status === 'COMPLETED')
                                                                                                         .reduce((sum, h) => sum + parseFloat(h.amount || 0), 0);
                                                                                                     if (unallocatedSum > 0) {
                                                                                                         return (
@@ -2544,7 +2557,7 @@ class FeesManagement extends Component {
                                                                                                 </h6>
                                                                                                 <div className="row">
                                                                                                     {group.students.map((student, sIdx) => {
-                                                                                                        const hasUnallocated = sIdx === 0 && group.history.some(h => h.studentName === 'Unallocated' && h.status === 'COMPLETED');
+                                                                                                        const hasUnallocated = sIdx === 0 && group.history.some(h => h.isUnallocated && h.status === 'COMPLETED');
                                                                                                         return (
                                                                                                             <div key={student.id} className="col-md-4 mb-4">
                                                                                                                 <div className="bg-white rounded p-4 shadow-sm border-0 h-100 position-relative" style={{ borderLeft: student.finances?.balance > 0 ? '4px solid #F64E60' : '4px solid #1BC5BD' }}>

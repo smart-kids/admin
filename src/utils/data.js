@@ -74,6 +74,7 @@ const createEntityAPI = (config) => {
         parentKey = null,    // e.g. "trip"
         createFields = [],
         updateFields = [],
+        returnFields = 'id',
     } = config;
 
     const filterPayload = (data, allowedFields) => {
@@ -150,7 +151,7 @@ const createEntityAPI = (config) => {
 
                 // 1. Perform Network Request
                 const response = await mutate(
-                    `mutation ($data: ${mutationName}!) { ${name} { create(${singularName}: $data) { id } } }`,
+                    `mutation ($data: ${mutationName}!) { ${name} { create(${singularName}: $data) { ${returnFields} } } }`,
                     { data: sanitizedData }
                 );
 
@@ -159,7 +160,7 @@ const createEntityAPI = (config) => {
                 }
 
                 const createdItem = response[name].create;
-                let newItem = { ...data, id: createdItem.id };
+                let newItem = { ...data, ...createdItem };
 
                 // Normalization for assessments
                 if (name === 'assessments') {
