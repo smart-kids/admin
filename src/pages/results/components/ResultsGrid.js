@@ -1,13 +1,14 @@
 import React, { memo, useState, useCallback, useMemo, useEffect } from 'react';
 import Data from "../../../utils/data";
 import SearchAlphabetFilter from '../../../components/search-alphabet-filter/SearchAlphabetFilter';
+import MobileDataEntry from './MobileDataEntry';
 
 /** 
  * DetailedPerformanceAnalytics
  * A premium SVG-based analytics component showing cross-term trends 
  * and assessment type performance.
  */
-const DetailedPerformanceAnalytics = ({ student, subjects, currentAssessments, allAssessments, allTerms, assessmentTypes, rubrics, lessonAttempts = [], attemptEvents = [], themeColor = '#3699ff' }) => {
+export const DetailedPerformanceAnalytics = ({ isMobileMode = false, student, subjects, currentAssessments, allAssessments, allTerms, assessmentTypes, rubrics, lessonAttempts = [], attemptEvents = [], themeColor = '#3699ff' }) => {
     
     // 1. Data Processing
     const studentAll = useMemo(() => {
@@ -185,12 +186,12 @@ const DetailedPerformanceAnalytics = ({ student, subjects, currentAssessments, a
     }, [allTerms, studentAll, subjects]);
 
     return (
-        <div style={{ padding: '30px', background: '#f9fafc', borderTop: '3px solid #3699ff', overflowX: 'auto', width: '100%' }}>
-            <div className="d-flex flex-nowrap align-items-stretch" style={{ gap: '30px', minWidth: 'max-content' }}>
+        <div style={{ padding: isMobileMode ? '15px' : '30px', background: '#f9fafc', borderTop: '3px solid #3699ff', overflowX: 'auto', width: '100%' }}>
+            <div className={`d-flex ${isMobileMode ? 'flex-column' : 'flex-nowrap align-items-stretch'}`} style={{ gap: isMobileMode ? '20px' : '30px', minWidth: isMobileMode ? '100%' : 'max-content' }}>
                 
-                {/* === LEFT PANEL (KPI Cards arranged vertically) === */}
-                <div style={{ width: '320px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    <div className="card card-custom shadow-sm flex-grow-1" style={{ border: 'none', borderRadius: '12px' }}>
+                {/* === LEFT PANEL (KPI Cards) === */}
+                <div style={{ width: isMobileMode ? '100%' : '320px', display: 'flex', flexDirection: isMobileMode ? 'row' : 'column', flexWrap: 'wrap', gap: '15px' }}>
+                    <div className="card card-custom shadow-sm flex-grow-1" style={{ border: 'none', borderRadius: '12px', minWidth: isMobileMode ? '130px' : 'auto' }}>
                         <div className="card-body p-5 d-flex flex-column justify-content-center">
                             <div className="d-flex align-items-center mb-2">
                                 <div className="symbol symbol-30 symbol-light-primary mr-3">
@@ -203,7 +204,7 @@ const DetailedPerformanceAnalytics = ({ student, subjects, currentAssessments, a
                         </div>
                     </div>
                     
-                    <div className="card card-custom shadow-sm flex-grow-1" style={{ border: 'none', borderRadius: '12px' }}>
+                    <div className="card card-custom shadow-sm flex-grow-1" style={{ border: 'none', borderRadius: '12px', minWidth: isMobileMode ? '130px' : 'auto' }}>
                         <div className="card-body p-5 d-flex flex-column justify-content-center">
                             <div className="d-flex align-items-center mb-2">
                                 <div className="symbol symbol-30 symbol-light-success mr-3">
@@ -216,7 +217,7 @@ const DetailedPerformanceAnalytics = ({ student, subjects, currentAssessments, a
                         </div>
                     </div>
                     
-                    <div className="card card-custom shadow-sm flex-grow-1" style={{ border: 'none', borderRadius: '12px' }}>
+                    <div className="card card-custom shadow-sm flex-grow-1" style={{ border: 'none', borderRadius: '12px', minWidth: isMobileMode ? '130px' : 'auto' }}>
                         <div className="card-body p-5 d-flex flex-column justify-content-center">
                             <div className="d-flex align-items-center mb-2">
                                 <div className="symbol symbol-30 symbol-light-info mr-3">
@@ -229,7 +230,7 @@ const DetailedPerformanceAnalytics = ({ student, subjects, currentAssessments, a
                         </div>
                     </div>
                     
-                    <div className="card card-custom shadow-sm flex-grow-1" style={{ border: 'none', borderRadius: '12px' }}>
+                    <div className="card card-custom shadow-sm flex-grow-1" style={{ border: 'none', borderRadius: '12px', minWidth: isMobileMode ? '130px' : 'auto' }}>
                         <div className="card-body p-5 d-flex flex-column justify-content-center">
                             <div className="d-flex align-items-center mb-2">
                                 <div className="symbol symbol-30 symbol-light-warning mr-3">
@@ -244,7 +245,7 @@ const DetailedPerformanceAnalytics = ({ student, subjects, currentAssessments, a
                 </div>
 
                 {/* === MIDDLE PANEL (Detailed Subject Matrix & Sparklines) === */}
-                <div style={{ width: '700px', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ width: isMobileMode ? '100%' : '700px', display: 'flex', flexDirection: 'column' }}>
                     <div className="card card-custom shadow-sm bg-white flex-grow-1" style={{ borderRadius: '12px', border: 'none' }}>
                         <div className="card-body p-6">
                             <div className="d-flex align-items-center justify-content-between mb-6">
@@ -378,7 +379,7 @@ const DetailedPerformanceAnalytics = ({ student, subjects, currentAssessments, a
                 </div>
 
                 {/* === RIGHT PANEL (Trends & Insights) === */}
-                <div style={{ width: '450px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div style={{ width: isMobileMode ? '100%' : '450px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
                     
                     {/* Progress Trend Chart */}
                     <div className="card card-custom shadow-sm bg-white flex-grow-1" style={{ borderRadius: '12px', border: 'none' }}>
@@ -493,12 +494,19 @@ const SkeletonRow = ({ subjectsCount }) => (
     </tr>
 );
 
-const ResultsGrid = ({ students, subjects, assessments, allAssessments, allTerms, assessmentTypes, rubrics, updates, onScoreChange, onRemarkChange, onCommentChange, onOutOfChange, onBlur, onPrintSingle, onSendSms, loading, lessonAttempts = [], attemptEvents = [] }) => {
+const ResultsGrid = ({ students, subjects, assessments, allAssessments, allTerms, assessmentTypes, rubrics, updates, onScoreChange, onRemarkChange, onCommentChange, onOutOfChange, onBlur, onPrintSingle, onSendSms, loading, lessonAttempts = [], attemptEvents = [], currentClassObj }) => {
     const [expandedStudents, setExpandedStudents] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(15);
     const [selectedLetter, setSelectedLetter] = useState(null);
+    const [isMobileMode, setIsMobileMode] = useState(window.innerWidth < 992);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobileMode(window.innerWidth < 992);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const sortedAssessmentTypes = useMemo(() => {
         return [...(assessmentTypes || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -622,6 +630,39 @@ const ResultsGrid = ({ students, subjects, assessments, allAssessments, allTerms
 
     return (
         <div className={`d-flex flex-column results-table-container ${loading ? 'opacity-70' : ''}`} style={{ minHeight: '400px' }}>
+            <div className="d-flex justify-content-end mb-4">
+                <button 
+                    className={`btn btn-sm font-weight-boldest ${isMobileMode ? 'btn-primary' : 'btn-light-primary'}`}
+                    onClick={() => setIsMobileMode(!isMobileMode)}
+                    style={{ borderRadius: '8px' }}
+                >
+                    <i className={`fas ${isMobileMode ? 'fa-desktop' : 'fa-mobile-alt'} mr-2`}></i>
+                    {isMobileMode ? 'Switch to Desktop View' : 'Switch to Mobile View'}
+                </button>
+            </div>
+            
+            {isMobileMode ? (
+                <MobileDataEntry
+                    students={filteredStudents}
+                    subjects={subjects}
+                    assessments={assessments}
+                    allAssessments={allAssessments}
+                    allTerms={allTerms}
+                    assessmentTypes={assessmentTypes}
+                    rubrics={rubrics}
+                    updates={updates}
+                    lessonAttempts={lessonAttempts}
+                    attemptEvents={attemptEvents}
+                    onScoreChange={onScoreChange}
+                    onOutOfChange={onOutOfChange}
+                    onBlur={onBlur}
+                    onPrintSingle={onPrintSingle}
+                    onSendSms={onSendSms}
+                    currentClassObj={currentClassObj}
+                    loading={loading}
+                />
+            ) : (
+                <>
             {/* Combined Search and Alphabet Filter */}
             <div className="mb-6">
                 <SearchAlphabetFilter
@@ -638,20 +679,28 @@ const ResultsGrid = ({ students, subjects, assessments, allAssessments, allTerms
                 />
                 
                 {/* Additional Controls */}
-                <div className="d-flex justify-content-between align-items-center">
-                    <div className="d-flex align-items-center">
-                        <span className="text-muted font-weight-bold mr-2" style={{ fontSize: '0.8rem' }}>Show:</span>
-                        <select 
-                            className="form-control form-control-sm font-weight-boldest" 
-                            style={{ width: '80px', borderRadius: '8px' }}
-                            value={rowsPerPage}
-                            onChange={(e) => setRowsPerPage(parseInt(e.target.value))}
-                        >
-                            <option value={15}>15</option>
-                            <option value={50}>50</option>
-                            <option value={100}>100</option>
-                            <option value={1000}>All</option>
-                        </select>
+                <div className={`d-flex ${isMobileMode ? 'flex-column' : 'justify-content-between'} align-items-center`}>
+                    <div className="d-flex align-items-center" style={{ gap: '15px' }}>
+                        <div className="d-flex align-items-center">
+                            <span className="text-muted font-weight-bold mr-2" style={{ fontSize: '0.8rem' }}>Show:</span>
+                            <select 
+                                className="form-control form-control-sm font-weight-boldest" 
+                                style={{ width: '80px', borderRadius: '8px' }}
+                                value={rowsPerPage}
+                                onChange={(e) => setRowsPerPage(parseInt(e.target.value))}
+                            >
+                                <option value={15}>15</option>
+                                <option value={50}>50</option>
+                                <option value={100}>100</option>
+                                <option value={1000}>All</option>
+                            </select>
+                        </div>
+                        {currentClassObj?.teacher?.name && (
+                            <div className="d-flex align-items-center bg-light-info p-2 rounded px-3 border border-info-o-20" title="Teacher accountable for this class">
+                                <i className="flaticon2-group text-info mr-2"></i>
+                                <span className="text-info font-weight-bolder font-size-sm">Class Teacher: {currentClassObj.teacher.name}</span>
+                            </div>
+                        )}
                     </div>
                     <div className="text-muted font-weight-bold">
                         {loading ? 'Updating results...' : `Found ${filteredStudents.length} students`}
@@ -666,7 +715,15 @@ const ResultsGrid = ({ students, subjects, assessments, allAssessments, allTerms
                             <th style={{ width: '10px', backgroundColor: '#f3f6f9' }} className="pl-0"></th>
                             <th style={{ minWidth: '220px', position: 'sticky', left: 0, zIndex: 101, backgroundColor: '#f3f6f9', borderRight: '1px solid #ebedf3', boxShadow: '2px 0 5px rgba(0,0,0,0.05)' }}>Details</th>
                             {subjects?.map(subj => (
-                                <th key={subj.id} className="text-center" style={{ minWidth: '150px', backgroundColor: '#f3f6f9' }}>{subj.name}</th>
+                                <th key={subj.id} className="text-center py-4" style={{ minWidth: '150px', backgroundColor: '#f3f6f9' }}>
+                                    <div className="font-weight-boldest mb-1 text-dark font-size-sm">{subj.name}</div>
+                                    {(subj.teacher?.name || subj.teacher?.names) && (
+                                        <div className="text-primary font-weight-bold mt-1" style={{ fontSize: '10px', textTransform: 'capitalize' }}>
+                                            <i className="flaticon2-user text-primary mr-1" style={{ fontSize: '9px' }}></i>
+                                            {subj.teacher.name || subj.teacher.names}
+                                        </div>
+                                    )}
+                                </th>
                             ))}
                             <th className="text-center" style={{ minWidth: '100px', backgroundColor: '#f3f6f9', position: 'sticky', right: '120px', zIndex: 101, borderLeft: '1px solid #ebedf3', boxShadow: '-2px 0 5px rgba(0,0,0,0.05)' }}>Points</th>
                             <th className="text-right" style={{ minWidth: '120px', backgroundColor: '#f3f6f9', position: 'sticky', right: 0, zIndex: 101 }}>Actions</th>
@@ -914,6 +971,8 @@ const ResultsGrid = ({ students, subjects, assessments, allAssessments, allTerms
                         </button>
                     </div>
                 </div>
+            )}
+            </>
             )}
         </div>
     );

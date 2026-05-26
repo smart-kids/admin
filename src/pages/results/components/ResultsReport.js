@@ -130,12 +130,12 @@ const ResultsReport = ({
                     <div className="table-responsive" style={{ overflowX: 'auto' }}>
                         <table className="table table-bordered table-vertical-center m-0 print-table results-report-table" style={{ borderCollapse: 'collapse', width: '100%' }}>
                             <thead className="bg-light" style={{ backgroundColor: '#f8f9fa' }}>
-                                <tr>
-                                    <th className="font-weight-bolder print-num" style={{ textAlign: 'center', borderBottom: '2px solid #dee2e6' }}>#</th>
-                                    <th className="font-weight-bolder print-student" style={{ borderBottom: '2px solid #dee2e6' }}>Student Details</th>
+                                <tr className="text-uppercase">
+                                    <th className="font-weight-bolder print-num" style={{ textAlign: 'center', borderBottom: '2px solid #ebedf3', backgroundColor: '#f3f6f9' }}>#</th>
+                                    <th className="font-weight-bolder print-student" style={{ borderBottom: '2px solid #ebedf3', backgroundColor: '#f3f6f9' }}>Student Details</th>
                                     {subjects?.map(subj => (
-                                        <th key={subj.id} className="text-center font-weight-bolder print-th" style={{ borderBottom: '2px solid #dee2e6', padding: '1px' }}>
-                                            <div className="print-subject-name" style={{ paddingBottom: '1px', borderBottom: '1px solid #dee2e6', marginBottom: '1px' }}>
+                                        <th key={subj.id} className="text-center font-weight-bolder print-th" style={{ borderBottom: '2px solid #ebedf3', padding: '1px', backgroundColor: '#f3f6f9' }}>
+                                            <div className="print-subject-name" style={{ paddingBottom: '1px', borderBottom: '1px solid #ebedf3', marginBottom: '1px' }}>
                                                 {subj.name}
                                             </div>
                                             <div className="d-flex justify-content-between print-type-name" style={{ gap: '1px' }}>
@@ -147,7 +147,7 @@ const ResultsReport = ({
                                             </div>
                                         </th>
                                     ))}
-                                    <th className="text-center font-weight-bolder print-total" style={{ borderBottom: '2px solid #dee2e6' }}>Points</th>
+                                    <th className="text-center font-weight-bolder print-total" style={{ borderBottom: '2px solid #ebedf3', backgroundColor: '#f3f6f9' }}>Points</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -158,8 +158,18 @@ const ResultsReport = ({
                                         <tr key={student.id} className="border-bottom student-row">
                                             <td className="text-center font-weight-bold text-muted print-num" style={{ verticalAlign: 'middle' }}>{index + 1}</td>
                                             <td style={{ verticalAlign: 'middle' }} className="print-student">
-                                                <div className="text-dark print-name">{student.names}</div>
-                                                <div className="text-muted print-adm">{student.admNo || student.registration}</div>
+                                                <div className="d-flex flex-column">
+                                                    <div className="d-flex align-items-baseline mb-1">
+                                                        <span className="text-muted font-weight-normal mr-1" style={{fontSize: '9px'}}>Student:</span>
+                                                        <span className="text-dark print-name">{student.names}</span>
+                                                    </div>
+                                                    <div className="d-flex align-items-center print-adm">
+                                                        <span className="text-muted mr-1">ADM:</span>
+                                                        <span className="text-dark font-weight-bold mr-3">{student.admNo || student.registration || 'N/A'}</span>
+                                                        <span className="text-muted mr-1">Parent:</span>
+                                                        <span className="text-dark font-weight-bold" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100px' }}>{student.parent?.name || 'N/A'}</span>
+                                                    </div>
+                                                </div>
                                             </td>
                                             {subjects?.map(subj => {
                                                 let overallScore = 0;
@@ -205,7 +215,7 @@ const ResultsReport = ({
                                                                         {overallScore.toFixed(1)}%
                                                                     </div>
                                                                     {overallRubric && (
-                                                                        <div className="rounded print-overall-rubric" style={{ backgroundColor: `${oColor}20`, color: oColor, border: `1px solid ${oColor}` }}>
+                                                                        <div className="rounded print-overall-rubric label label-inline" style={{ backgroundColor: `${oColor}15`, color: oColor, border: `1px solid ${oColor}` }}>
                                                                             {overallRubric.label}
                                                                         </div>
                                                                     )}
@@ -282,23 +292,25 @@ const ResultsReport = ({
                     text-transform: uppercase;
                 }
                 .results-report-table th {
-                    background-color: #f8f9fa !important;
-                    color: black !important;
+                    background-color: #f3f6f9 !important;
+                    color: #3f4254 !important;
                     -webkit-print-color-adjust: exact;
                     print-color-adjust: exact;
                 }
                 .results-report-table .print-num { font-size: 10px !important; padding: 2px !important; white-space: nowrap; }
                 .results-report-table .print-student { padding: 2px 4px !important; white-space: nowrap; }
-                .results-report-table .print-name { font-size: 12px !important; font-weight: 800; white-space: nowrap !important; text-transform: uppercase; }
-                .results-report-table .print-adm { font-size: 9px !important; white-space: nowrap !important; text-transform: uppercase; }
+                .results-report-table .print-name { font-size: 12px !important; font-weight: 800; white-space: nowrap !important; text-transform: uppercase; color: #3f4254 !important; }
+                .results-report-table .print-adm { font-size: 9px !important; white-space: nowrap !important; text-transform: uppercase; color: #b5b5c3 !important; }
+                .results-report-table .print-adm .text-dark { color: #3f4254 !important; }
                 
-                .results-report-table .print-subject-name { font-size: 11px !important; font-weight: 800; text-transform: uppercase; white-space: nowrap !important; }
+                .results-report-table .print-subject-name { font-size: 11px !important; font-weight: 800; text-transform: uppercase; white-space: nowrap !important; color: #3f4254 !important; }
                 .results-report-table .print-cell { padding: 2px !important; }
-                .results-report-table .print-type-name { font-size: 8px !important; color: #6c757d; font-weight: 800; text-transform: uppercase; white-space: nowrap; }
-                .results-report-table .print-type-val { font-size: 10px !important; font-weight: 800; white-space: nowrap; }
-                .results-report-table .print-overall-val { font-size: 11px !important; font-weight: 900; color: #212529; white-space: nowrap; }
-                .results-report-table .print-overall-rubric { font-size: 8px !important; padding: 1px 2px !important; font-weight: 800; white-space: nowrap; text-transform: uppercase; }
-                .results-report-table .print-total { font-size: 12px !important; white-space: nowrap; }
+                .results-report-table .print-type-name { font-size: 8px !important; color: #b5b5c3 !important; font-weight: 800; text-transform: uppercase; white-space: nowrap; }
+                .results-report-table .print-type-val { font-size: 10px !important; font-weight: 800; white-space: nowrap; color: #3f4254 !important; }
+                .results-report-table .print-overall-val { font-size: 11px !important; font-weight: 900; color: #3f4254 !important; white-space: nowrap; }
+                .results-report-table .print-overall-rubric { font-size: 8px !important; padding: 1px 4px !important; font-weight: 800; white-space: nowrap; text-transform: uppercase; border-radius: 4px; }
+                .results-report-table .print-total { font-size: 12px !important; white-space: nowrap; color: #3f4254 !important; }
+                .results-report-table td, .results-report-table th { border: 1px solid #ebedf3 !important; }
 
                 @media print {
                     @page {

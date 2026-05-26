@@ -80,6 +80,22 @@ class ResultsMatrix extends React.Component {
         };
     }
 
+    // Read URL parameters for shared filters
+    const hash = window.location.hash;
+    const urlParams = new URLSearchParams(hash.includes('?') ? hash.split('?')[1] : '');
+    
+    const urlTerm = urlParams.get('term');
+    const urlClass = urlParams.get('class');
+    const urlGrade = urlParams.get('grade');
+
+    if (urlTerm || urlClass || urlGrade) {
+        this.setState(prevState => ({
+            selectedTerm: urlTerm || prevState.selectedTerm,
+            selectedClass: urlClass || prevState.selectedClass,
+            selectedGrade: urlGrade || prevState.selectedGrade,
+        }));
+    }
+
     this.unsubClasses = Data.classes.subscribe(({ classes }) => this.setState({ classes }));
     this.unsubTerms = Data.terms?.subscribe(({ terms }) => this.setState({ terms }));
     this.unsubGrades = Data.grades?.subscribe(({ grades }) => this.setState({ grades }));
@@ -144,10 +160,32 @@ class ResultsMatrix extends React.Component {
     return { availableSubjects, availableGrades, availableClasses, terms };
   }
 
-  // Removed autoSelectDefaults in favor of EnhancedDropdown defaulting to "ALL"
+  updateUrlParams = (key, value) => {
+      const hash = window.location.hash;
+      const baseUrl = hash.split('?')[0];
+      const urlParams = new URLSearchParams(hash.includes('?') ? hash.split('?')[1] : '');
+      
+      const paramMap = {
+          'selectedTerm': 'term',
+          'selectedClass': 'class',
+          'selectedGrade': 'grade'
+      };
+      
+      const paramKey = paramMap[key];
+      if (paramKey) {
+          if (value) {
+              urlParams.set(paramKey, value);
+          } else {
+              urlParams.delete(paramKey);
+          }
+          const queryString = urlParams.toString();
+          window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}${baseUrl}${queryString ? '?' + queryString : ''}`);
+      }
+  };
 
   handleFilterChange = (filterName, value) => {
       this.setState({ [filterName]: value }, () => {
+          this.updateUrlParams(filterName, value);
           if (filterName === 'selectedClass' || filterName === 'selectedTerm') {
               this.fetchAssessments();
           }
@@ -1205,7 +1243,7 @@ class ResultsMatrix extends React.Component {
                     </ul>
                 </div>
 
-                <div className="card-toolbar d-flex flex-wrap align-items-center flex-grow-1" style={{ gap: '12px' }}>
+                <div className="card-toolbar d-flex flex-nowrap align-items-center flex-grow-1 custom-scrollbar" style={{ gap: '12px', overflowX: 'auto', paddingBottom: '8px', WebkitOverflowScrolling: 'touch' }}>
                     <div className="d-flex align-items-center flex-grow-1" style={{ minWidth: '110px' }}>
                         <EnhancedDropdown
                             value={selectedTerm}
@@ -1334,6 +1372,7 @@ class ResultsMatrix extends React.Component {
                         onBlur={this.saveAllChanges}
                         onPrintSingle={this.handlePrintSingle} 
                         onSendSms={this.handleSmsClick} 
+                        currentClassObj={classes.find(c => String(c.id) === String(selectedClass))}
                     />
                 ) : <div className="alert alert-light-primary text-center py-10">Select Term and Class to view results</div>
             ) : activeTab === 'results-report' ? (
