@@ -2088,8 +2088,6 @@ class FeesManagement extends Component {
                                                                         <th style={{ padding: '12px 18px', textAlign: 'center', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', width: '40px' }}>#</th>
                                                                         <th style={{ padding: '12px 18px', textAlign: 'left', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Student Details</th>
                                                                         <th style={{ padding: '12px 18px', textAlign: 'left', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Registration</th>
-                                                                        <th style={{ padding: '12px 18px', textAlign: 'right', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Expected</th>
-                                                                        <th style={{ padding: '12px 18px', textAlign: 'right', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Paid</th>
                                                                         <th style={{ padding: '12px 18px', textAlign: 'right', color: 'white', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase' }}>Balance</th>
                                                                     </tr>
                                                                 </thead>
@@ -2102,22 +2100,22 @@ class FeesManagement extends Component {
                                                                                 <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>{s.parentName}</div>
                                                                             </td>
                                                                             <td style={{ padding: '12px 18px', fontSize: '0.85rem', color: '#4b5563' }}>{s.registration}</td>
-                                                                            <td style={{ padding: '12px 18px', textAlign: 'right', fontWeight: 600, fontSize: '0.9rem' }}>{s.totalExpected.toLocaleString()}</td>
-                                                                            <td style={{ padding: '12px 18px', textAlign: 'right', fontWeight: 700, fontSize: '0.95rem', color: s.totalPaid > 0 ? '#10b981' : '#9ca3af' }}>
-                                                                                {s.totalPaid.toLocaleString()}
-                                                                                {s.totalPaid === 0 && <span style={{ display: 'block', fontSize: '0.65rem', color: '#ef4444', fontWeight: 800 }}>NO PAYMENT</span>}
-                                                                            </td>
                                                                             <td style={{ padding: '12px 18px', textAlign: 'right', fontWeight: 800, fontSize: '1.0rem', color: s.balance > 0 ? '#ef4444' : '#10b981' }}>{s.balance.toLocaleString()}</td>
                                                                         </tr>
                                                                     ))}
                                                                     
                                                                     {/* CLASS TOTAL ROW */}
-                                                                    <tr style={{ borderTop: '2px solid #374151', backgroundColor: '#f9fafb' }}>
-                                                                        <td colSpan="3" style={{ padding: '15px 18px', textAlign: 'right', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem' }}>Class Total ({className})</td>
-                                                                        <td style={{ padding: '15px 18px', textAlign: 'right', fontWeight: 800, fontSize: '1.0rem' }}>{classStudents.reduce((sum, s) => sum + s.totalExpected, 0).toLocaleString()}</td>
-                                                                        <td style={{ padding: '15px 18px', textAlign: 'right', fontWeight: 800, fontSize: '1.0rem', color: '#10b981' }}>{classStudents.reduce((sum, s) => sum + s.totalPaid, 0).toLocaleString()}</td>
-                                                                        <td style={{ padding: '15px 18px', textAlign: 'right', fontWeight: 800, fontSize: '1.1rem', color: '#ef4444' }}>{classStudents.reduce((sum, s) => sum + s.balance, 0).toLocaleString()}</td>
-                                                                    </tr>
+                                                                    {(() => {
+                                                                        const clsTotalExpected = classStudents.reduce((sum, s) => sum + s.totalExpected, 0);
+                                                                        const clsTotalPaid = classStudents.reduce((sum, s) => sum + s.totalPaid, 0);
+                                                                        const collectionPercentage = clsTotalExpected > 0 ? ((clsTotalPaid / clsTotalExpected) * 100).toFixed(1) : 0;
+                                                                        return (
+                                                                            <tr style={{ borderTop: '2px solid #374151', backgroundColor: '#f9fafb' }}>
+                                                                                <td colSpan="3" style={{ padding: '15px 18px', textAlign: 'right', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.75rem' }}>Class Collection Rate ({className})</td>
+                                                                                <td style={{ padding: '15px 18px', textAlign: 'right', fontWeight: 800, fontSize: '1.1rem', color: '#10b981' }}>{collectionPercentage}% Collected</td>
+                                                                            </tr>
+                                                                        );
+                                                                    })()}
                                                                 </tbody>
                                                             </table>
                                                         </div>
