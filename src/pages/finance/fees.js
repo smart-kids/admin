@@ -1867,7 +1867,7 @@ class FeesManagement extends Component {
             const totalCharges = printGroup.charges ? printGroup.charges.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0) : 0;
             const totalValidExpected = totalClassFees + totalCharges;
             const totalValidPaid = validStudentsData.reduce((sum, s) => sum + s.paid, 0);
-            const totalValidBalance = totalValidExpected - totalValidPaid;
+            const totalValidBalance = totalValidExpected - totalValidPaid + parseFloat(printGroup.balanceBroughtForward || 0);
 
             return (
                 <div className="kt-grid__item kt-grid__item--fluid kt-grid kt-grid--ver kt-page">
