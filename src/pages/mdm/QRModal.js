@@ -26,9 +26,10 @@ class QRModal extends React.Component {
     // We will generate a payload for onboarding.
     const schoolId = localStorage.getItem("school");
     const payload = JSON.stringify({
-      action: "ONBOARD",
-      schoolId: schoolId,
-      timestamp: Date.now()
+      "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "com.shule.plusapp/.AdminReceiver",
+      "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": {
+        "schoolId": schoolId
+      }
     });
 
     // Use a free QR Code API for rendering the QR code image

@@ -92,6 +92,7 @@ class Navbar extends React.Component {
         { path: "/results", label: "Results", icon: "la-bar-chart" },
         { path: "/time-tables", label: "Time Tables", icon: "la-calendar-check-o" },
         { path: "/finance/fees", label: "Fee", icon: "la-money" },
+        { path: "/transport", label: "Transport", icon: "la-bus" },
         { path: "/games", label: "Games", icon: "la-gamepad" },
         { path: "/mdm", label: "Devices", icon: "la-tablet" }
       ];
@@ -115,6 +116,7 @@ class Navbar extends React.Component {
       { path: "/results", label: "Results", icon: "la-bar-chart" },
       { path: "/time-tables", label: "Time Tables", icon: "la-calendar-check-o" },
       { path: "/finance/fees", label: "Fee", icon: "la-money" },
+      { path: "/transport", label: "Transport", icon: "la-bus" },
       { path: "/games", label: "Games", icon: "la-gamepad" },
       { path: "/mdm", label: "Devices", icon: "la-tablet" },
     ];
@@ -151,13 +153,20 @@ class Navbar extends React.Component {
       }, () => {
         if (selectedSchool && selectedSchool.id) {
           localStorage.setItem("school", selectedSchool.id);
+          localStorage.setItem("schoolData", JSON.stringify(selectedSchool));
           document.title = `${selectedSchool.name || 'Shule Plus'} | Shule Plus`;
           
-          // Update favicon dynamically
+          // Update favicon and theme-color dynamically
           if (selectedSchool.logo) {
               const favicon = document.querySelector("link[rel*='icon']") || document.getElementById("favicon");
               if (favicon) {
                   favicon.href = selectedSchool.logo;
+              }
+          }
+          if (selectedSchool.theme_color) {
+              const themeColorMeta = document.getElementById("theme-color-meta") || document.querySelector("meta[name='theme-color']");
+              if (themeColorMeta) {
+                  themeColorMeta.content = selectedSchool.theme_color;
               }
           }
         }
@@ -619,16 +628,19 @@ class Navbar extends React.Component {
     // Hide specific items from bottom nav to prevent overcrowding (they remain in the 'More' menu)
     navItems = navItems.filter(item => item.label !== "Games" && item.label !== "Devices");
 
-    // Prioritize "Fee" to be visible in the bottom nav
-    const feeIndex = navItems.findIndex(i => i.label === "Fee");
-    if (feeIndex > 3) {
-      const feeItem = navItems.splice(feeIndex, 1)[0];
-      navItems.splice(3, 0, feeItem);
-    }
+    // Prioritize "Fee", "Results", "Transport" to be visible in the bottom nav
+    const priorityLabels = ["Results", "Fee", "Transport"];
+    priorityLabels.reverse().forEach(label => {
+        const idx = navItems.findIndex(i => i.label === label);
+        if (idx > -1) {
+            const item = navItems.splice(idx, 1)[0];
+            navItems.splice(0, 0, item); // move to front to ensure it's picked up and next to each other
+        }
+    });
 
-    // Optional: limit to 4 items + "More" button for perfect spacing
-    if (navItems.length > 4) {
-      navItems = navItems.slice(0, 4);
+    // Limit to 5 items + "More" button for perfect spacing
+    if (navItems.length > 5) {
+      navItems = navItems.slice(0, 5);
     }
 
     return (
