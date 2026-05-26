@@ -86,7 +86,7 @@ export const StudentProgressTimelineChart = ({
         }
       },
       legend: {
-        data: subjects.map(s => s.name),
+        data: subjects.map(s => s.name || `Subject ${s.id || 'Unknown'}`),
         bottom: 10,
         type: 'scroll'
       },
@@ -225,13 +225,16 @@ export const StudentProgressTimelineChart = ({
     
     // Create categories and series data
     const sortedKeys = Object.keys(timeGroups).sort();
-    const series = subjects.map(subject => ({
-      name: subject.name,
-      data: sortedKeys.map(key => {
-        const scores = timeGroups[key][subject.name] || [];
-        return scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : null;
-      })
-    }));
+    const series = subjects.map(subject => {
+      const subjectName = subject.name || `Subject ${subject.id || 'Unknown'}`;
+      return {
+        name: subjectName,
+        data: sortedKeys.map(key => {
+          const scores = timeGroups[key][subjectName] || [];
+          return scores.length > 0 ? scores.reduce((sum, score) => sum + score, 0) / scores.length : null;
+        })
+      };
+    });
     
     return {
       timelineData: timeGroups,

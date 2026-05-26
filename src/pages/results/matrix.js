@@ -186,6 +186,19 @@ class ResultsMatrix extends React.Component {
   handleFilterChange = (filterName, value) => {
       this.setState({ [filterName]: value }, () => {
           this.updateUrlParams(filterName, value);
+          
+          if (filterName === 'selectedClass' && value) {
+              const selectedClassObj = this.state.classes.find(c => String(c.id) === String(value));
+              if (selectedClassObj) {
+                  const gradeId = selectedClassObj.grade?.id || selectedClassObj.grade;
+                  if (gradeId && String(this.state.selectedGrade) !== String(gradeId)) {
+                      this.setState({ selectedGrade: String(gradeId) }, () => {
+                          this.updateUrlParams('selectedGrade', String(gradeId));
+                      });
+                  }
+              }
+          }
+
           if (filterName === 'selectedClass' || filterName === 'selectedTerm') {
               this.fetchAssessments();
           }
@@ -597,7 +610,8 @@ class ResultsMatrix extends React.Component {
       );
       
       return {
-        subjectName: subject.name,
+        id: subject.id || `sub-${Math.random()}`,
+        subjectName: subject.name || `Subject ${subject.id || 'Unknown'}`,
         assessments: subjectAssessments,
         totalStudents: new Set(subjectAssessments.map(a => a.student?.id || a.student)).size,
         assessedStudents: new Set(subjectAssessments.map(a => a.student?.id || a.student)).size,
@@ -882,8 +896,13 @@ class ResultsMatrix extends React.Component {
     return (
         <div className="animate__animated animate__fadeInUp">
             {/* Modern KPI Cards with enhanced visual design */}
-            <div className="row mb-6">
-                <div className="col-md-3">
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                gap: '16px',
+                marginBottom: '24px'
+            }}>
+                <div style={{ minWidth: 0 }}>
                     <ModernKPICard
                         title="Class Average"
                         value={`${Math.round(classAvg)}%`}
@@ -904,7 +923,7 @@ class ResultsMatrix extends React.Component {
                         }}
                     />
                 </div>
-                <div className="col-md-3">
+                <div style={{ minWidth: 0 }}>
                     <ModernKPICard
                         title="Excellence Rate"
                         value={`${((topGradesCount / Math.max(gradedStudents, 1)) * 100).toFixed(1)}%`}
@@ -924,7 +943,7 @@ class ResultsMatrix extends React.Component {
                         }}
                     />
                 </div>
-                <div className="col-md-3">
+                <div style={{ minWidth: 0 }}>
                     <ModernKPICard
                         title="Subject Coverage"
                         value={subjects.length}
@@ -945,7 +964,7 @@ class ResultsMatrix extends React.Component {
                         }}
                     />
                 </div>
-                <div className="col-md-3">
+                <div style={{ minWidth: 0 }}>
                     <ModernKPICard
                         title="Quality Score"
                         value={`${((gradedStudents / Math.max(totalStudents, 1)) * 100).toFixed(1)}%`}
@@ -1243,8 +1262,8 @@ class ResultsMatrix extends React.Component {
                     </ul>
                 </div>
 
-                <div className="card-toolbar d-flex flex-nowrap align-items-center flex-grow-1 custom-scrollbar" style={{ gap: '12px', overflowX: 'auto', paddingBottom: '8px', WebkitOverflowScrolling: 'touch' }}>
-                    <div className="d-flex align-items-center flex-grow-1" style={{ minWidth: '110px' }}>
+                <div className="d-flex align-items-center flex-grow-1" style={{ gap: '12px', paddingBottom: '8px', zIndex: 100, position: 'relative', width: 'auto', display: 'flex', flexWrap: 'nowrap', overflow: 'visible' }}>
+                    <div className="d-flex align-items-center flex-grow-1" style={{ minWidth: '80px', flexBasis: '0' }}>
                         <EnhancedDropdown
                             value={selectedTerm}
                             onChange={(value) => this.handleFilterChange('selectedTerm', value)}
@@ -1252,7 +1271,7 @@ class ResultsMatrix extends React.Component {
                             placeholder="Term..."
                             searchable={true}
                             width="100%"
-                            minWidth="160px"
+                            minWidth="80px"
                             className="w-100"
                             persistenceKey="results_matrix_term"
                         />
@@ -1268,7 +1287,7 @@ class ResultsMatrix extends React.Component {
                         )}
                     </div>
                     
-                    <div className="d-flex align-items-center flex-grow-1" style={{ minWidth: '140px' }}>
+                    <div className="d-flex align-items-center flex-grow-1" style={{ minWidth: '100px', flexBasis: '0' }}>
                         <EnhancedDropdown
                             value={selectedClass}
                             onChange={(value) => this.handleFilterChange('selectedClass', value)}
@@ -1282,10 +1301,10 @@ class ResultsMatrix extends React.Component {
                                     }).length,
                                 }))
                             ]}
-                            placeholder="Class (Students)..."
+                            placeholder="Class..."
                             searchable={true}
                             width="100%"
-                            minWidth="200px"
+                            minWidth="100px"
                             className="w-100"
                             showEmptySearchResults={true}
                             showCount={true}
@@ -1305,7 +1324,7 @@ class ResultsMatrix extends React.Component {
                         )}
                     </div>
 
-                    <div className="d-flex align-items-center flex-grow-1" style={{ minWidth: '140px' }}>
+                    <div className="d-flex align-items-center flex-grow-1" style={{ minWidth: '100px', flexBasis: '0' }}>
                         <EnhancedDropdown
                             value={selectedGrade}
                             onChange={(value) => this.handleFilterChange('selectedGrade', value)}
@@ -1319,10 +1338,10 @@ class ResultsMatrix extends React.Component {
                                     }).length,
                                 }))
                             ]}
-                            placeholder="Grade (Subjects)..."
+                            placeholder="Grade..."
                             searchable={true}
                             width="100%"
-                            minWidth="180px"
+                            minWidth="100px"
                             className="w-100"
                             showEmptySearchResults={true}
                             showCount={true}
