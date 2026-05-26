@@ -65,6 +65,14 @@ class ResultsMatrix extends React.Component {
   };
 
   componentDidMount() {
+    this._isMounted = true;
+    const originalSetState = this.setState.bind(this);
+    this.setState = (state, callback) => {
+        if (this._isMounted) {
+            originalSetState(state, callback);
+        }
+    };
+
     if (window.toastr) {
         window.toastr.options = {
             closeButton: true,
@@ -221,6 +229,7 @@ class ResultsMatrix extends React.Component {
   }
 
   componentWillUnmount() {
+      this._isMounted = false;
       if (this.checkAutoSelect) clearInterval(this.checkAutoSelect);
       if (this.loadingTimeout) clearTimeout(this.loadingTimeout);
       if (this.unsubClasses) this.unsubClasses();

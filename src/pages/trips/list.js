@@ -3,6 +3,7 @@ import moment from "moment";
 import DeleteModal from "./delete";
 import Data from "../../utils/data";
 import Stat from "../home/components/stat";
+import { ModernKPICard } from "../../components/charts/ModernKPICard";
 
 // Helper for Icons
 const Icon = ({ name, color }) => <i className={`fas fa-${name}`} style={{ color }}></i>;
@@ -17,10 +18,18 @@ class TripDashboard extends React.Component {
   };
 
   componentDidMount() {
+    this._isMounted = true;
+    const originalSetState = this.setState.bind(this);
+    this.setState = (state, callback) => {
+        if (this._isMounted) {
+            originalSetState(state, callback);
+        }
+    };
     this.initData();
   }
 
   componentWillUnmount() {
+    this._isMounted = false;
     if (this.tripSub) this.tripSub();
   }
 
@@ -96,11 +105,48 @@ class TripDashboard extends React.Component {
       <div className="container-fluid p-4" style={{ backgroundColor: "#f4f6f9", minHeight: "100vh" }}>
         
         {/* --- 1. Top Statistics --- */}
-        <div className="row mb-4">
-          <div className="col-6 col-md-3 mb-2"><Stat label="Total Trips" number={stats.total} icon="route" color="primary" /></div>
-          <div className="col-6 col-md-3 mb-2"><Stat label="Active Now" number={stats.running} icon="bus" color="success" /></div>
-          <div className="col-6 col-md-3 mb-2"><Stat label="Completed" number={stats.completed} icon="check-circle" color="info" /></div>
-          <div className="col-6 col-md-3 mb-2"><Stat label="Cancelled" number={stats.cancelled} icon="times-circle" color="danger" /></div>
+        <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+            gap: '16px',
+            marginBottom: '24px'
+        }}>
+          <div style={{ minWidth: 0 }}>
+            <ModernKPICard
+              title="Total Trips"
+              value={stats.total}
+              subtext="Recorded trips"
+              icon="flaticon2-map text-primary"
+              color="#3699ff"
+            />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <ModernKPICard
+              title="Active Now"
+              value={stats.running}
+              subtext="Trips in progress"
+              icon="flaticon2-lorry text-success"
+              color="#10b981"
+            />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <ModernKPICard
+              title="Completed"
+              value={stats.completed}
+              subtext="Finished successfully"
+              icon="flaticon2-correct text-info"
+              color="#8b5cf6"
+            />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <ModernKPICard
+              title="Cancelled"
+              value={stats.cancelled}
+              subtext="Trips aborted"
+              icon="flaticon2-cross text-danger"
+              color="#e74c3c"
+            />
+          </div>
         </div>
 
         {/* --- 2. Live Operations (Active Cards) --- */}

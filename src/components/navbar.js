@@ -92,7 +92,7 @@ class Navbar extends React.Component {
         { path: "/results", label: "Results", icon: "la-bar-chart" },
         { path: "/time-tables", label: "Time Tables", icon: "la-calendar-check-o" },
         { path: "/finance/fees", label: "Fee", icon: "la-money" },
-        { path: "/transport", label: "Transport", icon: "la-bus" },
+        { path: "/trips/all", label: "Transport", icon: "la-bus" },
         { path: "/games", label: "Games", icon: "la-gamepad" },
         { path: "/mdm", label: "Devices", icon: "la-tablet" }
       ];
@@ -116,7 +116,7 @@ class Navbar extends React.Component {
       { path: "/results", label: "Results", icon: "la-bar-chart" },
       { path: "/time-tables", label: "Time Tables", icon: "la-calendar-check-o" },
       { path: "/finance/fees", label: "Fee", icon: "la-money" },
-      { path: "/transport", label: "Transport", icon: "la-bus" },
+      { path: "/trips/all", label: "Transport", icon: "la-bus" },
       { path: "/games", label: "Games", icon: "la-gamepad" },
       { path: "/mdm", label: "Devices", icon: "la-tablet" },
     ];

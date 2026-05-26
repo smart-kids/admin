@@ -69,6 +69,14 @@ class FinanceInsightsDashboard extends Component {
   }
 
   componentDidMount() {
+    this._isMounted = true;
+    const originalSetState = this.setState.bind(this);
+    this.setState = (state, callback) => {
+        if (this._isMounted) {
+            originalSetState(state, callback);
+        }
+    };
+
     this.initializeData();
     this.setupSubscriptions();
     window.addEventListener('resize', this.handleResize);
@@ -79,6 +87,7 @@ class FinanceInsightsDashboard extends Component {
   };
 
   componentWillUnmount() {
+    this._isMounted = false;
     this.cleanupSubscriptions();
     window.removeEventListener('resize', this.handleResize);
   }
