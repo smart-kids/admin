@@ -1,30 +1,24 @@
 import React from "react";
-import "./Library.css"; // Ensure you have the CSS file from the previous step
+import "./Library.css";
 
 const $ = window.$;
 
-// Generate a unique ID to ensure jQuery targets the correct element
-const MODAL_ID = "book_modal_" + Math.random().toString(36).substr(2, 9);
+const MODAL_ID = "game_modal_" + Math.random().toString(36).substr(2, 9);
 
-class BookModal extends React.Component {
+class GameModal extends React.Component {
   
-  // Define initial state for easy resetting
   initialState = {
     id: "",
     title: "",
-    author: "",
-    category: "Science",
+    developer: "",
+    category: "Action",
     description: "",
     
-    // Media Previews (URLs)
     coverUrl: "",
-    pdfUrl: "",
+    gameUrl: "",
     
-    // File Objects (Actual files for upload)
     coverFile: null,
-    pdfFile: null,
     
-    // UI State
     isUploading: false,
     uploadProgress: 0,
     errors: {}
@@ -32,38 +26,25 @@ class BookModal extends React.Component {
 
   state = { ...this.initialState };
 
-  componentDidMount() {
-    // Initialize jQuery validation or specific modal events if needed here
-    // But for this setup, the logic is largely in show()
-  }
-
-  // --- THE REQUESTED SHOW/HIDE IMPLEMENTATION ---
-
-  show(bookToEdit = null) {
-    // 1. Logic to Populate or Reset State
-    if (bookToEdit) {
-      // Edit Mode: Populate state
+  show(gameToEdit = null) {
+    if (gameToEdit) {
       this.setState({
-        id: bookToEdit.id || "",
-        title: bookToEdit.title || "",
-        author: bookToEdit.author || "",
-        category: bookToEdit.category || "Science",
-        description: bookToEdit.description || "",
-        coverUrl: bookToEdit.coverUrl || "",
-        pdfUrl: bookToEdit.pdfUrl || "",
-        // Reset file inputs and UI state
+        id: gameToEdit.id || "",
+        title: gameToEdit.title || "",
+        developer: gameToEdit.developer || "",
+        category: gameToEdit.category || "Action",
+        description: gameToEdit.description || "",
+        coverUrl: gameToEdit.coverUrl || "",
+        gameUrl: gameToEdit.gameUrl || "",
         coverFile: null,
-        pdfFile: null,
         isUploading: false,
         uploadProgress: 0,
         errors: {}
       });
     } else {
-      // Add Mode: Reset to clean state
       this.setState(this.initialState);
     }
 
-    // 2. jQuery / Bootstrap Modal Trigger
     $("#" + MODAL_ID).modal({
       show: true,
       backdrop: "static",
@@ -75,8 +56,6 @@ class BookModal extends React.Component {
     $("#" + MODAL_ID).modal("hide");
   }
 
-  // --- Form Handling & Logic ---
-
   handleChange = (e) => {
     this.setState({ [e.target.name]: e.target.value, errors: {} });
   };
@@ -84,7 +63,6 @@ class BookModal extends React.Component {
   handleImageSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Convert image to base64
       const reader = new FileReader();
       reader.onload = (event) => {
         const base64String = event.target.result;
@@ -98,39 +76,17 @@ class BookModal extends React.Component {
     }
   };
 
-  handlePdfSelect = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // Convert PDF to base64
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64String = event.target.result;
-        this.setState({
-          pdfFile: file,
-          pdfUrl: base64String,
-          errors: { ...this.state.errors, pdf: null }
-        });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   removeCover = () => {
     this.setState({ coverFile: null, coverUrl: "" });
-  };
-
-  removePdf = () => {
-    this.setState({ pdfFile: null, pdfUrl: "" });
   };
 
   validate = () => {
     const errors = {};
     if (!this.state.title) errors.title = "Title is required";
-    if (!this.state.author) errors.author = "Author is required";
+    if (!this.state.developer) errors.developer = "Developer is required";
+    if (!this.state.gameUrl) errors.gameUrl = "Game Embed URL is required";
     
-    // Ensure we have either an existing URL or a new File
     if (!this.state.coverUrl && !this.state.coverFile) errors.cover = "Cover image is required";
-    if (!this.state.pdfUrl && !this.state.pdfFile) errors.pdf = "PDF file is required";
 
     this.setState({ errors });
     return Object.keys(errors).length === 0;
@@ -140,14 +96,8 @@ class BookModal extends React.Component {
     const formData = new FormData();
     formData.append("file", file);
     
-    // Assuming backend is at the same origin or configured for CORS
-    // Use the global URL or relative path
     const response = await fetch("http://localhost:5001/api/upload", {
       method: "POST",
-      headers: {
-        // Need to pass auth token if required by endpoint. The /api/upload we added isn't under /graph auth, 
-        // so it might be open or we should add auth. Let's just upload.
-      },
       body: formData
     });
     
@@ -156,7 +106,7 @@ class BookModal extends React.Component {
     }
     
     const data = await response.json();
-    return data.url; // Returns Sevalla public URL
+    return data.url;
   };
 
   handleSubmit = async (e) => {
@@ -167,37 +117,26 @@ class BookModal extends React.Component {
 
     try {
       let finalCoverUrl = this.state.coverUrl;
-      let finalPdfUrl = this.state.pdfUrl;
 
-      // Upload Cover if it's a new file
       if (this.state.coverFile) {
-        this.setState({ uploadProgress: 30 });
+        this.setState({ uploadProgress: 50 });
         finalCoverUrl = await this.uploadFile(this.state.coverFile);
-      }
-
-      // Upload PDF if it's a new file
-      if (this.state.pdfFile) {
-        this.setState({ uploadProgress: 70 });
-        finalPdfUrl = await this.uploadFile(this.state.pdfFile);
       }
 
       this.setState({ uploadProgress: 100 });
 
-      // --- Prepare Data ---
-      const bookData = {
+      const gameData = {
         id: this.state.id,
         title: this.state.title,
-        author: this.state.author,
+        developer: this.state.developer,
         category: this.state.category,
         description: this.state.description,
         coverUrl: finalCoverUrl,
-        pdfUrl: finalPdfUrl,
+        gameUrl: this.state.gameUrl,
       };
 
-      // Save
-      this.props.onSave(bookData);
+      this.props.onSave(gameData);
       
-      // Cleanup
       this.setState({ isUploading: false });
       this.hide();
     } catch (error) {
@@ -210,7 +149,7 @@ class BookModal extends React.Component {
   };
 
   render() {
-    const { errors, isUploading, uploadProgress, coverUrl, pdfUrl, pdfFile, id } = this.state;
+    const { errors, isUploading, uploadProgress, coverUrl, id } = this.state;
     const isEdit = !!id;
 
     return (
@@ -219,16 +158,14 @@ class BookModal extends React.Component {
         id={MODAL_ID}
         tabIndex={-1}
         role="dialog"
-        aria-labelledby="bookModalLabel"
         aria-hidden="true"
       >
         <div className="modal-dialog modal-dialog-centered modal-lg" role="document">
           <div className="modal-content border-0 shadow-lg" style={{borderRadius: '16px'}}>
             
-            {/* Header */}
             <div className="modal-header">
-              <h5 className="modal-title font-weight-bold" id="bookModalLabel">
-                {isEdit ? "Edit Book" : "Add New Book"}
+              <h5 className="modal-title font-weight-bold">
+                {isEdit ? "Edit Game" : "Add New Game"}
               </h5>
               {!isUploading && (
                   <button type="button" className="close" onClick={() => this.hide()}>
@@ -237,21 +174,19 @@ class BookModal extends React.Component {
               )}
             </div>
 
-            {/* Body */}
             <div className="modal-body p-4">
               <div className="modal-split-layout">
                 
-                {/* --- LEFT: Metadata --- */}
                 <div className="modal-left-col">
                   <div className="form-group">
-                    <label className="font-weight-bold">Book Title *</label>
+                    <label className="font-weight-bold">Game Title *</label>
                     <input
                       type="text"
                       className={`form-control ${errors.title ? 'is-invalid' : ''}`}
                       name="title"
                       value={this.state.title}
                       onChange={this.handleChange}
-                      placeholder="e.g. Advanced Physics"
+                      placeholder="e.g. Math Quest"
                       disabled={isUploading}
                     />
                     {errors.title && <small className="text-danger">{errors.title}</small>}
@@ -259,16 +194,17 @@ class BookModal extends React.Component {
 
                   <div className="row">
                     <div className="col-md-6 form-group">
-                      <label className="font-weight-bold">Author *</label>
+                      <label className="font-weight-bold">Developer *</label>
                       <input
                         type="text"
-                        className={`form-control ${errors.author ? 'is-invalid' : ''}`}
-                        name="author"
-                        value={this.state.author}
+                        className={`form-control ${errors.developer ? 'is-invalid' : ''}`}
+                        name="developer"
+                        value={this.state.developer}
                         onChange={this.handleChange}
-                        placeholder="Author Name"
+                        placeholder="Developer Name"
                         disabled={isUploading}
                       />
+                      {errors.developer && <small className="text-danger">{errors.developer}</small>}
                     </div>
                     <div className="col-md-6 form-group">
                       <label className="font-weight-bold">Category</label>
@@ -279,15 +215,28 @@ class BookModal extends React.Component {
                         onChange={this.handleChange}
                         disabled={isUploading}
                       >
-                        <option value="Science">Science</option>
-                        <option value="Mathematics">Mathematics</option>
-                        <option value="History">History</option>
-                        <option value="Storybooks">Storybooks</option>
-                        <option value="Geography">Geography</option>
-                        <option value="Languages">Languages</option>
+                        <option value="Action">Action</option>
+                        <option value="Adventure">Adventure</option>
+                        <option value="Puzzle">Puzzle</option>
+                        <option value="Educational">Educational</option>
+                        <option value="RPG">RPG</option>
                         <option value="Other">Other</option>
                       </select>
                     </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="font-weight-bold">itch.io Embed URL *</label>
+                    <input
+                      type="text"
+                      className={`form-control ${errors.gameUrl ? 'is-invalid' : ''}`}
+                      name="gameUrl"
+                      value={this.state.gameUrl}
+                      onChange={this.handleChange}
+                      placeholder="https://itch.io/embed-upload/..."
+                      disabled={isUploading}
+                    />
+                    {errors.gameUrl && <small className="text-danger">{errors.gameUrl}</small>}
                   </div>
 
                   <div className="form-group">
@@ -297,17 +246,14 @@ class BookModal extends React.Component {
                       name="description"
                       value={this.state.description}
                       onChange={this.handleChange}
-                      rows="4"
-                      placeholder="Short summary of the book..."
+                      rows="3"
+                      placeholder="Short summary of the game..."
                       disabled={isUploading}
                     />
                   </div>
                 </div>
 
-                {/* --- RIGHT: Media Uploads --- */}
                 <div className="modal-right-col">
-                  
-                  {/* Cover Image Zone */}
                   <div className="media-section">
                     <label className="font-weight-bold">Cover Image *</label>
                     {coverUrl ? (
@@ -329,42 +275,10 @@ class BookModal extends React.Component {
                     )}
                     {errors.cover && <small className="text-danger">{errors.cover}</small>}
                   </div>
-
-                  {/* PDF Zone */}
-                  <div className="media-section">
-                    <label className="font-weight-bold">Book PDF *</label>
-                    {pdfUrl ? (
-                      <div className="pdf-preview-card">
-                        <i className="la la-file-pdf pdf-icon"></i>
-                        <div className="pdf-info">
-                          <div className="pdf-name">
-                            {pdfFile ? pdfFile.name : (pdfUrl.startsWith('http') ? "Existing PDF" : pdfUrl)}
-                          </div>
-                          <div className="pdf-size">
-                            {pdfFile ? (pdfFile.size / 1024 / 1024).toFixed(2) + " MB" : "Linked File"}
-                          </div>
-                        </div>
-                        {!isUploading && (
-                          <button className="btn btn-sm btn-light text-danger" onClick={this.removePdf}>
-                            <i className="la la-times"></i>
-                          </button>
-                        )}
-                      </div>
-                    ) : (
-                      <label className={`upload-zone ${errors.pdf ? 'is-error' : ''}`} style={{ minHeight: '120px' }}>
-                        <input type="file" accept="application/pdf" hidden onChange={this.handlePdfSelect} />
-                        <i className="la la-file-pdf upload-icon"></i>
-                        <span className="upload-text">Upload PDF</span>
-                      </label>
-                    )}
-                    {errors.pdf && <small className="text-danger">{errors.pdf}</small>}
-                  </div>
-
                 </div>
               </div>
             </div>
 
-            {/* Footer */}
             <div className="modal-footer bg-light">
               {isUploading ? (
                 <div className="w-100 d-flex align-items-center">
@@ -395,4 +309,4 @@ class BookModal extends React.Component {
   }
 }
 
-export default BookModal;
+export default GameModal;

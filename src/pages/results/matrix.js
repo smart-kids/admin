@@ -1262,8 +1262,8 @@ class ResultsMatrix extends React.Component {
                     </ul>
                 </div>
 
-                <div className="d-flex align-items-center flex-grow-1" style={{ gap: '12px', paddingBottom: '8px', zIndex: 100, position: 'relative', width: 'auto', display: 'flex', flexWrap: 'nowrap', overflow: 'visible' }}>
-                    <div className="d-flex align-items-center flex-grow-1" style={{ minWidth: '80px', flexBasis: '0' }}>
+                <div className="custom-dropdowns-container">
+                    <div className="dropdown-group">
                         <EnhancedDropdown
                             value={selectedTerm}
                             onChange={(value) => this.handleFilterChange('selectedTerm', value)}
@@ -1287,7 +1287,7 @@ class ResultsMatrix extends React.Component {
                         )}
                     </div>
                     
-                    <div className="d-flex align-items-center flex-grow-1" style={{ minWidth: '100px', flexBasis: '0' }}>
+                    <div className="dropdown-group">
                         <EnhancedDropdown
                             value={selectedClass}
                             onChange={(value) => this.handleFilterChange('selectedClass', value)}
@@ -1324,7 +1324,7 @@ class ResultsMatrix extends React.Component {
                         )}
                     </div>
 
-                    <div className="d-flex align-items-center flex-grow-1" style={{ minWidth: '100px', flexBasis: '0' }}>
+                    <div className="dropdown-group">
                         <EnhancedDropdown
                             value={selectedGrade}
                             onChange={(value) => this.handleFilterChange('selectedGrade', value)}
@@ -1361,7 +1361,7 @@ class ResultsMatrix extends React.Component {
                         )}
                     </div>
 
-                    <div className="d-flex align-items-center ml-auto" style={{ gap: '10px' }}>
+                    <div className="action-buttons-group">
                         {Object.keys(edits).length > 0 && <button className={`btn btn-sm btn-primary font-weight-bold ${saving ? 'spinner spinner-white spinner-right' : ''}`} onClick={this.saveAllChanges} disabled={saving}><i className="fa fa-save"></i> Save ({Object.keys(edits).length})</button>}
                         <button className="btn btn-sm btn-success font-weight-bold" onClick={this.togglePrintView} disabled={!selectedClass || !selectedTerm}><i className="fa fa-print"></i> Print</button>
                         <button className="btn btn-sm btn-light-primary font-weight-bold" onClick={this.initiateBulkResultsSms} disabled={!selectedClass || !selectedTerm}><i className="fa fa-sms"></i> SMS</button>
@@ -1392,6 +1392,7 @@ class ResultsMatrix extends React.Component {
                         onPrintSingle={this.handlePrintSingle} 
                         onSendSms={this.handleSmsClick} 
                         currentClassObj={classes.find(c => String(c.id) === String(selectedClass))}
+                        teachers={this.state.teachers}
                     />
                 ) : <div className="alert alert-light-primary text-center py-10">Select Term and Class to view results</div>
             ) : activeTab === 'results-report' ? (
@@ -1588,6 +1589,57 @@ class ResultsMatrix extends React.Component {
                         
                         .custom-tabs-container {
                             margin: 0 -8px;
+                        }
+                    }
+
+                    /* Enhanced Dropdowns Container Styles */
+                    .custom-dropdowns-container {
+                        display: flex;
+                        gap: 12px;
+                        padding-bottom: 8px;
+                        z-index: 100;
+                        position: relative;
+                        width: auto;
+                        flex-wrap: nowrap;
+                        overflow: visible;
+                        align-items: center;
+                        flex-grow: 1;
+                    }
+
+                    .dropdown-group {
+                        display: flex;
+                        align-items: center;
+                        flex-grow: 1;
+                        min-width: 80px;
+                        flex-basis: 0;
+                    }
+
+                    .action-buttons-group {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        margin-left: auto;
+                    }
+
+                    /* Stack dropdowns vertically on mobile */
+                    @media (max-width: 768px) {
+                        .custom-dropdowns-container {
+                            flex-direction: column;
+                            align-items: stretch;
+                            width: 100%;
+                            gap: 10px;
+                        }
+                        
+                        .dropdown-group {
+                            width: 100%;
+                            flex-basis: auto;
+                        }
+                        
+                        .action-buttons-group {
+                            margin-left: 0;
+                            justify-content: flex-start;
+                            width: 100%;
+                            margin-top: 5px;
                         }
                     }
                 `}</style>

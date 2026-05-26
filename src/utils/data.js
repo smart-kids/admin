@@ -1,7 +1,18 @@
+import { io } from "socket.io-client";
 import emitize from "./emitize";
 import { query, mutate } from "./requests";
 import axios from "axios";
 import { API } from "./requests";
+
+// Socket.IO configuration
+// WebSockets MUST bypass the Netlify serverless proxy because serverless functions 
+// do not support long-lived TCP connections. We connect directly to the true Kinsta backend.
+const SOCKET_URL = window.location.href.includes('localhost') 
+    ? 'http://localhost:4001' 
+    : 'https://graph-ongyy.kinsta.app';
+const socket = io(SOCKET_URL, {
+    withCredentials: true
+});
 
 // Centralized cache for all data entities, both flat and nested.
 const allData = {
@@ -46,6 +57,9 @@ const allData = {
     lesson_plans: [],
     iep_templates: [],
     invoices: [],
+    games: [],
+    devices: [],
+    device_commands: [],
 };
 
 // Centralized subscriptions object. Each key will hold an array of callbacks.
@@ -59,6 +73,33 @@ const notifyLoading = (state) => {
         subs.loading.forEach(cb => cb({ loading: state }));
     }
 };
+
+/**
+ * =================================================================
+ * Real-Time Cache Injection System
+ * =================================================================
+ */
+const injectOrUpdateEntity = (entityName, payload) => {
+    if (!allData[entityName] || !Array.isArray(allData[entityName])) return;
+    
+    const index = allData[entityName].findIndex(item => String(item.id) === String(payload.id));
+    if (index !== -1) {
+        allData[entityName][index] = { ...allData[entityName][index], ...payload };
+    } else {
+        allData[entityName].push(payload);
+    }
+    
+    // Notify subscribers
+    if (Array.isArray(subs[entityName])) {
+        subs[entityName].forEach(cb => cb(allData[entityName]));
+    }
+};
+
+// Listeners for WebSocket pushes from backend
+socket.on("mutation_event", ({ entity, action, payload }) => {
+    console.log(`WebSocket mutation event: [${action}] ${entity}`, payload);
+    injectOrUpdateEntity(entity, payload);
+});
 
 /**
  * =================================================================
@@ -563,6 +604,9 @@ var Data = (function () {
     } 
 }`;
         const FRAGMENT_BOOKS_DATA = `fragment BooksData on school { books { id title author category coverUrl pdfUrl description isDeleted } }`;
+        const FRAGMENT_GAMES_DATA = `fragment GamesData on school { games { id title developer category coverUrl gameUrl description isDeleted } }`;
+        const FRAGMENT_DEVICES_DATA = `fragment DevicesData on school { devices { id macAddress status assignedStudent lastSeen osVersion batteryLevel isDeleted } }`;
+        const FRAGMENT_DEVICE_COMMANDS_DATA = `fragment DeviceCommandsData on school { device_commands { id device command status payload isDeleted } }`;
 
         const deepMergeById = (target, source) => {
             for (const key in source) {
@@ -693,6 +737,9 @@ var Data = (function () {
             notifyEntity('classes');
             notifyEntity('books');
             notifyEntity('chargeTypes');
+            notifyEntity('games');
+            notifyEntity('devices');
+            notifyEntity('device_commands');
 
             // Financials Merge Logic
             if (updatedSubEntities.has('charges') || updatedSubEntities.has('payments')) {
@@ -906,6 +953,9 @@ var Data = (function () {
             { query: `query GetLessonAttempts { schools { id ...LessonData } } ${FRAGMENT_LESSON_DATA}` },
             { query: `query GetSmsEvents { schools { id ...SmsEventsData } } ${FRAGMENT_SMS_EVENTS_DATA}` },
             { query: `query GetBooks { schools { id ...BooksData } } ${FRAGMENT_BOOKS_DATA}` },
+            { query: `query GetGames { schools { id ...GamesData } } ${FRAGMENT_GAMES_DATA}` },
+            { query: `query GetDevices { schools { id ...DevicesData } } ${FRAGMENT_DEVICES_DATA}` },
+            { query: `query GetDeviceCommands { schools { id ...DeviceCommandsData } } ${FRAGMENT_DEVICE_COMMANDS_DATA}` },
             { query: `query GetTerms { schools { id ...TermsData } } ${FRAGMENT_TERMS_DATA}` },
             { query: `query GetAssessmentTypes { schools { id ...AssessmentTypesData } } ${FRAGMENT_ASSESSMENT_TYPES_DATA}` },
             { query: `query GetAssessmentRubrics { schools { id ...AssessmentRubricsData } } ${FRAGMENT_ASSESSMENT_RUBRICS_DATA}` },
@@ -1703,6 +1753,24 @@ var Data = (function () {
                     }
                 })
             })
+        },
+        {
+            name: "games",
+            singularName: "game",
+            createFields: ['title', 'developer', 'category', 'coverUrl', 'gameUrl', 'description', 'school'],
+            updateFields: ['title', 'developer', 'category', 'coverUrl', 'gameUrl', 'description']
+        },
+        {
+            name: "devices",
+            singularName: "device",
+            createFields: ['macAddress', 'status', 'assignedStudent', 'osVersion', 'batteryLevel', 'school'],
+            updateFields: ['macAddress', 'status', 'assignedStudent', 'lastSeen', 'osVersion', 'batteryLevel']
+        },
+        {
+            name: "device_commands",
+            singularName: "device_command",
+            createFields: ['device', 'command', 'status', 'payload', 'school'],
+            updateFields: ['device', 'command', 'status']
         },
     ];
     const generatedApis = {};

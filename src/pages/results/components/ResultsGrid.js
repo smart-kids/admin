@@ -494,7 +494,7 @@ const SkeletonRow = ({ subjectsCount }) => (
     </tr>
 );
 
-const ResultsGrid = ({ students, subjects, assessments, allAssessments, allTerms, assessmentTypes, rubrics, updates, onScoreChange, onRemarkChange, onCommentChange, onOutOfChange, onBlur, onPrintSingle, onSendSms, loading, lessonAttempts = [], attemptEvents = [], currentClassObj }) => {
+const ResultsGrid = ({ students, subjects, assessments, allAssessments, allTerms, assessmentTypes, rubrics, updates, onScoreChange, onRemarkChange, onCommentChange, onOutOfChange, onBlur, onPrintSingle, onSendSms, loading, lessonAttempts = [], attemptEvents = [], currentClassObj, teachers }) => {
     const [expandedStudents, setExpandedStudents] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
@@ -632,12 +632,12 @@ const ResultsGrid = ({ students, subjects, assessments, allAssessments, allTerms
         <div className={`d-flex flex-column results-table-container ${loading ? 'opacity-70' : ''}`} style={{ minHeight: '400px' }}>
             <div className="d-flex justify-content-end mb-4">
                 <button 
-                    className={`btn btn-sm font-weight-boldest ${isMobileMode ? 'btn-primary' : 'btn-light-primary'}`}
+                    className={`btn btn-icon btn-sm font-weight-boldest ${isMobileMode ? 'btn-primary' : 'btn-light-primary'}`}
                     onClick={() => setIsMobileMode(!isMobileMode)}
                     style={{ borderRadius: '8px' }}
+                    title={isMobileMode ? 'Switch to Desktop View' : 'Switch to Mobile View'}
                 >
-                    <i className={`fas ${isMobileMode ? 'fa-desktop' : 'fa-mobile-alt'} mr-2`}></i>
-                    {isMobileMode ? 'Switch to Desktop View' : 'Switch to Mobile View'}
+                    <i className={`fas ${isMobileMode ? 'fa-desktop' : 'fa-mobile-alt'}`}></i>
                 </button>
             </div>
             
@@ -660,6 +660,7 @@ const ResultsGrid = ({ students, subjects, assessments, allAssessments, allTerms
                     onSendSms={onSendSms}
                     currentClassObj={currentClassObj}
                     loading={loading}
+                    teachers={teachers}
                 />
             ) : (
                 <>

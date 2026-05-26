@@ -21,6 +21,8 @@ import invitations from "./pages/invitations"
 import members from "./pages/members"
 import schools from "./pages/schools"
 import library from "./pages/library"
+import games from "./pages/games"
+import mdm from "./pages/mdm"
 import timeTables from "./pages/time-tables"
 
 import userSettings from "./pages/settings/user"
@@ -94,6 +96,8 @@ class App extends React.Component {
 
       <PrivateRoute path="/schools" component={schools} />
       <PrivateRoute path="/library" component={library} />
+      <PrivateRoute path="/games" component={games} />
+      <PrivateRoute path="/mdm" component={mdm} />
       <PrivateRoute path="/time-tables" component={timeTables} />
       <PrivateRoute path="/fee-structures" component={feeStructures} />
       <PrivateRoute path="/terms" component={require("./pages/terms").default} />

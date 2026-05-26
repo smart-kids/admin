@@ -91,7 +91,9 @@ class Navbar extends React.Component {
         { path: "/library", label: "Library", icon: "la-book" },
         { path: "/results", label: "Results", icon: "la-bar-chart" },
         { path: "/time-tables", label: "Time Tables", icon: "la-calendar-check-o" },
-        { path: "/finance/fees", label: "Fee", icon: "la-money" }
+        { path: "/finance/fees", label: "Fee", icon: "la-money" },
+        { path: "/games", label: "Games", icon: "la-gamepad" },
+        { path: "/mdm", label: "Devices", icon: "la-tablet" }
       ];
     }
     
@@ -113,6 +115,8 @@ class Navbar extends React.Component {
       { path: "/results", label: "Results", icon: "la-bar-chart" },
       { path: "/time-tables", label: "Time Tables", icon: "la-calendar-check-o" },
       { path: "/finance/fees", label: "Fee", icon: "la-money" },
+      { path: "/games", label: "Games", icon: "la-gamepad" },
+      { path: "/mdm", label: "Devices", icon: "la-tablet" },
     ];
   };
 
@@ -148,6 +152,14 @@ class Navbar extends React.Component {
         if (selectedSchool && selectedSchool.id) {
           localStorage.setItem("school", selectedSchool.id);
           document.title = `${selectedSchool.name || 'Shule Plus'} | Shule Plus`;
+          
+          // Update favicon dynamically
+          if (selectedSchool.logo) {
+              const favicon = document.querySelector("link[rel*='icon']") || document.getElementById("favicon");
+              if (favicon) {
+                  favicon.href = selectedSchool.logo;
+              }
+          }
         }
         // Initialize menu after schools load
         this.initDesktopMenu();
@@ -602,7 +614,22 @@ class Navbar extends React.Component {
 
     const { isTeacher, isSuperAdmin } = this.getUserFlags();
 
-    const navItems = this.getSecondaryNavItems();
+    let navItems = this.getSecondaryNavItems();
+    
+    // Hide specific items from bottom nav to prevent overcrowding (they remain in the 'More' menu)
+    navItems = navItems.filter(item => item.label !== "Games" && item.label !== "Devices");
+
+    // Prioritize "Fee" to be visible in the bottom nav
+    const feeIndex = navItems.findIndex(i => i.label === "Fee");
+    if (feeIndex > 3) {
+      const feeItem = navItems.splice(feeIndex, 1)[0];
+      navItems.splice(3, 0, feeItem);
+    }
+
+    // Optional: limit to 4 items + "More" button for perfect spacing
+    if (navItems.length > 4) {
+      navItems = navItems.slice(0, 4);
+    }
 
     return (
       <div className="mobile-bottom-nav">
