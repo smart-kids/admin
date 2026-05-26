@@ -139,7 +139,7 @@ const RegisterContainer = () => {
             
             // Navigate based on user type
             const userType = userData.userType?.toLowerCase();
-            let redirectPath = '/trips/all';
+            let redirectPath = '/results';
             
             if (userType === 'admin') {
                 redirectPath = '/dashboard';

@@ -96,8 +96,8 @@ class Login extends React.Component {
         console.log("Login component mounted");
         this._isMounted = true;
         if (localStorage.getItem("authorization")) {
-            console.log("User is logged in, redirecting to /trips/all");
-            return this.props.history.push({ pathname: '/trips/all' });
+            console.log("User is logged in, redirecting to /results");
+            return this.props.history.push({ pathname: '/results' });
         }
 
         const queryParams = new URLSearchParams(window.location.search);
@@ -287,7 +287,7 @@ class Login extends React.Component {
         localStorage.setItem("authorization", token);
         localStorage.setItem("user", JSON.stringify(userData));
         Data.init(); // Assuming this initializes some app-wide data
-        this.props.history.push({ pathname: '/trips/all' });
+        this.props.history.push({ pathname: '/results' });
         // No need to reset state here as component will unmount or redirect
     };
 

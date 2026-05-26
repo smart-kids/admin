@@ -181,11 +181,12 @@ class PaymentsDashboard extends React.Component {
   }
 
   collectData = () => {
-    const rawPayments = Data.payments.list() || [];
+    const allPayments = Data.payments.list() || [];
+    const rawPayments = allPayments.filter(p => p.type === 'bulksms' || p.metadata?.type === 'bulksms');
     const schoolData = Data.schools.getSelected();
 
     // Smart Loading Logic
-    const isActuallyLoading = rawPayments.length === 0 && (!schoolData || !schoolData.id);
+    const isActuallyLoading = allPayments.length === 0 && (!schoolData || !schoolData.id);
 
     const sortedPayments = [...rawPayments].sort((a, b) => {
         const timeA = new Date(getTxTime(a));

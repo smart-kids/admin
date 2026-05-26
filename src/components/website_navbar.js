@@ -189,7 +189,7 @@ class Navbar extends React.Component {
 
         <div id="kt_header_mobile" className="kt-header-mobile  kt-header-mobile--fixed ">
           <div className="kt-header-mobile__logo">
-            <Link to="/trips/all">
+            <Link to="/results">
               <img
                 alt="Logo"
                 style={{ width: 150, filter: 'invert(100 %)' }}

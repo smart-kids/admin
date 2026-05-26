@@ -44,7 +44,7 @@ class Login extends React.Component {
                     Data.init()
 
                     return _this.props.history.push({
-                        pathname: '/trips/all'
+                        pathname: '/results'
                     })
                 } catch (err) {
                     console.log({ err })

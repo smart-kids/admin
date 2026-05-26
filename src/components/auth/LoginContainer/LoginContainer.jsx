@@ -55,7 +55,7 @@ const LoginContainer = () => {
         
         // Check if already logged in (but not on register page)
         if (localStorage.getItem("authorization") && window.location.pathname !== '/register') {
-            history.push('/trips/all');
+            history.push('/results');
         }
         
         return cleanupInactivity;
@@ -275,10 +275,10 @@ const LoginContainer = () => {
             // Navigate based on user type
             const userType = userData.userType?.toLowerCase();
             console.log('👤 User type:', userType);
-            let redirectPath = '/trips/all';
+            let redirectPath = '/results';
             
             if (userType === 'admin') {
-                redirectPath = '/finance/fees';
+                redirectPath = '/results';
             } else if (userType === 'teacher' || userType === 'parent') {
                 redirectPath = '/results';
             }
