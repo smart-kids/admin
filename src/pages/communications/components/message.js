@@ -279,7 +279,7 @@ const DeliveryReportModal = ({ isOpen, onClose, isLoading, reportData, onRetry, 
                     {!isLoading && (
                         <div className="modal-footer bg-light">
                             <button type="button" className="btn btn-secondary" onClick={onClose}>Close</button>
-                            {reportData.failedSends.length > 0 && (
+                            {reportData && reportData.failedSends && reportData.failedSends.length > 0 && (
                                 <button type="button" className="btn btn-danger btn-elevate" onClick={() => onRetry(Array.from(retrySelection))} disabled={retrySelection.size === 0}>
                                     <i className="la la-refresh"></i> Retry ({retrySelection.size})
                                 </button>
@@ -296,12 +296,12 @@ const DeliveryReportModal = ({ isOpen, onClose, isLoading, reportData, onRetry, 
 const AudienceSelector = ({ 
     activeTab, onTabChange, displayList, selectedIds, onSelectOne, onSelectAll, 
     searchTerm, onSearchChange, classes, routes, subFilterId, onSubFilterIdChange,
-    totalCount, isLoading, hasMore, onLoadMore
+    totalCount, isLoading, hasMore, onLoadMore, isMobile
 }) => {
     const allOnPageSelected = displayList.length > 0 && displayList.every(i => selectedIds.has(i.id));
 
     return (
-        <div className="audience-panel">
+        <div className="audience-panel" style={isMobile ? { height: 'auto', borderRight: 'none' } : null}>
             <div className="p-4 border-bottom">
                 <h5 className="font-weight-bold text-dark mb-3">Select Audience</h5>
                 
@@ -351,7 +351,7 @@ const AudienceSelector = ({
             </div>
 
             {/* List */}
-            <div className="flex-grow-1 custom-scroll" style={{overflowY: 'auto'}}>
+            <div className="flex-grow-1 custom-scroll" style={isMobile ? { overflowY: 'visible', maxHeight: 'none' } : { overflowY: 'auto' }}>
                 {displayList.map(item => {
                     const isSelected = selectedIds.has(item.id);
                     return (
@@ -387,11 +387,9 @@ const Workspace = ({
     messageTemplate, onMessageChange, onSend, selectedCount, previewMessages, 
     messageType, onMessageTypeChange, schoolName, onInsertVariable 
 }) => {
-    
-    // Character Stats
     const chars = messageTemplate.length;
     const segments = Math.ceil(chars / 160);
-    
+
     return (
         <div className="editor-panel">
             <div className="editor-card">
@@ -491,8 +489,17 @@ const Workspace = ({
     );
 };
 
-// --- MAIN CONTAINER ---
 export default function MessageComposer() {
+  // Mobile / Viewport State
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 991);
+  const [mobileTab, setMobileTab] = useState('audience'); // 'audience', 'compose', 'preview'
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 991);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Data
   const [classes, setClasses] = useState([]);
   const [routes, setRoutes] = useState([]);
@@ -713,43 +720,217 @@ export default function MessageComposer() {
   return (
     <div className="composer-container">
         <style>{STYLES}</style>
-        <div className="row h-100 no-gutters">
-            {/* Left Column */}
-            <div className="col-lg-4 col-xl-3 h-100">
-                <AudienceSelector 
-                    activeTab={activeTab} 
-                    onTabChange={t => { setActiveTab(t); setSubFilterId(''); setSearchTerm(''); }}
-                    displayList={filteredList}
-                    selectedIds={selectedIds}
-                    onSelectAll={handleSelectAll}
-                    onSelectOne={handleSelectOne}
-                    searchTerm={searchTerm}
-                    onSearchChange={e => setSearchTerm(e.target.value)}
-                    classes={classes}
-                    routes={routes}
-                    subFilterId={subFilterId}
-                    onSubFilterIdChange={e => setSubFilterId(e.target.value)}
-                    totalCount={totalCount}
-                    isLoading={isLoadingList}
-                    hasMore={hasMore}
-                    onLoadMore={() => fetchRecipients(true)}
-                />
+
+        {isMobile && (
+            <div style={{
+                display: 'flex',
+                background: 'white',
+                borderBottom: '1px solid #ebedf2',
+                padding: '8px 12px',
+                gap: '8px',
+                zIndex: 10
+            }}>
+                <button 
+                    onClick={() => setMobileTab('audience')}
+                    style={{
+                        flex: 1,
+                        padding: '10px 6px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: mobileTab === 'audience' ? '#eef0f8' : 'transparent',
+                        color: mobileTab === 'audience' ? '#5d78ff' : '#7e8299',
+                        fontWeight: '700',
+                        fontSize: '12px',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px'
+                    }}
+                >
+                    <i className="la la-group" style={{ fontSize: '15px' }}></i>
+                    Audience {selectedIds.size > 0 && <span style={{ background: '#5d78ff', color: 'white', fontSize: '9px', padding: '1px 5px', borderRadius: '50px', fontWeight: 'bold' }}>{selectedIds.size}</span>}
+                </button>
+                <button 
+                    onClick={() => setMobileTab('composer')}
+                    style={{
+                        flex: 1,
+                        padding: '10px 6px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        background: mobileTab === 'composer' ? '#eef0f8' : 'transparent',
+                        color: mobileTab === 'composer' ? '#5d78ff' : '#7e8299',
+                        fontWeight: '700',
+                        fontSize: '12px',
+                        transition: 'all 0.2s',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px'
+                    }}
+                >
+                    <i className="la la-edit" style={{ fontSize: '15px' }}></i>
+                    Composer
+                </button>
             </div>
-            {/* Right Column */}
-            <div className="col-lg-8 col-xl-9 h-100">
-                <Workspace 
-                    messageTemplate={messageTemplate}
-                    onMessageChange={e => setMessageTemplate(e.target.value)}
-                    selectedCount={selectedIds.size}
-                    previewMessages={previewMessages} // Updated Prop
-                    messageType={messageType}
-                    onMessageTypeChange={setMessageType}
-                    schoolName={schoolName}
-                    onInsertVariable={insertVariable}
-                    onSend={onPreFlightClick} // Trigger PreFlight
-                />
+        )}
+
+        {isMobile ? (
+            <div className="flex-grow-1 d-flex flex-column" style={{ overflow: 'hidden', background: '#f4f6f9' }}>
+                {mobileTab === 'audience' && (
+                    <div className="h-100" style={{ display: 'flex', flexDirection: 'column' }}>
+                        <AudienceSelector 
+                            activeTab={activeTab} 
+                            onTabChange={t => { setActiveTab(t); setSubFilterId(''); setSearchTerm(''); }}
+                            displayList={filteredList}
+                            selectedIds={selectedIds}
+                            onSelectAll={handleSelectAll}
+                            onSelectOne={handleSelectOne}
+                            searchTerm={searchTerm}
+                            onSearchChange={e => setSearchTerm(e.target.value)}
+                            classes={classes}
+                            routes={routes}
+                            subFilterId={subFilterId}
+                            onSubFilterIdChange={e => setSubFilterId(e.target.value)}
+                            totalCount={totalCount}
+                            isLoading={isLoadingList}
+                            hasMore={hasMore}
+                            onLoadMore={() => fetchRecipients(true)}
+                            isMobile={isMobile}
+                        />
+                    </div>
+                )}
+
+                {mobileTab === 'compose' && (
+                    <div className="flex-grow-1 custom-scroll" style={{ overflowY: 'auto', padding: '16px', background: 'white', display: 'flex', flexDirection: 'column', height: '100%' }}>
+                        {/* Message Type Selector */}
+                        <div className="d-flex justify-content-between align-items-center mb-3">
+                            <h5 className="font-weight-bold m-0 text-dark">Message Type</h5>
+                            <div className="btn-group">
+                                <button className={`btn btn-sm font-weight-bold ${messageType === 'sms' ? 'btn-light-success text-success' : 'btn-light text-muted'}`} onClick={() => setMessageType('sms')}>SMS</button>
+                                <button className={`btn btn-sm font-weight-bold ${messageType === 'email' ? 'btn-light-primary text-primary' : 'btn-light text-muted'}`} onClick={() => setMessageType('email')}>Email</button>
+                            </div>
+                        </div>
+
+                        {/* Variables Selector */}
+                        <div className="mb-3">
+                            <div className="text-muted font-size-xs font-weight-bold text-uppercase mb-2">Variables (Tap to insert):</div>
+                            <div className="d-flex flex-wrap" style={{ gap: '6px' }}>
+                                <span className="var-chip" style={{ margin: 0 }} onClick={() => insertVariable('{{recipient.name}}')}>Parent Name</span>
+                                <span className="var-chip" style={{ margin: 0 }} onClick={() => insertVariable("{{fallback student.names 'your child'}}")}>Student Name</span>
+                                <span className="var-chip" style={{ margin: 0 }} onClick={() => insertVariable("{{school.name}}")}>School Name</span>
+                            </div>
+                        </div>
+
+                        {/* Message Template Textarea */}
+                        <div className="flex-grow-1 mb-3" style={{ display: 'flex', flexDirection: 'column', minHeight: '180px' }}>
+                            <textarea 
+                                className="message-area"
+                                style={{ minHeight: '150px', border: '1px solid #ebedf2', borderRadius: '8px', padding: '12px', flexGrow: 1 }}
+                                placeholder={`Type your ${messageType.toUpperCase()} here... e.g. Hello {{recipient.name}}`}
+                                value={messageTemplate}
+                                onChange={e => setMessageTemplate(e.target.value)}
+                                spellCheck="false"
+                            ></textarea>
+                        </div>
+
+                        {/* Stats & Actions */}
+                        <div className="d-flex flex-column gap-2 mt-auto">
+                            <div className="text-muted font-size-xs d-flex justify-content-between mb-2">
+                                <span>Chars: <strong>{messageTemplate.length}</strong></span>
+                                {messageType === 'sms' && <span>SMS Parts: <strong>{Math.ceil(messageTemplate.length / 160)}</strong></span>}
+                            </div>
+                            <button 
+                                className="btn btn-success font-weight-bold btn-lg w-100 shadow-sm" 
+                                disabled={selectedIds.size === 0}
+                                onClick={onPreFlightClick}
+                                style={{ height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                            >
+                                <span>Send to {selectedIds.size} Recipients</span>
+                                <i className="la la-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {mobileTab === 'preview' && (
+                    <div className="flex-grow-1 custom-scroll" style={{ overflowY: 'auto', padding: '12px', background: '#f4f6f9' }}>
+                        <div className="phone-frame" style={{ width: '100%', height: 'auto', minHeight: '400px', boxShadow: 'none', background: 'transparent', padding: 0 }}>
+                            <div className="phone-screen" style={{ borderRadius: '12px', border: '1px solid #ebedf2', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', display: 'flex', flexDirection: 'column' }}>
+                                <div className="phone-header" style={{ padding: '12px 16px', background: 'white', display: 'flex', alignItems: 'center' }}>
+                                    <div className="symbol symbol-30 symbol-circle symbol-light-success mr-3" style={{ width: '30px', height: '30px', background: '#e8fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}><span className="symbol-label font-weight-bold text-success" style={{ fontSize: '12px' }}>S</span></div>
+                                    <div>
+                                        <div className="font-size-sm font-weight-bold text-dark">{schoolName}</div>
+                                        <div className="font-size-xs text-muted">{selectedIds.size} Recipient(s)</div>
+                                    </div>
+                                </div>
+                                <div className="phone-body bg-light-primary" style={{ padding: '12px', minHeight: '350px', maxHeight: '420px', overflowY: 'auto', flexGrow: 1 }}>
+                                    {selectedIds.size === 0 ? (
+                                        <div className="text-center text-muted mt-5 py-5 opacity-50">
+                                            <i className="flaticon2-group icon-2x mb-2 d-block"></i>
+                                            <div className="font-size-xs">Select recipients under the "Audience" tab to preview customized messages.</div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="text-center my-2"><span className="badge badge-light font-weight-normal text-muted p-1 px-2 rounded" style={{ fontSize: '10px' }}>Today</span></div>
+                                            {previewMessages.map((msg) => (
+                                                <div key={msg.id} className="msg-container" style={{ marginBottom: '12px' }}>
+                                                    <div className="msg-label" style={{ fontSize: '0.6rem', color: '#7e8299' }}>
+                                                        {msg.name} ({maskPhone(msg.phone)})
+                                                    </div>
+                                                    <div className="msg-bubble" style={{ fontSize: '0.8rem', padding: '8px 12px', borderRadius: '12px 12px 4px 12px' }}>
+                                                        {msg.text}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
-        </div>
+        ) : (
+            <div className="row h-100 no-gutters">
+                {/* Left Column */}
+                <div className="col-lg-4 col-xl-3 h-100" style={{ borderRight: '1px solid #ebedf2' }}>
+                    <AudienceSelector 
+                        activeTab={activeTab} 
+                        onTabChange={t => { setActiveTab(t); setSubFilterId(''); setSearchTerm(''); }}
+                        displayList={filteredList}
+                        selectedIds={selectedIds}
+                        onSelectAll={handleSelectAll}
+                        onSelectOne={handleSelectOne}
+                        searchTerm={searchTerm}
+                        onSearchChange={e => setSearchTerm(e.target.value)}
+                        classes={classes}
+                        routes={routes}
+                        subFilterId={subFilterId}
+                        onSubFilterIdChange={e => setSubFilterId(e.target.value)}
+                        totalCount={totalCount}
+                        isLoading={isLoadingList}
+                        hasMore={hasMore}
+                        onLoadMore={() => fetchRecipients(true)}
+                        isMobile={isMobile}
+                    />
+                </div>
+                {/* Right Column */}
+                <div className="col-lg-8 col-xl-9 h-100">
+                    <Workspace 
+                        messageTemplate={messageTemplate}
+                        onMessageChange={e => setMessageTemplate(e.target.value)}
+                        selectedCount={selectedIds.size}
+                        previewMessages={previewMessages}
+                        messageType={messageType}
+                        onMessageTypeChange={setMessageType}
+                        schoolName={schoolName}
+                        onInsertVariable={insertVariable}
+                        onSend={onPreFlightClick}
+                    />
+                </div>
+            </div>
+        )}
 
         {/* --- MODALS --- */}
         <PreFlightModal
