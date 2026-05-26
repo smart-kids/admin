@@ -401,7 +401,7 @@ const DetailedPerformanceAnalytics = ({ student, subjects, currentAssessments, a
                                     <span className="text-primary font-weight-boldest" style={{ fontSize: '1.25rem' }}>{Math.round(trendData[trendData.length-1]?.avg || 0)}%</span>
                                 </div>
                             </div>
-                            <div className="flex-grow-1 d-flex align-items-center justify-content-center">
+                            <div className="flex-grow-1 d-flex align-items-center justify-content-center" style={{ minHeight: '150px' }}>
                                 {renderTrendChart()}
                             </div>
                         </div>

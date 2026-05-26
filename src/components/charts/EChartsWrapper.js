@@ -75,7 +75,13 @@ export const EChartsWrapper = ({
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (chartInstance) {
+      if (chartInstance && !chartInstance.isDisposed()) {
+        try {
+          // Hide tooltip to prevent innerHTML errors on unmount
+          chartInstance.dispatchAction({ type: 'hideTip' });
+        } catch (e) {
+          console.warn('Error hiding tooltip on unmount:', e);
+        }
         chartInstance.dispose();
       }
     };
