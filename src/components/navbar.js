@@ -419,11 +419,12 @@ class Navbar extends React.Component {
     ];
 
     const mobileMenuStyle = {
-      position: 'fixed', top: 0, right: 0, width: '300px', maxWidth: '85%', height: '100%',
+      position: 'fixed', top: '100px', bottom: '80px', right: '15px', width: '300px', maxWidth: '85%',
       backgroundColor: 'var(--bg-primary)', zIndex: 1005,
-      transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(100%)',
+      transform: isMobileMenuOpen ? 'translateX(0)' : 'translateX(120%)',
       transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)', 
-      boxShadow: '-10px 0 30px rgba(0,0,0,0.1)',
+      boxShadow: '-5px 10px 30px rgba(0,0,0,0.15)',
+      borderRadius: '20px',
       overflowY: 'auto', padding: '0', color: 'var(--text-primary)'
     };
     const overlayStyle = {
@@ -448,18 +449,19 @@ class Navbar extends React.Component {
         <div style={overlayStyle} onClick={this.toggleMobileMenu}></div>
         <div style={mobileMenuStyle}>
             <div style={{ 
-                padding: '30px 20px', 
+                padding: '20px 20px', 
                 background: useSchoolTheme ? effectiveTopBarBgColor : 'var(--bg-tertiary)',
                 display: 'flex',
-                flexDirection: 'column',
                 alignItems: 'center',
                 gap: '15px',
                 borderBottom: '1px solid var(--border-primary)',
-                position: 'relative'
+                position: 'relative',
+                borderTopLeftRadius: '20px',
+                borderTopRightRadius: '20px'
             }}>
                 <div style={{ 
-                    width: '60px', 
-                    height: '60px', 
+                    width: '48px', 
+                    height: '48px', 
                     borderRadius: '12px', 
                     backgroundColor: '#fff', 
                     display: 'flex', 
@@ -470,11 +472,11 @@ class Navbar extends React.Component {
                 }}>
                     <img src={selectedSchool?.logo || '/assets/media/logos/ic_launcher.png'} alt="Logo" style={{ width: '85%', height: 'auto' }} />
                 </div>
-                <div style={{ textAlign: 'center' }}>
-                    <div style={{ color: useSchoolTheme ? '#fff' : 'var(--text-primary)', fontWeight: 700, fontSize: '1.2rem' }}>{selectedSchool?.name || "Shule Plus"}</div>
-                    <div style={{ color: useSchoolTheme ? 'rgba(255,255,255,0.7)' : 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '2px' }}>Administrative Panel</div>
+                <div style={{ textAlign: 'left', flex: 1 }}>
+                    <div style={{ color: useSchoolTheme ? '#fff' : 'var(--text-primary)', fontWeight: 700, fontSize: '1.1rem' }}>{selectedSchool?.name || "Shule Plus"}</div>
+                    <div style={{ color: useSchoolTheme ? 'rgba(255,255,255,0.7)' : 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '2px' }}>Menu</div>
                 </div>
-                <button onClick={this.toggleMobileMenu} style={{ position: 'absolute', top: '15px', right: '15px', background: 'rgba(0,0,0,0.1)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: useSchoolTheme ? '#fff' : 'var(--text-primary)' }}>
+                <button onClick={this.toggleMobileMenu} style={{ background: 'rgba(0,0,0,0.1)', border: 'none', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: useSchoolTheme ? '#fff' : 'var(--text-primary)' }}>
                     <i className="la la-close" style={{ fontSize: '1.2rem' }}></i>
                 </button>
             </div>
@@ -909,52 +911,51 @@ class Navbar extends React.Component {
         </div>
 
         {/* MOBILE TOP NAVBAR (Remains Fixed) */}
-        {}
         <div id="kt_header_mobile" className="kt-header-mobile kt-header-mobile--fixed d-lg-none" style={{ 
             backgroundColor: useSchoolTheme ? effectiveTopBarBgColor : GLASS_BG, 
             backdropFilter: GLASS_BACKDROP, 
-            height: `${mobileTopBarHeight}px`, 
-            top: `10px`, 
-            left: `10px`, 
-            right: `10px`, 
-            borderRadius: '12px', 
+            minHeight: `80px`, 
+            top: 0, 
+            left: 0, 
+            right: 0, 
+            borderRadius: '0 0 24px 24px', 
             boxShadow: '0 4px 15px rgba(0,0,0,0.1)', 
             zIndex: 1002, 
-            padding: '0 15px', 
-            border: '1px solid var(--glass-border)',
+            padding: '15px 20px', 
+            borderBottom: '1px solid var(--glass-border)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center'
         }}>
           <div className="kt-header-mobile__logo" style={{ display: 'flex', alignItems: 'center' }}>
-              <Link to="/home" style={{display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none'}}>
+              <Link to="/home" style={{display: 'flex', alignItems: 'center', gap: '15px', textDecoration: 'none'}}>
                   <div style={{ 
                       backgroundColor: '#fff', 
-                      padding: '2px', 
-                      borderRadius: '6px', 
+                      padding: '4px', 
+                      borderRadius: '12px', 
                       display: 'flex', 
                       alignItems: 'center', 
                       justifyContent: 'center',
-                      boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-                      height: '32px',
-                      width: '32px',
-                      overflow: 'hidden'
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                      height: '52px',
+                      width: '52px',
+                      overflow: 'hidden',
+                      flexShrink: 0
                   }}>
                       <img alt="Logo" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} src={selectedSchool?.logo || '/assets/media/logos/ic_launcher.png'} />
                   </div>
-                  <span style={{ fontSize: '0.9rem', fontWeight: 800, color: effectiveTopBarTextColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}> 
-                    {selectedSchool?.name || 'Shule Plus'} 
-                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '1.1rem', fontWeight: 800, color: effectiveTopBarTextColor, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px' }}> 
+                      {selectedSchool?.name || 'Shule Plus'} 
+                    </span>
+                    <span style={{ fontSize: '0.75rem', opacity: 0.8, color: effectiveTopBarTextColor, marginTop: '2px' }}>Dashboard</span>
+                  </div>
               </Link>
           </div>
 
           <div className="kt-header-mobile__toolbar" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ textAlign: 'right' }}>
-                <div style={{ color: effectiveTopBarTextColor, fontSize: '0.65rem', opacity: 0.8, lineHeight: 1 }}>Welcome,</div>
-                <div style={{ color: effectiveTopBarTextColor, fontSize: '0.8rem', fontWeight: 700, lineHeight: 1.2 }}>{user}</div>
-            </div>
             <button className="kt-header-mobile__toolbar-topbar-toggler" id="kt_header_mobile_topbar_toggler" style={{ margin: 0, padding: 0, border: 'none', background: 'none' }}>
-              <img alt="User" src={storedUser?.avatar || `https://picsum.photos/30/30?random=${storedUser?.id || 1027}`} style={{ width: '32px', height: '32px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)'}}/>
+              <img alt="User" src={storedUser?.avatar || `https://picsum.photos/30/30?random=${storedUser?.id || 1027}`} style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)'}}/>
             </button>
           </div>
         </div>
