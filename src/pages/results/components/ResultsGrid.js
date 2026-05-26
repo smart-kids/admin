@@ -41,22 +41,60 @@ const DetailedPerformanceAnalytics = ({ student, subjects, currentAssessments, a
         }).filter(b => b.currentScore > 0 || b.termScores.some(ts => ts.score !== null));
     }, [subjects, allTerms, studentAll, currentAssessments, student.id]);
 
-    // Revision Summary
+    // Revision Summary & Behavioral Metadata
     const revisionInsights = useMemo(() => {
         const completed = studentLessons.filter(l => l.status === 'COMPLETED');
-        const avgScore = completed.length > 0 ? (completed.reduce((sum, l) => sum + (l.finalScore || 0), 0) / completed.length) : 0;
+        const avgScore = completed.length > 0 ? (completed.reduce((sum, l) => sum + (parseFloat(l.finalScore) || parseFloat(l.score) || 0), 0) / completed.length) : 0;
         
+        // Calculate Study Time (assuming duration in seconds or timeSpent)
+        const totalDurationSecs = studentLessons.reduce((sum, l) => sum + (parseFloat(l.duration) || parseFloat(l.timeSpent) || 0), 0);
+        let timeStr = "0 mins";
+        if (totalDurationSecs > 0) {
+            // Assume duration is in seconds if it's large, otherwise assume minutes. We'll format safely.
+            const isSecs = totalDurationSecs > 1000; 
+            const totalMins = isSecs ? Math.round(totalDurationSecs / 60) : totalDurationSecs;
+            if (totalMins > 60) {
+                timeStr = `${Math.floor(totalMins / 60)}h ${totalMins % 60}m`;
+            } else {
+                timeStr = `${Math.round(totalMins)} mins`;
+            }
+        }
+
+        const completionRate = studentLessons.length > 0 ? Math.round((completed.length / studentLessons.length) * 100) : 0;
+
+        // Subject Preferences
+        const subjCounts = {};
+        studentLessons.forEach(l => {
+            const sName = l.subject?.name || l.subjectName || "Unknown";
+            if (sName !== "Unknown") {
+                subjCounts[sName] = (subjCounts[sName] || 0) + 1;
+            }
+        });
+        const sortedSubjs = Object.entries(subjCounts).sort((a,b) => b[1] - a[1]);
+        const mostRevised = sortedSubjs.length > 0 ? `${sortedSubjs[0][0]} (${sortedSubjs[0][1]}x)` : "None yet";
+
         // Current bars for relative strengths (calculated on the fly for insights)
         const currentBars = multiTermBars.map(b => ({ name: b.name, score: b.currentScore })).filter(b => b.score > 0);
-
         const sortedScores = [...currentBars].sort((a,b) => b.score - a.score);
-        const strengths = sortedScores.slice(0, 2).map(s => s.name);
-        const weaknesses = sortedScores.slice(-2).reverse().map(s => s.name);
+        
+        const strengths = sortedScores.slice(0, 2);
+        const weaknesses = sortedScores.slice(-2).reverse(); // Focus areas
+
+        // Consistency / Habit heuristic
+        let learningHabit = "Getting Started";
+        if (studentLessons.length > 20 && completionRate >= 80) learningHabit = "Highly Consistent";
+        else if (studentLessons.length > 10) learningHabit = "Active Learner";
+        else if (studentLessons.length === 0) learningHabit = "No Engagement";
+        else if (studentLessons.length > 0 && completionRate < 50) learningHabit = "Needs Encouragement";
 
         return {
             totalAttempts: studentLessons.length,
             completedCount: completed.length,
             revisionAvg: Math.round(avgScore),
+            completionRate,
+            timeStr,
+            mostRevised,
+            learningHabit,
             strengths,
             weaknesses,
             currentBars
@@ -100,8 +138,8 @@ const DetailedPerformanceAnalytics = ({ student, subjects, currentAssessments, a
         const areaD = `${pathD} L ${points[points.length-1].x} ${height-padding} L ${points[0].x} ${height-padding} Z`;
 
         return (
-            <div style={{ position: 'relative' }}>
-                <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+            <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
+                <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet">
                     <line x1={padding} y1={padding} x2={padding} y2={height-padding} stroke="#f3f4f6" />
                     <line x1={padding} y1={height-padding} x2={width-padding} y2={height-padding} stroke="#f3f4f6" />
                     <path d={areaD} fill="url(#trendGradient)" opacity="0.1" />
@@ -147,32 +185,87 @@ const DetailedPerformanceAnalytics = ({ student, subjects, currentAssessments, a
     }, [allTerms, studentAll, subjects]);
 
     return (
-        <div style={{ padding: '20px 24px', background: '#f9fafc', borderTop: '3px solid #3699ff' }}>
-            <div className="row">
-
-                {/* === LEFT PANEL === */}
-                <div className="col-lg-6 pr-lg-6">
-
-                    {/* Subject Performance Analytics (Multi-Term) */}
-                    <div className="card card-custom card-shadowless bg-white mb-4" style={{ borderRadius: '8px', border: '1px solid #ebedf3' }}>
-                        <div className="card-body p-5">
-                            <div className="d-flex align-items-center justify-content-between mb-4">
-                                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#b5b5c3', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                                    Subject Performance Across Terms
+        <div style={{ padding: '30px', background: '#f9fafc', borderTop: '3px solid #3699ff', overflowX: 'auto', width: '100%' }}>
+            <div className="d-flex flex-nowrap align-items-stretch" style={{ gap: '30px', minWidth: 'max-content' }}>
+                
+                {/* === LEFT PANEL (KPI Cards arranged vertically) === */}
+                <div style={{ width: '320px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div className="card card-custom shadow-sm flex-grow-1" style={{ border: 'none', borderRadius: '12px' }}>
+                        <div className="card-body p-5 d-flex flex-column justify-content-center">
+                            <div className="d-flex align-items-center mb-2">
+                                <div className="symbol symbol-30 symbol-light-primary mr-3">
+                                    <span className="symbol-label"><i className="flaticon2-pen text-primary"></i></span>
                                 </div>
+                                <span className="text-muted font-weight-bold font-size-sm text-uppercase">Revision Attempts</span>
+                            </div>
+                            <div className="text-dark-75 font-weight-boldest font-size-h3">{revisionInsights.totalAttempts}</div>
+                            <div className="text-muted font-size-xs mt-1">Total app submissions</div>
+                        </div>
+                    </div>
+                    
+                    <div className="card card-custom shadow-sm flex-grow-1" style={{ border: 'none', borderRadius: '12px' }}>
+                        <div className="card-body p-5 d-flex flex-column justify-content-center">
+                            <div className="d-flex align-items-center mb-2">
+                                <div className="symbol symbol-30 symbol-light-success mr-3">
+                                    <span className="symbol-label"><i className="flaticon2-hourglass-1 text-success"></i></span>
+                                </div>
+                                <span className="text-muted font-weight-bold font-size-sm text-uppercase">Time Spent</span>
+                            </div>
+                            <div className="text-dark-75 font-weight-boldest font-size-h3">{revisionInsights.timeStr}</div>
+                            <div className="text-muted font-size-xs mt-1">Dedicated to mobile revision</div>
+                        </div>
+                    </div>
+                    
+                    <div className="card card-custom shadow-sm flex-grow-1" style={{ border: 'none', borderRadius: '12px' }}>
+                        <div className="card-body p-5 d-flex flex-column justify-content-center">
+                            <div className="d-flex align-items-center mb-2">
+                                <div className="symbol symbol-30 symbol-light-info mr-3">
+                                    <span className="symbol-label"><i className="flaticon2-percentage text-info"></i></span>
+                                </div>
+                                <span className="text-muted font-weight-bold font-size-sm text-uppercase">Completion Rate</span>
+                            </div>
+                            <div className="text-dark-75 font-weight-boldest font-size-h3">{revisionInsights.completionRate}%</div>
+                            <div className="text-muted font-size-xs mt-1">Of attempted lessons</div>
+                        </div>
+                    </div>
+                    
+                    <div className="card card-custom shadow-sm flex-grow-1" style={{ border: 'none', borderRadius: '12px' }}>
+                        <div className="card-body p-5 d-flex flex-column justify-content-center">
+                            <div className="d-flex align-items-center mb-2">
+                                <div className="symbol symbol-30 symbol-light-warning mr-3">
+                                    <span className="symbol-label"><i className="flaticon2-line-chart text-warning"></i></span>
+                                </div>
+                                <span className="text-muted font-weight-bold font-size-sm text-uppercase">Learning Habit</span>
+                            </div>
+                            <div className="text-dark-75 font-weight-boldest font-size-h5">{revisionInsights.learningHabit}</div>
+                            <div className="text-muted font-size-xs mt-1 text-truncate" title={revisionInsights.mostRevised}>Favors: {revisionInsights.mostRevised}</div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* === MIDDLE PANEL (Detailed Subject Matrix & Sparklines) === */}
+                <div style={{ width: '700px', display: 'flex', flexDirection: 'column' }}>
+                    <div className="card card-custom shadow-sm bg-white flex-grow-1" style={{ borderRadius: '12px', border: 'none' }}>
+                        <div className="card-body p-6">
+                            <div className="d-flex align-items-center justify-content-between mb-6">
+                                <h3 className="card-title font-weight-bolder text-dark-75 mb-0" style={{ fontSize: '1.1rem' }}>
+                                    Subject Performance Across Terms
+                                </h3>
                                 <div className="d-flex align-items-center" style={{ gap: '12px' }}>
                                     <div className="d-flex align-items-center">
-                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: themeColor, marginRight: '4px' }}></div>
-                                        <span style={{ fontSize: '0.65rem', color: '#7e8299', fontWeight: 700 }}>Current</span>
+                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: themeColor, marginRight: '6px' }}></div>
+                                        <span style={{ fontSize: '0.75rem', color: '#7e8299', fontWeight: 600 }}>Current</span>
                                     </div>
                                     <div className="d-flex align-items-center">
-                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#b5b5c3', marginRight: '4px' }}></div>
-                                        <span style={{ fontSize: '0.65rem', color: '#7e8299', fontWeight: 700 }}>Historical</span>
+                                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#e1e3ea', marginRight: '6px' }}></div>
+                                        <span style={{ fontSize: '0.75rem', color: '#7e8299', fontWeight: 600 }}>Historical</span>
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Subject Sparklines */}
                             {multiTermBars.length > 0 ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '30px' }}>
                                     {multiTermBars.map((item, i) => {
                                         const currentRubric = (rubrics || []).find(r => item.currentScore >= r.minScore && item.currentScore <= r.maxScore);
                                         const colorMap = { 'EE': '#10b981', 'ME': '#3699ff', 'AE': '#f6c23e', 'BE': '#e74c3c' };
@@ -181,32 +274,32 @@ const DetailedPerformanceAnalytics = ({ student, subjects, currentAssessments, a
                                         return (
                                             <div key={i}>
                                                 <div className="d-flex align-items-center justify-content-between mb-2">
-                                                    <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#3f4254' }}>
+                                                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#3f4254' }}>
                                                         {item.name}
                                                     </span>
                                                     <div className="d-flex align-items-center">
                                                         {currentRubric && (
-                                                            <span className="mr-2 px-2 py-0 border rounded" style={{ fontSize: '0.62rem', fontWeight: 900, color: primaryColor, borderColor: primaryColor, backgroundColor: `${primaryColor}10` }}>
+                                                            <span className="mr-3 px-2 py-1 border rounded" style={{ fontSize: '0.65rem', fontWeight: 800, color: primaryColor, borderColor: primaryColor, backgroundColor: `${primaryColor}10`, lineHeight: 1 }}>
                                                                 {currentRubric.label}
                                                             </span>
                                                         )}
-                                                        <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#3f4254' }}>
+                                                        <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#3f4254', minWidth: '35px', textAlign: 'right' }}>
                                                             {Math.round(item.currentScore)}%
                                                         </span>
                                                     </div>
                                                 </div>
                                                 
-                                                <div className="d-flex flex-column" style={{ gap: '6px' }}>
+                                                <div className="d-flex flex-column" style={{ gap: '8px' }}>
                                                     {/* Main Bar (Current Term) */}
                                                     <div style={{ height: '8px', background: '#f3f6f9', borderRadius: '10px', overflow: 'hidden' }}>
                                                         <div style={{ width: `${item.currentScore}%`, height: '100%', background: primaryColor, borderRadius: '10px', transition: 'width 0.8s ease' }} />
                                                     </div>
                                                     
                                                     {/* Term Comparison Spark Bars */}
-                                                    <div className="d-flex align-items-end" style={{ gap: '3px', height: '24px', padding: '0 2px' }}>
+                                                    <div className="d-flex align-items-end" style={{ gap: '4px', height: '24px', padding: '0 2px' }}>
                                                         {item.termScores.map((ts, idx) => {
                                                             const hasData = ts.score !== null;
-                                                            const isCurrent = item.currentScore > 0 && Math.abs(ts.score - item.currentScore) < 0.1; // Simple heuristic if we don't have currentTermId here easily
+                                                            const isCurrent = item.currentScore > 0 && Math.abs(ts.score - item.currentScore) < 0.1;
                                                             
                                                             return (
                                                                 <div 
@@ -224,7 +317,7 @@ const DetailedPerformanceAnalytics = ({ student, subjects, currentAssessments, a
                                                                     <div style={{ 
                                                                         height: hasData ? `${ts.score}%` : '2px', 
                                                                         background: isCurrent ? primaryColor : '#e1e3ea',
-                                                                        borderRadius: '1px',
+                                                                        borderRadius: '2px',
                                                                         transition: 'height 0.5s ease'
                                                                     }} />
                                                                 </div>
@@ -237,130 +330,124 @@ const DetailedPerformanceAnalytics = ({ student, subjects, currentAssessments, a
                                     })}
                                 </div>
                             ) : (
-                                <div className="text-muted small p-4 text-center bg-light rounded">Insufficient subject data for multi-term comparison.</div>
+                                <div className="text-muted small p-4 text-center bg-light rounded mb-6">Insufficient subject data for multi-term comparison.</div>
+                            )}
+
+                            {/* Cross-Term Sub-Matrix Table */}
+                            {crossTermMatrix.length > 0 && (
+                                <>
+                                    <h4 className="font-weight-bold text-dark-75 mb-3" style={{ fontSize: '0.9rem' }}>Cross-Term Subject Averages</h4>
+                                    <div className="table-responsive">
+                                        <table className="table table-borderless table-vertical-center mb-0" style={{ border: '1px solid #ebedf3', borderRadius: '8px', overflow: 'hidden' }}>
+                                            <thead className="bg-light">
+                                                <tr>
+                                                    <th className="pl-4 py-3" style={{ minWidth: '100px', fontSize: '0.75rem', color: '#b5b5c3', textTransform: 'uppercase' }}>Term</th>
+                                                    {subjects.map(s => (
+                                                        <th key={s.id} className="py-3 text-center" style={{ minWidth: '50px', fontSize: '0.75rem', color: '#b5b5c3', textTransform: 'uppercase' }}>
+                                                            {s.name.slice(0,3)}
+                                                        </th>
+                                                    ))}
+                                                    <th className="pr-4 py-3 text-right" style={{ minWidth: '50px', fontSize: '0.75rem', color: '#b5b5c3', textTransform: 'uppercase' }}>Avg</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {crossTermMatrix.map((row, i) => (
+                                                    <tr key={i} style={{ borderBottom: i === crossTermMatrix.length - 1 ? 'none' : '1px solid #ebedf3' }}>
+                                                        <td className="pl-4 py-3">
+                                                            <span className="text-dark-75 font-weight-bolder d-block font-size-sm">{row.term.name}</span>
+                                                        </td>
+                                                        {row.subjectScores.map((score, j) => (
+                                                            <td key={j} className="text-center py-3">
+                                                                <span className={`font-weight-bold font-size-sm ${score === null ? 'text-muted opacity-40' : 'text-dark-75'}`}>
+                                                                    {score !== null ? Math.round(score) : '-'}
+                                                                </span>
+                                                            </td>
+                                                        ))}
+                                                        <td className="pr-4 py-3 text-right text-primary font-weight-boldest font-size-sm">
+                                                            {Math.round(row.termAvg)}%
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </>
                             )}
                         </div>
                     </div>
-
-                    {/* Progress Trend Chart */}
-                    <div className="card card-custom card-shadowless bg-white" style={{ borderRadius: '8px', border: '1px solid #ebedf3' }}>
-                        <div className="card-body p-5">
-                            <div className="d-flex align-items-center justify-content-between mb-4">
-                                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#b5b5c3', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                                    Weighted Progress
-                                </div>
-                                <div className="d-flex align-items-center">
-                                    <span className="text-muted font-weight-bold font-size-xs mr-2">Previous:</span>
-                                    <span className="text-dark-75 font-weight-boldest font-size-sm mr-4">{Math.round(trendData[trendData.length-2]?.avg || 0)}%</span>
-                                    <span className="text-muted font-weight-bold font-size-xs mr-2">Current:</span>
-                                    <span className="text-primary font-weight-boldest font-size-sm">{Math.round(trendData[trendData.length-1]?.avg || 0)}%</span>
-                                </div>
-                            </div>
-                            {renderTrendChart()}
-                        </div>
-                    </div>
-
                 </div>
 
-                {/* === RIGHT PANEL === */}
-                <div className="col-lg-6 pl-lg-6">
-
-                    {/* Mobile Revision Stats */}
-                    <div className="card card-custom card-shadowless bg-white mb-4" style={{ borderRadius: '8px', border: '1px solid #ebedf3' }}>
-                        <div className="card-body p-5">
-                            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#b5b5c3', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '16px' }}>
-                                Mobile Revision
+                {/* === RIGHT PANEL (Trends & Insights) === */}
+                <div style={{ width: '450px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    
+                    {/* Progress Trend Chart */}
+                    <div className="card card-custom shadow-sm bg-white flex-grow-1" style={{ borderRadius: '12px', border: 'none' }}>
+                        <div className="card-body p-6 d-flex flex-column">
+                            <div className="d-flex align-items-center justify-content-between mb-4">
+                                <h3 className="card-title font-weight-bolder text-dark-75 mb-0" style={{ fontSize: '1.1rem' }}>
+                                    Weighted Progress Trend
+                                </h3>
                             </div>
-                            <div className="row">
-                                <div className="col-6">
-                                    <div className="d-flex flex-column bg-light-primary p-4 rounded" style={{ borderLeft: '3px solid #3699ff' }}>
-                                        <span className="text-primary font-weight-boldest font-size-h3">{revisionInsights.totalAttempts}</span>
-                                        <span className="text-muted font-weight-bold font-size-xs text-uppercase">Attempts</span>
-                                    </div>
+                            <div className="d-flex align-items-center justify-content-between bg-light p-4 rounded mb-6">
+                                <div className="d-flex flex-column">
+                                    <span className="text-muted font-weight-bold font-size-sm">Previous Avg</span>
+                                    <span className="text-dark-75 font-weight-boldest" style={{ fontSize: '1.25rem' }}>{Math.round(trendData[trendData.length-2]?.avg || 0)}%</span>
                                 </div>
-                                <div className="col-6">
-                                    <div className="d-flex flex-column bg-light-success p-4 rounded" style={{ borderLeft: '3px solid #10b981' }}>
-                                        <span className="text-success font-weight-boldest font-size-h3">{revisionInsights.revisionAvg}%</span>
-                                        <span className="text-muted font-weight-bold font-size-xs text-uppercase">Avg Score</span>
-                                    </div>
+                                <div className="d-flex align-items-center">
+                                    <i className={`ki ki-arrow-${trendData[trendData.length-1]?.avg >= trendData[trendData.length-2]?.avg ? 'up text-success' : 'down text-danger'} icon-lg mx-3`}></i>
                                 </div>
+                                <div className="d-flex flex-column text-right">
+                                    <span className="text-muted font-weight-bold font-size-sm">Current Avg</span>
+                                    <span className="text-primary font-weight-boldest" style={{ fontSize: '1.25rem' }}>{Math.round(trendData[trendData.length-1]?.avg || 0)}%</span>
+                                </div>
+                            </div>
+                            <div className="flex-grow-1 d-flex align-items-center justify-content-center">
+                                {renderTrendChart()}
                             </div>
                         </div>
                     </div>
 
-                    {/* Performance Insights (Strengths / Weaknesses) */}
-                    <div className="card card-custom card-shadowless bg-white mb-4" style={{ borderRadius: '8px', border: '1px solid #ebedf3' }}>
-                        <div className="card-body p-5">
-                            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#b5b5c3', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '16px' }}>
-                                Performance Insights
-                            </div>
-                            <div className="row">
-                                <div className="col-6">
-                                    <div className="d-flex align-items-center mb-2">
-                                        <i className="flaticon2-check-mark text-success mr-2" style={{ fontSize: '0.8rem' }}></i>
-                                        <span className="font-weight-boldest text-dark-75 font-size-xs text-uppercase">Strengths</span>
+                    {/* Academic Insights (Strengths & Focus) */}
+                    <div className="card card-custom shadow-sm bg-white flex-grow-1" style={{ borderRadius: '12px', border: 'none' }}>
+                        <div className="card-body p-6">
+                            <h3 className="card-title font-weight-bolder text-dark-75 mb-6" style={{ fontSize: '1.1rem' }}>
+                                Academic Insights
+                            </h3>
+                            
+                            <div className="mb-6">
+                                <div className="d-flex align-items-center mb-3">
+                                    <div className="symbol symbol-30 symbol-light-success mr-3">
+                                        <span className="symbol-label"><i className="flaticon2-check-mark text-success"></i></span>
                                     </div>
-                                    <div className="d-flex flex-wrap" style={{ gap: '4px' }}>
-                                        {revisionInsights.strengths.length > 0 ? revisionInsights.strengths.map((s, i) => (
-                                            <span key={i} className="label label-inline label-light-success font-weight-bold" style={{ fontSize: '0.65rem' }}>{s}</span>
-                                        )) : <span className="text-muted font-size-xs">N/A</span>}
-                                    </div>
+                                    <span className="font-weight-boldest text-dark-75 font-size-sm text-uppercase">Top Strengths</span>
                                 </div>
-                                <div className="col-6">
-                                    <div className="d-flex align-items-center mb-2">
-                                        <i className="flaticon2-warning text-danger mr-2" style={{ fontSize: '0.8rem' }}></i>
-                                        <span className="font-weight-boldest text-dark-75 font-size-xs text-uppercase">Focus Areas</span>
-                                    </div>
-                                    <div className="d-flex flex-wrap" style={{ gap: '4px' }}>
-                                        {revisionInsights.weaknesses.length > 0 ? revisionInsights.weaknesses.map((s, i) => (
-                                            <span key={i} className="label label-inline label-light-danger font-weight-bold" style={{ fontSize: '0.65rem' }}>{s}</span>
-                                        )) : <span className="text-muted font-size-xs">N/A</span>}
-                                    </div>
+                                <div className="d-flex flex-column" style={{ gap: '8px' }}>
+                                    {revisionInsights.strengths.length > 0 ? revisionInsights.strengths.map((s, i) => (
+                                        <div key={i} className="d-flex align-items-center justify-content-between bg-light-success p-3 rounded">
+                                            <span className="font-weight-bold text-success font-size-sm">{s.name}</span>
+                                            <span className="font-weight-boldest text-success">{Math.round(s.score)}%</span>
+                                        </div>
+                                    )) : <div className="text-muted font-size-sm p-3 bg-light rounded">No sufficient data</div>}
                                 </div>
                             </div>
-                        </div>
-                    </div>
 
-                    {/* Cross-Term Sub-Matrix Table */}
-                    <div className="card card-custom card-shadowless bg-white" style={{ borderRadius: '8px', border: '1px solid #ebedf3' }}>
-                        <div className="card-body p-5">
-                            <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#b5b5c3', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '16px' }}>
-                                Cross-Term Comparison
+                            <div>
+                                <div className="d-flex align-items-center mb-3">
+                                    <div className="symbol symbol-30 symbol-light-danger mr-3">
+                                        <span className="symbol-label"><i className="flaticon2-warning text-danger"></i></span>
+                                    </div>
+                                    <span className="font-weight-boldest text-dark-75 font-size-sm text-uppercase">Needs Immediate Focus</span>
+                                </div>
+                                <div className="d-flex flex-column" style={{ gap: '8px' }}>
+                                    {revisionInsights.weaknesses.length > 0 ? revisionInsights.weaknesses.map((s, i) => (
+                                        <div key={i} className="d-flex align-items-center justify-content-between bg-light-danger p-3 rounded">
+                                            <span className="font-weight-bold text-danger font-size-sm">{s.name}</span>
+                                            <span className="font-weight-boldest text-danger">{Math.round(s.score)}%</span>
+                                        </div>
+                                    )) : <div className="text-muted font-size-sm p-3 bg-light rounded">No critical areas identified</div>}
+                                </div>
                             </div>
-                            <div className="table-responsive">
-                                <table className="table table-borderless table-vertical-center mb-0">
-                                    <thead>
-                                        <tr>
-                                            <th className="p-0" style={{ minWidth: '80px' }}>Term</th>
-                                            {subjects.map(s => (
-                                                <th key={s.id} className="p-0 text-center" style={{ minWidth: '40px' }}>
-                                                    <span className="text-muted font-weight-bold font-size-xs d-block">{s.name.slice(0,3)}</span>
-                                                </th>
-                                            ))}
-                                            <th className="p-0 text-right" style={{ minWidth: '40px' }}>Avg</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {crossTermMatrix.map((row, i) => (
-                                            <tr key={i} style={{ borderBottom: i === crossTermMatrix.length - 1 ? 'none' : '1px solid #f3f6f9' }}>
-                                                <td className="pl-0 py-2">
-                                                    <span className="text-dark-75 font-weight-bolder d-block font-size-xs">{row.term.name}</span>
-                                                </td>
-                                                {row.subjectScores.map((score, j) => (
-                                                    <td key={j} className="text-center py-2">
-                                                        <span className={`font-weight-bold font-size-xs ${score === null ? 'text-muted opacity-30' : 'text-dark-75'}`}>
-                                                            {score !== null ? Math.round(score) : '-'}
-                                                        </span>
-                                                    </td>
-                                                ))}
-                                                <td className="pr-0 py-2 text-right text-primary font-weight-boldest font-size-xs">
-                                                    {Math.round(row.termAvg)}%
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
+
                         </div>
                     </div>
 
@@ -581,7 +668,7 @@ const ResultsGrid = ({ students, subjects, assessments, allAssessments, allTerms
                             {subjects?.map(subj => (
                                 <th key={subj.id} className="text-center" style={{ minWidth: '150px', backgroundColor: '#f3f6f9' }}>{subj.name}</th>
                             ))}
-                            <th className="text-center" style={{ minWidth: '100px', backgroundColor: '#f3f6f9', position: 'sticky', right: '120px', zIndex: 101, borderLeft: '1px solid #ebedf3', boxShadow: '-2px 0 5px rgba(0,0,0,0.05)' }}>Total Pts</th>
+                            <th className="text-center" style={{ minWidth: '100px', backgroundColor: '#f3f6f9', position: 'sticky', right: '120px', zIndex: 101, borderLeft: '1px solid #ebedf3', boxShadow: '-2px 0 5px rgba(0,0,0,0.05)' }}>Points</th>
                             <th className="text-right" style={{ minWidth: '120px', backgroundColor: '#f3f6f9', position: 'sticky', right: 0, zIndex: 101 }}>Actions</th>
                         </tr>
                     </thead>
@@ -601,11 +688,15 @@ const ResultsGrid = ({ students, subjects, assessments, allAssessments, allTerms
                                         </td>
                                         <td className="py-3" style={{ position: 'sticky', left: 0, zIndex: 50, backgroundColor: isExpanded ? '#f1faff' : '#fff', borderRight: '1px solid #ebedf3', boxShadow: '2px 0 5px rgba(0,0,0,0.05)' }}>
                                             <div className="d-flex flex-column">
-                                                <span className="text-dark-75 font-weight-bolder font-size-sm">{student.names}</span>
-                                                <div className="d-flex align-items-center mt-1">
-                                                    <span className="text-muted font-weight-bold font-size-xs">{student.admNo || student.registration}</span>
-                                                    <span className="label label-dot label-secondary ml-2 mr-2"></span>
-                                                    <span className="text-muted font-weight-bold font-size-xs text-uppercase">{student.parent?.name || 'N/A'}</span>
+                                                <div className="d-flex align-items-baseline mb-1">
+                                                    <span className="text-muted font-weight-bold font-size-xs mr-2">Student:</span>
+                                                    <span className="text-dark-75 font-weight-bolder font-size-sm">{student.names}</span>
+                                                </div>
+                                                <div className="d-flex align-items-center">
+                                                    <span className="text-muted font-weight-bold font-size-xs mr-2">ADM:</span>
+                                                    <span className="text-dark-75 font-weight-bold font-size-xs mr-3">{student.admNo || student.registration || 'N/A'}</span>
+                                                    <span className="text-muted font-weight-bold font-size-xs mr-2">Parent:</span>
+                                                    <span className="text-primary font-weight-bold font-size-xs text-uppercase" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}>{student.parent?.name || 'N/A'}</span>
                                                 </div>
                                             </div>
                                         </td>
