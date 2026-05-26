@@ -73,21 +73,22 @@ export const EnhancedStatCard = ({
       className={`card card-custom gutter-b shadow-hover enhanced-stat-card ${className}`}
       style={{ 
         height: isMobile ? 'auto' : `${height}px`,
-        minHeight: isMobile ? '120px' : 'auto', 
-        borderRadius: '15px', 
+        minHeight: isMobile ? '100px' : 'auto', 
+        borderRadius: '12px', 
         border: 'none', 
         boxShadow: '0 10px 30px rgba(0,0,0,0.03)', 
         transition: 'transform 0.2s',
-        cursor: onClick ? 'pointer' : 'default'
+        cursor: onClick ? 'pointer' : 'default',
+        overflow: 'hidden'
       }}
       onClick={onClick}
     >
-      <div className={`card-body d-flex ${isMobile ? 'flex-column align-items-center text-center p-4' : 'p-8 h-100'}`}>
+      <div className={`card-body d-flex ${isMobile ? 'flex-column align-items-center text-center p-3' : 'p-8 h-100'}`} style={{ minWidth: 0, width: '100%' }}>
         {/* Left Section - Icon and Trend */}
-        <div className={`d-flex flex-column justify-content-between ${isMobile ? 'mb-2 align-items-center' : 'mr-6'}`}>
+        <div className={`d-flex flex-column justify-content-between ${isMobile ? 'mb-1 align-items-center' : 'mr-6'}`}>
           <span className={`symbol ${isMobile ? 'symbol-30' : 'symbol-45'} symbol-light-${getIconColor()}`}>
-            <span className="symbol-label">
-              <i className={`text-${getIconColor()} ${icon}`} style={{ fontSize: isMobile ? '1.5rem' : '3.2rem', margin: isMobile ? '0.5rem' : '1rem' }}></i>
+            <span className="symbol-label" style={isMobile ? { width: '30px', height: '30px' } : {}}>
+              <i className={`text-${getIconColor()} ${icon}`} style={{ fontSize: isMobile ? '1.1rem' : '3.2rem', margin: isMobile ? '0.2rem' : '1rem' }}></i>
             </span>
           </span>
           
@@ -100,24 +101,24 @@ export const EnhancedStatCard = ({
         </div>
 
         {/* Middle Section - Main Content */}
-        <div className="d-flex flex-column flex-grow-1">
-          <span className={`text-dark-75 font-weight-bolder ${isMobile ? 'font-size-h5' : 'font-size-h3'}`}>
+        <div className="d-flex flex-column flex-grow-1" style={{ minWidth: 0, width: '100%' }}>
+          <span className={`text-dark-75 font-weight-boldest text-truncate ${isMobile ? 'font-size-sm' : 'font-size-h3'}`} style={isMobile ? { fontSize: '0.95rem', lineHeight: '1.2' } : {}}>
             {typeof value === 'number' ? value.toLocaleString() : value}
           </span>
-          <span className="text-muted font-weight-bold font-size-sm">{title}</span>
+          <span className="text-muted font-weight-bold text-truncate" style={isMobile ? { fontSize: '0.7rem' } : { fontSize: '0.9rem' }}>{title}</span>
           {subtext && !isMobile && (
             <span className="text-muted font-size-xs mt-1">{subtext}</span>
           )}
           {trend && isMobile && (
-            <span className={`label label-light-${getTrendColor()} label-inline font-weight-bold mt-1`} style={{ margin: '0 auto', fontSize: '0.7rem', padding: '2px 4px' }}>
+            <span className={`label label-light-${getTrendColor()} label-inline font-weight-bold mt-1`} style={{ margin: '0 auto', fontSize: '0.65rem', padding: '2px 4px' }}>
               <i className={`fas fa-arrow-${trend > 0 ? 'up' : 'down'} mr-1 font-size-xs`}></i>
               {Math.abs(trend)}%
             </span>
           )}
         </div>
 
-        {/* Right Section - Sparkline */}
-        {showSparkline && sparklineData && sparklineData.length > 0 && (
+        {/* Right Section - Sparkline (Hidden on mobile) */}
+        {!isMobile && showSparkline && sparklineData && sparklineData.length > 0 && (
           <div className="d-flex align-items-center" style={{ width: '80px', height: '40px' }}>
             <EChartsWrapper 
               option={getSparklineOption()} 

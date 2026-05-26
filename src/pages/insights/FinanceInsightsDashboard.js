@@ -828,8 +828,8 @@ class FinanceInsightsDashboard extends Component {
     }
 
     return (
-      <div className="row">
-        <div className="col-6 col-md-3 mb-4 px-2">
+      <div className="row mx-n1" style={{ display: 'flex', flexWrap: 'wrap' }}>
+        <div className="col-6 col-md-3 mb-4 px-1" style={this.state.isMobile ? { flex: '0 0 50%', maxWidth: '50%' } : {}}>
           <EnhancedStatCard
             title="Total Revenue"
             value={metricsData.totalRevenue}
@@ -841,7 +841,7 @@ class FinanceInsightsDashboard extends Component {
             isMobile={this.state.isMobile}
           />
         </div>
-        <div className="col-6 col-md-3 mb-4 px-2">
+        <div className="col-6 col-md-3 mb-4 px-1" style={this.state.isMobile ? { flex: '0 0 50%', maxWidth: '50%' } : {}}>
           <EnhancedStatCard
             title="Collection Rate"
             value={`${metricsData.collectionRate.toFixed(1)}%`}
@@ -852,7 +852,7 @@ class FinanceInsightsDashboard extends Component {
             isMobile={this.state.isMobile}
           />
         </div>
-        <div className="col-6 col-md-3 mb-4 px-2">
+        <div className="col-6 col-md-3 mb-4 px-1" style={this.state.isMobile ? { flex: '0 0 50%', maxWidth: '50%' } : {}}>
           <EnhancedStatCard
             title="Total Students"
             value={metricsData.totalStudents}
@@ -862,7 +862,7 @@ class FinanceInsightsDashboard extends Component {
             isMobile={this.state.isMobile}
           />
         </div>
-        <div className="col-6 col-md-3 mb-4 px-2">
+        <div className="col-6 col-md-3 mb-4 px-1" style={this.state.isMobile ? { flex: '0 0 50%', maxWidth: '50%' } : {}}>
           <EnhancedStatCard
             title="Avg Transaction"
             value={`KES ${metricsData.averageTransaction.toFixed(0)}`}
