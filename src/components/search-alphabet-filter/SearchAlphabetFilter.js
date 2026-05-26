@@ -27,7 +27,16 @@ const SearchAlphabetFilter = ({
     
     const letters = new Set();
     data.forEach(item => {
-      const value = item[dataKey];
+      let value = item;
+      if (dataKey && typeof dataKey === 'string') {
+        const keys = dataKey.split('.');
+        for (const key of keys) {
+          value = value ? value[key] : undefined;
+        }
+      } else {
+        value = item[dataKey];
+      }
+      
       if (value && typeof value === 'string') {
         const firstLetter = value.trim().charAt(0).toUpperCase();
         if (/[A-Z]/.test(firstLetter)) {

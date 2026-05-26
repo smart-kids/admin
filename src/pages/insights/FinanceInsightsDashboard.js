@@ -6,6 +6,7 @@ import { aggregateByClass } from '../../utils/financialEngine';
 
 // Import enhanced components
 import { EnhancedStatCard, AdvancedStatCard } from '../../components/charts/EnhancedStatCard';
+import { ModernKPICard } from '../../components/charts/ModernKPICard';
 
 // Import finance charts
 import { RevenueTrendChart, RevenueComparisonChart } from '../../components/charts/finance/RevenueTrendChart';
@@ -812,11 +813,16 @@ class FinanceInsightsDashboard extends Component {
     
     if (!metricsData || loading) {
       return (
-        <div className="row">
+        <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+            gap: '16px',
+            marginBottom: '24px'
+        }}>
           {[1, 2, 3, 4].map(i => (
-            <div key={i} className="col-md-3">
-              <div className="card card-custom gutter-b" style={{ height: '140px' }}>
-                <div className="card-body">
+            <div key={i} style={{ minWidth: 0 }}>
+              <div className="card card-custom gutter-b" style={{ height: '180px' }}>
+                <div className="card-body d-flex align-items-center justify-content-center">
                   <div className="spinner spinner-primary mr-3"></div>
                   Loading...
                 </div>
@@ -828,48 +834,76 @@ class FinanceInsightsDashboard extends Component {
     }
 
     return (
-      <div className="row mx-n1" style={{ display: 'flex', flexWrap: 'wrap' }}>
-        <div className="col-6 col-md-3 mb-4 px-1" style={this.state.isMobile ? { flex: '0 0 50%', maxWidth: '50%' } : {}}>
-          <EnhancedStatCard
+      <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+          gap: '16px',
+          marginBottom: '24px'
+      }}>
+        <div style={{ minWidth: 0 }}>
+          <ModernKPICard
             title="Total Revenue"
             value={metricsData.totalRevenue}
-            subtext={this.state.isMobile ? "" : `Across ${metricsData.classCount} classes`}
+            subtext={`Across ${metricsData.classCount} classes`}
             icon="flaticon2-graph-1"
             color="#3699ff"
             showSparkline={this.state.showSparklines}
             sparklineData={this.generateSparklineData('revenue')}
-            isMobile={this.state.isMobile}
+            comparison={{
+              label: 'Target Collection',
+              value: '95%',
+              trend: 'up'
+            }}
+            badge={{
+              text: 'Revenue',
+              color: '#3699ff'
+            }}
           />
         </div>
-        <div className="col-6 col-md-3 mb-4 px-1" style={this.state.isMobile ? { flex: '0 0 50%', maxWidth: '50%' } : {}}>
-          <EnhancedStatCard
+        <div style={{ minWidth: 0 }}>
+          <ModernKPICard
             title="Collection Rate"
             value={`${metricsData.collectionRate.toFixed(1)}%`}
-            subtext={this.state.isMobile ? "" : "Overall efficiency"}
+            subtext="Overall efficiency"
             icon="flaticon2-percentage"
             color="#10b981"
             trend={metricsData.collectionRate > 80 ? 5 : -2}
-            isMobile={this.state.isMobile}
+            showSparkline={false}
+            progress={{
+              value: metricsData.collectionRate
+            }}
+            comparison={{
+              label: 'vs Term Start',
+              value: '80%',
+              trend: metricsData.collectionRate > 80 ? 'up' : 'down'
+            }}
           />
         </div>
-        <div className="col-6 col-md-3 mb-4 px-1" style={this.state.isMobile ? { flex: '0 0 50%', maxWidth: '50%' } : {}}>
-          <EnhancedStatCard
+        <div style={{ minWidth: 0 }}>
+          <ModernKPICard
             title="Total Students"
             value={metricsData.totalStudents}
-            subtext={this.state.isMobile ? "" : "Active enrollments"}
+            subtext="Active enrollments"
             icon="flaticon2-group"
             color="#f6c23e"
-            isMobile={this.state.isMobile}
+            badge={{
+              text: 'Enrollments',
+              color: '#f6c23e'
+            }}
           />
         </div>
-        <div className="col-6 col-md-3 mb-4 px-1" style={this.state.isMobile ? { flex: '0 0 50%', maxWidth: '50%' } : {}}>
-          <EnhancedStatCard
+        <div style={{ minWidth: 0 }}>
+          <ModernKPICard
             title="Avg Transaction"
-            value={`KES ${metricsData.averageTransaction.toFixed(0)}`}
-            subtext={this.state.isMobile ? "" : `${metricsData.totalTransactions} total`}
+            value={typeof metricsData.averageTransaction === 'number' ? `KES ${metricsData.averageTransaction.toFixed(0)}` : metricsData.averageTransaction}
+            subtext={`${metricsData.totalTransactions} total transactions`}
             icon="flaticon2-money"
             color="#e74c3c"
-            isMobile={this.state.isMobile}
+            comparison={{
+              label: 'Total Paid',
+              value: metricsData.totalTransactions,
+              trend: 'up'
+            }}
           />
         </div>
       </div>
