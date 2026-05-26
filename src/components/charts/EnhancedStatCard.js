@@ -17,6 +17,7 @@ export const EnhancedStatCard = ({
   height = 140,
   showSparkline = false,
   sparklineData = [],
+  isMobile = false,
   onClick
 }) => {
   const getSparklineOption = () => {
@@ -71,7 +72,8 @@ export const EnhancedStatCard = ({
     <div 
       className={`card card-custom gutter-b shadow-hover enhanced-stat-card ${className}`}
       style={{ 
-        height: `${height}px`, 
+        height: isMobile ? 'auto' : `${height}px`,
+        minHeight: isMobile ? '120px' : 'auto', 
         borderRadius: '15px', 
         border: 'none', 
         boxShadow: '0 10px 30px rgba(0,0,0,0.03)', 
@@ -80,16 +82,16 @@ export const EnhancedStatCard = ({
       }}
       onClick={onClick}
     >
-      <div className="card-body d-flex p-8 h-100">
+      <div className={`card-body d-flex ${isMobile ? 'flex-column align-items-center text-center p-4' : 'p-8 h-100'}`}>
         {/* Left Section - Icon and Trend */}
-        <div className="d-flex flex-column justify-content-between mr-6">
-          <span className={`symbol symbol-45 symbol-light-${getIconColor()}`}>
+        <div className={`d-flex flex-column justify-content-between ${isMobile ? 'mb-2 align-items-center' : 'mr-6'}`}>
+          <span className={`symbol ${isMobile ? 'symbol-30' : 'symbol-45'} symbol-light-${getIconColor()}`}>
             <span className="symbol-label">
-              <i className={`text-${getIconColor()} ${icon}`} style={{ fontSize: '3.2rem', margin: '1rem' }}></i>
+              <i className={`text-${getIconColor()} ${icon}`} style={{ fontSize: isMobile ? '1.5rem' : '3.2rem', margin: isMobile ? '0.5rem' : '1rem' }}></i>
             </span>
           </span>
           
-          {trend && (
+          {trend && !isMobile && (
             <span className={`label label-light-${getTrendColor()} label-inline font-weight-bold`}>
               <i className={`fas fa-arrow-${trend > 0 ? 'up' : 'down'} mr-1`}></i>
               {Math.abs(trend)}%
@@ -99,12 +101,18 @@ export const EnhancedStatCard = ({
 
         {/* Middle Section - Main Content */}
         <div className="d-flex flex-column flex-grow-1">
-          <span className="text-dark-75 font-weight-bolder font-size-h3">
+          <span className={`text-dark-75 font-weight-bolder ${isMobile ? 'font-size-h5' : 'font-size-h3'}`}>
             {typeof value === 'number' ? value.toLocaleString() : value}
           </span>
           <span className="text-muted font-weight-bold font-size-sm">{title}</span>
-          {subtext && (
+          {subtext && !isMobile && (
             <span className="text-muted font-size-xs mt-1">{subtext}</span>
+          )}
+          {trend && isMobile && (
+            <span className={`label label-light-${getTrendColor()} label-inline font-weight-bold mt-1`} style={{ margin: '0 auto', fontSize: '0.7rem', padding: '2px 4px' }}>
+              <i className={`fas fa-arrow-${trend > 0 ? 'up' : 'down'} mr-1 font-size-xs`}></i>
+              {Math.abs(trend)}%
+            </span>
           )}
         </div>
 

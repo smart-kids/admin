@@ -8,6 +8,7 @@ import AddClassModal from "../classes/add";
 import Navbar from "../../components/navbar";
 import Subheader from "../../components/subheader";
 import StatementCard from "./components/StatementCard";
+import MobileFeesList from "./components/MobileFeesList";
 import BulkReportSmsModal from "../../components/reports/BulkReportSmsModal";
 import SmsBalanceModal from "./components/SmsBalanceModal";
 import SearchAlphabetFilter from '../../components/search-alphabet-filter/SearchAlphabetFilter';
@@ -182,9 +183,11 @@ class FeesManagement extends Component {
         // Modal states like results management
         showAddTermModal: false,
         showAddClassModal: false,
+        isMobileMode: window.innerWidth < 992,
     };
 
     componentDidMount() {
+        window.addEventListener('resize', this.handleResize);
 
         this.unsubClasses = Data.classes.subscribe(({ classes }) => {
             console.log("Classes Update:", classes?.length);
@@ -239,7 +242,15 @@ class FeesManagement extends Component {
         }
     };
 
+    handleResize = () => {
+        const isMobileMode = window.innerWidth < 992;
+        if (this.state.isMobileMode !== isMobileMode) {
+            this.setState({ isMobileMode });
+        }
+    };
+
     componentWillUnmount() {
+        window.removeEventListener('resize', this.handleResize);
         if (this.unsubClasses) this.unsubClasses();
         if (this.unsubSchools) this.unsubSchools();
         if (this.unsubTerms) this.unsubTerms();
@@ -1838,6 +1849,196 @@ class FeesManagement extends Component {
         );
     };
 
+    renderExpandedDetails = (group) => {
+        const { selectedClass, selectedTerm, terms } = this.state;
+        return (
+            <div className="row mt-5 mx-0 w-100">
+                {/* LEFT COLUMN: Filtered Views */}
+                <div className="col-md-7 px-0 pr-md-3">
+                    <div className="row mx-0">
+                        {/* 1. Filtered Term Payments */}
+                        <div className="col-md-12 px-0 mb-6">
+                            <h6 className="font-weight-bold mb-3 d-flex justify-content-between align-items-center">
+                                Filtered Term Payments
+                                <div className="d-flex">
+                                    <button className="btn btn-xs btn-light-success mr-1" onClick={() => this.openManualPaymentModal(group)} title="Record Cash Payment">
+                                        <i className="flaticon2-plus icon-xs"></i> Record
+                                    </button>
+                                    <button className="btn btn-xs btn-light-primary" onClick={() => this.openPaymentModal(group)} title="Request M-Pesa Payment">
+                                        <i className="fa fa-mobile-alt icon-xs"></i> M-Pesa
+                                    </button>
+                                </div>
+                            </h6>
+                            <div style={{ maxHeight: '250px', overflowY: 'auto' }} className="border rounded p-3 bg-white">
+                                {group.history.length === 0 && <span className="text-muted small">No payments in this term.</span>}
+                                {group.history.map(h => (
+                                    <div key={h.id} className="d-flex justify-content-between align-items-center mb-2 border-bottom pb-2">
+                                        <div className="d-flex flex-column">
+                                            <span className="text-dark-75 font-weight-bold font-size-sm">
+                                                {h.paymentType || h.type || 'M-Pesa'}
+                                                <span className="text-muted font-weight-normal ml-2">- {h.studentName}</span>
+                                            </span>
+                                            <span className="text-muted font-size-xs">{new Date(h.time || h.createdAt).toLocaleDateString()}</span>
+                                            <span className="text-muted font-size-xs">{h.mpesaReceiptNumber || h.ref}</span>
+                                        </div>
+                                        <div className="d-flex align-items-center">
+                                            <span className="text-success font-weight-bolder font-size-sm mr-2">KSH {parseFloat(h.amount || h.ammount || 0).toLocaleString()}</span>
+                                            <button className="btn btn-icon btn-xs btn-light-primary" onClick={() => this.openEditPaymentModal(h, group)} title="Edit"><i className="flaticon2-pen"></i></button>
+                                            <button className="btn btn-icon btn-xs btn-light-danger ml-1" onClick={() => this.deletePayment(h)} title="Delete"><i className="flaticon2-trash"></i></button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* 2. Fee Structure Breakdown */}
+                        <div className="col-md-12 px-0 mb-6">
+                            <div className="d-flex justify-content-between align-items-center mb-3">
+                                <h6 className="font-weight-bold mb-0">Fee Structure Breakdown</h6>
+                                <span className="badge badge-info badge-pill">
+                                    {selectedTerm ? terms?.find(t => t.id === selectedTerm)?.name || 'Current Term' : 'All Terms'}
+                                </span>
+                            </div>
+                            <div style={{ maxHeight: '250px', overflowY: 'auto' }} className="border rounded p-3 bg-white">
+                                {(() => {
+                                    const breakdown = this.getFeeStructureBreakdown(selectedClass, selectedTerm);
+                                    return breakdown.length === 0 ? (
+                                        <div className="text-muted font-size-sm">
+                                            No fee structures configured for this class/term.
+                                        </div>
+                                    ) : (
+                                        <div className="table-responsive">
+                                            <table className="table table-sm table-borderless table-vertical-center mb-0">
+                                                <thead className="thead-light">
+                                                    <tr>
+                                                        <th className="font-size-xs font-weight-bolder text-uppercase">Fee Type</th>
+                                                        <th className="font-size-xs font-weight-bolder text-uppercase text-right" style={{ width: '100px' }}>Amount</th>
+                                                        <th className="font-size-xs font-weight-bolder text-uppercase text-center" style={{ width: '80px' }}>Count</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {breakdown.map((fee, index) => (
+                                                        <tr key={index} className="border-bottom">
+                                                            <td className="py-3">
+                                                                <span className="font-weight-bolder text-dark-75 d-block">{fee.feeType}</span>
+                                                                {fee.description && (
+                                                                    <span className="text-muted font-size-xs">{fee.description}</span>
+                                                                )}
+                                                            </td>
+                                                            <td className="text-right font-weight-bolder text-primary py-3">
+                                                                KSH {fee.totalAmount.toLocaleString()}
+                                                            </td>
+                                                            <td className="text-center py-3">
+                                                                <span className="badge badge-light badge-pill">{fee.count}</span>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                    <tr className="border-top">
+                                                        <td className="py-3">
+                                                            <span className="font-weight-bolder text-dark">Total Expected</span>
+                                                        </td>
+                                                        <td className="text-right font-weight-bolder text-success py-3">
+                                                            KSH {breakdown.reduce((sum, fee) => sum + fee.totalAmount, 0).toLocaleString()}
+                                                        </td>
+                                                        <td className="text-center py-3">
+                                                            <span className="badge badge-success badge-pill">
+                                                                {breakdown.reduce((sum, fee) => sum + fee.count, 0)}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        </div>
+
+                        {/* 3. Filtered Charges */}
+                        <div className="col-md-12 px-0">
+                            <div className="d-flex justify-content-between align-items-center mb-3">
+                                <h6 className="font-weight-bold mb-0">Filtered Charges</h6>
+                                <button className="btn btn-xs btn-light-primary font-weight-bolder" onClick={() => this.openAddChargeModal(group)}>
+                                    <i className="flaticon2-plus icon-xs"></i> Add Charge
+                                </button>
+                            </div>
+                            <div style={{ maxHeight: '250px', overflowY: 'auto' }} className="border rounded p-3 bg-white">
+                                {group.charges && group.charges.length === 0 ? (
+                                    <div className="text-muted font-size-sm">No charges for this filter.</div>
+                                ) : (
+                                    <div className="table-responsive">
+                                        <table className="table table-sm table-borderless table-vertical-center mb-0">
+                                            <thead className="thead-light">
+                                                <tr>
+                                                    <th className="font-size-xs font-weight-bolder text-uppercase">Charge/Notes</th>
+                                                    <th className="font-size-xs font-weight-bolder text-uppercase text-right" style={{ width: '100px' }}>Amount</th>
+                                                    <th className="text-right" style={{ width: '40px' }}></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {group.charges && group.charges.map(c => (
+                                                    <tr key={c.id} className="border-bottom">
+                                                        <td className="py-3">
+                                                            <span className="font-weight-bolder text-dark-75 d-block">{c.chargeType?.name || c.reason || 'Manual Charge'}</span>
+                                                            {c.reason && c.reason !== c.chargeType?.name && (
+                                                                <span className="text-muted font-size-xs d-block">{c.reason}</span>
+                                                            )}
+                                                            <span className="text-muted font-size-xs">{new Date(c.time || c.createdAt).toLocaleDateString()}</span>
+                                                        </td>
+                                                        <td className="text-right font-weight-bolder text-danger py-3">KSH {parseFloat(c.amount).toLocaleString()}</td>
+                                                        <td className="text-right py-3">
+                                                            <button className="btn btn-icon btn-xs btn-light-primary" onClick={() => this.openEditChargeModal(c, group)} title="Edit"><i className="flaticon2-pen"></i></button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* RIGHT COLUMN: All Payment History */}
+                <div className="col-md-5 border-left px-0 pl-md-3 mt-6 mt-md-0">
+                    <h6 className="font-weight-bold mb-3 d-flex justify-content-between align-items-center">
+                        All Payments History
+                        <button className="btn btn-xs btn-light-primary" onClick={() => this.showStatementPreview(group)} title="Print Statement">
+                            <i className="flaticon2-printer icon-xs"></i>
+                        </button>
+                    </h6>
+                    <div style={{ maxHeight: '520px', overflowY: 'auto' }} className="border rounded p-3 bg-white">
+                        {(!group.allHistory || group.allHistory.length === 0) && <span className="text-muted small">No payments recorded.</span>}
+                        {group.allHistory && group.allHistory.map(h => {
+                            const isFailed = h.status === 'FAILED' || h.status === 'FAILED_ON_CALLBACK';
+                            return (
+                                <div key={h.id} className="d-flex justify-content-between align-items-center mb-2 border-bottom pb-2" style={{ opacity: isFailed ? 0.35 : 1 }}>
+                                    <div className="d-flex flex-column">
+                                        <span className="text-dark-75 font-weight-bold font-size-sm">
+                                            {h.paymentType || h.type || 'M-Pesa'}
+                                            <span className="text-muted font-weight-normal ml-2">- {h.studentName}</span>
+                                            {isFailed && <span className="badge badge-light-danger ml-2 py-0 px-1" style={{ fontSize: '0.65rem' }}>FAILED</span>}
+                                            {!isFailed && <span className="badge badge-light-secondary ml-2 py-0 px-1 font-size-xs">{h.assignedTerm || 'Term'}</span>}
+                                        </span>
+                                        <span className="text-muted font-size-xs">{new Date(h.time || h.createdAt).toLocaleDateString()}</span>
+                                    </div>
+                                    <div className="d-flex align-items-center">
+                                        <span className={`${isFailed ? 'text-muted text-decoration-line-through' : 'text-success'} font-weight-bolder font-size-sm mr-2`}>
+                                            KSH {parseFloat(h.amount || h.ammount || 0).toLocaleString()}
+                                        </span>
+                                        <button className="btn btn-icon btn-xs btn-light-primary" onClick={() => this.openEditPaymentModal(h, group)} title="Edit" disabled={isFailed}><i className="flaticon2-pen"></i></button>
+                                        <button className="btn btn-icon btn-xs btn-light-danger ml-1" onClick={() => this.deletePayment(h)} title="Delete" disabled={isFailed}><i className="flaticon2-trash"></i></button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     render() {
         const {
             classes, terms, selectedClass, selectedTerm, searchTerm,
@@ -2209,49 +2410,53 @@ class FeesManagement extends Component {
                     <Navbar />
 
                     <div className="kt-content kt-grid__item kt-grid__item--fluid pt-0" style={{ height: "100vh" }} id="kt_content">
-                        <div className="kt-container pt-0">
-                            <div className="card card-custom gutter-b">
+                        <div className={`kt-container pt-0 ${this.state.isMobileMode ? 'px-0' : ''}`}>
+                            <div className={`card card-custom gutter-b ${this.state.isMobileMode ? 'border-0 rounded-0 shadow-none' : ''}`}>
                                 <div className="card-header border-0 py-4 px-4 d-flex flex-wrap align-items-center justify-content-between" style={{ gap: '15px' }}>
                                     <div className="overflow-hidden" style={{ flexGrow: 1, flexBasis: 'auto', minWidth: '250px' }}>
-                                        <ul className="nav nav-tabs nav-tabs-space nav-tabs-line nav-bold nav-tabs-line-3x border-0 mb-0 custom-tabs-container flex-nowrap" style={{ paddingBottom: '2px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                                            <li className="nav-item">
+                                        <ul className="nav nav-tabs nav-tabs-space nav-tabs-line nav-bold nav-tabs-line-3x border-0 mb-0 custom-tabs-container flex-nowrap" style={{ paddingBottom: '2px', width: '100%' }}>
+                                            <li className="nav-item" style={{ flex: this.state.isMobileMode ? 1 : 'none', minWidth: 0, textAlign: 'center' }}>
                                                 <a
-                                                    className={`nav-link py-2 px-6 custom-tab-link ${this.state.activeTab === 'accounts' ? 'active' : ''}`}
+                                                    className={`nav-link py-2 ${this.state.isMobileMode ? 'px-1 font-size-xs d-flex flex-column align-items-center' : 'px-6'} custom-tab-link ${this.state.activeTab === 'accounts' ? 'active' : ''}`}
                                                     href="#"
+                                                    style={{ width: '100%', gap: this.state.isMobileMode ? '4px' : '0' }}
                                                     onClick={(e) => { e.preventDefault(); this.setState({ activeTab: 'accounts' }); }}
                                                 >
-                                                    <i className="fas fa-users-cog mr-2"></i>
-                                                    Accounts List
+                                                    <i className={`fas fa-users-cog ${this.state.isMobileMode ? '' : 'mr-2'}`}></i>
+                                                    <span className={this.state.isMobileMode ? "text-truncate w-100" : ""}>Accounts</span>
                                                 </a>
                                             </li>
-                                            <li className="nav-item">
+                                            <li className="nav-item" style={{ flex: this.state.isMobileMode ? 1 : 'none', minWidth: 0, textAlign: 'center' }}>
                                                 <a
-                                                    className={`nav-link py-2 px-6 custom-tab-link ${this.state.activeTab === 'insights' ? 'active' : ''}`}
+                                                    className={`nav-link py-2 ${this.state.isMobileMode ? 'px-1 font-size-xs d-flex flex-column align-items-center' : 'px-6'} custom-tab-link ${this.state.activeTab === 'insights' ? 'active' : ''}`}
                                                     href="#"
+                                                    style={{ width: '100%', gap: this.state.isMobileMode ? '4px' : '0' }}
                                                     onClick={(e) => { e.preventDefault(); this.setState({ activeTab: 'insights' }); }}
                                                 >
-                                                    <i className="fas fa-chart-pie mr-2"></i>
-                                                    Financial Insights
+                                                    <i className={`fas fa-chart-pie ${this.state.isMobileMode ? '' : 'mr-2'}`}></i>
+                                                    <span className={this.state.isMobileMode ? "text-truncate w-100" : ""}>Insights</span>
                                                 </a>
                                             </li>
-                                            <li className="nav-item">
+                                            <li className="nav-item" style={{ flex: this.state.isMobileMode ? 1 : 'none', minWidth: 0, textAlign: 'center' }}>
                                                 <a
-                                                    className={`nav-link py-2 px-6 custom-tab-link ${this.state.activeTab === 'advanced-insights' ? 'active' : ''}`}
+                                                    className={`nav-link py-2 ${this.state.isMobileMode ? 'px-1 font-size-xs d-flex flex-column align-items-center' : 'px-6'} custom-tab-link ${this.state.activeTab === 'advanced-insights' ? 'active' : ''}`}
                                                     href="#"
+                                                    style={{ width: '100%', gap: this.state.isMobileMode ? '4px' : '0' }}
                                                     onClick={(e) => { e.preventDefault(); this.setState({ activeTab: 'advanced-insights' }); }}
                                                 >
-                                                    <i className="fas fa-analytics mr-2"></i>
-                                                    Advanced Insights
+                                                    <i className={`fas fa-analytics ${this.state.isMobileMode ? '' : 'mr-2'}`}></i>
+                                                    <span className={this.state.isMobileMode ? "text-truncate w-100" : ""}>Advanced</span>
                                                 </a>
                                             </li>
-                                            <li className="nav-item">
+                                            <li className="nav-item" style={{ flex: this.state.isMobileMode ? 1 : 'none', minWidth: 0, textAlign: 'center' }}>
                                                 <a
-                                                    className={`nav-link py-2 px-6 custom-tab-link ${this.state.activeTab === 'collection-report' ? 'active' : ''}`}
+                                                    className={`nav-link py-2 ${this.state.isMobileMode ? 'px-1 font-size-xs d-flex flex-column align-items-center' : 'px-6'} custom-tab-link ${this.state.activeTab === 'collection-report' ? 'active' : ''}`}
                                                     href="#"
+                                                    style={{ width: '100%', gap: this.state.isMobileMode ? '4px' : '0' }}
                                                     onClick={(e) => { e.preventDefault(); this.setState({ activeTab: 'collection-report' }); }}
                                                 >
-                                                    <i className="fas fa-file-invoice-dollar mr-2"></i>
-                                                    Collection Report
+                                                    <i className={`fas fa-file-invoice-dollar ${this.state.isMobileMode ? '' : 'mr-2'}`}></i>
+                                                    <span className={this.state.isMobileMode ? "text-truncate w-100" : ""}>Reports</span>
                                                 </a>
                                             </li>
                                         </ul>
@@ -2345,11 +2550,11 @@ class FeesManagement extends Component {
                                         </div>
                                     </div>
 
-                                <div className="card-body py-0">
+                                <div className={`card-body py-0 ${this.state.isMobileMode ? 'px-0' : ''}`}>
                                     {loading ? <SkeletonLoader /> : (
                                         <>
                                             {/* ENHANCED SEARCH & FILTER */}
-                                            <div className="mb-5">
+                                            <div className={`mb-5 ${this.state.isMobileMode ? 'px-3' : ''}`}>
                                                 <SearchAlphabetFilter
                                                     searchTerm={this.state.searchTerm}
                                                     onSearchChange={(value) => this.handleFilterChange('searchTerm', value)}
@@ -2357,9 +2562,9 @@ class FeesManagement extends Component {
                                                     onClearSearch={() => this.handleFilterChange('searchTerm', '')}
                                                     alphabetFilter={this.state.alphabetFilter}
                                                     onAlphabetFilterChange={(value) => this.handleFilterChange('alphabetFilter', value)}
-                                                    data={this.state.processedParents}
+                                                    data={this.state.fullyProcessedParents}
                                                     dataKey="parent.name"
-                                                    placeholder="Search Parent Name, Phone, or Student Name..."
+                                                    placeholder="Search Name, Phone, Admin No, Class..."
                                                     className="mb-4"
                                                 />
                                             </div>
@@ -2367,6 +2572,20 @@ class FeesManagement extends Component {
                                             {/* MAIN TABLE */}
                                             {this.state.activeTab === 'accounts' ? (
                                                 <>
+                                                    {this.state.isMobileMode ? (
+                                                        <MobileFeesList
+                                                            parents={currentItems}
+                                                            expandedParentId={expandedParentId}
+                                                            onToggleRow={this.toggleRow}
+                                                            onPrintStatement={(group) => this.showStatementPreview(group)}
+                                                            onSendSms={(group) => this.sendBalanceSms(group)}
+                                                            onEditBBF={(group) => this.openBBFModal(group)}
+                                                            onRestoreRecord={(id) => this.restoreRecord('parents', id)}
+                                                            renderExpandedDetails={(group) => this.renderExpandedDetails(group)}
+                                                            maskPhone={maskPhone}
+                                                            loading={loading}
+                                                        />
+                                                    ) : (
                                                     <div className="table-responsive">
                                                         <table className="table table-head-custom table-vertical-center" id="kt_advance_table_widget_1">
                                                             <thead>
@@ -2597,7 +2816,7 @@ class FeesManagement extends Component {
                                                                                                                     <div className="d-flex justify-content-between align-items-center">
                                                                                                                         <span className="text-muted font-weight-bold">Balance:</span>
                                                                                                                         <span className={`font-weight-bolder font-size-h6 ${student.finances?.balance > 0 ? 'text-danger' : 'text-success'}`}>
-                                                                                                                            KES {student.finances?.balance?.toLocaleString() || 0}
+                                                                                                                            KSH {student.finances?.balance?.toLocaleString() || 0}
                                                                                                                         </span>
                                                                                                                     </div>
                                                                                                                 </div>
@@ -2606,195 +2825,7 @@ class FeesManagement extends Component {
                                                                                                     })}
                                                                                                 </div>
                                                                                             </div>
-                                                                                            <div className="col-md-12">
-                                                                                                <div className="row">
-                                                                                                    {/* LEFT COLUMN: Filtered Views */}
-                                                                                                    <div className="col-md-7">
-                                                                                                        <div className="row">
-                                                                                                            {/* 1. Filtered Term Payments */}
-                                                                                                            <div className="col-md-12 mb-6">
-                                                                                                                <h6 className="font-weight-bold mb-3 d-flex justify-content-between align-items-center">
-                                                                                                                    Filtered Term Payments
-                                                                                                                    <div className="d-flex">
-                                                                                                                        <button className="btn btn-xs btn-light-success mr-1" onClick={() => this.openManualPaymentModal(group)} title="Record Cash Payment">
-                                                                                                                            <i className="flaticon2-plus icon-xs"></i> Record
-                                                                                                                        </button>
-                                                                                                                        <button className="btn btn-xs btn-light-primary" onClick={() => this.openPaymentModal(group)} title="Request M-Pesa Payment">
-                                                                                                                            <i className="fa fa-mobile-alt icon-xs"></i> M-Pesa
-                                                                                                                        </button>
-                                                                                                                    </div>
-                                                                                                                </h6>
-                                                                                                                <div style={{ maxHeight: '250px', overflowY: 'auto' }} className="border rounded p-3 bg-white">
-                                                                                                                    {group.history.length === 0 && <span className="text-muted small">No payments in this term.</span>}
-                                                                                                                    {group.history.map(h => (
-                                                                                                                        <div key={h.id} className="d-flex justify-content-between align-items-center mb-2 border-bottom pb-2">
-                                                                                                                            <div className="d-flex flex-column">
-                                                                                                                                <span className="text-dark-75 font-weight-bold font-size-sm">
-                                                                                                                                    {h.paymentType || h.type || 'M-Pesa'}
-                                                                                                                                    <span className="text-muted font-weight-normal ml-2">- {h.studentName}</span>
-                                                                                                                                </span>
-                                                                                                                                <span className="text-muted font-size-xs">{new Date(h.time || h.createdAt).toLocaleDateString()}</span>
-                                                                                                                                <span className="text-muted font-size-xs">{h.mpesaReceiptNumber || h.ref}</span>
-                                                                                                                            </div>
-                                                                                                                            <div className="d-flex align-items-center">
-                                                                                                                                <span className="text-success font-weight-bolder font-size-sm mr-2">KES {parseFloat(h.amount || h.ammount || 0).toLocaleString()}</span>
-                                                                                                                                <button className="btn btn-icon btn-xs btn-light-primary" onClick={() => this.openEditPaymentModal(h, group)} title="Edit"><i className="flaticon2-pen"></i></button>
-                                                                                                                                <button className="btn btn-icon btn-xs btn-light-danger ml-1" onClick={() => this.deletePayment(h)} title="Delete"><i className="flaticon2-trash"></i></button>
-                                                                                                                            </div>
-                                                                                                                        </div>
-                                                                                                                    ))}
-                                                                                                                </div>
-                                                                                                            </div>
-
-                                                                                                            {/* 2. Fee Structure Breakdown */}
-                                                                                                            <div className="col-md-12 mb-6">
-                                                                                                                <div className="d-flex justify-content-between align-items-center mb-3">
-                                                                                                                    <h6 className="font-weight-bold mb-0">Fee Structure Breakdown</h6>
-                                                                                                                    <span className="badge badge-info badge-pill">
-                                                                                                                        {selectedTerm ? terms?.find(t => t.id === selectedTerm)?.name || 'Current Term' : 'All Terms'}
-                                                                                                                    </span>
-                                                                                                                </div>
-                                                                                                                <div style={{ maxHeight: '250px', overflowY: 'auto' }} className="border rounded p-3 bg-white">
-                                                                                                                    {(() => {
-                                                                                                                        const breakdown = this.getFeeStructureBreakdown(selectedClass, selectedTerm);
-                                                                                                                        return breakdown.length === 0 ? (
-                                                                                                                            <div className="text-muted font-size-sm">
-                                                                                                                                No fee structures configured for this class/term.
-                                                                                                                            </div>
-                                                                                                                        ) : (
-                                                                                                                            <div className="table-responsive">
-                                                                                                                                <table className="table table-sm table-borderless table-vertical-center mb-0">
-                                                                                                                                    <thead className="thead-light">
-                                                                                                                                        <tr>
-                                                                                                                                            <th className="font-size-xs font-weight-bolder text-uppercase">Fee Type</th>
-                                                                                                                                            <th className="font-size-xs font-weight-bolder text-uppercase text-right" style={{ width: '100px' }}>Amount</th>
-                                                                                                                                            <th className="font-size-xs font-weight-bolder text-uppercase text-center" style={{ width: '80px' }}>Count</th>
-                                                                                                                                        </tr>
-                                                                                                                                    </thead>
-                                                                                                                                    <tbody>
-                                                                                                                                        {breakdown.map((fee, index) => (
-                                                                                                                                            <tr key={index} className="border-bottom">
-                                                                                                                                                <td className="py-3">
-                                                                                                                                                    <span className="font-weight-bolder text-dark-75 d-block">{fee.feeType}</span>
-                                                                                                                                                    {fee.description && (
-                                                                                                                                                        <span className="text-muted font-size-xs">{fee.description}</span>
-                                                                                                                                                    )}
-                                                                                                                                                </td>
-                                                                                                                                                <td className="text-right font-weight-bolder text-primary py-3">
-                                                                                                                                                    KES {fee.totalAmount.toLocaleString()}
-                                                                                                                                                </td>
-                                                                                                                                                <td className="text-center py-3">
-                                                                                                                                                    <span className="badge badge-light badge-pill">{fee.count}</span>
-                                                                                                                                                </td>
-                                                                                                                                            </tr>
-                                                                                                                                        ))}
-                                                                                                                                        <tr className="border-top">
-                                                                                                                                            <td className="py-3">
-                                                                                                                                                <span className="font-weight-bolder text-dark">Total Expected</span>
-                                                                                                                                            </td>
-                                                                                                                                            <td className="text-right font-weight-bolder text-success py-3">
-                                                                                                                                                KES {breakdown.reduce((sum, fee) => sum + fee.totalAmount, 0).toLocaleString()}
-                                                                                                                                            </td>
-                                                                                                                                            <td className="text-center py-3">
-                                                                                                                                                <span className="badge badge-success badge-pill">
-                                                                                                                                                    {breakdown.reduce((sum, fee) => sum + fee.count, 0)}
-                                                                                                                                                </span>
-                                                                                                                                            </td>
-                                                                                                                                        </tr>
-                                                                                                                                    </tbody>
-                                                                                                                                </table>
-                                                                                                                            </div>
-                                                                                                                        );
-                                                                                                                    })()}
-                                                                                                                </div>
-                                                                                                            </div>
-
-                                                                                                            {/* 3. Filtered Charges */}
-                                                                                                            <div className="col-md-12">
-                                                                                                                <div className="d-flex justify-content-between align-items-center mb-3">
-                                                                                                                    <h6 className="font-weight-bold mb-0">Filtered Charges</h6>
-                                                                                                                    <button className="btn btn-xs btn-light-primary font-weight-bolder" onClick={() => this.openAddChargeModal(group)}>
-                                                                                                                        <i className="flaticon2-plus icon-xs"></i> Add Charge
-                                                                                                                    </button>
-                                                                                                                </div>
-                                                                                                                <div style={{ maxHeight: '250px', overflowY: 'auto' }} className="border rounded p-3 bg-white">
-                                                                                                                    {group.charges && group.charges.length === 0 ? (
-                                                                                                                        <div className="text-muted font-size-sm">No charges for this filter.</div>
-                                                                                                                    ) : (
-                                                                                                                        <div className="table-responsive">
-                                                                                                                            <table className="table table-sm table-borderless table-vertical-center mb-0">
-                                                                                                                                <thead className="thead-light">
-                                                                                                                                    <tr>
-                                                                                                                                        <th className="font-size-xs font-weight-bolder text-uppercase">Charge/Notes</th>
-                                                                                                                                        <th className="font-size-xs font-weight-bolder text-uppercase text-right" style={{ width: '100px' }}>Amount</th>
-                                                                                                                                        <th className="text-right" style={{ width: '40px' }}></th>
-                                                                                                                                    </tr>
-                                                                                                                                </thead>
-                                                                                                                                <tbody>
-                                                                                                                                    {group.charges && group.charges.map(c => (
-                                                                                                                                        <tr key={c.id} className="border-bottom">
-                                                                                                                                            <td className="py-3">
-                                                                                                                                                <span className="font-weight-bolder text-dark-75 d-block">{c.chargeType?.name || c.reason || 'Manual Charge'}</span>
-                                                                                                                                                {c.reason && c.reason !== c.chargeType?.name && (
-                                                                                                                                                    <span className="text-muted font-size-xs d-block">{c.reason}</span>
-                                                                                                                                                )}
-                                                                                                                                                <span className="text-muted font-size-xs">{new Date(c.time || c.createdAt).toLocaleDateString()}</span>
-                                                                                                                                            </td>
-                                                                                                                                            <td className="text-right font-weight-bolder text-danger py-3">KES {parseFloat(c.amount).toLocaleString()}</td>
-                                                                                                                                            <td className="text-right py-3">
-                                                                                                                                                <button className="btn btn-icon btn-xs btn-light-primary" onClick={() => this.openEditChargeModal(c, group)} title="Edit"><i className="flaticon2-pen"></i></button>
-                                                                                                                                            </td>
-                                                                                                                                        </tr>
-                                                                                                                                    ))}
-                                                                                                                                </tbody>
-                                                                                                                            </table>
-                                                                                                                        </div>
-                                                                                                                    )}
-                                                                                                                </div>
-                                                                                                            </div>
-                                                                                                        </div>
-                                                                                                    </div>
-
-                                                                                                    {/* RIGHT COLUMN: All Payment History */}
-                                                                                                    <div className="col-md-5 border-left">
-                                                                                                        <h6 className="font-weight-bold mb-3 d-flex justify-content-between align-items-center">
-                                                                                                            All Payments History
-                                                                                                            <button className="btn btn-xs btn-light-primary" onClick={() => this.showStatementPreview(group)} title="Print Statement">
-                                                                                                                <i className="flaticon2-printer icon-xs"></i>
-                                                                                                            </button>
-                                                                                                        </h6>
-                                                                                                        <div style={{ maxHeight: '520px', overflowY: 'auto' }} className="border rounded p-3 bg-white">
-                                                                                                            {(!group.allHistory || group.allHistory.length === 0) && <span className="text-muted small">No payments recorded.</span>}
-                                                                                                            {group.allHistory && group.allHistory.map(h => {
-                                                                                                                const isFailed = h.status === 'FAILED' || h.status === 'FAILED_ON_CALLBACK';
-                                                                                                                return (
-                                                                                                                    <div key={h.id} className="d-flex justify-content-between align-items-center mb-2 border-bottom pb-2" style={{ opacity: isFailed ? 0.35 : 1 }}>
-                                                                                                                        <div className="d-flex flex-column">
-                                                                                                                            <span className="text-dark-75 font-weight-bold font-size-sm">
-                                                                                                                                {h.paymentType || h.type || 'M-Pesa'}
-                                                                                                                                <span className="text-muted font-weight-normal ml-2">- {h.studentName}</span>
-                                                                                                                                {isFailed && <span className="badge badge-light-danger ml-2 py-0 px-1" style={{ fontSize: '0.65rem' }}>FAILED</span>}
-                                                                                                                                {!isFailed && <span className="badge badge-light-secondary ml-2 py-0 px-1 font-size-xs">{h.assignedTerm || 'Term'}</span>}
-                                                                                                                            </span>
-                                                                                                                            <span className="text-muted font-size-xs">{new Date(h.time || h.createdAt).toLocaleDateString()}</span>
-                                                                                                                        </div>
-                                                                                                                        <div className="d-flex align-items-center">
-                                                                                                                            <span className={`${isFailed ? 'text-muted text-decoration-line-through' : 'text-success'} font-weight-bolder font-size-sm mr-2`}>
-                                                                                                                                KES {parseFloat(h.amount || h.ammount || 0).toLocaleString()}
-                                                                                                                            </span>
-                                                                                                                            <button className="btn btn-icon btn-xs btn-light-primary" onClick={() => this.openEditPaymentModal(h, group)} title="Edit" disabled={isFailed}><i className="flaticon2-pen"></i></button>
-                                                                                                                            <button className="btn btn-icon btn-xs btn-light-danger ml-1" onClick={() => this.deletePayment(h)} title="Delete" disabled={isFailed}><i className="flaticon2-trash"></i></button>
-                                                                                                                        </div>
-                                                                                                                    </div>
-                                                                                                                );
-                                                                                                            })}
-                                                                                                        </div>
-                                                                                                    </div>
-
-
-
-                                                                                                </div>
-                                                                                            </div>
+                                                                                            {this.renderExpandedDetails(group)}
                                                                                         </div>
                                                                                     </td>
                                                                                 </tr>
@@ -2808,9 +2839,10 @@ class FeesManagement extends Component {
                                                             </tbody>
                                                         </table>
                                                     </div>
+                                                    )}
 
                                                     {/* PAGINATION */}
-                                                    <div className="card-footer d-flex justify-content-between border-0 pt-5 pb-5 pl-0 pr-0">
+                                                    <div className={`card-footer d-flex justify-content-between border-0 pt-5 pb-5 pl-0 pr-0 ${this.state.isMobileMode ? 'pb-20 mb-10' : ''}`}>
                                                         <Pagination
                                                             total={processedParents.length}
                                                             itemsPerPage={itemsPerPage}

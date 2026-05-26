@@ -330,7 +330,15 @@ export const calculateFinancials = ({
         if (searchTerm) {
             const matchesSearch = g.parent.name?.toLowerCase().includes(termLower) ||
                                 g.parent.phone?.includes(termLower) ||
-                                g.students.some(s => s.names?.toLowerCase().includes(termLower));
+                                g.students.some(s => 
+                                    s.names?.toLowerCase().includes(termLower) ||
+                                    s.admNo?.toLowerCase().includes(termLower) ||
+                                    s.registration?.toLowerCase().includes(termLower) ||
+                                    s.class?.name?.toLowerCase().includes(termLower)
+                                ) ||
+                                g.totalExpected?.toString().includes(termLower) ||
+                                g.totalPaid?.toString().includes(termLower) ||
+                                g.totalBalance?.toString().includes(termLower);
             if (!matchesSearch) return false;
         }
         if (alphabetFilter) {

@@ -829,7 +829,7 @@ class FinanceInsightsDashboard extends Component {
 
     return (
       <div className="row">
-        <div className="col-6 col-md-3 mb-4">
+        <div className="col-6 col-md-3 mb-4 px-2">
           <EnhancedStatCard
             title="Total Revenue"
             value={metricsData.totalRevenue}
@@ -838,9 +838,10 @@ class FinanceInsightsDashboard extends Component {
             color="#3699ff"
             showSparkline={this.state.showSparklines}
             sparklineData={this.generateSparklineData('revenue')}
+            isMobile={this.state.isMobile}
           />
         </div>
-        <div className="col-6 col-md-3 mb-4">
+        <div className="col-6 col-md-3 mb-4 px-2">
           <EnhancedStatCard
             title="Collection Rate"
             value={`${metricsData.collectionRate.toFixed(1)}%`}
@@ -848,24 +849,27 @@ class FinanceInsightsDashboard extends Component {
             icon="flaticon2-percentage"
             color="#10b981"
             trend={metricsData.collectionRate > 80 ? 5 : -2}
+            isMobile={this.state.isMobile}
           />
         </div>
-        <div className="col-6 col-md-3 mb-4">
+        <div className="col-6 col-md-3 mb-4 px-2">
           <EnhancedStatCard
             title="Total Students"
             value={metricsData.totalStudents}
             subtext={this.state.isMobile ? "" : "Active enrollments"}
             icon="flaticon2-group"
             color="#f6c23e"
+            isMobile={this.state.isMobile}
           />
         </div>
-        <div className="col-6 col-md-3 mb-4">
+        <div className="col-6 col-md-3 mb-4 px-2">
           <EnhancedStatCard
             title="Avg Transaction"
             value={`KES ${metricsData.averageTransaction.toFixed(0)}`}
             subtext={this.state.isMobile ? "" : `${metricsData.totalTransactions} total`}
             icon="flaticon2-money"
             color="#e74c3c"
+            isMobile={this.state.isMobile}
           />
         </div>
       </div>
