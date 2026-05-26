@@ -2211,9 +2211,9 @@ class FeesManagement extends Component {
                     <div className="kt-content kt-grid__item kt-grid__item--fluid pt-0" style={{ height: "100vh" }} id="kt_content">
                         <div className="kt-container pt-0">
                             <div className="card card-custom gutter-b">
-                                <div className="card-header border-0 modern-mobile-header px-4">
-                                    <div className="d-flex align-items-center">
-                                        <ul className="nav nav-tabs nav-tabs-space nav-tabs-line nav-bold nav-tabs-line-3x border-0 mb-0 custom-tabs-container">
+                                <div className="card-header border-0 py-4 px-4 d-flex flex-column flex-xl-row align-items-start align-items-xl-center justify-content-between" style={{ gap: '20px' }}>
+                                    <div className="w-100 flex-grow-1" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                                        <ul className="nav nav-tabs nav-tabs-space nav-tabs-line nav-bold nav-tabs-line-3x border-0 mb-0 custom-tabs-container flex-nowrap" style={{ paddingBottom: '2px' }}>
                                             <li className="nav-item">
                                                 <a
                                                     className={`nav-link py-2 px-6 custom-tab-link ${this.state.activeTab === 'accounts' ? 'active' : ''}`}
@@ -2255,9 +2255,10 @@ class FeesManagement extends Component {
                                                 </a>
                                             </li>
                                         </ul>
+                                    </div>
 
-                                        <div className="card-toolbar d-flex align-items-center">
-                                            <div className="dropdown dropdown-inline mr-2 d-flex align-items-center">
+                                    <div className="card-toolbar d-flex flex-wrap align-items-center w-100 w-xl-auto" style={{ gap: '12px' }}>
+                                        <div className="dropdown dropdown-inline d-flex align-items-center flex-grow-1 flex-md-grow-0">
                                                 <EnhancedDropdown
                                                     value={this.state.selectedTerm}
                                                     onChange={(value) => this.handleFilterChange('selectedTerm', value)}
@@ -2269,10 +2270,10 @@ class FeesManagement extends Component {
                                                     ]}
                                                     placeholder="Term..."
                                                     searchable={true}
-                                                    width={window.innerWidth < 991 ? "130px" : "200px"}
-                                                    minWidth={window.innerWidth < 991 ? "0" : "200px"}
+                                                    width="100%"
+                                                    minWidth="160px"
                                                     showCount={false}
-                                                    className="mr-lg-2 mb-2 mb-lg-0"
+                                                    className="w-100"
                                                     persistenceKey="finance_fees_term"
                                                 />
                                                 {!isTeacher && (
@@ -2287,7 +2288,7 @@ class FeesManagement extends Component {
                                                 )}
                                             </div>
                                             
-                                            <div className="dropdown dropdown-inline mr-2 d-flex align-items-center">
+                                            <div className="dropdown dropdown-inline d-flex align-items-center flex-grow-1 flex-md-grow-0">
                                                 <EnhancedDropdown
                                                     value={this.state.selectedClass}
                                                     onChange={this.handleClassChange}
@@ -2302,12 +2303,12 @@ class FeesManagement extends Component {
                                                     ]}
                                                     placeholder="Class..."
                                                     searchable={true}
-                                                    width={window.innerWidth < 991 ? "150px" : "250px"}
-                                                    minWidth={window.innerWidth < 991 ? "0" : "200px"}
+                                                    width="100%"
+                                                    minWidth="200px"
                                                     showCount={true}
                                                     countKey="studentCount"
                                                     countLabel=""
-                                                    className="mr-2"
+                                                    className="w-100"
                                                     persistenceKey="finance_fees_class"
                                                 />
                                                 {!isTeacher && (

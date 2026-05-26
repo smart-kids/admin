@@ -1169,9 +1169,9 @@ class ResultsMatrix extends React.Component {
 
     return (
       <div className="card card-custom">
-        <div className="card-header border-0 modern-mobile-header px-4">
-                <div className="d-flex align-items-center flex-grow-1 overflow-hidden">
-                    <ul className="nav nav-tabs nav-tabs-space nav-tabs-line nav-bold nav-tabs-line-3x border-0 mb-0 custom-tabs-container flex-nowrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <div className="card-header border-0 py-4 px-4 d-flex flex-column flex-xl-row align-items-start align-items-xl-center justify-content-between" style={{ gap: '20px' }}>
+                <div className="w-100 flex-grow-1" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                    <ul className="nav nav-tabs nav-tabs-space nav-tabs-line nav-bold nav-tabs-line-3x border-0 mb-0 custom-tabs-container flex-nowrap" style={{ paddingBottom: '2px' }}>
                         <li className="nav-item">
                             <a 
                                 className={`nav-link py-2 px-6 custom-tab-link ${activeTab === 'insights' ? 'active' : ''}`}
@@ -1205,17 +1205,17 @@ class ResultsMatrix extends React.Component {
                     </ul>
                 </div>
 
-                <div className="card-toolbar d-flex align-items-center">
-                    <div className="dropdown dropdown-inline mr-2 d-flex align-items-center">
+                <div className="card-toolbar d-flex flex-wrap align-items-center w-100 w-xl-auto" style={{ gap: '12px' }}>
+                    <div className="dropdown dropdown-inline d-flex align-items-center flex-grow-1 flex-md-grow-0">
                         <EnhancedDropdown
                             value={selectedTerm}
                             onChange={(value) => this.handleFilterChange('selectedTerm', value)}
                             options={[{ id: '', name: 'ALL Terms' }, ...(terms || [])]}
                             placeholder="Term..."
                             searchable={true}
-                            width={window.innerWidth < 991 ? "130px" : "200px"}
-                            minWidth={window.innerWidth < 991 ? "0" : "200px"}
-                            className="mr-lg-2 mb-2 mb-lg-0"
+                            width="100%"
+                            minWidth="160px"
+                            className="w-100"
                             persistenceKey="results_matrix_term"
                         />
                         {!isTeacher && (
@@ -1230,7 +1230,7 @@ class ResultsMatrix extends React.Component {
                         )}
                     </div>
                     
-                    <div className="dropdown dropdown-inline mr-2 d-flex align-items-center">
+                    <div className="dropdown dropdown-inline d-flex align-items-center flex-grow-1 flex-md-grow-0">
                         <EnhancedDropdown
                             value={selectedClass}
                             onChange={(value) => this.handleFilterChange('selectedClass', value)}
@@ -1246,9 +1246,9 @@ class ResultsMatrix extends React.Component {
                             ]}
                             placeholder="Class (Students)..."
                             searchable={true}
-                            width={window.innerWidth < 991 ? "150px" : "250px"}
-                            minWidth={window.innerWidth < 991 ? "0" : "200px"}
-                            className="mr-lg-2 mb-2 mb-lg-0"
+                            width="100%"
+                            minWidth="200px"
+                            className="w-100"
                             showEmptySearchResults={true}
                             showCount={true}
                             countKey="studentCount"
@@ -1267,7 +1267,7 @@ class ResultsMatrix extends React.Component {
                         )}
                     </div>
 
-                    <div className="dropdown dropdown-inline mr-2 d-flex align-items-center">
+                    <div className="dropdown dropdown-inline d-flex align-items-center flex-grow-1 flex-md-grow-0">
                         <EnhancedDropdown
                             value={selectedGrade}
                             onChange={(value) => this.handleFilterChange('selectedGrade', value)}
@@ -1283,9 +1283,9 @@ class ResultsMatrix extends React.Component {
                             ]}
                             placeholder="Grade (Subjects)..."
                             searchable={true}
-                            width={window.innerWidth < 991 ? "150px" : "220px"}
-                            minWidth={window.innerWidth < 991 ? "0" : "200px"}
-                            className="mr-lg-2 mb-2 mb-lg-0"
+                            width="100%"
+                            minWidth="180px"
+                            className="w-100"
                             showEmptySearchResults={true}
                             showCount={true}
                             countKey="subjectCount"
