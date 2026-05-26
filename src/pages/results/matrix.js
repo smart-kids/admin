@@ -1169,9 +1169,9 @@ class ResultsMatrix extends React.Component {
 
     return (
       <div className="card card-custom">
-        <div className="card-header border-0 py-4 px-4 d-flex flex-column flex-xl-row align-items-start align-items-xl-center justify-content-between" style={{ gap: '20px' }}>
-                <div className="w-100 flex-grow-1" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                    <ul className="nav nav-tabs nav-tabs-space nav-tabs-line nav-bold nav-tabs-line-3x border-0 mb-0 custom-tabs-container flex-nowrap" style={{ paddingBottom: '2px' }}>
+        <div className="card-header border-0 py-4 px-4 d-flex flex-wrap align-items-center justify-content-between" style={{ gap: '15px' }}>
+                <div className="overflow-hidden" style={{ flexGrow: 1, flexBasis: 'auto', minWidth: '250px' }}>
+                    <ul className="nav nav-tabs nav-tabs-space nav-tabs-line nav-bold nav-tabs-line-3x border-0 mb-0 custom-tabs-container flex-nowrap" style={{ paddingBottom: '2px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                         <li className="nav-item">
                             <a 
                                 className={`nav-link py-2 px-6 custom-tab-link ${activeTab === 'insights' ? 'active' : ''}`}
@@ -1205,8 +1205,8 @@ class ResultsMatrix extends React.Component {
                     </ul>
                 </div>
 
-                <div className="card-toolbar d-flex flex-wrap align-items-center w-100 w-xl-auto" style={{ gap: '12px' }}>
-                    <div className="dropdown dropdown-inline d-flex align-items-center flex-grow-1 flex-md-grow-0">
+                <div className="card-toolbar d-flex flex-wrap align-items-center flex-grow-1" style={{ gap: '12px' }}>
+                    <div className="d-flex align-items-center flex-grow-1" style={{ minWidth: '110px' }}>
                         <EnhancedDropdown
                             value={selectedTerm}
                             onChange={(value) => this.handleFilterChange('selectedTerm', value)}
@@ -1230,7 +1230,7 @@ class ResultsMatrix extends React.Component {
                         )}
                     </div>
                     
-                    <div className="dropdown dropdown-inline d-flex align-items-center flex-grow-1 flex-md-grow-0">
+                    <div className="d-flex align-items-center flex-grow-1" style={{ minWidth: '140px' }}>
                         <EnhancedDropdown
                             value={selectedClass}
                             onChange={(value) => this.handleFilterChange('selectedClass', value)}
@@ -1267,7 +1267,7 @@ class ResultsMatrix extends React.Component {
                         )}
                     </div>
 
-                    <div className="dropdown dropdown-inline d-flex align-items-center flex-grow-1 flex-md-grow-0">
+                    <div className="d-flex align-items-center flex-grow-1" style={{ minWidth: '140px' }}>
                         <EnhancedDropdown
                             value={selectedGrade}
                             onChange={(value) => this.handleFilterChange('selectedGrade', value)}
@@ -1304,9 +1304,9 @@ class ResultsMatrix extends React.Component {
                         )}
                     </div>
 
-                    <div className="d-flex align-items-center">
-                        {Object.keys(edits).length > 0 && <button className={`btn btn-sm btn-primary font-weight-bold mr-2 ${saving ? 'spinner spinner-white spinner-right' : ''}`} onClick={this.saveAllChanges} disabled={saving}><i className="fa fa-save"></i> Save ({Object.keys(edits).length})</button>}
-                        <button className="btn btn-sm btn-success font-weight-bold mr-2" onClick={this.togglePrintView} disabled={!selectedClass || !selectedTerm}><i className="fa fa-print"></i> Print</button>
+                    <div className="d-flex align-items-center ml-auto" style={{ gap: '10px' }}>
+                        {Object.keys(edits).length > 0 && <button className={`btn btn-sm btn-primary font-weight-bold ${saving ? 'spinner spinner-white spinner-right' : ''}`} onClick={this.saveAllChanges} disabled={saving}><i className="fa fa-save"></i> Save ({Object.keys(edits).length})</button>}
+                        <button className="btn btn-sm btn-success font-weight-bold" onClick={this.togglePrintView} disabled={!selectedClass || !selectedTerm}><i className="fa fa-print"></i> Print</button>
                         <button className="btn btn-sm btn-light-primary font-weight-bold" onClick={this.initiateBulkResultsSms} disabled={!selectedClass || !selectedTerm}><i className="fa fa-sms"></i> SMS</button>
                     </div>
                 </div>

@@ -2211,9 +2211,9 @@ class FeesManagement extends Component {
                     <div className="kt-content kt-grid__item kt-grid__item--fluid pt-0" style={{ height: "100vh" }} id="kt_content">
                         <div className="kt-container pt-0">
                             <div className="card card-custom gutter-b">
-                                <div className="card-header border-0 py-4 px-4 d-flex flex-column flex-xl-row align-items-start align-items-xl-center justify-content-between" style={{ gap: '20px' }}>
-                                    <div className="w-100 flex-grow-1" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                                        <ul className="nav nav-tabs nav-tabs-space nav-tabs-line nav-bold nav-tabs-line-3x border-0 mb-0 custom-tabs-container flex-nowrap" style={{ paddingBottom: '2px' }}>
+                                <div className="card-header border-0 py-4 px-4 d-flex flex-wrap align-items-center justify-content-between" style={{ gap: '15px' }}>
+                                    <div className="overflow-hidden" style={{ flexGrow: 1, flexBasis: 'auto', minWidth: '250px' }}>
+                                        <ul className="nav nav-tabs nav-tabs-space nav-tabs-line nav-bold nav-tabs-line-3x border-0 mb-0 custom-tabs-container flex-nowrap" style={{ paddingBottom: '2px', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                                             <li className="nav-item">
                                                 <a
                                                     className={`nav-link py-2 px-6 custom-tab-link ${this.state.activeTab === 'accounts' ? 'active' : ''}`}
@@ -2257,8 +2257,8 @@ class FeesManagement extends Component {
                                         </ul>
                                     </div>
 
-                                    <div className="card-toolbar d-flex flex-wrap align-items-center w-100 w-xl-auto" style={{ gap: '12px' }}>
-                                        <div className="dropdown dropdown-inline d-flex align-items-center flex-grow-1 flex-md-grow-0">
+                                    <div className="card-toolbar d-flex flex-wrap align-items-center flex-grow-1" style={{ gap: '12px' }}>
+                                        <div className="d-flex align-items-center flex-grow-1" style={{ minWidth: '110px' }}>
                                                 <EnhancedDropdown
                                                     value={this.state.selectedTerm}
                                                     onChange={(value) => this.handleFilterChange('selectedTerm', value)}
@@ -2288,7 +2288,7 @@ class FeesManagement extends Component {
                                                 )}
                                             </div>
                                             
-                                            <div className="dropdown dropdown-inline d-flex align-items-center flex-grow-1 flex-md-grow-0">
+                                            <div className="d-flex align-items-center flex-grow-1" style={{ minWidth: '140px' }}>
                                                 <EnhancedDropdown
                                                     value={this.state.selectedClass}
                                                     onChange={this.handleClassChange}
@@ -2323,26 +2323,27 @@ class FeesManagement extends Component {
                                                 )}
                                             </div>
 
-                                            <button
-                                                className="btn btn-sm btn-primary font-weight-bold"
-                                                onClick={this.initiateBulkFinanceSms}
-                                                disabled={loading || processedParents.length === 0}
-                                            >
-                                                <i className="fa fa-sms mr-2"></i> Bulk SMS
-                                            </button>
-                                            
-                                            <button
-                                                className="btn btn-sm btn-light-success font-weight-bold ml-2"
-                                                style={{ whiteSpace: 'nowrap' }}
-                                                onClick={() => this.setState({ showCollectionPrintView: true })}
-                                                disabled={loading || processedParents.length === 0}
-                                            >
-                                                <i className="fa fa-print mr-2"></i> {this.state.activeTab === 'accounts' ? 'Print List' : 'Print Preview'}
-                                            </button>
+                                            <div className="d-flex align-items-center ml-auto" style={{ gap: '10px' }}>
+                                                <button
+                                                    className="btn btn-sm btn-primary font-weight-bold"
+                                                    onClick={this.initiateBulkFinanceSms}
+                                                    disabled={loading || processedParents.length === 0}
+                                                >
+                                                    <i className="fa fa-sms mr-2"></i> Bulk SMS
+                                                </button>
+                                                
+                                                <button
+                                                    className="btn btn-sm btn-light-success font-weight-bold"
+                                                    style={{ whiteSpace: 'nowrap' }}
+                                                    onClick={() => this.setState({ showCollectionPrintView: true })}
+                                                    disabled={loading || processedParents.length === 0}
+                                                >
+                                                    <i className="fa fa-print mr-2"></i> {this.state.activeTab === 'accounts' ? 'Print List' : 'Print Preview'}
+                                                </button>
+                                            </div>
 
                                         </div>
                                     </div>
-                                </div>
 
                                 <div className="card-body py-0">
                                     {loading ? <SkeletonLoader /> : (
