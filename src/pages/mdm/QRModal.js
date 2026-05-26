@@ -1,29 +1,31 @@
 import React from "react";
+import QRCode from "qrcode";
 
 const $ = window.$;
 
 const MODAL_ID = "qr_onboarding_modal_" + Math.random().toString(36).substr(2, 9);
 
 class QRModal extends React.Component {
+  state = {
+    qrUrl: "",
+    error: null
+  };
+
   componentDidMount() {
     $("#" + MODAL_ID).modal({
       show: true,
       backdrop: "static",
       keyboard: false
     });
+
+    this.generateQR();
   }
 
   componentWillUnmount() {
     $("#" + MODAL_ID).modal("hide");
   }
 
-  handleClose = () => {
-    $("#" + MODAL_ID).modal("hide");
-    this.props.onClose();
-  };
-
-  render() {
-    // We will generate a payload for onboarding.
+  generateQR = () => {
     const schoolId = localStorage.getItem("school");
     const payload = JSON.stringify({
       "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "com.shule.plusapp/.AdminReceiver",
@@ -32,8 +34,30 @@ class QRModal extends React.Component {
       }
     });
 
-    // Use a free QR Code API for rendering the QR code image
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(payload)}`;
+    QRCode.toDataURL(payload, {
+      width: 250,
+      margin: 2,
+      color: {
+        dark: "#000000",
+        light: "#FFFFFF"
+      }
+    })
+      .then(url => {
+        this.setState({ qrUrl: url });
+      })
+      .catch(err => {
+        console.error("Failed to generate onboarding QR code", err);
+        this.setState({ error: "Failed to generate QR Code locally." });
+      });
+  };
+
+  handleClose = () => {
+    $("#" + MODAL_ID).modal("hide");
+    this.props.onClose();
+  };
+
+  render() {
+    const { qrUrl, error } = this.state;
 
     return (
       <div
@@ -55,10 +79,16 @@ class QRModal extends React.Component {
             </div>
 
             <div className="modal-body p-4 text-center">
-              <p className="mb-4">Scan this QR code with the ShulePlus app to enroll a new tablet.</p>
+              <p className="mb-4 font-weight-bold text-dark-75">Scan this QR code with the ShulePlus app to enroll a new tablet.</p>
               
-              <div className="qr-container bg-white p-3 d-inline-block border rounded shadow-sm">
-                <img src={qrUrl} alt="Onboarding QR Code" />
+              <div className="qr-container bg-white p-3 d-inline-block border rounded shadow-sm" style={{ minHeight: '250px', minWidth: '250px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                {error ? (
+                  <div className="text-danger small">{error}</div>
+                ) : qrUrl ? (
+                  <img src={qrUrl} alt="Onboarding QR Code" style={{ width: '250px', height: '250px' }} />
+                ) : (
+                  <div className="kt-spinner kt-spinner--brand kt-spinner--sm"></div>
+                )}
               </div>
               
               <div className="mt-4 text-muted small">

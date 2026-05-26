@@ -27,6 +27,7 @@
     "minisearch": "^7.2.0",
     "moment": "^2.24.0",
     "pdfjs-dist": "3.11.174",
+    "qrcode": "^1.5.4",
     "react": "^16.14.0",
     "react-beautiful-dnd": "^13.1.1",
     "react-bootstrap": "^2.10.10",
