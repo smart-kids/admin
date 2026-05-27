@@ -82,8 +82,12 @@ class Navbar extends React.Component {
   };
 
   getSecondaryNavItems = () => {
-    const { isSuperAdmin, isTeacher } = this.getUserFlags();
+    const { isSuperAdmin, isTeacher, effectiveRole } = this.getUserFlags();
+    const normalizedRole = String(effectiveRole || '').toLowerCase();
     
+    const isAdmin = normalizedRole === 'admin' || normalizedRole === 'school_admin' || normalizedRole === 'schooladmin';
+    const isAllowed = isSuperAdmin || isAdmin;
+
     if (isSuperAdmin) {
       return [
         { path: "/comms", label: "SMS & Email", icon: "la-envelope" },
@@ -108,8 +112,8 @@ class Navbar extends React.Component {
       ];
     }
     
-    // Regular Admin
-    return [
+    // Regular Admin / Fallback
+    const items = [
       { path: "/home", label: "Reports", icon: "la-dashboard" },
       { path: "/comms", label: "SMS & Email", icon: "la-envelope" },
       { path: "/learning", label: "Learning", icon: "la-graduation-cap" },
@@ -117,9 +121,16 @@ class Navbar extends React.Component {
       { path: "/time-tables", label: "Time Tables", icon: "la-calendar-check-o" },
       { path: "/finance/fees", label: "Fee", icon: "la-money" },
       { path: "/trips/all", label: "Transport", icon: "la-bus" },
-      { path: "/games", label: "Games", icon: "la-gamepad" },
-      { path: "/mdm", label: "Devices", icon: "la-tablet" },
     ];
+
+    if (isAllowed) {
+      items.push(
+        { path: "/games", label: "Games", icon: "la-gamepad" },
+        { path: "/mdm", label: "Devices", icon: "la-tablet" }
+      );
+    }
+
+    return items;
   };
 
   componentDidMount() {
@@ -562,13 +573,24 @@ class Navbar extends React.Component {
                         )}
                     </li>
                 )}
-                                {/* Main Links */}
+                {/* Main Links */}
                 {!isTeacher && <li><Link to="/home" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-dashboard" style={{marginRight: '12px', fontSize: '1.2rem', color: 'var(--text-tertiary)'}}></i> Reports</Link></li>}
-                <li><Link to="/comms" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-bullhorn" style={{marginRight: '12px', fontSize: '1.2rem', color: 'var(--text-tertiary)'}}></i> SMS & Email</Link></li>
-                <li><Link to="/learning" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-graduation-cap" style={{marginRight: '12px', fontSize: '1.2rem', color: 'var(--text-tertiary)'}}></i> Learning</Link></li>
-                <li><Link to="/results" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-bar-chart" style={{marginRight: '12px', fontSize: '1.2rem', color: 'var(--text-tertiary)'}}></i> Results</Link></li>
-                <li><Link to="/time-tables" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-calendar" style={{marginRight: '12px', fontSize: '1.2rem', color: 'var(--text-tertiary)'}}></i> Time Tables</Link></li>
-                <li><Link to="/library" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-book" style={{marginRight: '12px', fontSize: '1.2rem', color: 'var(--text-tertiary)'}}></i> Library</Link></li>
+                
+                {this.getSecondaryNavItems().map((item) => {
+                    // Match icons consistently for side drawer
+                    let iconName = item.icon;
+                    if (item.path === "/comms") iconName = "la-bullhorn";
+                    if (item.path === "/time-tables") iconName = "la-calendar";
+
+                    return (
+                        <li key={item.path}>
+                            <Link to={item.path} style={linkStyle} onClick={this.toggleMobileMenu}>
+                                <i className={`la ${iconName}`} style={{marginRight: '12px', fontSize: '1.2rem', color: 'var(--text-tertiary)'}}></i> 
+                                {item.label}
+                            </Link>
+                        </li>
+                    );
+                })}
                  {/* Manage Data */}
                  {!isTeacher && (
                     <li>
