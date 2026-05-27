@@ -42,7 +42,7 @@ const TimeTableMatrix = () => {
   const [schoolInfo, setSchoolInfo] = useState(null);
   const [allTimeTablesData, setAllTimeTablesData] = useState({});
   const [viewMode, setViewMode] = useState(localStorage.getItem('timeTables_viewMode') || 'horizontal'); // 'vertical' or 'horizontal'
-  const [printOrientation, setPrintOrientation] = useState(localStorage.getItem('timeTablesPrint_orientation') || 'portrait');
+  const [printOrientation, setPrintOrientation] = useState(localStorage.getItem('timeTablesPrint_orientation') || 'landscape');
 
   // Load saved config from schoolInfo when it becomes available
   useEffect(() => {

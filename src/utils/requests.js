@@ -49,6 +49,47 @@ const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
  * @returns {Promise<any>} A promise that resolves with the `data` portion of the GraphQL response.
  * @throws Will throw an error if all retry attempts fail or a non-retryable error occurs.
  */
+const sanitizeResponseData = (data) => {
+    if (!data) return data;
+    
+    // Check if we are running in local development
+    const isLocalClient = window.location.href.includes('localhost') || window.location.href.includes('127.0.0.1');
+    if (isLocalClient) return data; // Keep as is for local dev
+    
+    if (typeof data === 'string') {
+        if (data.includes('localhost:4001') || data.includes('127.0.0.1:4001')) {
+            return data
+                .replace(/https?:\/\/localhost:4001/g, 'https://graph-ongyy.kinsta.app')
+                .replace(/https?:\/\/127\.0\.0\.1:4001/g, 'https://graph-ongyy.kinsta.app');
+        }
+        return data;
+    }
+    
+    if (Array.isArray(data)) {
+        return data.map(item => sanitizeResponseData(item));
+    }
+    
+    if (typeof data === 'object') {
+        const sanitized = {};
+        for (const key in data) {
+            if (Object.prototype.hasOwnProperty.call(data, key)) {
+                sanitized[key] = sanitizeResponseData(data[key]);
+            }
+        }
+        return sanitized;
+    }
+    
+    return data;
+};
+
+/**
+ * Internal function to execute a GraphQL request with a robust retry mechanism.
+ * @param {string} queryString - The GraphQL query or mutation string.
+ * @param {object} variables - The GraphQL variables.
+ * @param {boolean} isMutation - A flag for logging purposes.
+ * @returns {Promise<any>} A promise that resolves with the `data` portion of the GraphQL response.
+ * @throws Will throw an error if all retry attempts fail or a non-retryable error occurs.
+ */
 const _executeRequestWithRetries = async (queryString, variables, isMutation = false) => {
     const maxRetries = 3;
     let delay = 1000; // 1-second initial delay
@@ -70,7 +111,7 @@ const _executeRequestWithRetries = async (queryString, variables, isMutation = f
             }
 
             // Success: return the actual data payload, e.g., { schools: [...] }
-            return response.data.data;
+            return sanitizeResponseData(response.data.data);
 
         } catch (error) {
             // Axios places server responses in `error.response`.
@@ -152,6 +193,21 @@ export const query = (queryString, params, callback) => {
 export const mutate = (queryString, variables) => {
     // A mutation is a direct async operation. We can simply return the internal function's promise.
     return _executeRequestWithRetries(queryString, variables, true);
+};
+
+export const resolveAssetUrl = (url) => {
+    if (!url) return '';
+    if (typeof url !== 'string') return url;
+    
+    const isLocalClient = window.location.href.includes('localhost') || window.location.href.includes('127.0.0.1');
+    if (!isLocalClient) {
+        if (url.includes('localhost:4001') || url.includes('127.0.0.1:4001')) {
+            return url
+                .replace(/https?:\/\/localhost:4001/g, 'https://graph-ongyy.kinsta.app')
+                .replace(/https?:\/\/127\.0\.0\.1:4001/g, 'https://graph-ongyy.kinsta.app');
+        }
+    }
+    return url;
 };
 
 export { API };

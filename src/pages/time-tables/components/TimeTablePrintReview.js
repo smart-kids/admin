@@ -14,7 +14,7 @@ const TimeTablePrintReview = ({
   teachers,
   school: propSchool,
   printAll = false,
-  orientation = 'portrait'
+  orientation = 'landscape'
 }) => {
   const school = propSchool || Data.schools.getSelected();
   const themeColor = school?.themeColor || '#1a1a1a';
