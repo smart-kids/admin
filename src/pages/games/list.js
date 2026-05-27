@@ -17,6 +17,7 @@ class GamesList extends React.Component {
     showReviewModal: false,
     deleteGame: null,
     showDeleteModal: false,
+    isDeleting: false,
   };
 
   componentDidMount() {
@@ -72,19 +73,21 @@ class GamesList extends React.Component {
 
   handleSaveGame = (gameData) => {
     if (gameData.id) {
-      Data.games.update(gameData)
+      return Data.games.update(gameData)
         .then(() => window.toastr.success("Game updated successfully"))
         .catch((err) => {
           console.error(err);
           window.toastr.error("Failed to update game");
+          throw err;
         });
     } else {
       const { id, ...newGame } = gameData;
-      Data.games.create(newGame)
+      return Data.games.create(newGame)
         .then(() => window.toastr.success("Game added successfully"))
         .catch((err) => {
           console.error(err);
           window.toastr.error("Failed to add game");
+          throw err;
         });
     }
   };
@@ -109,14 +112,16 @@ class GamesList extends React.Component {
     const { deleteGame } = this.state;
     if (!deleteGame) return;
 
+    this.setState({ isDeleting: true });
     Data.games.delete(deleteGame)
       .then(() => {
         window.toastr.success("Game deleted successfully");
-        this.closeDeleteModal();
+        this.setState({ isDeleting: false, showDeleteModal: false, deleteGame: null });
       })
       .catch((err) => {
         console.error(err);
         window.toastr.error("Failed to delete game");
+        this.setState({ isDeleting: false });
       });
   };
 
@@ -268,17 +273,23 @@ class GamesList extends React.Component {
                       type="button" 
                       className="btn btn-light" 
                       onClick={this.closeDeleteModal}
-                      style={{ borderRadius: '8px', padding: '10px 20px', fontWeight: '600', minWidth: '100px', backgroundColor: '#f0f0f0', border: 'none', color: '#595959' }}
+                      disabled={this.state.isDeleting}
+                      style={{ borderRadius: '8px', padding: '10px 20px', fontWeight: '600', minWidth: '100px', backgroundColor: '#f0f0f0', border: 'none', color: '#595959', opacity: this.state.isDeleting ? 0.6 : 1 }}
                     >
                       Cancel
                     </button>
                     <button 
                       type="button" 
-                      className="btn btn-danger" 
+                      className="btn btn-danger d-flex align-items-center justify-content-center" 
                       onClick={this.confirmDeleteGame}
-                      style={{ borderRadius: '8px', padding: '10px 20px', fontWeight: '600', minWidth: '100px', backgroundColor: '#ff4d4f', border: 'none', color: '#ffffff' }}
+                      disabled={this.state.isDeleting}
+                      style={{ borderRadius: '8px', padding: '10px 20px', fontWeight: '600', minWidth: '100px', backgroundColor: '#ff4d4f', border: 'none', color: '#ffffff', opacity: this.state.isDeleting ? 0.8 : 1 }}
                     >
-                      Delete
+                      {this.state.isDeleting ? (
+                        <>
+                          <i className="la la-spinner la-spin mr-2"></i> Deleting...
+                        </>
+                      ) : "Delete"}
                     </button>
                   </div>
                 </div>

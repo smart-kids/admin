@@ -2,6 +2,7 @@ import React from "react";
 import Data from "../../utils/data"; // Adjust path as needed
 import BookModal from "./add"; // The new ref-based modal
 import PDFReviewModal from "./PDFReviewModal"; // PDF review modal
+import VideoPlayerModal from "./VideoPlayerModal"; // Video custom player modal
 import "./Library.css"; // The Apple-style CSS
 
 const NO_COVER_SVG = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 200"><rect width="100%" height="100%" fill="%23f3f4f6" rx="8"/><rect x="8" y="8" width="134" height="184" fill="none" stroke="%23e5e7eb" stroke-width="2" stroke-dasharray="4" rx="6"/><path d="M55 75h40v6H55zm0 14h40v6H55zm0 14h25v6H55z" fill="%239ca3af"/><text x="75" y="150" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="%239ca3af" text-anchor="middle">No Cover</text></svg>`;
@@ -15,20 +16,140 @@ class LibraryList extends React.Component {
     loading: true,
     reviewBook: null,
     showReviewModal: false,
+    videoBook: null,
+    showVideoModal: false,
     deleteBook: null,
     showDeleteModal: false,
+    isDeleting: false,
+    libsLoaded: false
   };
 
   componentDidMount() {
-    // Subscribe to live data updates
+    // 1. Dynamically Load external script dependencies (Plyr & Freewall)
+    this.loadExternalLibraries().then(() => {
+      this.setState({ libsLoaded: true }, () => {
+        this.initializeFreewall();
+      });
+    });
+
+    // 2. Subscribe to live data updates
     this._subscription = Data.books.subscribe(({ books }) => {
-      this.setState({ books: books || [], loading: false }, this.filterBooks);
+      this.setState({ books: books || [], loading: false }, () => {
+        this.filterBooks();
+      });
     });
   }
 
   componentWillUnmount() {
     if (this._subscription) this._subscription();
+    if (this.wall) {
+      try {
+        this.wall.destroy();
+      } catch (e) {}
+    }
+    if (this.initTimeout) clearTimeout(this.initTimeout);
   }
+
+  componentDidUpdate(prevProps, prevState) {
+    if (prevState.filteredBooks !== this.state.filteredBooks || prevState.libsLoaded !== this.state.libsLoaded) {
+      this.initializeFreewall();
+    }
+  }
+
+  loadExternalLibraries = () => {
+    return new Promise((resolve) => {
+      let loadedCount = 0;
+      const totalToLoad = 3;
+
+      const checkAllLoaded = () => {
+        loadedCount++;
+        if (loadedCount === totalToLoad) {
+          resolve();
+        }
+      };
+
+      // 1. Load Plyr CSS
+      if (!document.getElementById("plyr-css")) {
+        const link = document.createElement("link");
+        link.id = "plyr-css";
+        link.rel = "stylesheet";
+        link.href = "https://cdn.plyr.io/3.7.8/plyr.css";
+        document.head.appendChild(link);
+      }
+
+      // 2. Load Plyr JS
+      if (window.Plyr) {
+        checkAllLoaded();
+      } else {
+        const script = document.createElement("script");
+        script.src = "https://cdn.plyr.io/3.7.8/plyr.js";
+        script.onload = checkAllLoaded;
+        script.onerror = checkAllLoaded;
+        document.head.appendChild(script);
+      }
+
+      // 3. Load Freewall JS
+      if (window.Freewall) {
+        checkAllLoaded();
+      } else {
+        const script = document.createElement("script");
+        script.src = "https://cdnjs.cloudflare.com/ajax/libs/freewall/1.0.8/freewall.min.js";
+        script.onload = checkAllLoaded;
+        script.onerror = checkAllLoaded;
+        document.head.appendChild(script);
+      }
+
+      // Sheet load bypass
+      checkAllLoaded();
+    });
+  };
+
+  initializeFreewall = () => {
+    if (this.initTimeout) clearTimeout(this.initTimeout);
+
+    this.initTimeout = setTimeout(() => {
+      if (!window.Freewall) {
+        console.warn("Freewall not loaded yet");
+        return;
+      }
+      
+      const gridSelector = "#freewall-grid";
+      const $grid = window.$(gridSelector);
+      if ($grid.length === 0) return;
+
+      // Clean up previous instance
+      if (this.wall) {
+        try {
+          this.wall.destroy();
+        } catch (e) {}
+      }
+
+      const wall = new window.Freewall(gridSelector);
+      wall.reset({
+        selector: '.brick',
+        animate: true,
+        cellW: 10,
+        cellH: 10,
+        fixSize: 0,
+        gutterX: 20,
+        gutterY: 20,
+        onResize: function() {
+          wall.fitWidth();
+        }
+      });
+
+      // Fit width
+      wall.fitWidth();
+      this.wall = wall;
+
+      // Force fit width again as images finish downloading to correct dimensions
+      $grid.find("img").on("load", () => {
+        if (this.wall) {
+          this.wall.fitWidth();
+        }
+      });
+    }, 50);
+  };
 
   // --- Filtering Logic ---
 
@@ -89,24 +210,24 @@ class LibraryList extends React.Component {
   handleSaveBook = (bookData) => {
     // If ID exists, we are updating. If empty, we are creating.
     if (bookData.id) {
-      Data.books.update(bookData)
+      return Data.books.update(bookData)
         .then(() => window.toastr.success("Book updated successfully"))
         .catch((err) => {
           console.error(err);
           window.toastr.error("Failed to update book");
+          throw err;
         });
     } else {
       // Remove the empty ID string so the backend generates a new one
       const { id, ...newBook } = bookData;
-      Data.books.create(newBook)
+      return Data.books.create(newBook)
         .then(() => window.toastr.success("Book added successfully"))
         .catch((err) => {
           console.error(err);
           window.toastr.error("Failed to add book");
+          throw err;
         });
     }
-    // Note: The modal calls its own .hide() method after we execute this prop,
-    // or you can call this.modalRef.hide() here if you prefer manual control.
   };
 
   downloadBook = (book) => {
@@ -170,88 +291,236 @@ class LibraryList extends React.Component {
     const { deleteBook } = this.state;
     if (!deleteBook) return;
 
+    this.setState({ isDeleting: true });
     Data.books.delete(deleteBook)
       .then(() => {
         window.toastr.success("Book deleted successfully");
-        this.closeDeleteModal();
+        this.setState({ isDeleting: false, showDeleteModal: false, deleteBook: null });
       })
       .catch((err) => {
         console.error(err);
         window.toastr.error("Failed to delete book");
+        this.setState({ isDeleting: false });
       });
+  };
+
+  // --- Video Custom Player Helpers ---
+  openVideoPlayer = (book) => {
+    this.setState({ videoBook: book, showVideoModal: true });
+  };
+
+  closeVideoPlayer = () => {
+    this.setState({ videoBook: null, showVideoModal: false });
   };
 
   // --- Render Helpers ---
 
-  renderBookCard = (book) => (
-    <div key={book.id} className="book-card">
-      <div className="book-cover-wrapper">
-        <img
-          src={book.coverUrl || NO_COVER_SVG}
-          alt={book.title}
-          className="book-cover-img"
-          onError={(e) => { e.target.onerror = null; e.target.src=NO_COVER_SVG; }} 
-        />
-        
-        {/* Quick View Overlay */}
-        <div className="book-quick-view-overlay">
+  renderMosaicCard = (book, index) => {
+    const isFeatured = index % 6 === 0;
+    const isVideo = book.type === "video";
+    const coverImage = book.coverUrl || NO_COVER_SVG;
+
+    if (isFeatured) {
+      return (
+        <div key={book.id} className="brick brick-featured">
+          <div className="featured-inner">
+            <div className="featured-left">
+              <img
+                src={coverImage}
+                alt={book.title}
+                className="book-cover-img"
+                onError={(e) => { e.target.onerror = null; e.target.src = NO_COVER_SVG; }}
+              />
+              {isVideo && (
+                <div className="video-play-overlay" onClick={() => this.openVideoPlayer(book)}>
+                  <div className="play-circle-btn">
+                    <i className="la la-play" style={{ marginLeft: '4px' }}></i>
+                  </div>
+                </div>
+              )}
+              {!isVideo && book.pdfUrl && (
+                <div className="book-quick-view-overlay" onClick={() => this.openReviewMode(book)}>
+                  <div className="quick-view-btn">
+                    <i className="la la-eye"></i>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <div className="featured-right">
+              <div className="d-flex flex-column">
+                <span className="featured-badge">{book.category || "General"}</span>
+                <h4 className="featured-title" title={book.title}>{book.title}</h4>
+                <span className="featured-author">{isVideo ? `Instructor: ${book.author}` : `Author: ${book.author}`}</span>
+              </div>
+              
+              <p className="featured-desc">
+                {book.description || "An essential resource added to the school's digital curriculum library."}
+              </p>
+              
+              <div className="featured-actions">
+                {isVideo ? (
+                  <button 
+                    className="btn-premium-action btn-primary"
+                    onClick={() => this.openVideoPlayer(book)}
+                  >
+                    <i className="la la-play mr-1"></i> Watch Video
+                  </button>
+                ) : (
+                  book.pdfUrl && (
+                    <button 
+                      className="btn-premium-action btn-primary"
+                      onClick={() => this.openReviewMode(book)}
+                    >
+                      <i className="la la-file-pdf mr-1"></i> Read Book
+                    </button>
+                  )
+                )}
+                
+                <button 
+                  className="btn-premium-action btn-secondary"
+                  onClick={() => this.openEditModal(book)}
+                  title="Edit resource"
+                  style={{ maxWidth: '40px' }}
+                >
+                  <i className="la la-edit" style={{ fontSize: '16px' }}></i>
+                </button>
+                
+                <button 
+                  className="btn-premium-action btn-secondary"
+                  onClick={() => this.deleteBook(book)}
+                  title="Delete resource"
+                  style={{ maxWidth: '40px', color: '#ff3b30' }}
+                >
+                  <i className="la la-trash" style={{ fontSize: '16px' }}></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    if (isVideo) {
+      return (
+        <div key={book.id} className="brick brick-video">
+          <div className="book-cover-wrapper" style={{ height: '140px', width: '100%', marginBottom: '8px', cursor: 'pointer' }}>
+            <span className="book-category-badge">{book.category || "General"}</span>
+            <img
+              src={coverImage}
+              alt={book.title}
+              className="book-cover-img"
+              onError={(e) => { e.target.onerror = null; e.target.src = NO_COVER_SVG; }}
+            />
+            <div className="video-play-overlay" onClick={() => this.openVideoPlayer(book)}>
+              <div className="play-circle-btn" style={{ width: '45px', height: '45px', fontSize: '20px' }}>
+                <i className="la la-play" style={{ marginLeft: '2px' }}></i>
+              </div>
+            </div>
+          </div>
+
+          <div className="book-info" style={{ textAlign: 'left', marginBottom: '8px' }}>
+            <div className="book-title" style={{ fontSize: '13px', fontWeight: '700' }} title={book.title}>
+              {book.title}
+            </div>
+            <div className="book-author" style={{ fontSize: '11px' }}>
+              Instructor: {book.author}
+            </div>
+          </div>
+
+          <div className="book-actions mt-auto" style={{ borderTop: '1px solid var(--border-primary)', paddingTop: '6px' }}>
             <button 
-                className="quick-view-btn"
-                onClick={() => this.openReviewMode(book)}
-                title="Quick Review"
+                className="book-action-btn edit-btn"
+                onClick={() => this.openEditModal(book)}
+                title="Edit Video"
             >
-                <i className="la la-eye"></i>
+                <i className="la la-edit"></i>
             </button>
+            <button 
+                className="book-action-btn view-btn"
+                onClick={() => this.openVideoPlayer(book)}
+                title="Play Video"
+            >
+                <i className="la la-play"></i>
+            </button>
+            <button 
+                className="book-action-btn delete-btn"
+                onClick={() => this.deleteBook(book)}
+                title="Delete Video"
+            >
+                <i className="la la-trash"></i>
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Standard Book Brick
+    return (
+      <div key={book.id} className="brick brick-book">
+        <div className="book-cover-wrapper" style={{ height: '190px', width: '100%', marginBottom: '8px', cursor: 'pointer' }}>
+          <span className="book-category-badge">{book.category || "General"}</span>
+          <img
+            src={coverImage}
+            alt={book.title}
+            className="book-cover-img"
+            onError={(e) => { e.target.onerror = null; e.target.src = NO_COVER_SVG; }}
+          />
+          <div className="book-quick-view-overlay" onClick={() => this.openReviewMode(book)}>
+              <div className="quick-view-btn" style={{ width: '45px', height: '45px', fontSize: '18px' }}>
+                  <i className="la la-eye"></i>
+              </div>
+          </div>
+        </div>
+
+        <div className="book-info" style={{ textAlign: 'left', marginBottom: '8px' }}>
+          <div className="book-title" style={{ fontSize: '13px', fontWeight: '700' }} title={book.title}>
+            {book.title}
+          </div>
+          <div className="book-author" style={{ fontSize: '11px' }}>
+            Author: {book.author}
+          </div>
+        </div>
+
+        <div className="book-actions mt-auto" style={{ borderTop: '1px solid var(--border-primary)', paddingTop: '6px' }}>
+          <button 
+              className="book-action-btn edit-btn"
+              onClick={() => this.openEditModal(book)}
+              title="Edit Book"
+          >
+              <i className="la la-edit"></i>
+          </button>
+          
+          {book.pdfUrl && (
+              <>
+                  <button 
+                      className="book-action-btn view-btn"
+                      onClick={() => this.openReviewMode(book)}
+                      title="Review PDF"
+                  >
+                      <i className="la la-file-pdf"></i>
+                  </button>
+                  <button 
+                      className="book-action-btn download-btn"
+                      onClick={() => this.downloadBook(book)}
+                      title="Download PDF"
+                  >
+                      <i className="la la-download"></i>
+                  </button>
+              </>
+          )}
+          
+          <button 
+              className="book-action-btn delete-btn"
+              onClick={() => this.deleteBook(book)}
+              title="Delete Book"
+          >
+              <i className="la la-trash"></i>
+          </button>
         </div>
       </div>
-      
-      {/* Book Info */}
-      <div className="book-info">
-        <div className="book-title" title={book.title}>
-          {book.title}
-        </div>
-        <div className="book-author">{book.author}</div>
-      </div>
-      
-      {/* Action Icons Below Book */}
-      <div className="book-actions">
-        <button 
-            className="book-action-btn edit-btn"
-            onClick={() => this.openEditModal(book)}
-            title="Edit Book"
-        >
-            <i className="la la-edit"></i>
-        </button>
-        
-        {book.pdfUrl && (
-            <>
-                <button 
-                    className="book-action-btn view-btn"
-                    onClick={() => this.openReviewMode(book)}
-                    title="Review PDF"
-                >
-                    <i className="la la-file-pdf"></i>
-                </button>
-                <button 
-                    className="book-action-btn download-btn"
-                    onClick={() => this.downloadBook(book)}
-                    title="Download PDF"
-                >
-                    <i className="la la-download"></i>
-                </button>
-            </>
-        )}
-        
-        <button 
-            className="book-action-btn delete-btn"
-            onClick={() => this.deleteBook(book)}
-            title="Delete Book"
-        >
-            <i className="la la-trash"></i>
-        </button>
-      </div>
-    </div>
-  );
+    );
+  };
 
   render() {
     const { filteredBooks, activeCategory, loading } = this.state;
@@ -267,14 +536,14 @@ class LibraryList extends React.Component {
         <div className="library-header">
           <div>
             <h2 className="lib-title">Digital Library</h2>
-            <p className="lib-subtitle">Manage school books and resources</p>
+            <p className="lib-subtitle">Manage school books and video resources</p>
           </div>
           
           <button
             className="btn-apple-add"
             onClick={this.openAddModal}
           >
-            <i className="la la-plus" /> New Book
+            <i className="la la-plus" /> Add Resource
           </button>
         </div>
 
@@ -305,16 +574,16 @@ class LibraryList extends React.Component {
             </div>
         </div>
 
-        {/* 3. The Grid */}
-        <div className="book-shelf">
-            {filteredBooks.map(this.renderBookCard)}
+        {/* 3. The Mosaic Grid */}
+        <div id="freewall-grid" style={{ minHeight: '350px' }}>
+            {filteredBooks.map((book, idx) => this.renderMosaicCard(book, idx))}
         </div>
 
         {/* Empty State */}
         {filteredBooks.length === 0 && (
             <div className="empty-state" style={{textAlign: 'center', padding: '4rem', color: '#999'}}>
                 <i className="la la-book" style={{fontSize: '3rem', marginBottom: '1rem', display: 'block'}}></i>
-                <p>No books found for this category or search.</p>
+                <p>No learning resources found for this category or search.</p>
             </div>
         )}
 
@@ -332,6 +601,14 @@ class LibraryList extends React.Component {
             />
         )}
 
+        {/* 5.5. Plyr Custom Video Player Modal */}
+        {this.state.showVideoModal && this.state.videoBook && (
+            <VideoPlayerModal 
+                book={this.state.videoBook}
+                onClose={this.closeVideoPlayer}
+            />
+        )}
+
         {/* 6. Custom Delete Confirmation Modal */}
         {this.state.showDeleteModal && this.state.deleteBook && (
           <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1060 }}>
@@ -341,27 +618,33 @@ class LibraryList extends React.Component {
                   <div className="mb-4" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '70px', height: '70px', borderRadius: '50%', backgroundColor: '#fff5f5', color: '#ff4d4f' }}>
                     <i className="la la-exclamation-triangle" style={{ fontSize: '36px' }}></i>
                   </div>
-                  <h4 style={{ fontWeight: '700', color: '#1f1f1f', marginBottom: '12px' }}>Delete Book?</h4>
+                  <h4 style={{ fontWeight: '700', color: '#1f1f1f', marginBottom: '12px' }}>Delete Resource?</h4>
                   <p style={{ color: '#595959', fontSize: '14px', lineHeight: '1.6', margin: '0 0 24px 0' }}>
                     Are you sure you want to delete <strong>{this.state.deleteBook.title}</strong>?<br />
-                    This will remove the book and its resources immediately.
+                    This will remove the item and its resources immediately.
                   </p>
                   <div className="d-flex justify-content-center" style={{ gap: '12px' }}>
                     <button 
                       type="button" 
                       className="btn btn-light" 
                       onClick={this.closeDeleteModal}
-                      style={{ borderRadius: '8px', padding: '10px 20px', fontWeight: '600', minWidth: '100px', backgroundColor: '#f0f0f0', border: 'none', color: '#595959' }}
+                      disabled={this.state.isDeleting}
+                      style={{ borderRadius: '8px', padding: '10px 20px', fontWeight: '600', minWidth: '100px', backgroundColor: '#f0f0f0', border: 'none', color: '#595959', opacity: this.state.isDeleting ? 0.6 : 1 }}
                     >
                       Cancel
                     </button>
                     <button 
                       type="button" 
-                      className="btn btn-danger" 
+                      className="btn btn-danger d-flex align-items-center justify-content-center" 
                       onClick={this.confirmDeleteBook}
-                      style={{ borderRadius: '8px', padding: '10px 20px', fontWeight: '600', minWidth: '100px', backgroundColor: '#ff4d4f', border: 'none', color: '#ffffff' }}
+                      disabled={this.state.isDeleting}
+                      style={{ borderRadius: '8px', padding: '10px 20px', fontWeight: '600', minWidth: '100px', backgroundColor: '#ff4d4f', border: 'none', color: '#ffffff', opacity: this.state.isDeleting ? 0.8 : 1 }}
                     >
-                      Delete
+                      {this.state.isDeleting ? (
+                        <>
+                          <i className="la la-spinner la-spin mr-2"></i> Deleting...
+                        </>
+                      ) : "Delete"}
                     </button>
                   </div>
                 </div>

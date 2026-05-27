@@ -608,7 +608,7 @@ var Data = (function () {
         }
     } 
 }`;
-        const FRAGMENT_BOOKS_DATA = `fragment BooksData on school { books { id title author category coverUrl pdfUrl description isDeleted } }`;
+        const FRAGMENT_BOOKS_DATA = `fragment BooksData on school { books { id title author category coverUrl pdfUrl videoUrl type description isDeleted } }`;
         const FRAGMENT_GAMES_DATA = `fragment GamesData on school { games { id title developer category coverUrl gameUrl description isDeleted } }`;
         const FRAGMENT_DEVICES_DATA = `fragment DevicesData on school { devices { id macAddress status assignedStudent lastSeen osVersion batteryLevel isDeleted } }`;
         const FRAGMENT_DEVICE_COMMANDS_DATA = `fragment DeviceCommandsData on school { device_commands { id device command status payload isDeleted } }`;
@@ -1531,8 +1531,8 @@ var Data = (function () {
         {
             name: "books",
             singularName: "book",
-            createFields: ['title', 'author', 'category', 'coverUrl', 'pdfUrl', 'description', 'school'],
-            updateFields: ['title', 'author', 'category', 'coverUrl', 'pdfUrl', 'description']
+            createFields: ['title', 'author', 'category', 'coverUrl', 'pdfUrl', 'videoUrl', 'type', 'description', 'school'],
+            updateFields: ['title', 'author', 'category', 'coverUrl', 'pdfUrl', 'videoUrl', 'type', 'description']
         },
         {
             name: "assessmentTypes",

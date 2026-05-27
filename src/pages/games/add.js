@@ -20,6 +20,7 @@ class GameModal extends React.Component {
     coverFile: null,
     
     isUploading: false,
+    isSaving: false,
     uploadProgress: 0,
     errors: {}
   };
@@ -38,6 +39,7 @@ class GameModal extends React.Component {
         gameUrl: gameToEdit.gameUrl || "",
         coverFile: null,
         isUploading: false,
+        isSaving: false,
         uploadProgress: 0,
         errors: {}
       });
@@ -149,7 +151,7 @@ class GameModal extends React.Component {
         }
       }
 
-      this.setState({ uploadProgress: 100 });
+      this.setState({ uploadProgress: 100, isSaving: true });
 
       const gameData = {
         id: this.state.id,
@@ -161,21 +163,22 @@ class GameModal extends React.Component {
         gameUrl: this.state.gameUrl,
       };
 
-      this.props.onSave(gameData);
+      await this.props.onSave(gameData);
       
-      this.setState({ isUploading: false });
+      this.setState({ isUploading: false, isSaving: false });
       this.hide();
     } catch (error) {
-      console.error("Upload error:", error);
+      console.error("Save/Upload error:", error);
       this.setState({ 
         isUploading: false, 
-        errors: { ...this.state.errors, submit: "Failed to upload files. Please try again." } 
+        isSaving: false,
+        errors: { ...this.state.errors, submit: error.message || "Failed to save game. Please try again." } 
       });
     }
   };
 
   render() {
-    const { errors, isUploading, uploadProgress, coverUrl, id } = this.state;
+    const { errors, isUploading, isSaving, uploadProgress, coverUrl, id } = this.state;
     const isEdit = !!id;
 
     return (
@@ -305,27 +308,40 @@ class GameModal extends React.Component {
               </div>
             </div>
 
-            <div className="modal-footer bg-light">
-              {isUploading ? (
-                <div className="w-100 d-flex align-items-center">
-                  <div className="progress w-100 mr-3" style={{height: '10px', borderRadius: '5px'}}>
-                    <div 
-                        className="progress-bar bg-primary progress-bar-striped progress-bar-animated" 
-                        style={{width: `${uploadProgress}%`}}
-                    ></div>
-                  </div>
-                  <small className="text-muted font-weight-bold">Uploading...</small>
+            <div className="modal-footer bg-light flex-column align-items-stretch">
+              {errors.submit && (
+                <div className="alert alert-danger w-100 mb-3 py-2 px-3 font-size-sm d-flex align-items-center" role="alert" style={{borderRadius: '8px'}}>
+                  <i className="la la-exclamation-circle mr-2" style={{fontSize: '18px'}}></i>
+                  <span>{errors.submit}</span>
                 </div>
-              ) : (
-                <>
-                  <button type="button" className="btn btn-secondary font-weight-bold" onClick={() => this.hide()}>
-                    Cancel
-                  </button>
-                  <button type="button" className="btn btn-primary font-weight-bold px-4" onClick={this.handleSubmit}>
-                    {isEdit ? "Save Changes" : "Save & Publish"}
-                  </button>
-                </>
               )}
+              
+              <div className="d-flex align-items-center justify-content-end w-100">
+                {isUploading ? (
+                  <div className="w-100 d-flex align-items-center">
+                    <div className="progress w-100 mr-3" style={{height: '10px', borderRadius: '5px'}}>
+                      <div 
+                          className="progress-bar bg-primary progress-bar-striped progress-bar-animated" 
+                          style={{width: `${uploadProgress}%`}}
+                      ></div>
+                    </div>
+                    <small className="text-muted font-weight-bold">Uploading...</small>
+                  </div>
+                ) : isSaving ? (
+                  <button type="button" className="btn btn-primary font-weight-bold px-4 d-flex align-items-center justify-content-center" disabled>
+                    <i className="la la-spinner la-spin mr-2"></i> Saving...
+                  </button>
+                ) : (
+                  <>
+                    <button type="button" className="btn btn-secondary font-weight-bold mr-2" onClick={() => this.hide()}>
+                      Cancel
+                    </button>
+                    <button type="button" className="btn btn-primary font-weight-bold px-4" onClick={this.handleSubmit}>
+                      {isEdit ? "Save Changes" : "Save & Publish"}
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
 
           </div>
