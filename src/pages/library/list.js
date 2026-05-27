@@ -20,7 +20,7 @@ class LibraryList extends React.Component {
   componentDidMount() {
     // Subscribe to live data updates
     this._subscription = Data.books.subscribe(({ books }) => {
-      this.setState({ books, loading: false }, this.filterBooks);
+      this.setState({ books: books || [], loading: false }, this.filterBooks);
     });
   }
 
@@ -32,7 +32,7 @@ class LibraryList extends React.Component {
 
   filterBooks = () => {
     const { books, searchTerm, activeCategory } = this.state;
-    let filtered = books;
+    let filtered = books || [];
 
     // 1. Filter by Category
     if (activeCategory !== "All") {
@@ -44,8 +44,8 @@ class LibraryList extends React.Component {
       const lower = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (b) =>
-          (b.title || "").toLowerCase().includes(lower) ||
-          (b.author || "").toLowerCase().includes(lower)
+            (b.title || "").toLowerCase().includes(lower) ||
+            (b.author || "").toLowerCase().includes(lower)
       );
     }
 

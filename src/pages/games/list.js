@@ -29,7 +29,7 @@ class GamesList extends React.Component {
 
   filterGames = () => {
     const { games, searchTerm, activeCategory } = this.state;
-    let filtered = games;
+    let filtered = games || [];
 
     if (activeCategory !== "All") {
       filtered = filtered.filter((g) => g.category === activeCategory);

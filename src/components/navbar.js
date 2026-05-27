@@ -161,7 +161,23 @@ class Navbar extends React.Component {
       }, () => {
         if (selectedSchool && selectedSchool.id) {
           localStorage.setItem("school", selectedSchool.id);
-          localStorage.setItem("schoolData", JSON.stringify(selectedSchool));
+          
+          // Keep only lightweight metadata to avoid QuotaExceededError in localStorage
+          const schoolMetadata = {
+            id: selectedSchool.id,
+            name: selectedSchool.name,
+            logo: selectedSchool.logo,
+            theme_color: selectedSchool.theme_color,
+            primaryColor: selectedSchool.primaryColor,
+            secondaryColor: selectedSchool.secondaryColor,
+            supportEmail: selectedSchool.supportEmail,
+            logoUrl: selectedSchool.logoUrl || selectedSchool.logo,
+            financial: selectedSchool.financial ? {
+              balance: selectedSchool.financial.balance,
+              balanceFormated: selectedSchool.financial.balanceFormated
+            } : undefined
+          };
+          localStorage.setItem("schoolData", JSON.stringify(schoolMetadata));
           document.title = `${selectedSchool.name || 'Shule Plus'} | Shule Plus`;
           
           // Update favicon and theme-color dynamically
