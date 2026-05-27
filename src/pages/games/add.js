@@ -96,7 +96,11 @@ class GameModal extends React.Component {
     const formData = new FormData();
     formData.append("file", file);
     
-    const response = await fetch("http://localhost:5001/api/upload", {
+    const UPLOAD_URL = window.location.href.includes('localhost')
+      ? 'http://localhost:4001/api/upload'
+      : 'https://graph-ongyy.kinsta.app/api/upload';
+      
+    const response = await fetch(UPLOAD_URL, {
       method: "POST",
       body: formData
     });

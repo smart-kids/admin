@@ -140,14 +140,12 @@ class BookModal extends React.Component {
     const formData = new FormData();
     formData.append("file", file);
     
-    // Assuming backend is at the same origin or configured for CORS
-    // Use the global URL or relative path
-    const response = await fetch("http://localhost:5001/api/upload", {
+    const UPLOAD_URL = window.location.href.includes('localhost')
+      ? 'http://localhost:4001/api/upload'
+      : 'https://graph-ongyy.kinsta.app/api/upload';
+
+    const response = await fetch(UPLOAD_URL, {
       method: "POST",
-      headers: {
-        // Need to pass auth token if required by endpoint. The /api/upload we added isn't under /graph auth, 
-        // so it might be open or we should add auth. Let's just upload.
-      },
       body: formData
     });
     
