@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
 import Data from '../../utils/data';
 import { StatCard, DistributionChart, TrendBarChart, AreaChart, RankingList } from '../../components/analytics/DashboardWidgets';
+import { ModernKPICard } from '../../components/charts/ModernKPICard';
 import FinanceInsightsDashboard from '../insights/FinanceInsightsDashboard';
 import InsightsDashboard from '../analytics/DashboardIndex';
 import debug from '../../utils/debug';
@@ -1179,105 +1180,56 @@ class FeesManagement extends Component {
 
                 {/* KPI Cards */}
                 <div className="row mb-6">
-                    <div className="col-xl-3 col-lg-6">
-                        <div className="card card-custom bg-white border-0 shadow-sm" style={{ 
-                            borderRadius: '8px',
-                            border: '1px solid #e3e6f0',
-                            transition: 'all 0.2s ease'
-                        }}>
-                            <div className="card-body p-6">
-                                <div className="d-flex align-items-center">
-                                    <div className="symbol symbol-50px bg-light-primary mr-4">
-                                        <div className="symbol-label">
-                                            <i className="fas fa-coins text-primary" style={{ fontSize: '1.5rem' }}></i>
-                                        </div>
-                                    </div>
-                                    <div className="d-flex flex-column">
-                                        <div className="text-dark font-size-h3 font-weight-bolder mb-1">
-                                            KES {totalCollected.toLocaleString()}
-                                        </div>
-                                        <div className="text-muted font-weight-medium" style={{ fontSize: '0.9rem' }}>
-                                            Total Collections
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <div className="col-xl-3 col-lg-6 mb-4 mb-xl-0">
+                        <ModernKPICard
+                            title="Total Collections"
+                            value={typeof totalCollected === 'number' ? `KES ${totalCollected.toLocaleString()}` : totalCollected}
+                            subtext="Processed payments"
+                            icon="fas fa-coins"
+                            color="#3699ff"
+                            badge={{
+                                text: "Collections",
+                                color: "#3699ff"
+                            }}
+                        />
                     </div>
-                    <div className="col-xl-3 col-lg-6">
-                        <div className="card card-custom bg-white border-0 shadow-sm" style={{ 
-                            borderRadius: '8px',
-                            border: '1px solid #e3e6f0',
-                            transition: 'all 0.2s ease'
-                        }}>
-                            <div className="card-body p-6">
-                                <div className="d-flex align-items-center">
-                                    <div className="symbol symbol-50px bg-light-danger mr-4">
-                                        <div className="symbol-label">
-                                            <i className="fas fa-exclamation-triangle text-danger" style={{ fontSize: '1.5rem' }}></i>
-                                        </div>
-                                    </div>
-                                    <div className="d-flex flex-column">
-                                        <div className="text-dark font-size-h3 font-weight-bolder mb-1">
-                                            KES {totalArrears.toLocaleString()}
-                                        </div>
-                                        <div className="text-muted font-weight-medium" style={{ fontSize: '0.9rem' }}>
-                                            Outstanding Balance
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <div className="col-xl-3 col-lg-6 mb-4 mb-xl-0">
+                        <ModernKPICard
+                            title="Outstanding Balance"
+                            value={typeof totalArrears === 'number' ? `KES ${totalArrears.toLocaleString()}` : totalArrears}
+                            subtext="Unpaid arrears"
+                            icon="fas fa-exclamation-triangle"
+                            color="#e74c3c"
+                            badge={{
+                                text: "Arrears",
+                                color: "#e74c3c"
+                            }}
+                        />
                     </div>
-                    <div className="col-xl-3 col-lg-6">
-                        <div className="card card-custom bg-white border-0 shadow-sm" style={{ 
-                            borderRadius: '8px',
-                            border: '1px solid #e3e6f0',
-                            transition: 'all 0.2s ease'
-                        }}>
-                            <div className="card-body p-6">
-                                <div className="d-flex align-items-center">
-                                    <div className="symbol symbol-50px bg-light-success mr-4">
-                                        <div className="symbol-label">
-                                            <i className="fas fa-percentage text-success" style={{ fontSize: '1.5rem' }}></i>
-                                        </div>
-                                    </div>
-                                    <div className="d-flex flex-column">
-                                        <div className="text-dark font-size-h3 font-weight-bolder mb-1">
-                                            {collectionRate}%
-                                        </div>
-                                        <div className="text-muted font-weight-medium" style={{ fontSize: '0.9rem' }}>
-                                            Collection Rate
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <div className="col-xl-3 col-lg-6 mb-4 mb-xl-0">
+                        <ModernKPICard
+                            title="Collection Rate"
+                            value={`${collectionRate}%`}
+                            subtext="Payment efficiency"
+                            icon="fas fa-percentage"
+                            color="#10b981"
+                            progress={{
+                                value: collectionRate
+                            }}
+                        />
                     </div>
-                    <div className="col-xl-3 col-lg-6">
-                        <div className="card card-custom bg-white border-0 shadow-sm" style={{ 
-                            borderRadius: '8px',
-                            border: '1px solid #e3e6f0',
-                            transition: 'all 0.2s ease'
-                        }}>
-                            <div className="card-body p-6">
-                                <div className="d-flex align-items-center">
-                                    <div className="symbol symbol-50px bg-light-info mr-4">
-                                        <div className="symbol-label">
-                                            <i className="fas fa-chart-line text-info" style={{ fontSize: '1.5rem' }}></i>
-                                        </div>
-                                    </div>
-                                    <div className="d-flex flex-column">
-                                        <div className="text-dark font-size-h3 font-weight-bolder mb-1">
-                                            {paymentFrequency}
-                                        </div>
-                                        <div className="text-muted font-weight-medium" style={{ fontSize: '0.9rem' }}>
-                                            Total Transactions
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                    <div className="col-xl-3 col-lg-6 mb-4 mb-xl-0">
+                        <ModernKPICard
+                            title="Total Transactions"
+                            value={paymentFrequency}
+                            subtext="Recorded transactions"
+                            icon="fas fa-chart-line"
+                            color="#8b5cf6"
+                            badge={{
+                                text: "Transactions",
+                                color: "#8b5cf6"
+                            }}
+                        />
                     </div>
                 </div>
 
@@ -2447,7 +2399,7 @@ class FeesManagement extends Component {
                                                     style={{ width: '100%', gap: this.state.isMobileMode ? '4px' : '0' }}
                                                     onClick={(e) => { e.preventDefault(); this.setState({ activeTab: 'advanced-insights' }); }}
                                                 >
-                                                    <i className={`fas fa-analytics ${this.state.isMobileMode ? '' : 'mr-2'}`}></i>
+                                                    <i className={`fas fa-chart-line ${this.state.isMobileMode ? '' : 'mr-2'}`}></i>
                                                     <span className={this.state.isMobileMode ? "text-truncate w-100" : ""}>Advanced</span>
                                                 </a>
                                             </li>

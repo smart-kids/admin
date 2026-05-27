@@ -2,6 +2,7 @@ import React from "react";
 import { Link } from "react-router-dom";
 import app from "../scripts.bundle"; // Assuming this is Metronic's app bundle
 import Data from "../utils/data";
+import { applySchoolBranding } from "../utils/branding";
 import { withRouter } from "react-router";
 import Pace from 'react-pace-progress';
 import { useTheme } from "../contexts/ThemeContext";
@@ -178,21 +179,9 @@ class Navbar extends React.Component {
             } : undefined
           };
           localStorage.setItem("schoolData", JSON.stringify(schoolMetadata));
-          document.title = `${selectedSchool.name || 'Shule Plus'} | Shule Plus`;
           
-          // Update favicon and theme-color dynamically
-          if (selectedSchool.logo) {
-              const favicon = document.querySelector("link[rel*='icon']") || document.getElementById("favicon");
-              if (favicon) {
-                  favicon.href = selectedSchool.logo;
-              }
-          }
-          if (selectedSchool.theme_color) {
-              const themeColorMeta = document.getElementById("theme-color-meta") || document.querySelector("meta[name='theme-color']");
-              if (themeColorMeta) {
-                  themeColorMeta.content = selectedSchool.theme_color;
-              }
-          }
+          // Apply comprehensive dynamic branding (title, favicon, iOS touch-icon, and dynamic PWA manifest)
+          applySchoolBranding(selectedSchool);
         }
         // Initialize menu after schools load
         this.initDesktopMenu();

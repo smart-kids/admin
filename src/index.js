@@ -3,11 +3,22 @@ import ReactDOM from 'react-dom';
 import './index.css';
 import App from './App';
 import * as serviceWorker from './serviceWorker';
+import { applySchoolBranding } from './utils/branding';
 
 // Bugsnag Imports
 import Bugsnag from '@bugsnag/js';
 import BugsnagPluginReact from '@bugsnag/plugin-react';
 import BugsnagPerformance from '@bugsnag/browser-performance';
+
+// Apply active school branding from localStorage immediately on bootup
+try {
+  const cachedSchool = JSON.parse(localStorage.getItem("schoolData"));
+  if (cachedSchool) {
+    applySchoolBranding(cachedSchool);
+  }
+} catch (err) {
+  console.warn("Failed to apply bootup school branding:", err);
+}
 
 // ========================================================================
 // --- 1. Production-Ready Bugsnag Initialization ---
