@@ -399,6 +399,8 @@ class BookModal extends React.Component {
                         placeholder={type === 'video' ? "Instructor Name" : "Author Name"}
                         disabled={isUploading}
                       />
+                      {errors.author && <small className="text-danger">{errors.author}</small>}
+                    </div>
                     <div className="col-md-6 form-group">
                       <label className="font-weight-bold">Category</label>
                       <select
