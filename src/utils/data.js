@@ -3,6 +3,9 @@ import emitize from "./emitize";
 import { query, mutate } from "./requests";
 import axios from "axios";
 import { API } from "./requests";
+import debug from "./debug";
+
+const log = debug("shuleplus:data");
 
 // Socket.IO configuration
 // WebSockets MUST bypass the Netlify serverless proxy because serverless functions 
@@ -12,7 +15,8 @@ const SOCKET_URL = window.location.href.includes('localhost')
     : 'https://graph-ongyy.kinsta.app';
 const socket = io(SOCKET_URL, {
     withCredentials: true,
-    transports: ["websocket"]
+    transports: ["websocket"],
+    path: "/live"
 });
 
 // Centralized cache for all data entities, both flat and nested.
@@ -98,7 +102,7 @@ const injectOrUpdateEntity = (entityName, payload) => {
 
 // Listeners for WebSocket pushes from backend
 socket.on("mutation_event", ({ entity, action, payload }) => {
-    console.log(`WebSocket mutation event: [${action}] ${entity}`, payload);
+    log(`WebSocket mutation event: [${action}] ${entity}`, payload);
     injectOrUpdateEntity(entity, payload);
 });
 
@@ -660,7 +664,7 @@ var Data = (function () {
                 if (!school) {
                     school = { id: incomingSchool.id };
                     allData.schools.push(school);
-                    console.log("New School Added to cache:", school.id);
+                    log("New School Added to cache:", school.id);
                 }
 
                 // UNIFY: If data comes in as 'curriculum' or 'planning', move it to 'grades'
@@ -1047,7 +1051,7 @@ var Data = (function () {
                                 safeList.push(flatAss);
                             }
                         });
-                        console.log(`Assessments getForClass: fetched ${fetchedAssessments.length}, total in cache ${safeList.length}`);
+                        log(`Assessments getForClass: fetched ${fetchedAssessments.length}, total in cache ${safeList.length}`);
 
                         // Update cache ref (if it wasn't already)
                         if (!Array.isArray(allData.assessments)) allData.assessments = safeList;

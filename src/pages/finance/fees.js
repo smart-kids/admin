@@ -3,6 +3,7 @@ import Data from '../../utils/data';
 import { StatCard, DistributionChart, TrendBarChart, AreaChart, RankingList } from '../../components/analytics/DashboardWidgets';
 import FinanceInsightsDashboard from '../insights/FinanceInsightsDashboard';
 import InsightsDashboard from '../analytics/DashboardIndex';
+import debug from '../../utils/debug';
 import AddTermModal from "../results/components/AddTermModal";
 import AddClassModal from "../classes/add";
 import Navbar from "../../components/navbar";
@@ -16,6 +17,8 @@ import { calculateFinancials, aggregateByClass, isSuccessfulPayment } from '../.
 import EnhancedDropdown from '../../components/enhanced-dropdown/EnhancedDropdown';
 import ReportHeader from '../../components/reports/ReportHeader';
 import ReportFooter from '../../components/reports/ReportFooter';
+
+const log = debug("shuleplus:fees");
 
 // --- HELPER COMPONENTS ---
 
@@ -190,12 +193,12 @@ class FeesManagement extends Component {
         window.addEventListener('resize', this.handleResize);
 
         this.unsubClasses = Data.classes.subscribe(({ classes }) => {
-            console.log("Classes Update:", classes?.length);
+            log("Classes Update:", classes?.length);
             this.updateData({ classes, loading: !classes?.length });
         });
 
         this.unsubSchools = Data.schools.subscribe(({ selectedSchool }) => {
-            console.log("School Info Update:", selectedSchool?.name);
+            log("School Info Update:", selectedSchool?.name);
             this.setState({ schoolInfo: selectedSchool });
         });
         this.unsubChargeTypes = Data.chargeTypes.subscribe(({ chargeTypes }) => {
@@ -205,12 +208,12 @@ class FeesManagement extends Component {
             this.updateData({ charges });
         });
         this.unsubFeeStructures = Data.feeStructures.subscribe(({ feeStructures }) => {
-            console.log("Fee Structures Update:", feeStructures?.length);
+            log("Fee Structures Update:", feeStructures?.length);
             this.updateData({ feeStructures });
         });
 
         this.unsubTerms = Data.terms.subscribe(({ terms }) => {
-            console.log("Terms Update:", terms?.length);
+            log("Terms Update:", terms?.length);
             this.updateData({ terms });
         });
         this.unsubStudents = Data.students.subscribe(({ students }) => {
@@ -315,7 +318,7 @@ class FeesManagement extends Component {
             const studentName = student ? student.names : (p.student?.names || p.student?.name || 'Unallocated');
 
             // Debug logging for payment matching
-            console.log(`[Payment Mapping] ID: ${p.id} | Amount: ${p.amount} | Raw Student:`, p.student, `| Parsed pStudentId: ${pStudentId} | isUnallocated: ${isUnallocated} | Found locally: ${!!student} | Final studentName: ${studentName}`);
+            log(`[Payment Mapping] ID: ${p.id} | Amount: ${p.amount} | Raw Student:`, p.student, `| Parsed pStudentId: ${pStudentId} | isUnallocated: ${isUnallocated} | Found locally: ${!!student} | Final studentName: ${studentName}`);
 
             // 3. Assign Term - rely only on explicit termId for bring forward calculations
             let assignedTermName = "Unknown Term";
@@ -345,7 +348,7 @@ class FeesManagement extends Component {
 
     // Centralized update handler to trigger recalculation
     updateData = (newData) => {
-        console.log("Updating State with keys:", Object.keys(newData));
+        log("Updating State with keys:", Object.keys(newData));
 
         // Only update if new data actually contains items, 
         // or if we don't have that data in state yet.
