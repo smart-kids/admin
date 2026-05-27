@@ -17,8 +17,76 @@ import BugsnagPerformance from '@bugsnag/browser-performance';
 Bugsnag.start({
   apiKey: '05fe04ebc304ae56dcdc160914d06c1c', // Your actual Bugsnag API key
   plugins: [new BugsnagPluginReact()],
-  // You can add other configurations here, like releaseStage, appVersion, etc.
-  // releaseStage: process.env?.NODE_ENV, 
+  enabledBreadcrumbTypes: ['error', 'log', 'navigation', 'request', 'process', 'user', 'state'],
+  onError: (event) => {
+    // 1. Populate Authenticated User Details
+    try {
+      const user = JSON.parse(localStorage.getItem("user"));
+      if (user) {
+        event.setUser(
+          user.id || user.userId || "anonymous",
+          user.email || "",
+          user.fullName || user.name || user.username || ""
+        );
+        event.addMetadata("user", {
+          id: user.id || user.userId,
+          name: user.fullName || user.name || user.username,
+          email: user.email,
+          role: user.userType || user.role,
+          phone: user.phone || user.phoneNumber,
+          schoolId: user.schoolId || user.school,
+          username: user.username,
+          status: user.status
+        });
+      }
+    } catch (err) {
+      console.warn("Failed to parse user details for Bugsnag:", err);
+    }
+
+    // 2. Populate Selected School Details
+    try {
+      const schoolData = JSON.parse(localStorage.getItem("schoolData"));
+      if (schoolData) {
+        const {
+          id,
+          name, 
+          theme_color,
+          primaryColor,
+          secondaryColor,
+          supportEmail,
+          logo,
+          logoUrl
+        } = schoolData;
+        event.addMetadata("schoolData", {
+          id,
+          name,
+          theme_color,
+          primaryColor,
+          secondaryColor,
+          supportEmail,
+          logo,
+          logoUrl
+        });
+      }
+    } catch (err) {
+      console.warn("Failed to parse school metadata for Bugsnag:", err);
+    }
+
+    // 3. Add Rich Browser and Navigation Context
+    try {
+      event.addMetadata("browserContext", {
+        href: window.location.href,
+        pathname: window.location.pathname,
+        hash: window.location.hash,
+        userAgent: navigator.userAgent,
+        screenResolution: `${window.screen.width}x${window.screen.height}`,
+        viewportSize: `${window.innerWidth}x${window.innerHeight}`,
+        devicePixelRatio: window.devicePixelRatio,
+        languages: navigator.languages,
+        onlineStatus: navigator.onLine ? "online" : "offline"
+      });
+    } catch (err) {}
+  }
 });
 
 // Start performance monitoring separately
