@@ -11,7 +11,8 @@ const SOCKET_URL = window.location.href.includes('localhost')
     ? 'http://localhost:4001' 
     : 'https://graph-ongyy.kinsta.app';
 const socket = io(SOCKET_URL, {
-    withCredentials: true
+    withCredentials: true,
+    transports: ["websocket"]
 });
 
 // Centralized cache for all data entities, both flat and nested.
