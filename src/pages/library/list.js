@@ -523,6 +523,7 @@ class LibraryList extends React.Component {
   };
 
   render() {
+    console.log("DIAGNOSTIC - BookModal:", BookModal, "PDFReviewModal:", PDFReviewModal, "VideoPlayerModal:", VideoPlayerModal);
     const { filteredBooks, activeCategory, loading } = this.state;
     const categories = ["All", "Science", "Mathematics", "History", "Storybooks", "Geography", "Languages", "Other"];
 
