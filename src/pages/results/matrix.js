@@ -267,10 +267,10 @@ class ResultsMatrix extends React.Component {
     // If no class selected, return all students as fallback
     if (!selectedClass) return students;
     
-    // Debug: Log the filtering process
-    console.log('Filtering students for class:', selectedClass);
-    console.log('Total students:', students.length);
-    console.log('Sample student data:', students.slice(0, 3));
+    // Simple cache lookup
+    if (this._cachedStudents === students && this._cachedSelectedClass === selectedClass && this._cachedFilteredStudents) {
+      return this._cachedFilteredStudents;
+    }
     
     const filtered = students.filter(s => {
       // Handle multiple possible data structures for class reference
@@ -284,23 +284,17 @@ class ResultsMatrix extends React.Component {
         classId = s.class_id;
       }
       
-      const match = classId && String(classId) === String(selectedClass);
-      if (!match && students.length <= 10) {
-        console.log('Student not matched:', s.names, 'classId:', classId, 'selected:', selectedClass, 'full student:', s);
-      }
-      return match;
+      return classId && String(classId) === String(selectedClass);
     });
     
-    console.log('Filtered students count:', filtered.length);
+    const result = (filtered.length === 0 && students.length > 0) ? students : filtered;
     
-    // If filtering results in empty students but there are students overall, 
-    // it might be a data structure issue. Return all students as fallback.
-    if (filtered.length === 0 && students.length > 0) {
-      console.warn('No students matched the selected class, returning all students as fallback');
-      return students;
-    }
+    // Update cache
+    this._cachedStudents = students;
+    this._cachedSelectedClass = selectedClass;
+    this._cachedFilteredStudents = result;
     
-    return filtered;
+    return result;
   };
 
   handleScoreChange = (studentId, subjectId, typeId, val) => {
@@ -1304,7 +1298,7 @@ class ResultsMatrix extends React.Component {
                                 { id: '', name: 'ALL Classes' },
                                 ...classes.map(cls => ({
                                     ...cls,
-                                    studentCount: this.getFilteredStudents().filter(student => {
+                                    studentCount: (this.state.students || []).filter(student => {
                                         const studentClassId = student.class?.id || student.class || student.class_id;
                                         return studentClassId && String(studentClassId) === String(cls.id);
                                     }).length,

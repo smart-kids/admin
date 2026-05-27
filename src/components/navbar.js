@@ -126,8 +126,6 @@ class Navbar extends React.Component {
     const userData = JSON.parse(localStorage.getItem("user")) || {};
     const schools = Data.schools.list() || [];
     
-    console.log("Navbar - initial schools:", schools.length);
-    
     // If schools are already loaded, don't show loading spinner
     const shouldShowInitialLoading = schools.length === 0;
     
@@ -141,7 +139,6 @@ class Navbar extends React.Component {
       const schoolsArray = (schools || [])
         .filter(s => s && s.id && !s.isDeleted)
         .sort((a, b) => (b.studentsCount || 0) - (a.studentsCount || 0));
-      console.log("Navbar - subscription callback:", { schoolsArray: schoolsArray.length, selectedSchool });
       
       // Force fetchingSchools to false if we have schools data
       const shouldShowLoading = schoolsArray.length === 0;
@@ -179,7 +176,6 @@ class Navbar extends React.Component {
     const checkAndForceLoadingState = () => {
       const currentSchools = Data.schools.list() || [];
       if (currentSchools.length > 0 && this.state.fetchingSchools) {
-        console.log("Navbar - forcing loading state to false, schools found:", currentSchools.length);
         this.setState({ 
           fetchingSchools: false,
           availableSchools: currentSchools 
