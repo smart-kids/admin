@@ -15,6 +15,8 @@ class LibraryList extends React.Component {
     loading: true,
     reviewBook: null,
     showReviewModal: false,
+    deleteBook: null,
+    showDeleteModal: false,
   };
 
   componentDidMount() {
@@ -32,7 +34,8 @@ class LibraryList extends React.Component {
 
   filterBooks = () => {
     const { books, searchTerm, activeCategory } = this.state;
-    let filtered = books || [];
+    // Filter out deleted books
+    let filtered = (books || []).filter((b) => !b.isDeleted);
 
     // 1. Filter by Category
     if (activeCategory !== "All") {
@@ -156,14 +159,26 @@ class LibraryList extends React.Component {
   };
 
   deleteBook = (book) => {
-    if (window.confirm(`Are you sure you want to delete "${book.title}"?`)) {
-      Data.books.delete(book) // Pass ID or object depending on your API
-        .then(() => window.toastr.success("Book deleted"))
-        .catch((err) => {
-          console.error(err);
-          window.toastr.error("Failed to delete book");
-        });
-    }
+    this.setState({ deleteBook: book, showDeleteModal: true });
+  };
+
+  closeDeleteModal = () => {
+    this.setState({ deleteBook: null, showDeleteModal: false });
+  };
+
+  confirmDeleteBook = () => {
+    const { deleteBook } = this.state;
+    if (!deleteBook) return;
+
+    Data.books.delete(deleteBook)
+      .then(() => {
+        window.toastr.success("Book deleted successfully");
+        this.closeDeleteModal();
+      })
+      .catch((err) => {
+        console.error(err);
+        window.toastr.error("Failed to delete book");
+      });
   };
 
   // --- Render Helpers ---
@@ -315,6 +330,44 @@ class LibraryList extends React.Component {
                 book={this.state.reviewBook}
                 onClose={this.closeReviewMode}
             />
+        )}
+
+        {/* 6. Custom Delete Confirmation Modal */}
+        {this.state.showDeleteModal && this.state.deleteBook && (
+          <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1060 }}>
+            <div className="modal-dialog modal-dialog-centered" role="document" style={{ maxWidth: '400px' }}>
+              <div className="modal-content" style={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', overflow: 'hidden' }}>
+                <div className="modal-body text-center p-5">
+                  <div className="mb-4" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '70px', height: '70px', borderRadius: '50%', backgroundColor: '#fff5f5', color: '#ff4d4f' }}>
+                    <i className="la la-exclamation-triangle" style={{ fontSize: '36px' }}></i>
+                  </div>
+                  <h4 style={{ fontWeight: '700', color: '#1f1f1f', marginBottom: '12px' }}>Delete Book?</h4>
+                  <p style={{ color: '#595959', fontSize: '14px', lineHeight: '1.6', margin: '0 0 24px 0' }}>
+                    Are you sure you want to delete <strong>{this.state.deleteBook.title}</strong>?<br />
+                    This will remove the book and its resources immediately.
+                  </p>
+                  <div className="d-flex justify-content-center" style={{ gap: '12px' }}>
+                    <button 
+                      type="button" 
+                      className="btn btn-light" 
+                      onClick={this.closeDeleteModal}
+                      style={{ borderRadius: '8px', padding: '10px 20px', fontWeight: '600', minWidth: '100px', backgroundColor: '#f0f0f0', border: 'none', color: '#595959' }}
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      type="button" 
+                      className="btn btn-danger" 
+                      onClick={this.confirmDeleteBook}
+                      style={{ borderRadius: '8px', padding: '10px 20px', fontWeight: '600', minWidth: '100px', backgroundColor: '#ff4d4f', border: 'none', color: '#ffffff' }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     );

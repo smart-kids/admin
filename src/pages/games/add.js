@@ -63,16 +63,11 @@ class GameModal extends React.Component {
   handleImageSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64String = event.target.result;
-        this.setState({
-          coverFile: file,
-          coverUrl: base64String,
-          errors: { ...this.state.errors, cover: null }
-        });
-      };
-      reader.readAsDataURL(file);
+      this.setState({
+        coverFile: file,
+        coverUrl: URL.createObjectURL(file),
+        errors: { ...this.state.errors, cover: null }
+      });
     }
   };
 
@@ -122,9 +117,36 @@ class GameModal extends React.Component {
     try {
       let finalCoverUrl = this.state.coverUrl;
 
+      // Prioritize raw selected file first
       if (this.state.coverFile) {
         this.setState({ uploadProgress: 50 });
         finalCoverUrl = await this.uploadFile(this.state.coverFile);
+      } else if (finalCoverUrl && finalCoverUrl.startsWith('blob:')) {
+        this.setState({ uploadProgress: 30 });
+        try {
+          const blobResponse = await fetch(finalCoverUrl);
+          const blob = await blobResponse.blob();
+          const file = new File([blob], "cover_image.png", { type: blob.type || "image/png" });
+          finalCoverUrl = await this.uploadFile(file);
+        } catch (err) {
+          console.error("Defensive blob cover upload failed:", err);
+        }
+      } else if (finalCoverUrl && finalCoverUrl.startsWith('data:')) {
+        this.setState({ uploadProgress: 40 });
+        try {
+          const arr = finalCoverUrl.split(',');
+          const mime = arr[0].match(/:(.*?);/)[1];
+          const bstr = atob(arr[1]);
+          let n = bstr.length;
+          const u8arr = new Uint8Array(n);
+          while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+          }
+          const file = new File([u8arr], "cover_image.png", { type: mime });
+          finalCoverUrl = await this.uploadFile(file);
+        } catch (err) {
+          console.error("Defensive base64 cover upload failed:", err);
+        }
       }
 
       this.setState({ uploadProgress: 100 });

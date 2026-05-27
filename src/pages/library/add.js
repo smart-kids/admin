@@ -84,34 +84,22 @@ class BookModal extends React.Component {
   handleImageSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Convert image to base64
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64String = event.target.result;
-        this.setState({
-          coverFile: file,
-          coverUrl: base64String,
-          errors: { ...this.state.errors, cover: null }
-        });
-      };
-      reader.readAsDataURL(file);
+      this.setState({
+        coverFile: file,
+        coverUrl: URL.createObjectURL(file),
+        errors: { ...this.state.errors, cover: null }
+      });
     }
   };
 
   handlePdfSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Convert PDF to base64
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const base64String = event.target.result;
-        this.setState({
-          pdfFile: file,
-          pdfUrl: base64String,
-          errors: { ...this.state.errors, pdf: null }
-        });
-      };
-      reader.readAsDataURL(file);
+      this.setState({
+        pdfFile: file,
+        pdfUrl: URL.createObjectURL(file),
+        errors: { ...this.state.errors, pdf: null }
+      });
     }
   };
 
@@ -167,16 +155,68 @@ class BookModal extends React.Component {
       let finalCoverUrl = this.state.coverUrl;
       let finalPdfUrl = this.state.pdfUrl;
 
-      // Upload Cover if it's a new file
+      // 1. Upload Cover Image (prioritize raw selected file first)
       if (this.state.coverFile) {
         this.setState({ uploadProgress: 30 });
         finalCoverUrl = await this.uploadFile(this.state.coverFile);
+      } else if (finalCoverUrl && finalCoverUrl.startsWith('blob:')) {
+        this.setState({ uploadProgress: 20 });
+        try {
+          const blobResponse = await fetch(finalCoverUrl);
+          const blob = await blobResponse.blob();
+          const file = new File([blob], "cover_image.png", { type: blob.type || "image/png" });
+          finalCoverUrl = await this.uploadFile(file);
+        } catch (err) {
+          console.error("Defensive blob cover upload failed:", err);
+        }
+      } else if (finalCoverUrl && finalCoverUrl.startsWith('data:')) {
+        this.setState({ uploadProgress: 25 });
+        try {
+          const arr = finalCoverUrl.split(',');
+          const mime = arr[0].match(/:(.*?);/)[1];
+          const bstr = atob(arr[1]);
+          let n = bstr.length;
+          const u8arr = new Uint8Array(n);
+          while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+          }
+          const file = new File([u8arr], "cover_image.png", { type: mime });
+          finalCoverUrl = await this.uploadFile(file);
+        } catch (err) {
+          console.error("Defensive base64 cover upload failed:", err);
+        }
       }
 
-      // Upload PDF if it's a new file
+      // 2. Upload PDF Document (prioritize raw selected file first)
       if (this.state.pdfFile) {
         this.setState({ uploadProgress: 70 });
         finalPdfUrl = await this.uploadFile(this.state.pdfFile);
+      } else if (finalPdfUrl && finalPdfUrl.startsWith('blob:')) {
+        this.setState({ uploadProgress: 60 });
+        try {
+          const blobResponse = await fetch(finalPdfUrl);
+          const blob = await blobResponse.blob();
+          const file = new File([blob], "book_document.pdf", { type: blob.type || "application/pdf" });
+          finalPdfUrl = await this.uploadFile(file);
+        } catch (err) {
+          console.error("Defensive blob PDF upload failed:", err);
+        }
+      } else if (finalPdfUrl && finalPdfUrl.startsWith('data:')) {
+        this.setState({ uploadProgress: 65 });
+        try {
+          const arr = finalPdfUrl.split(',');
+          const mime = arr[0].match(/:(.*?);/)[1];
+          const bstr = atob(arr[1]);
+          let n = bstr.length;
+          const u8arr = new Uint8Array(n);
+          while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+          }
+          const file = new File([u8arr], "book_document.pdf", { type: mime });
+          finalPdfUrl = await this.uploadFile(file);
+        } catch (err) {
+          console.error("Defensive base64 PDF upload failed:", err);
+        }
       }
 
       this.setState({ uploadProgress: 100 });

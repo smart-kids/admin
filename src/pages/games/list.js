@@ -15,6 +15,8 @@ class GamesList extends React.Component {
     loading: true,
     reviewGame: null,
     showReviewModal: false,
+    deleteGame: null,
+    showDeleteModal: false,
   };
 
   componentDidMount() {
@@ -29,7 +31,8 @@ class GamesList extends React.Component {
 
   filterGames = () => {
     const { games, searchTerm, activeCategory } = this.state;
-    let filtered = games || [];
+    // Filter out deleted games
+    let filtered = (games || []).filter((g) => !g.isDeleted);
 
     if (activeCategory !== "All") {
       filtered = filtered.filter((g) => g.category === activeCategory);
@@ -95,14 +98,26 @@ class GamesList extends React.Component {
   };
 
   deleteGame = (game) => {
-    if (window.confirm(`Are you sure you want to delete "${game.title}"?`)) {
-      Data.games.delete(game)
-        .then(() => window.toastr.success("Game deleted"))
-        .catch((err) => {
-          console.error(err);
-          window.toastr.error("Failed to delete game");
-        });
-    }
+    this.setState({ deleteGame: game, showDeleteModal: true });
+  };
+
+  closeDeleteModal = () => {
+    this.setState({ deleteGame: null, showDeleteModal: false });
+  };
+
+  confirmDeleteGame = () => {
+    const { deleteGame } = this.state;
+    if (!deleteGame) return;
+
+    Data.games.delete(deleteGame)
+      .then(() => {
+        window.toastr.success("Game deleted successfully");
+        this.closeDeleteModal();
+      })
+      .catch((err) => {
+        console.error(err);
+        window.toastr.error("Failed to delete game");
+      });
   };
 
   renderGameCard = (game) => (
@@ -232,6 +247,44 @@ class GamesList extends React.Component {
                 game={this.state.reviewGame}
                 onClose={this.closeReviewMode}
             />
+        )}
+
+        {/* Custom Delete Confirmation Modal */}
+        {this.state.showDeleteModal && this.state.deleteGame && (
+          <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1060 }}>
+            <div className="modal-dialog modal-dialog-centered" role="document" style={{ maxWidth: '400px' }}>
+              <div className="modal-content" style={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.2)', overflow: 'hidden' }}>
+                <div className="modal-body text-center p-5">
+                  <div className="mb-4" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '70px', height: '70px', borderRadius: '50%', backgroundColor: '#fff5f5', color: '#ff4d4f' }}>
+                    <i className="la la-exclamation-triangle" style={{ fontSize: '36px' }}></i>
+                  </div>
+                  <h4 style={{ fontWeight: '700', color: '#1f1f1f', marginBottom: '12px' }}>Delete Game?</h4>
+                  <p style={{ color: '#595959', fontSize: '14px', lineHeight: '1.6', margin: '0 0 24px 0' }}>
+                    Are you sure you want to delete <strong>{this.state.deleteGame.title}</strong>?<br />
+                    This will remove the game and its resources immediately.
+                  </p>
+                  <div className="d-flex justify-content-center" style={{ gap: '12px' }}>
+                    <button 
+                      type="button" 
+                      className="btn btn-light" 
+                      onClick={this.closeDeleteModal}
+                      style={{ borderRadius: '8px', padding: '10px 20px', fontWeight: '600', minWidth: '100px', backgroundColor: '#f0f0f0', border: 'none', color: '#595959' }}
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      type="button" 
+                      className="btn btn-danger" 
+                      onClick={this.confirmDeleteGame}
+                      style={{ borderRadius: '8px', padding: '10px 20px', fontWeight: '600', minWidth: '100px', backgroundColor: '#ff4d4f', border: 'none', color: '#ffffff' }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     );
