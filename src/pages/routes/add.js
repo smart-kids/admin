@@ -47,13 +47,14 @@ class RouteModal extends React.Component {
 
     // Subscribe to Data
     this.unsubscribe = Data.students.subscribe(({ students }) => {
+      const studentList = students || [];
       this.setState((prevState) => {
         let updatedSelection = prevState.selectedStudentIds;
 
         // Auto-select students if we are editing and data just arrived
         if (prevState.id && prevState.selectedStudentIds.length === 0) {
-           const studentsInThisRoute = students
-             .filter(s => s.route && String(s.route.id) === String(prevState.id))
+           const studentsInThisRoute = studentList
+             .filter(s => s && s.route && String(s.route.id) === String(prevState.id))
              .map(s => s.id);
            
            if (studentsInThisRoute.length > 0) {
@@ -62,7 +63,7 @@ class RouteModal extends React.Component {
         }
 
         return { 
-          allStudents: students,
+          allStudents: studentList,
           selectedStudentIds: updatedSelection
         };
       });
@@ -171,8 +172,10 @@ class RouteModal extends React.Component {
   };
 
   render() {
-    const filteredStudents = this.state.allStudents.filter(student => {
-      const term = this.state.searchTerm.toLowerCase();
+    const allStudents = this.state.allStudents || [];
+    const term = (this.state.searchTerm || "").toLowerCase();
+    const filteredStudents = allStudents.filter(student => {
+      if (!student) return false;
       const name = (student.names || "").toLowerCase();
       const reg = (student.registration || "").toLowerCase();
       return name.includes(term) || reg.includes(term);
