@@ -4,6 +4,8 @@ import BookModal from "./add"; // The new ref-based modal
 import PDFReviewModal from "./PDFReviewModal"; // PDF review modal
 import "./Library.css"; // The Apple-style CSS
 
+const NO_COVER_SVG = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 200"><rect width="100%" height="100%" fill="%23f3f4f6" rx="8"/><rect x="8" y="8" width="134" height="184" fill="none" stroke="%23e5e7eb" stroke-width="2" stroke-dasharray="4" rx="6"/><path d="M55 75h40v6H55zm0 14h40v6H55zm0 14h25v6H55z" fill="%239ca3af"/><text x="75" y="150" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" fill="%239ca3af" text-anchor="middle">No Cover</text></svg>`;
+
 class LibraryList extends React.Component {
   state = {
     books: [],
@@ -170,10 +172,10 @@ class LibraryList extends React.Component {
     <div key={book.id} className="book-card">
       <div className="book-cover-wrapper">
         <img
-          src={book.coverUrl || "https://via.placeholder.com/150x200?text=No+Cover"}
+          src={book.coverUrl || NO_COVER_SVG}
           alt={book.title}
           className="book-cover-img"
-          onError={(e) => { e.target.onerror = null; e.target.src="https://via.placeholder.com/150x200?text=No+Cover"; }} 
+          onError={(e) => { e.target.onerror = null; e.target.src=NO_COVER_SVG; }} 
         />
         
         {/* Quick View Overlay */}
