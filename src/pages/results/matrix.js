@@ -606,9 +606,10 @@ class ResultsMatrix extends React.Component {
 
   generateSubjectRadarData = () => {
     const { subjects, assessments } = this.state;
+    if (!subjects) return [];
     
     return subjects.map(subject => {
-      const subjectAssessments = assessments.filter(a => 
+      const subjectAssessments = (assessments || []).filter(a => 
         a.subject?.id === subject.id || a.subject === subject.id
       );
       
@@ -674,7 +675,7 @@ class ResultsMatrix extends React.Component {
 
   // Helper methods for enhanced calculations
   calculateSubjectAverage = (subjectId) => {
-    const assessments = this.state.assessments.filter(a => 
+    const assessments = (this.state.assessments || []).filter(a => 
       a.subject?.id === subjectId || a.subject === subjectId
     );
     if (assessments.length === 0) return 0;
@@ -683,7 +684,7 @@ class ResultsMatrix extends React.Component {
   };
 
   calculateSubjectExcellenceRate = (subjectId) => {
-    const assessments = this.state.assessments.filter(a => 
+    const assessments = (this.state.assessments || []).filter(a => 
       a.subject?.id === subjectId || a.subject === subjectId
     );
     if (assessments.length === 0) return 0;
@@ -692,17 +693,18 @@ class ResultsMatrix extends React.Component {
   };
 
   calculateSubjectParticipationRate = (subjectId) => {
-    const totalStudents = this.state.students.length;
+    const totalStudents = this.state.students ? this.state.students.length : 0;
+    const assessments = (this.state.assessments || []).filter(a => 
+      a.subject?.id === subjectId || a.subject === subjectId
+    );
     const assessedStudents = new Set(
-      this.state.assessments
-        .filter(a => a.subject?.id === subjectId || a.subject === subjectId)
-        .map(a => a.student?.id || a.student)
+      assessments.map(a => a.student?.id || a.student)
     ).size;
     return totalStudents > 0 ? (assessedStudents / totalStudents) * 100 : 0;
   };
 
   calculateSubjectImprovementRate = (subjectId) => {
-    const assessments = this.state.assessments.filter(a => 
+    const assessments = (this.state.assessments || []).filter(a => 
       a.subject?.id === subjectId || a.subject === subjectId
     );
     if (assessments.length < 2) return 50;
@@ -722,7 +724,7 @@ class ResultsMatrix extends React.Component {
   };
 
   calculateSubjectConsistencyScore = (subjectId) => {
-    const assessments = this.state.assessments.filter(a => 
+    const assessments = (this.state.assessments || []).filter(a => 
       a.subject?.id === subjectId || a.subject === subjectId
     );
     if (assessments.length < 2) return 50;
@@ -798,9 +800,10 @@ class ResultsMatrix extends React.Component {
   calculateSubjectPerformance = (assessments, subjects) => {
     const subjectAverages = {};
     let subjectsAboveAverage = 0;
+    const safeSubjects = subjects || [];
     
-    subjects.forEach(subject => {
-      const subjectAssessments = assessments.filter(a => 
+    safeSubjects.forEach(subject => {
+      const subjectAssessments = (assessments || []).filter(a => 
         a.subject?.id === subject.id || a.subject === subject.id
       );
       
@@ -820,7 +823,7 @@ class ResultsMatrix extends React.Component {
       subjectAverages,
       overallAverage,
       subjectsAboveAverage,
-      totalSubjects: subjects.length
+      totalSubjects: safeSubjects.length
     };
   };
 
