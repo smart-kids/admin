@@ -110,19 +110,22 @@ export const calculateBBF = (group, terms, currentTermId, charges, processedAllP
  * Main calculation engine.
  * Takes raw data and filters, returns processed parents and global metrics.
  */
-export const calculateFinancials = ({
-    students,
-    parents,
-    payments,
-    classes,
-    terms,
-    feeStructures,
-    charges,
-    selectedClass,
-    selectedTerm,
-    searchTerm = "",
-    alphabetFilter = ""
-}) => {
+export const calculateFinancials = (params = {}) => {
+    const students = Array.isArray(params.students) ? params.students : [];
+    const parents = Array.isArray(params.parents) ? params.parents : [];
+    const payments = Array.isArray(params.payments) ? params.payments : [];
+    const classes = Array.isArray(params.classes) ? params.classes : [];
+    const terms = Array.isArray(params.terms) ? params.terms : [];
+    const feeStructures = Array.isArray(params.feeStructures) ? params.feeStructures : [];
+    const charges = Array.isArray(params.charges) ? params.charges : [];
+    
+    const {
+        selectedClass,
+        selectedTerm,
+        searchTerm = "",
+        alphabetFilter = ""
+    } = params;
+
     if (!students.length || !parents.length || !classes.length) {
         return { processedParents: [], fullyProcessedParents: [], globalFinancialMetrics: null };
     }
@@ -374,10 +377,12 @@ export const calculateFinancials = ({
  * Useful for insights and class-based reports.
  */
 export const aggregateByClass = (fullyProcessedParents, classes) => {
+    const safeParents = Array.isArray(fullyProcessedParents) ? fullyProcessedParents : [];
+    const safeClasses = Array.isArray(classes) ? classes : [];
     const classGroups = {};
     
     // Initialize with all classes to ensure a complete matrix (important for heatmap/charts)
-    (classes || []).forEach(cls => {
+    safeClasses.forEach(cls => {
         const classId = String(cls.id);
         classGroups[classId] = {
             classId,
@@ -394,7 +399,7 @@ export const aggregateByClass = (fullyProcessedParents, classes) => {
         };
     });
     
-    fullyProcessedParents.forEach(group => {
+    safeParents.forEach(group => {
         group.students.forEach((student, index) => {
             const classId = String(student.class?.id || student.class);
             const classGroup = classGroups[classId];
