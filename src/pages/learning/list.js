@@ -959,9 +959,9 @@ class CurriculumManagerV5 extends React.Component {
         );
 
         // Filter attempts that match the subtopics in this subject (from current school)
-        const localAttemptsForSubject = allLessonAttempts.filter(attempt => 
+        const localAttemptsForSubject = allLessonAttempts?.filter(attempt => 
             subtopicIdsInSubject.has(String(attempt.lessonId))
-        );
+        ) || [];
 
         // Get phone numbers from current school parents to find cross-school attempts
         const currentSchoolParents = Data.parents.list();
