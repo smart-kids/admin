@@ -1,10 +1,9 @@
 [build]
   functions = "netlify/functions"
-  command = "npm run build:upload-sourcemaps"
+  command = "npm run build"
 
 [build.environment]
   NODE_VERSION = "22"
-  BUGSNAG_API_KEY = "05fe04ebc304ae56dcdc160914d06c1c"
 
 [[redirects]]
   from = "/api/*"
