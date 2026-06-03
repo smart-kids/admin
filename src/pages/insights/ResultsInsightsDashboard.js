@@ -985,7 +985,7 @@ class ResultsInsightsDashboard extends Component {
   };
 
   calculateSubjectParticipationRate = (subjectId) => {
-    const totalStudents = this.state.students.length;
+    const totalStudents = this.state.students?.length || 0;
     const assessedStudents = this.getSubjectStudentCount(subjectId);
     return totalStudents > 0 ? (assessedStudents / totalStudents) * 100 : 0;
   };

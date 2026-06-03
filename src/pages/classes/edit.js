@@ -172,7 +172,7 @@ class Modal extends React.Component {
                             }}
                           >
                             <option value="">Select teacher</option>
-                            {this.props.teachers.map(teacher => {
+                            {this.props.teachers?.map(teacher => {
                               return <option key={teacher.id} value={teacher.id}>{teacher.name}</option>
                             })}
                           </select>

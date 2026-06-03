@@ -86,7 +86,7 @@ class RouteListV2 extends React.Component {
     const { routes, searchTerm, selectedRoute, routeToDelete, loading } = this.state;
 
     // Filter Routes
-    const filteredRoutes = routes.filter(r => 
+    const filteredRoutes = routes?.filter(r => 
       r.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 

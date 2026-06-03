@@ -579,7 +579,7 @@ class ResultsMatrix extends React.Component {
       );
       
       const subjectPerformance = {};
-      subjects.forEach(subject => {
+      subjects?.forEach(subject => {
         const subjectAssessments = classAssessments.filter(a => 
           a.subject?.id === subject.id || a.subject === subject.id
         );
@@ -1336,7 +1336,7 @@ class ResultsMatrix extends React.Component {
                             onChange={(value) => this.handleFilterChange('selectedGrade', value)}
                             options={[
                                 { id: '', name: 'ALL Grades' },
-                                ...grades.map(grade => ({
+                                ...grades?.map(grade => ({
                                     ...grade,
                                     subjectCount: filteredSubjectsList.filter(subject => {
                                         const subjectGradeId = subject.grade?.id || subject.grade;
