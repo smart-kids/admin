@@ -1,4 +1,4 @@
-const { override, addBabelPreset } = require('customize-cra');
+const { override, addBabelPreset, addWebpackPlugin } = require('customize-cra');
 
 module.exports = override(
   addBabelPreset([
@@ -7,5 +7,12 @@ module.exports = override(
       runtime: 'automatic',
       throwIfNamespace: false
     }
-  ])
+  ]),
+  (config) => {
+    // Generate source maps for production builds
+    if (process.env.NODE_ENV === 'production') {
+      config.devtool = 'source-map';
+    }
+    return config;
+  }
 );
