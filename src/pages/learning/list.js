@@ -6,7 +6,7 @@ import 'react-quill/dist/quill.snow.css'; // import styles
 
 // Import all the real modal components
 import AddGradeModal from "./grades/add";
-import EditGradeModal from "./grades/edit"; 
+import EditGradeModal from "./grades/edit";
 import DeleteGradeModal from "./grades/delete";
 import AddSubjectModal from "./subjects/add";
 import EditSubjectModal from "./subjects/edit";
@@ -41,14 +41,14 @@ const Search = ({ onSearch, value, title }) => (
 );
 
 const SkeletonLoader = () => {
-    const SkeletonColumn = ({ rows = 8, width = "320px", isSub = false }) => ( 
-        <div style={{ flex: `0 0 ${width}`, display: 'flex', flexDirection: 'column', borderRight: isSub ? '1px solid #f1f5f9' : 'none', background: '#fff', borderRadius: isSub ? 0 : '16px', border: isSub ? 'none' : '1px solid #e2e8f0', marginRight: isSub ? 0 : '1.5rem', height: '100%' }}> 
-            <div className="skeleton-portlet-header"> <div className="skeleton-placeholder skeleton-title"></div> <div className="skeleton-placeholder skeleton-icon-placeholder"></div> </div> 
-            <div className="skeleton-portlet-body"> <div className="skeleton-placeholder skeleton-search"></div> {Array.from({ length: rows }).map((_, rowIndex) => ( <div className="skeleton-placeholder skeleton-list-item" key={rowIndex}> <div className="skeleton-item-icon"></div> <div className="skeleton-item-text"></div> <div className="skeleton-item-actions"> <div className="skeleton-action-icon"></div> <div className="skeleton-action-icon"></div> </div> </div> ))} </div> 
-        </div> 
+    const SkeletonColumn = ({ rows = 8, width = "320px", isSub = false }) => (
+        <div style={{ flex: `0 0 ${width}`, display: 'flex', flexDirection: 'column', borderRight: isSub ? '1px solid #f1f5f9' : 'none', background: '#fff', borderRadius: isSub ? 0 : '16px', border: isSub ? 'none' : '1px solid #e2e8f0', marginRight: isSub ? 0 : '1.5rem', height: '100%' }}>
+            <div className="skeleton-portlet-header"> <div className="skeleton-placeholder skeleton-title"></div> <div className="skeleton-placeholder skeleton-icon-placeholder"></div> </div>
+            <div className="skeleton-portlet-body"> <div className="skeleton-placeholder skeleton-search"></div> {Array.from({ length: rows }).map((_, rowIndex) => (<div className="skeleton-placeholder skeleton-list-item" key={rowIndex}> <div className="skeleton-item-icon"></div> <div className="skeleton-item-text"></div> <div className="skeleton-item-actions"> <div className="skeleton-action-icon"></div> <div className="skeleton-action-icon"></div> </div> </div>))} </div>
+        </div>
     );
     const skeletonStyles = ` @keyframes skeleton-pulse { 0% { background-color: #f7f8fa; } 50% { background-color: #e9ecf2; } 100% { background-color: #f7f8fa; } } .skeleton-placeholder { animation: skeleton-pulse 1.8s infinite ease-in-out; background-color: #f7f8fa; border-radius: 4px; } .skeleton-portlet-header { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; } .skeleton-title { height: 18px; width: 55%; } .skeleton-icon-placeholder { height: 24px; width: 24px; border-radius: 50%; } .skeleton-portlet-body { padding: 0 1.25rem; } .skeleton-search { height: 36px; width: 100%; margin-bottom: 20px; border-radius: 8px; } .skeleton-list-item { height: 45px; width: 100%; margin-bottom: 12px; display: flex; align-items: center; padding: 0 12px; gap: 12px; } .skeleton-item-icon { height: 16px; width: 12px; flex-shrink: 0; } .skeleton-item-text { height: 14px; width: 70%; } .skeleton-item-actions { margin-left: auto; display: flex; gap: 8px; flex-shrink: 0; } .skeleton-action-icon { height: 14px; width: 14px; } .skeleton-tab-container { flex-grow: 1; display: flex; flex-direction: column; background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; } .skeleton-tab-header { display: flex; padding: 0 1.5rem; margin-bottom: 0; border-bottom: 1px solid #f1f5f9; height: 60px; align-items: center; } .skeleton-tab { height: 20px; width: 120px; margin-right: 30px; } .skeleton-tab-content { display: flex; flex-grow: 1; overflow-x: hidden; height: calc(100% - 60px); } `;
-    return ( <><style>{skeletonStyles}</style><div className="cm-container" style={{ display: 'flex', gap: '0', height: 'calc(100vh - 150px)', overflow: 'hidden' }}><SkeletonColumn rows={9} width="320px" /><SkeletonColumn rows={4} width="320px" /><div className="skeleton-tab-container" style={{ marginLeft: '1.5rem' }}><div className="skeleton-tab-header"><div className="skeleton-placeholder skeleton-tab"></div><div className="skeleton-placeholder skeleton-tab"></div></div><div className="skeleton-tab-content"><SkeletonColumn rows={6} width="350px" isSub={true} /><SkeletonColumn rows={5} width="350px" isSub={true} /></div></div></div></> );
+    return (<><style>{skeletonStyles}</style><div className="cm-container" style={{ display: 'flex', gap: '0', height: 'calc(100vh - 150px)', overflow: 'hidden' }}><SkeletonColumn rows={9} width="320px" /><SkeletonColumn rows={4} width="320px" /><div className="skeleton-tab-container" style={{ marginLeft: '1.5rem' }}><div className="skeleton-tab-header"><div className="skeleton-placeholder skeleton-tab"></div><div className="skeleton-placeholder skeleton-tab"></div></div><div className="skeleton-tab-content"><SkeletonColumn rows={6} width="350px" isSub={true} /><SkeletonColumn rows={5} width="350px" isSub={true} /></div></div></div></>);
 };
 
 const toastr = window.toastr;
@@ -56,7 +56,7 @@ const toastr = window.toastr;
 class CurriculumManagerV5 extends React.Component {
     scrollContainerRef = React.createRef();
     _schoolSubscription = null;
-    _attemptsSubscription = null; 
+    _attemptsSubscription = null;
     styleTag = null;
 
     // --- Refs for Modals ---
@@ -77,7 +77,7 @@ class CurriculumManagerV5 extends React.Component {
         activeTab: 'planning', allLessonAttempts: [], subjectLessonAttempts: [], usersWithAttempts: [],
         selectedUserId: null, selectedAttemptId: null,
         questionImagesMap: {}, // Cache for fetched question images
-        
+
         // Planning & Term State
         terms: [],
         selectedTermId: null,
@@ -96,7 +96,7 @@ class CurriculumManagerV5 extends React.Component {
         lessonPlanToEdit: null,
         iepToEdit: null,
         showPlanningModal: false,
-        
+
         // Print System
         showPrintView: false,
         printData: null,
@@ -332,20 +332,20 @@ class CurriculumManagerV5 extends React.Component {
 
         window.addEventListener('beforeunload', this.saveStateToLocalStorage);
         this._schoolSubscription = Data.schools.subscribe(this.processDataUpdate);
-        
+
         // Keep individual subscriptions for real-time CRUD operations
         this._schemesSubscription = Data.scheme_of_works.subscribe(({ scheme_of_works }) => {
             this.setState({ schemesOfWork: scheme_of_works }, this.refreshPlanningFilters);
         });
-        
+
         this._recordsSubscription = Data.record_of_works.subscribe(({ record_of_works }) => {
             this.setState({ recordsOfWork: record_of_works }, this.refreshPlanningFilters);
         });
-        
+
         this._lessonPlansSubscription = Data.lesson_plans.subscribe(({ lesson_plans }) => {
             this.setState({ lessonPlans: lesson_plans }, this.refreshPlanningFilters);
         });
-        
+
         this._iepTemplatesSubscription = Data.iep_templates.subscribe(({ iep_templates }) => {
             this.setState({ iepTemplates: iep_templates }, this.refreshPlanningFilters);
         });
@@ -360,7 +360,7 @@ class CurriculumManagerV5 extends React.Component {
                 }
             });
         });
-        
+
         if (Data.lessonAttempts && typeof Data.lessonAttempts.subscribe === 'function') {
             this._attemptsSubscription = Data.lessonAttempts.subscribe(({ lessonAttempts }) => {
                 this.setState({ allLessonAttempts: lessonAttempts }, async () => {
@@ -385,37 +385,37 @@ class CurriculumManagerV5 extends React.Component {
         if (this.styleTag) this.styleTag.remove();
         window.removeEventListener('beforeunload', this.saveStateToLocalStorage);
     }
-    
+
 
 
     // --- Data Processing & State Management ---
     processDataUpdate = ({ schools }) => {
         const activeId = localStorage.getItem("school");
         const activeSchool = schools.find(school => school.id === activeId);
-        
-        if (schools.length === 0) return; 
+
+        if (schools.length === 0) return;
 
         if (!activeSchool) { this.setState({ isLoading: false, school: null, _masterGradesList: [] }); return; }
         const masterGradesList = activeSchool.grades || [];
-        
+
         // Only extract planning data from nested hierarchy if flat arrays are empty
         // This preserves real-time updates from individual subscriptions
-        const planningData = (this.state.schemesOfWork.length === 0 && 
-                             this.state.recordsOfWork.length === 0 && 
-                             this.state.lessonPlans.length === 0 && 
-                             this.state.iepTemplates.length === 0) 
-            ? this.extractPlanningDataFromHierarchy(activeSchool) 
+        const planningData = (this.state.schemesOfWork.length === 0 &&
+            this.state.recordsOfWork.length === 0 &&
+            this.state.lessonPlans.length === 0 &&
+            this.state.iepTemplates.length === 0)
+            ? this.extractPlanningDataFromHierarchy(activeSchool)
             : {};
-        
+
         // Refined loading logic: Stay "loading" if we have placeholder grades (no names yet)
         const isDataReady = masterGradesList.length === 0 || masterGradesList.some(g => g.name);
-        
+
         const stateSource = this.state.isLoading ? JSON.parse(localStorage.getItem("learningState") || '{}') : this.state;
         const validatedState = this.getValidatedState(stateSource, masterGradesList);
-        
-        this.setState({ 
-            ...validatedState, 
-            school: activeSchool, 
+
+        this.setState({
+            ...validatedState,
+            school: activeSchool,
             _masterGradesList: masterGradesList,
             ...planningData, // Add extracted planning data only if needed
             isLoading: this.state.isLoading ? !isDataReady : false
@@ -423,7 +423,7 @@ class CurriculumManagerV5 extends React.Component {
             this.refreshCurrentSelectionsAndFilters();
             this.refreshPlanningFilters(); // Explicitly refresh planning data once names are resolved
             if (this.state.selectedSubject) await this.processLessonAttemptsForSubject(this.state.selectedSubject);
-            
+
             // Restore scroll position once data is ready and rendered
             if (isDataReady && stateSource.scrollLeft !== undefined) {
                 setTimeout(() => {
@@ -447,10 +447,10 @@ class CurriculumManagerV5 extends React.Component {
 
         school.grades.forEach(grade => {
             if (!grade.subjects) return;
-            
+
             grade.subjects.forEach(subject => {
                 if (!subject.topics) return;
-                
+
                 subject.topics.forEach(topic => {
                     // Extract IEP templates from topics
                     if (topic.iep_templates) {
@@ -464,9 +464,9 @@ class CurriculumManagerV5 extends React.Component {
                             });
                         });
                     }
-                    
+
                     if (!topic.subtopics) return;
-                    
+
                     topic.subtopics.forEach(subtopic => {
                         // Extract schemes of work from subtopics
                         if (subtopic.scheme_of_works) {
@@ -480,7 +480,7 @@ class CurriculumManagerV5 extends React.Component {
                                 });
                             });
                         }
-                        
+
                         // Extract lesson plans from subtopics
                         if (subtopic.lesson_plans) {
                             subtopic.lesson_plans.forEach(lesson => {
@@ -493,7 +493,7 @@ class CurriculumManagerV5 extends React.Component {
                                 });
                             });
                         }
-                        
+
                         // Extract records of work from subtopics
                         if (subtopic.record_of_works) {
                             subtopic.record_of_works.forEach(record => {
@@ -515,20 +515,20 @@ class CurriculumManagerV5 extends React.Component {
     };
 
     getValidatedState = (sourceState, masterGradesList) => {
-        const validated = { 
-            selectedGrade: sourceState.selectedGrade || null, 
-            selectedSubject: sourceState.selectedSubject || null, 
-            selectedTopic: sourceState.selectedTopic || null, 
-            selectedSubtopic: sourceState.selectedSubtopic || null, 
-            selectedQuestion: sourceState.selectedQuestion || null, 
-            gradeSearchTerm: sourceState.gradeSearchTerm || '', 
-            subjectSearchTerm: sourceState.subjectSearchTerm || '', 
-            topicSearchTerm: sourceState.topicSearchTerm || '', 
-            subtopicSearchTerm: sourceState.subtopicSearchTerm || '', 
-            questionSearchTerm: sourceState.questionSearchTerm || '', 
-            optionSearchTerm: sourceState.optionSearchTerm || '', 
-            questionSearchTerm: sourceState.questionSearchTerm || '', 
-            optionSearchTerm: sourceState.optionSearchTerm || '', 
+        const validated = {
+            selectedGrade: sourceState.selectedGrade || null,
+            selectedSubject: sourceState.selectedSubject || null,
+            selectedTopic: sourceState.selectedTopic || null,
+            selectedSubtopic: sourceState.selectedSubtopic || null,
+            selectedQuestion: sourceState.selectedQuestion || null,
+            gradeSearchTerm: sourceState.gradeSearchTerm || '',
+            subjectSearchTerm: sourceState.subjectSearchTerm || '',
+            topicSearchTerm: sourceState.topicSearchTerm || '',
+            subtopicSearchTerm: sourceState.subtopicSearchTerm || '',
+            questionSearchTerm: sourceState.questionSearchTerm || '',
+            optionSearchTerm: sourceState.optionSearchTerm || '',
+            questionSearchTerm: sourceState.questionSearchTerm || '',
+            optionSearchTerm: sourceState.optionSearchTerm || '',
             activeTab: sourceState.activeTab || 'planning',
             planningSubTab: sourceState.planningSubTab || 'scheme',
             selectedTermId: sourceState.selectedTermId || null,
@@ -540,10 +540,10 @@ class CurriculumManagerV5 extends React.Component {
         const hasLoadedNames = masterGradesList.some(g => g.name);
         if (!hasLoadedNames) return validated;
 
-        try { 
-            const grade = masterGradesList.find(g => g.id === validated.selectedGrade); 
+        try {
+            const grade = masterGradesList.find(g => g.id === validated.selectedGrade);
             if (validated.selectedGrade && !grade) { validated.selectedGrade = null; }
-            
+
             if (grade) {
                 const subjects = grade.subjects || [];
                 const subject = subjects.find(s => s.id === validated.selectedSubject);
@@ -580,38 +580,38 @@ class CurriculumManagerV5 extends React.Component {
         return validated;
     }
 
-    saveStateToLocalStorage = () => { 
-        if (this.state.isLoading || !this.state.school) return; 
-        const { selectedGrade, selectedSubject, selectedTopic, selectedSubtopic, selectedQuestion, gradeSearchTerm, subjectSearchTerm, topicSearchTerm, subtopicSearchTerm, questionSearchTerm, optionSearchTerm, activeTab, planningSubTab, selectedTermId } = this.state; 
+    saveStateToLocalStorage = () => {
+        if (this.state.isLoading || !this.state.school) return;
+        const { selectedGrade, selectedSubject, selectedTopic, selectedSubtopic, selectedQuestion, gradeSearchTerm, subjectSearchTerm, topicSearchTerm, subtopicSearchTerm, questionSearchTerm, optionSearchTerm, activeTab, planningSubTab, selectedTermId } = this.state;
         const scrollLeft = this.scrollContainerRef.current ? this.scrollContainerRef.current.scrollLeft : 0;
-        localStorage.setItem("learningState", JSON.stringify({ 
-            selectedGrade, selectedSubject, selectedTopic, selectedSubtopic, selectedQuestion, 
-            gradeSearchTerm, subjectSearchTerm, topicSearchTerm, subtopicSearchTerm, 
-            questionSearchTerm, optionSearchTerm, activeTab, planningSubTab, selectedTermId, scrollLeft 
-        })); 
+        localStorage.setItem("learningState", JSON.stringify({
+            selectedGrade, selectedSubject, selectedTopic, selectedSubtopic, selectedQuestion,
+            gradeSearchTerm, subjectSearchTerm, topicSearchTerm, subtopicSearchTerm,
+            questionSearchTerm, optionSearchTerm, activeTab, planningSubTab, selectedTermId, scrollLeft
+        }));
     };
 
-    async componentDidUpdate(prevProps, prevState) { 
-        const persistedStateKeys = ['selectedGrade', 'selectedSubject', 'selectedTopic', 'selectedSubtopic', 'selectedQuestion', 'gradeSearchTerm', 'subjectSearchTerm', 'topicSearchTerm', 'subtopicSearchTerm', 'questionSearchTerm', 'optionSearchTerm', 'activeTab', 'planningSubTab', 'selectedTermId']; 
-        const hasPersistedStateChanged = persistedStateKeys.some(key => JSON.stringify(prevState[key]) !== JSON.stringify(this.state[key])); 
-        if (hasPersistedStateChanged) { 
-            this.saveStateToLocalStorage(); 
-        } 
-        
+    async componentDidUpdate(prevProps, prevState) {
+        const persistedStateKeys = ['selectedGrade', 'selectedSubject', 'selectedTopic', 'selectedSubtopic', 'selectedQuestion', 'gradeSearchTerm', 'subjectSearchTerm', 'topicSearchTerm', 'subtopicSearchTerm', 'questionSearchTerm', 'optionSearchTerm', 'activeTab', 'planningSubTab', 'selectedTermId'];
+        const hasPersistedStateChanged = persistedStateKeys.some(key => JSON.stringify(prevState[key]) !== JSON.stringify(this.state[key]));
+        if (hasPersistedStateChanged) {
+            this.saveStateToLocalStorage();
+        }
+
         const { selectedSubject, selectedTermId, selectedTopic, selectedSubtopic } = this.state;
-        if (prevState.selectedSubject !== selectedSubject && selectedSubject) { 
-            await this.processLessonAttemptsForSubject(selectedSubject); 
+        if (prevState.selectedSubject !== selectedSubject && selectedSubject) {
+            await this.processLessonAttemptsForSubject(selectedSubject);
             this.refreshPlanningFilters();
-        } 
+        }
         if (prevState.selectedTermId !== selectedTermId || prevState.selectedTopic !== selectedTopic || prevState.selectedSubtopic !== selectedSubtopic || prevState._masterGradesList !== this.state._masterGradesList) {
             this.refreshPlanningFilters();
         }
     }
 
     refreshPlanningFilters = () => {
-        const { 
-            schemesOfWork, recordsOfWork, lessonPlans, iepTemplates, 
-            selectedSubject, selectedTermId, selectedTopic, selectedSubtopic, terms 
+        const {
+            schemesOfWork, recordsOfWork, lessonPlans, iepTemplates,
+            selectedSubject, selectedTermId, selectedTopic, selectedSubtopic, terms
         } = this.state;
 
         // Use current selectedTermId or fallback to the first term found
@@ -650,10 +650,10 @@ class CurriculumManagerV5 extends React.Component {
         const iepFilterFn = (item) => {
             const itemSubjectId = getAttrId(item.subject);
             const itemStrandId = getAttrId(item.strand);
-            
+
             const matchesSubject = !selectedSubject || String(itemSubjectId) === String(selectedSubject);
             const matchesTopic = !selectedTopic || String(itemStrandId) === String(selectedTopic);
-            
+
             return matchesSubject && matchesTopic && !item.isDeleted;
         };
 
@@ -664,10 +664,10 @@ class CurriculumManagerV5 extends React.Component {
         });
 
         this.setState({
-            filteredSchemes: schemesOfWork.filter(filterFn).map(resolveNames),
-            filteredRecords: recordsOfWork.filter(filterFn).map(resolveNames),
-            filteredLessonPlans: lessonPlans.filter(filterFn).map(resolveNames),
-            filteredIepTemplates: iepTemplates.filter(iepFilterFn).map(resolveNames)
+            filteredSchemes: schemesOfWork?.filter(filterFn).map(resolveNames),
+            filteredRecords: recordsOfWork?.filter(filterFn).map(resolveNames),
+            filteredLessonPlans: lessonPlans?.filter(filterFn).map(resolveNames),
+            filteredIepTemplates: iepTemplates?.filter(iepFilterFn).map(resolveNames)
         });
     }
 
@@ -706,11 +706,11 @@ class CurriculumManagerV5 extends React.Component {
 
     handlePrintPlanning = () => {
         const { school, selectedSubject, selectedTermId, selectedTopic, selectedSubtopic, schemesOfWork, recordsOfWork, lessonPlans, iepTemplates, terms, _masterGradesList, selectedGrade } = this.state;
-        
+
         const term = terms.find(t => t.id === selectedTermId);
         const grade = _masterGradesList.find(g => g.id === selectedGrade);
         const subject = grade?.subjects?.find(s => s.id === selectedSubject);
-        
+
         // Get user from localStorage, then try to find the full teacher profile in Data.teachers.list()
         let user = JSON.parse(localStorage.getItem("user") || '{}');
         const teachersList = Data.teachers.list() || [];
@@ -718,7 +718,7 @@ class CurriculumManagerV5 extends React.Component {
         if (fullTeacherProfile) {
             user = { ...user, ...fullTeacherProfile };
         }
-        
+
         const filterByTermAndSubject = (items) => items.filter(item => {
             const matchesSubject = String(item.subject?.id || item.subject) === String(selectedSubject);
             const itemTermId = item.term?.id || item.term;
@@ -750,19 +750,19 @@ class CurriculumManagerV5 extends React.Component {
         const { schemeToEdit, selectedSubject, school } = this.state;
         const formData = new FormData(e.target);
         const data = Object.fromEntries(formData.entries());
-        
+
         // Handle numerical fields
         data.week = parseInt(data.week) || 0;
         data.lessonnumber = parseInt(data.lessonnumber) || 0;
-        
+
         // Handle Quill fields (if any passed, but we'll use state-managed Quill usually)
         // For simplicity in this iteration, I'll assume standard inputs or a shared state for Quill
-        
+
         try {
             const { selectedTermId, selectedTopic, selectedSubtopic } = this.state;
             if (schemeToEdit?.id) {
-                await Data.scheme_of_works.update({ 
-                    ...data, 
+                await Data.scheme_of_works.update({
+                    ...data,
                     id: schemeToEdit.id,
                     term: selectedTermId,
                     strand: selectedTopic,
@@ -770,9 +770,9 @@ class CurriculumManagerV5 extends React.Component {
                 });
                 toastr.success("Scheme updated!");
             } else {
-                await Data.scheme_of_works.create({ 
-                    ...data, 
-                    subject: selectedSubject, 
+                await Data.scheme_of_works.create({
+                    ...data,
+                    subject: selectedSubject,
                     school: school.id,
                     term: selectedTermId,
                     strand: selectedTopic,
@@ -792,14 +792,14 @@ class CurriculumManagerV5 extends React.Component {
         const { recordToEdit, selectedSubject, school } = this.state;
         const formData = new FormData(e.target);
         const data = Object.fromEntries(formData.entries());
-        
+
         data.week = parseInt(data.week) || 0;
 
         try {
             const { selectedTermId, selectedTopic, selectedSubtopic } = this.state;
             if (recordToEdit?.id) {
-                await Data.record_of_works.update({ 
-                    ...data, 
+                await Data.record_of_works.update({
+                    ...data,
                     id: recordToEdit.id,
                     term: selectedTermId,
                     strand: selectedTopic,      // Topic ID
@@ -807,9 +807,9 @@ class CurriculumManagerV5 extends React.Component {
                 });
                 toastr.success("Record updated!");
             } else {
-                await Data.record_of_works.create({ 
-                    ...data, 
-                    subject: selectedSubject, 
+                await Data.record_of_works.create({
+                    ...data,
+                    subject: selectedSubject,
                     school: school.id,
                     term: selectedTermId,
                     strand: selectedTopic,      // Topic ID
@@ -823,12 +823,12 @@ class CurriculumManagerV5 extends React.Component {
             toastr.error("Failed to save record");
         }
     }
-    
+
     fetchQuestionImages = async (questions) => {
         if (!questions || questions.length === 0) return;
         const missingImageIds = questions.filter(q => !this.state.questionImagesMap[q.id]).map(q => q.id);
         if (missingImageIds.length === 0) return;
-        
+
         const newImages = {};
         await Promise.all(missingImageIds.map(async (id) => {
             try {
@@ -838,7 +838,7 @@ class CurriculumManagerV5 extends React.Component {
                 }
             } catch (e) { console.error(`Failed to fetch images for question ${id}`, e); }
         }));
-        
+
         if (Object.keys(newImages).length > 0) {
             this.setState(prevState => ({
                 questionImagesMap: { ...prevState.questionImagesMap, ...newImages }
@@ -846,29 +846,29 @@ class CurriculumManagerV5 extends React.Component {
         }
     };
 
-    refreshCurrentSelectionsAndFilters = () => { 
-        if (this.state.isLoading) return; 
-        const { _masterGradesList, school, selectedGrade, gradeSearchTerm, selectedSubject, subjectSearchTerm, selectedTopic, topicSearchTerm, selectedSubtopic, subtopicSearchTerm, selectedQuestion, questionSearchTerm, optionSearchTerm, questionImagesMap } = this.state; 
-        let newState = {}; 
+    refreshCurrentSelectionsAndFilters = () => {
+        if (this.state.isLoading) return;
+        const { _masterGradesList, school, selectedGrade, gradeSearchTerm, selectedSubject, subjectSearchTerm, selectedTopic, topicSearchTerm, selectedSubtopic, subtopicSearchTerm, selectedQuestion, questionSearchTerm, optionSearchTerm, questionImagesMap } = this.state;
+        let newState = {};
 
         // Filter and sort Grades
         const gradesListRaw = this._sortListByOrderArray(_masterGradesList, school?.gradeOrder);
         const gradesList = gradesListRaw.filter(g => g.name && !g.isDeleted); // ONLY show if it has a name and not deleted
-        newState.grades = this._applyFilter(gradesList, gradeSearchTerm, 'name'); 
+        newState.grades = this._applyFilter(gradesList, gradeSearchTerm, 'name');
 
-        const currentGradeObj = selectedGrade ? _masterGradesList.find(g => g.id === selectedGrade) : null; 
-        
+        const currentGradeObj = selectedGrade ? _masterGradesList.find(g => g.id === selectedGrade) : null;
+
         // Filter and sort Subjects
-        const subjectsListRaw = this._sortListByOrderArray(currentGradeObj?.subjects, currentGradeObj?.subjectsOrder); 
+        const subjectsListRaw = this._sortListByOrderArray(currentGradeObj?.subjects, currentGradeObj?.subjectsOrder);
         let subjectsList = subjectsListRaw.filter(s => s.name && !s.isDeleted);
-        
+
         const userDataObj = JSON.parse(localStorage.getItem("user") || "{}");
         const isUserTeacher = userDataObj?.userType === 'teacher' || userDataObj?.role === 'teacher' || userDataObj?.userType === 'Teacher';
         const teachersData = Data.teachers.list() || [];
-        
+
         if (isUserTeacher) {
             subjectsList = subjectsList.filter(s => s.teacher === userDataObj.id)
-                                       .map(s => ({ ...s, displayName: s.name }));
+                .map(s => ({ ...s, displayName: s.name }));
         } else {
             subjectsList = subjectsList.map(s => {
                 const teacherObj = teachersData.find(t => t.id === s.teacher);
@@ -876,46 +876,46 @@ class CurriculumManagerV5 extends React.Component {
                 return { ...s, displayName: `${s.name} <span style="font-size: 0.75rem; color: #64748b; margin-left: 8px; font-weight: normal; background: #f1f5f9; padding: 2px 6px; border-radius: 4px;">👤 ${teacherName}</span>` };
             });
         }
-        
-        newState.filteredSubjects = this._applyFilter(subjectsList, subjectSearchTerm, 'name'); 
-        
-        const currentSubjectObj = selectedSubject ? (currentGradeObj?.subjects || []).find(s => s.id === selectedSubject) : null; 
-        
+
+        newState.filteredSubjects = this._applyFilter(subjectsList, subjectSearchTerm, 'name');
+
+        const currentSubjectObj = selectedSubject ? (currentGradeObj?.subjects || []).find(s => s.id === selectedSubject) : null;
+
         // Filter and sort Topics
-        const topicsListRaw = this._sortListByOrderArray(currentSubjectObj?.topics, currentSubjectObj?.topicsOrder); 
+        const topicsListRaw = this._sortListByOrderArray(currentSubjectObj?.topics, currentSubjectObj?.topicsOrder);
         const topicsList = topicsListRaw.filter(t => t.name && !t.isDeleted);
-        newState.filteredTopics = this._applyFilter(topicsList, topicSearchTerm, 'name'); 
-        
-        const currentTopicObj = selectedTopic ? (currentSubjectObj?.topics || []).find(t => t.id === selectedTopic) : null; 
-        
+        newState.filteredTopics = this._applyFilter(topicsList, topicSearchTerm, 'name');
+
+        const currentTopicObj = selectedTopic ? (currentSubjectObj?.topics || []).find(t => t.id === selectedTopic) : null;
+
         // Filter and sort Subtopics
-        const subtopicsListRaw = this._sortListByOrderArray(currentTopicObj?.subtopics, currentTopicObj?.subtopicOrder); 
+        const subtopicsListRaw = this._sortListByOrderArray(currentTopicObj?.subtopics, currentTopicObj?.subtopicOrder);
         const subtopicsList = subtopicsListRaw.filter(st => st.name && !st.isDeleted);
-        newState.filteredSubtopics = this._applyFilter(subtopicsList, subtopicSearchTerm, 'name'); 
-        
-        const currentSubtopicObj = selectedSubtopic ? (currentTopicObj?.subtopics || []).find(st => st.id === selectedSubtopic) : null; 
-        
+        newState.filteredSubtopics = this._applyFilter(subtopicsList, subtopicSearchTerm, 'name');
+
+        const currentSubtopicObj = selectedSubtopic ? (currentTopicObj?.subtopics || []).find(st => st.id === selectedSubtopic) : null;
+
         // Process questions with images
-        const questionsListRaw = this._sortListByOrderArray(currentSubtopicObj?.questions, currentSubtopicObj?.questionsOrder); 
+        const questionsListRaw = this._sortListByOrderArray(currentSubtopicObj?.questions, currentSubtopicObj?.questionsOrder);
         const questionsList = questionsListRaw.filter(q => q.name && !q.isDeleted).map(q => ({ ...q, images: questionImagesMap[q.id] || [] }));
-        newState.filteredQuestions = this._applyFilter(questionsList, questionSearchTerm, 'name'); 
-        
-        const currentQuestionObj = selectedQuestion ? (currentSubtopicObj?.questions || []).find(q => q.id === selectedQuestion) : null; 
-        
+        newState.filteredQuestions = this._applyFilter(questionsList, questionSearchTerm, 'name');
+
+        const currentQuestionObj = selectedQuestion ? (currentSubtopicObj?.questions || []).find(q => q.id === selectedQuestion) : null;
+
         // Filter and sort Options (use 'value' instead of 'name')
-        const optionsListRaw = this._sortListByOrderArray(currentQuestionObj?.options, currentQuestionObj?.optionsOrder); 
+        const optionsListRaw = this._sortListByOrderArray(currentQuestionObj?.options, currentQuestionObj?.optionsOrder);
         const optionsList = optionsListRaw.filter(o => o.value && !o.isDeleted);
-        newState.filteredOptions = this._applyFilter(optionsList, optionSearchTerm, 'value'); 
+        newState.filteredOptions = this._applyFilter(optionsList, optionSearchTerm, 'value');
 
         this.setState(newState, () => {
             // Trigger fetch for displayed questions if we have any
             if (newState.filteredQuestions && newState.filteredQuestions.length > 0) {
                 this.fetchQuestionImages(newState.filteredQuestions);
             }
-        }); 
+        });
     };
     clearSelectionsAndDataFromLevel = (levelName) => { const newState = {}; const levels = ['grade', 'subject', 'topic', 'subtopic', 'question', 'option']; const startIndex = levels.indexOf(levelName); if (startIndex === -1) return {}; if (startIndex <= 1) { newState.activeTab = 'planning'; newState.selectedUserId = null; newState.selectedAttemptId = null; } for (let i = startIndex; i < levels.length; i++) { const level = levels[i]; const capitalizedLevel = level.charAt(0).toUpperCase() + level.slice(1); newState[`selected${capitalizedLevel}`] = null; const childIndex = i + 1; if (childIndex < levels.length) { const childLevel = levels[childIndex]; const capitalizedChildLevel = childLevel.charAt(0).toUpperCase() + childLevel.slice(1); newState[`filtered${capitalizedChildLevel}s`] = []; } } return newState; };
-    
+
     // --- Event Handlers (CRUD, Select, Search) ---
     onEntityCreated = (entityName) => { toastr.success(`${entityName} CREATED successfully!`); }
     onEntityUpdated = (entityName) => { toastr.success(`${entityName} UPDATED successfully!`); }
@@ -931,7 +931,7 @@ class CurriculumManagerV5 extends React.Component {
     handleTopicSelect = (topicId) => { this.setState({ ...this.clearSelectionsAndDataFromLevel('topic'), selectedTopic: topicId }, () => { this.refreshCurrentSelectionsAndFilters(); this.scrollToSub(400); }); }
     handleSubtopicSelect = (subtopicId) => { this.setState({ ...this.clearSelectionsAndDataFromLevel('subtopic'), selectedSubtopic: subtopicId }, () => { this.refreshCurrentSelectionsAndFilters(); this.scrollToSub(800); }); }
     handleQuestionSelect = (questionId) => { this.setState({ selectedQuestion: questionId }, () => { this.refreshCurrentSelectionsAndFilters(); this.scrollToSub(1200); }); }
-    
+
     scrollToSub = (amount) => {
         const scroller = document.querySelector('.tab-inner-scroller');
         if (scroller) scroller.scrollTo({ left: amount, behavior: 'smooth' });
@@ -939,27 +939,27 @@ class CurriculumManagerV5 extends React.Component {
 
     scrollToStart = () => { if (this.scrollContainerRef.current) this.scrollContainerRef.current.scrollTo({ left: 0, behavior: 'smooth' }); }
     scrollToEnd = () => { if (this.scrollContainerRef.current) this.scrollContainerRef.current.scrollTo({ left: this.scrollContainerRef.current.scrollWidth, behavior: 'smooth' }); }
-    
+
     // --- Attempts Tab Logic ---
     processLessonAttemptsForSubject = async (subjectId) => {
         const { _masterGradesList, selectedGrade, allLessonAttempts } = this.state;
         const grade = _masterGradesList.find(g => String(g.id) === String(selectedGrade));
         const subject = (grade?.subjects || []).find(s => String(s.id) === String(subjectId));
-        
-        if (!subject) { 
-            this.setState({ subjectLessonAttempts: [], usersWithAttempts: [] }); 
-            return; 
+
+        if (!subject) {
+            this.setState({ subjectLessonAttempts: [], usersWithAttempts: [] });
+            return;
         }
 
         // Identify which subtopics belong to this subject
         const subtopicIdsInSubject = new Set(
-            (subject.topics || []).flatMap(t => 
+            (subject.topics || []).flatMap(t =>
                 (t.subtopics || []).map(st => String(st.id))
             )
         );
 
         // Filter attempts that match the subtopics in this subject (from current school)
-        const localAttemptsForSubject = allLessonAttempts?.filter(attempt => 
+        const localAttemptsForSubject = allLessonAttempts?.filter(attempt =>
             subtopicIdsInSubject.has(String(attempt.lessonId))
         ) || [];
 
@@ -985,35 +985,35 @@ class CurriculumManagerV5 extends React.Component {
         const parentMap = new Map();
         const users = Data.parents.list();
 
-        allAttemptsForSubject.forEach(attempt => { 
+        allAttemptsForSubject.forEach(attempt => {
             const userKey = attempt.userId;
-            if (!parentMap.has(userKey)) { 
+            if (!parentMap.has(userKey)) {
                 // First try to find user in current school
                 let user = users.find(p => String(p.id) === String(userKey));
-                
+
                 // If not found and this is a cross-school attempt, use the parent data from the attempt
                 if (!user && attempt.parent) {
                     user = attempt.parent;
                 }
-                
-                if (user) { 
-                    parentMap.set(userKey, { 
-                        id: user.id, 
-                        name: user.name || `User ${user.id.substring(0, 5)}`, 
+
+                if (user) {
+                    parentMap.set(userKey, {
+                        id: user.id,
+                        name: user.name || `User ${user.id.substring(0, 5)}`,
                         phone: user.phone,
-                        students: user.students || [], 
+                        students: user.students || [],
                         isCrossSchool: !!attempt.school && attempt.school !== localStorage.getItem("school"),
                         schoolName: attempt.school?.name || null
-                    }); 
-                } 
-            } 
+                    });
+                }
+            }
         });
 
-        this.setState({ 
-            subjectLessonAttempts: allAttemptsForSubject, 
-            usersWithAttempts: Array.from(parentMap.values()), 
-            selectedUserId: null, 
-            selectedAttemptId: null 
+        this.setState({
+            subjectLessonAttempts: allAttemptsForSubject,
+            usersWithAttempts: Array.from(parentMap.values()),
+            selectedUserId: null,
+            selectedAttemptId: null
         });
     }
 
@@ -1021,7 +1021,7 @@ class CurriculumManagerV5 extends React.Component {
     handleTabChange = (tabName) => { this.setState({ activeTab: tabName }); }
     handleUserSelect = (userId) => { this.setState({ selectedUserId: userId, selectedAttemptId: null }); }
     handleAttemptSelect = (attemptId) => { this.setState({ selectedAttemptId: attemptId }); }
-    
+
     // --- Utilities & Generic Handlers ---
     findLessonById = (lessonId) => { for (const grade of this.state._masterGradesList) { for (const subject of grade.subjects || []) { for (const topic of subject.topics || []) { const subtopic = (topic.subtopics || []).find(st => st.id === lessonId); if (subtopic) return subtopic; } } } return null; }
     _applyFilter = (list, term, key = 'name') => { if (!list) return []; const searchTerm = term.toLowerCase().trim(); if (!searchTerm) return list; return list.filter(item => item && item[key] && String(item[key]).toLowerCase().includes(searchTerm)); };
@@ -1031,16 +1031,16 @@ class CurriculumManagerV5 extends React.Component {
     handleDelete = (entity, item) => async () => { try { await Data[entity].delete({ id: item.id }); this.onEntityDeleted(entity.slice(0, -1)); const singularEntity = entity.slice(0, -1); const capitalizedEntity = singularEntity.charAt(0).toUpperCase() + singularEntity.slice(1); if (this.state[`selected${capitalizedEntity}`] === item.id) { this.setState(this.clearSelectionsAndDataFromLevel(singularEntity), this.refreshCurrentSelectionsAndFilters); } else { this.refreshCurrentSelectionsAndFilters(); } } catch (err) { toastr.error(`Failed to delete ${entity.slice(0, -1)}`); throw err; } };
     scrollBy = (amount) => { if (this.scrollContainerRef.current) { this.scrollContainerRef.current.scrollBy({ left: amount, behavior: 'smooth' }); } }
     _handleReorder = async (entityType, reorderedList) => { const { school, selectedGrade, selectedSubject, selectedTopic, selectedSubtopic, selectedQuestion } = this.state; const ids = reorderedList.map(item => item.id); let entityToUpdate, payload; switch (entityType) { case 'grades': this.setState({ grades: reorderedList }); entityToUpdate = 'schools'; payload = { id: school.id, gradeOrder: ids }; break; case 'subjects': this.setState({ filteredSubjects: reorderedList }); entityToUpdate = 'grades'; payload = { id: selectedGrade, subjectsOrder: ids }; break; case 'topics': this.setState({ filteredTopics: reorderedList }); entityToUpdate = 'subjects'; payload = { id: selectedSubject, topicsOrder: ids, grade: selectedGrade }; break; case 'subtopics': this.setState({ filteredSubtopics: reorderedList }); entityToUpdate = 'topics'; payload = { id: selectedTopic, subtopicOrder: ids, subject: selectedSubject }; break; case 'questions': this.setState({ filteredQuestions: reorderedList }); entityToUpdate = 'subtopics'; payload = { id: selectedSubtopic, questionsOrder: ids, topic: selectedTopic }; break; case 'options': this.setState({ filteredOptions: reorderedList }); entityToUpdate = 'questions'; payload = { id: selectedQuestion, optionsOrder: ids, subtopic: selectedSubtopic }; break; default: return; } try { await this.handleUpdate(entityToUpdate, payload); } catch (error) { toastr.error(`Failed to update order for ${entityType}. Reverting.`); this.refreshCurrentSelectionsAndFilters(); } };
-    
+
     // --- Render Methods ---
 
     renderAnswerDetails = (question, event) => {
         if (!event || !event.userAnswer) return null;
         let answer;
-        try { 
-            answer = typeof event.userAnswer === 'string' ? JSON.parse(event.userAnswer) : event.userAnswer; 
-        } catch(e) { 
-            return <div className="text-danger">Error parsing answer data.</div> 
+        try {
+            answer = typeof event.userAnswer === 'string' ? JSON.parse(event.userAnswer) : event.userAnswer;
+        } catch (e) {
+            return <div className="text-danger">Error parsing answer data.</div>
         }
 
         switch (question.type) {
@@ -1060,7 +1060,7 @@ class CurriculumManagerV5 extends React.Component {
                         })}
                     </div>
                 );
-            case 'TEXT': 
+            case 'TEXT':
                 return (
                     <div className="answer-details">
                         <div className="text-answer">
@@ -1069,27 +1069,27 @@ class CurriculumManagerV5 extends React.Component {
                         </div>
                     </div>
                 );
-            case 'CAMERA': 
+            case 'CAMERA':
                 return (
                     <div className="answer-details image-answer">
                         <div style={{ fontSize: '0.7rem', color: '#94a3b8', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>Uploaded Submission</div>
-                        {answer.imageData ? 
-                            <img src={answer.imageData} alt="Student submission" onClick={() => window.open(answer.imageData, '_blank')} title="Click to view full size" /> 
+                        {answer.imageData ?
+                            <img src={answer.imageData} alt="Student submission" onClick={() => window.open(answer.imageData, '_blank')} title="Click to view full size" />
                             : <div className="text-muted italic">No image was captured.</div>
                         }
                     </div>
                 );
             case 'INFORMATION':
                 return <div className="answer-details"><div className="text-muted small italic">Informational content - no answer required.</div></div>;
-            default: 
+            default:
                 return <div className="answer-details"><p className="text-muted small">Display details for {question.type} coming soon.</p></div>;
         }
     }
-    
+
     renderEventsForQuestion = (question, events) => {
         if (!events || events.length === 0) return <div className="p-4 text-center text-muted italic small border-top">This question was not reached or was skipped.</div>;
-        const maxPoints = question.points || 5; 
-        
+        const maxPoints = question.points || 5;
+
         return (
             <div className="attempt-events-timeline">
                 {events.map((event, idx) => {
@@ -1180,7 +1180,7 @@ class CurriculumManagerV5 extends React.Component {
         const isTeacher = userData?.userType === 'teacher' || userData?.role === 'teacher' || userData?.userType === 'Teacher';
         const tableOptions = { reorderable: true, linkable: true, editable: true, deleteable: true };
         const correctOptionIds = filteredOptions.filter(o => o.correct).map(o => o.id);
-        
+
         const currentGradeObj = selectedGrade ? this.state._masterGradesList.find(g => g.id === selectedGrade) : null;
         const currentSubjectObj = selectedSubject ? (currentGradeObj?.subjects || []).find(s => s.id === selectedSubject) : null;
         const currentTopicObj = selectedTopic ? (currentSubjectObj?.topics || []).find(t => t.id === selectedTopic) : null;
@@ -1204,13 +1204,13 @@ class CurriculumManagerV5 extends React.Component {
                     <button className={`cm-tab-btn ${activeTab === 'responses' ? 'active' : ''}`} onClick={() => this.handleTabChange('responses')}>
                         <i className="la la-users" style={{ marginRight: '8px' }}></i> Student Activity
                     </button>
-                    
+
                     {/* Integrated Term Selector + Print */}
                     <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px', paddingRight: '1rem' }}>
                         <div className="d-flex align-items-center" style={{ background: '#f8fafc', padding: '2px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', height: '32px' }}>
                             <i className="la la-calendar" style={{ color: '#64748b', marginRight: '6px', fontSize: '0.9rem' }}></i>
-                            <select 
-                                className="form-control form-control-sm border-0 bg-transparent font-weight-bold" 
+                            <select
+                                className="form-control form-control-sm border-0 bg-transparent font-weight-bold"
                                 style={{ minWidth: '120px', cursor: 'pointer', color: '#1e293b', fontSize: '0.8rem', padding: 0, height: 'auto' }}
                                 value={this.state.selectedTermId || ''}
                                 onChange={(e) => this.setState({ selectedTermId: e.target.value }, this.refreshPlanningFilters)}
@@ -1222,8 +1222,8 @@ class CurriculumManagerV5 extends React.Component {
                             </select>
                         </div>
                         {activeTab === 'planning' && (
-                            <button 
-                                className="btn btn-outline-secondary btn-sm d-flex align-items-center" 
+                            <button
+                                className="btn btn-outline-secondary btn-sm d-flex align-items-center"
                                 style={{ height: '32px', borderRadius: '8px', fontSize: '0.8rem' }}
                                 onClick={this.handlePrintPlanning}
                             >
@@ -1242,7 +1242,7 @@ class CurriculumManagerV5 extends React.Component {
                                     <Table listId={`topics-list-${selectedSubject}`} headers={[{ label: "Name", key: "name" }]} data={filteredTopics} options={tableOptions} selectedItemId={selectedTopic} show={topic => this.handleTopicSelect(topic.id)} edit={topic => this.setState({ topicToEdit: topic }, () => this.editTopicModalRef.current.show())} delete={topic => this.setState({ topicToDelete: topic }, () => this.deleteTopicModalRef.current.show())} onOrderChange={(list) => this._handleReorder('topics', list)} isLoading={topicsLoading} onAdd={() => this.addTopicModalRef.current.show()} addItemText="Add Strand" />
                                 </div>
                             </div>
-                             {selectedTopic && (
+                            {selectedTopic && (
                                 <div className="cm-sub-column">
                                     <div className="cm-column-header"><h5>Sub Strands</h5><button type="button" className="cm-add-btn" onClick={() => this.addSubtopicModalRef.current.show()} title="Add Sub Strand"><i className="la la-plus"></i></button></div>
                                     <div className="cm-column-body">
@@ -1281,13 +1281,13 @@ class CurriculumManagerV5 extends React.Component {
             </div>
         );
     }
-    
+
     renderStudentAttemptsTab() {
         const { usersWithAttempts, selectedUserId, subjectLessonAttempts, selectedAttemptId } = this.state;
         const selectedUserName = selectedUserId ? usersWithAttempts.find(u => u.id === selectedUserId)?.name : null;
         const attemptsForSelectedUser = selectedUserId ? subjectLessonAttempts.filter(a => a.userId === selectedUserId) : [];
         const selectedAttempt = selectedAttemptId ? subjectLessonAttempts.find(a => a.id === selectedAttemptId) : null;
-        
+
         let originalLesson, sortedOriginalQuestions, attemptEventsByQuestionId;
         if (selectedAttempt) {
             originalLesson = this.findLessonById(selectedAttempt.lessonId);
@@ -1300,7 +1300,7 @@ class CurriculumManagerV5 extends React.Component {
                 }, new Map());
             }
         }
-    
+
         return (
             <div className="attempts-grid">
                 <div className="attempts-column">
@@ -1313,12 +1313,12 @@ class CurriculumManagerV5 extends React.Component {
                                     <div style={{ fontSize: '0.9rem', color: selectedUserId === user.id ? '#1e293b' : '#334155', fontWeight: selectedUserId === user.id ? 700 : 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         {user.name}
                                         {user.isCrossSchool && (
-                                            <span style={{ 
-                                                background: '#f0f9ff', 
-                                                color: '#0369a1', 
-                                                padding: '2px 6px', 
-                                                borderRadius: '4px', 
-                                                fontSize: '0.7rem', 
+                                            <span style={{
+                                                background: '#f0f9ff',
+                                                color: '#0369a1',
+                                                padding: '2px 6px',
+                                                borderRadius: '4px',
+                                                fontSize: '0.7rem',
                                                 fontWeight: 600,
                                                 border: '1px solid #bae6fd'
                                             }}>
@@ -1350,7 +1350,7 @@ class CurriculumManagerV5 extends React.Component {
                                     </div>
                                 </div>
                             </div>
-                        </div>)) : (<div className="text-center p-5 text-muted"><i className="la la-users" style={{fontSize: '3rem', opacity: 0.2, marginBottom: '1rem'}}></i><br/>No student activity found yet.</div>)
+                        </div>)) : (<div className="text-center p-5 text-muted"><i className="la la-users" style={{ fontSize: '3rem', opacity: 0.2, marginBottom: '1rem' }}></i><br />No student activity found yet.</div>)
                     }</div>
                 </div>
                 <div className="attempts-column">
@@ -1362,12 +1362,12 @@ class CurriculumManagerV5 extends React.Component {
                                     <div style={{ fontWeight: 700, fontSize: '0.95rem', color: selectedAttemptId === attempt.id ? 'var(--cm-primary-color)' : '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         Submission {attemptsForSelectedUser.length - index}
                                         {attempt.school && attempt.school !== localStorage.getItem("school") && (
-                                            <span style={{ 
-                                                background: '#fef3c7', 
-                                                color: '#92400e', 
-                                                padding: '2px 6px', 
-                                                borderRadius: '4px', 
-                                                fontSize: '0.65rem', 
+                                            <span style={{
+                                                background: '#fef3c7',
+                                                color: '#92400e',
+                                                padding: '2px 6px',
+                                                borderRadius: '4px',
+                                                fontSize: '0.65rem',
                                                 fontWeight: 600,
                                                 border: '1px solid #fde68a'
                                             }}>
@@ -1419,13 +1419,13 @@ class CurriculumManagerV5 extends React.Component {
                             {originalLesson && sortedOriginalQuestions ? sortedOriginalQuestions.map(q => (
                                 <div key={q.id} className="attempt-details-card">
                                     <div style={{ backgroundColor: '#fafbfd', padding: '10px 0' }}>
-                                        <Table data={[q]} headers={[{key: 'name'}]} options={{reorderable: false, linkable: false, editable: false, deleteable: false}} listId={`q-disp-${q.id}`} />
+                                        <Table data={[q]} headers={[{ key: 'name' }]} options={{ reorderable: false, linkable: false, editable: false, deleteable: false }} listId={`q-disp-${q.id}`} />
                                     </div>
                                     {this.renderEventsForQuestion(q, attemptEventsByQuestionId.get(q.id))}
                                 </div>
                             )) : <div className="alert alert-light border text-center">Could not reconstruct lesson history.</div>}
                         </div>
-                    ) : (usersWithAttempts.length > 0 && !selectedUserId ? <div className="text-center p-5 text-muted" style={{marginTop: '10%'}}><i className="la la-arrow-left" style={{fontSize: '3rem', opacity: 0.1, marginBottom: '1rem'}}></i><br/>Select a student to view their work.</div> : null)}
+                    ) : (usersWithAttempts.length > 0 && !selectedUserId ? <div className="text-center p-5 text-muted" style={{ marginTop: '10%' }}><i className="la la-arrow-left" style={{ fontSize: '3rem', opacity: 0.1, marginBottom: '1rem' }}></i><br />Select a student to view their work.</div> : null)}
                 </div>
             </div>
         );
@@ -1441,12 +1441,12 @@ class CurriculumManagerV5 extends React.Component {
                     </div>
                     <h3 style={{ margin: 0 }}>{school?.name || 'Curriculum Manager'}</h3>
                 </div>
-                
+
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                     <div className="d-flex align-items-center" style={{ background: '#f8fafc', padding: '4px 12px', borderRadius: '10px', border: '1px solid #e2e8f0' }}>
                         <i className="la la-calendar" style={{ color: '#64748b', marginRight: '8px' }}></i>
-                        <select 
-                            className="form-control form-control-sm border-0 bg-transparent font-weight-bold" 
+                        <select
+                            className="form-control form-control-sm border-0 bg-transparent font-weight-bold"
                             style={{ minWidth: '140px', cursor: 'pointer', color: '#1e293b' }}
                             value={selectedTermId || ''}
                             onChange={(e) => this.setState({ selectedTermId: e.target.value }, this.refreshPlanningFilters)}
@@ -1516,7 +1516,7 @@ class CurriculumManagerV5 extends React.Component {
                                 }
                             }
                         `}</style>
-                        <div className="kt-content kt-grid__item kt-grid__item--fluid" style={{height:"auto"}} id="kt_content">
+                        <div className="kt-content kt-grid__item kt-grid__item--fluid" style={{ height: "auto" }} id="kt_content">
                             <div className="kt-container pt-4">
                                 <div className="d-print-none p-4 mb-4 d-flex justify-content-between align-items-center bg-white rounded shadow-sm border">
                                     <button className="btn btn-secondary" onClick={this.togglePrintView}>
@@ -1552,7 +1552,7 @@ class CurriculumManagerV5 extends React.Component {
                                     </button>
                                 </div>
                                 <div id="print-area" style={{ backgroundColor: '#f3f4f6', paddingTop: '20px', paddingBottom: '20px', display: 'flex', justifyContent: 'center', overflowX: 'auto' }}>
-                                    <PlanningPrintView 
+                                    <PlanningPrintView
                                         school={school}
                                         teacher={teacher}
                                         subject={subject}
@@ -1576,7 +1576,7 @@ class CurriculumManagerV5 extends React.Component {
         return (
             <div className="cm-container pt-0">
                 {/* renderHeader removed to satisfy two-topbar limit */}
-                
+
                 <div style={{ display: 'flex', alignItems: 'flex-start' }}>
                     <button onClick={() => this.scrollToStart()} className="btn btn-sm btn-icon btn-light mr-2" title="Scroll to Start"><i className="la la-angle-double-left"></i></button>
                     <div ref={this.scrollContainerRef} className="scrolling-wrapper" onScroll={this.saveStateToLocalStorage}>
@@ -1609,8 +1609,8 @@ class CurriculumManagerV5 extends React.Component {
     }
     renderTeacherPlanningTab() {
         const { planningSubTab, filteredSchemes, filteredRecords, filteredTopics, selectedTopic, filteredSubtopics, selectedSubtopic, topicSearchTerm, subtopicSearchTerm } = this.state;
-        
-        
+
+
         return (
             <div className="tab-inner-scroller">
                 {/* Strands Column */}
@@ -1624,15 +1624,15 @@ class CurriculumManagerV5 extends React.Component {
                             <i className="la la-search search-icon"></i>
                             <input type="text" className="form-control cm-search-input" placeholder="Search strands..." value={topicSearchTerm} onChange={(e) => this.setState({ topicSearchTerm: e.target.value }, this.refreshCurrentSelectionsAndFilters)} />
                         </div>
-                        <Table 
-                            data={filteredTopics} 
-                            headers={[{ key: 'name' }]} 
-                            options={{ reorderable: true, editable: true, deleteable: true, linkable: true }} 
-                            listId="planning-topics" 
-                            selectedItemId={selectedTopic} 
-                            show={(item) => this.handleTopicSelect(item.id)} 
-                            edit={(topic) => this.setState({ topicToEdit: topic }, () => this.editTopicModalRef.current.show())} 
-                            delete={(topic) => this.setState({ topicToDelete: topic }, () => this.deleteTopicModalRef.current.show())} 
+                        <Table
+                            data={filteredTopics}
+                            headers={[{ key: 'name' }]}
+                            options={{ reorderable: true, editable: true, deleteable: true, linkable: true }}
+                            listId="planning-topics"
+                            selectedItemId={selectedTopic}
+                            show={(item) => this.handleTopicSelect(item.id)}
+                            edit={(topic) => this.setState({ topicToEdit: topic }, () => this.editTopicModalRef.current.show())}
+                            delete={(topic) => this.setState({ topicToDelete: topic }, () => this.deleteTopicModalRef.current.show())}
                             onOrderChange={(list) => this._handleReorder('topics', list)}
                         />
                     </div>
@@ -1650,15 +1650,15 @@ class CurriculumManagerV5 extends React.Component {
                                 <i className="la la-search search-icon"></i>
                                 <input type="text" className="form-control cm-search-input" placeholder="Search sub-strands..." value={subtopicSearchTerm} onChange={(e) => this.setState({ subtopicSearchTerm: e.target.value }, this.refreshCurrentSelectionsAndFilters)} />
                             </div>
-                            <Table 
-                                data={filteredSubtopics} 
-                                headers={[{ key: 'name' }]} 
-                                options={{ reorderable: true, editable: true, deleteable: true, linkable: true }} 
-                                listId="planning-subtopics" 
-                                selectedItemId={selectedSubtopic} 
-                                show={(item) => this.handleSubtopicSelect(item.id)} 
-                                edit={(subtopic) => this.setState({ subtopicToEdit: subtopic }, () => this.editSubtopicModalRef.current.show())} 
-                                delete={(subtopic) => this.setState({ subtopicToDelete: subtopic }, () => this.deleteSubtopicModalRef.current.show())} 
+                            <Table
+                                data={filteredSubtopics}
+                                headers={[{ key: 'name' }]}
+                                options={{ reorderable: true, editable: true, deleteable: true, linkable: true }}
+                                listId="planning-subtopics"
+                                selectedItemId={selectedSubtopic}
+                                show={(item) => this.handleSubtopicSelect(item.id)}
+                                edit={(subtopic) => this.setState({ subtopicToEdit: subtopic }, () => this.editSubtopicModalRef.current.show())}
+                                delete={(subtopic) => this.setState({ subtopicToDelete: subtopic }, () => this.deleteSubtopicModalRef.current.show())}
                                 onOrderChange={(list) => this._handleReorder('subtopics', list)}
                             />
                         </div>
@@ -1686,24 +1686,24 @@ class CurriculumManagerV5 extends React.Component {
                                     <div className={`planning-sub-tab ${planningSubTab === 'record' ? 'active' : ''}`} onClick={() => this.handlePlanningSubTabChange('record')}>Daily Records of Work</div>
                                     <div className={`planning-sub-tab ${planningSubTab === 'iep' ? 'active' : ''}`} onClick={() => this.handlePlanningSubTabChange('iep')}>IEP Template</div>
                                 </div>
-                                    <div style={{ display: 'flex', gap: '10px' }}>
-                                        <button className="btn btn-primary btn-sm" onClick={() => this.setState({ 
-                                            showPlanningModal: true, 
-                                            schemeToEdit: null, 
-                                            recordToEdit: null, 
-                                            lessonPlanToEdit: null, 
-                                            iepToEdit: null 
-                                        })}>
-                                            <i className="la la-plus"></i> Add {
-                                                planningSubTab === 'scheme' ? 'Scheme Entry' : 
-                                                planningSubTab === 'lesson' ? 'Lesson Plan' : 
-                                                planningSubTab === 'record' ? 'Daily Record' : 'IEP'
-                                            }
-                                        </button>
-                                        <button className="btn btn-outline-primary btn-sm" onClick={this.handlePrintPlanning}>
-                                            <i className="la la-print"></i> Print
-                                        </button>
-                                    </div>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <button className="btn btn-primary btn-sm" onClick={() => this.setState({
+                                        showPlanningModal: true,
+                                        schemeToEdit: null,
+                                        recordToEdit: null,
+                                        lessonPlanToEdit: null,
+                                        iepToEdit: null
+                                    })}>
+                                        <i className="la la-plus"></i> Add {
+                                            planningSubTab === 'scheme' ? 'Scheme Entry' :
+                                                planningSubTab === 'lesson' ? 'Lesson Plan' :
+                                                    planningSubTab === 'record' ? 'Daily Record' : 'IEP'
+                                        }
+                                    </button>
+                                    <button className="btn btn-outline-primary btn-sm" onClick={this.handlePrintPlanning}>
+                                        <i className="la la-print"></i> Print
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="planning-content" style={{ backgroundColor: '#fcfdfe', borderLeft: '1px solid #f1f5f9' }}>
@@ -1722,7 +1722,7 @@ class CurriculumManagerV5 extends React.Component {
                         </div>
                     </div>
                 )}
-                
+
                 {this.renderPlanningModal()}
             </div>
         );
@@ -1748,7 +1748,7 @@ class CurriculumManagerV5 extends React.Component {
                         {filteredSchemes.length > 0 ? filteredSchemes.map(item => (
                             <tr key={item.id}>
                                 <td>
-                                    <strong>Wk {item.week}</strong><br/>
+                                    <strong>Wk {item.week}</strong><br />
                                     <span className="text-muted">Les {item.lessonnumber}</span>
                                 </td>
                                 <td>
@@ -1773,7 +1773,7 @@ class CurriculumManagerV5 extends React.Component {
                                 <td>
                                     <div className="planning-actions">
                                         <button className="planning-btn" onClick={() => this.setState({ schemeToEdit: item, showPlanningModal: true })}><i className="la la-pencil"></i></button>
-                                        <button className="planning-btn btn-danger" onClick={() => { if(window.confirm("Delete this scheme entry?")) Data.scheme_of_works.delete({ id: item.id }) }}><i className="la la-trash"></i></button>
+                                        <button className="planning-btn btn-danger" onClick={() => { if (window.confirm("Delete this scheme entry?")) Data.scheme_of_works.delete({ id: item.id }) }}><i className="la la-trash"></i></button>
                                     </div>
                                 </td>
                             </tr>
@@ -1804,7 +1804,7 @@ class CurriculumManagerV5 extends React.Component {
                         {filteredRecords.length > 0 ? filteredRecords.map(item => (
                             <tr key={item.id}>
                                 <td>
-                                    <strong>Week {item.week}</strong><br/>
+                                    <strong>Week {item.week}</strong><br />
                                     <span className="small text-muted">{item.dateofteaching}</span>
                                 </td>
                                 <td>
@@ -1818,7 +1818,7 @@ class CurriculumManagerV5 extends React.Component {
                                 <td>
                                     <div className="planning-actions">
                                         <button className="planning-btn" onClick={() => this.setState({ recordToEdit: item, showPlanningModal: true })}><i className="la la-pencil"></i></button>
-                                        <button className="planning-btn btn-danger" onClick={() => { if(window.confirm("Delete this record entry?")) Data.record_of_works.delete({ id: item.id }) }}><i className="la la-trash"></i></button>
+                                        <button className="planning-btn btn-danger" onClick={() => { if (window.confirm("Delete this record entry?")) Data.record_of_works.delete({ id: item.id }) }}><i className="la la-trash"></i></button>
                                     </div>
                                 </td>
                             </tr>
@@ -1872,7 +1872,7 @@ class CurriculumManagerV5 extends React.Component {
                                 <td>
                                     <div className="planning-actions">
                                         <button className="planning-btn" onClick={() => this.setState({ lessonPlanToEdit: item, showPlanningModal: true })}><i className="la la-pencil"></i></button>
-                                        <button className="planning-btn btn-danger" onClick={() => { if(window.confirm("Delete this lesson plan?")) Data.lesson_plans.delete({ id: item.id }) }}><i className="la la-trash"></i></button>
+                                        <button className="planning-btn btn-danger" onClick={() => { if (window.confirm("Delete this lesson plan?")) Data.lesson_plans.delete({ id: item.id }) }}><i className="la la-trash"></i></button>
                                     </div>
                                 </td>
                             </tr>
@@ -1940,7 +1940,7 @@ class CurriculumManagerV5 extends React.Component {
                                     <td>
                                         <div className="planning-actions">
                                             <button className="planning-btn" onClick={() => this.setState({ iepToEdit: item, showPlanningModal: true })}><i className="la la-pencil"></i></button>
-                                            <button className="planning-btn btn-danger" onClick={() => { if(window.confirm("Delete this IEP entry?")) Data.iep_templates.delete({ id: item.id }) }}><i className="la la-trash"></i></button>
+                                            <button className="planning-btn btn-danger" onClick={() => { if (window.confirm("Delete this IEP entry?")) Data.iep_templates.delete({ id: item.id }) }}><i className="la la-trash"></i></button>
                                         </div>
                                     </td>
                                 </tr>
@@ -1963,10 +1963,10 @@ class CurriculumManagerV5 extends React.Component {
             iep: 'IEP Template'
         };
 
-        const item = 
-            planningSubTab === 'scheme' ? schemeToEdit : 
-            planningSubTab === 'lesson' ? lessonPlanToEdit : 
-            planningSubTab === 'record' ? recordToEdit : iepToEdit;
+        const item =
+            planningSubTab === 'scheme' ? schemeToEdit :
+                planningSubTab === 'lesson' ? lessonPlanToEdit :
+                    planningSubTab === 'record' ? recordToEdit : iepToEdit;
 
         const title = (item ? 'Edit ' : 'Add ') + typeLabels[planningSubTab];
         const students = Data.students.list() || [];
@@ -1975,21 +1975,21 @@ class CurriculumManagerV5 extends React.Component {
             e.preventDefault();
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData.entries());
-            
+
             // Add required context
             data.subject = this.state.selectedSubject;
             data.term = this.state.selectedTermId;
             data.school = this.state.school.id;
-            
+
             // Always save the correct IDs for strand and substrands
             // All planning items need both topic (strand) and subtopic (substrands) IDs
             data.strand = this.state.selectedTopic;      // Topic ID
             data.substrands = this.state.selectedSubtopic; // Subtopic ID 
-            
+
             // Fix: Parse integer fields for GraphQL compatibility
             if (data.week) data.week = parseInt(data.week);
             if (data.lessonnumber) data.lessonnumber = parseInt(data.lessonnumber);
-            
+
             if (item) data.id = item.id;
 
             const apiMap = {
