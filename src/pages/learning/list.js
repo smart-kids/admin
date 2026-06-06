@@ -610,8 +610,15 @@ class CurriculumManagerV5 extends React.Component {
 
     refreshPlanningFilters = () => {
         const {
-            schemesOfWork, recordsOfWork, lessonPlans, iepTemplates,
-            selectedSubject, selectedTermId, selectedTopic, selectedSubtopic, terms
+            schemesOfWork = [],    // Added default
+            recordsOfWork = [],    // Added default
+            lessonPlans = [],      // Added default
+            iepTemplates = [],     // Added default
+            selectedSubject,
+            selectedTermId,
+            selectedTopic,
+            selectedSubtopic,
+            terms = []             // Added default
         } = this.state;
 
         // Use current selectedTermId or fallback to the first term found
@@ -621,39 +628,27 @@ class CurriculumManagerV5 extends React.Component {
             activeTermId = term1.id;
         }
 
-        // Helper to extract ID from either an object or a string
         const getAttrId = (val) => (val && typeof val === 'object' ? val.id : val);
 
         const filterFn = (item) => {
-            // 1. Match Subject
+            if (!item) return false;
             const itemSubjectId = getAttrId(item.subject);
             const matchesSubject = !selectedSubject || String(itemSubjectId) === String(selectedSubject);
-
-            // 2. Match Term
             const itemTermId = getAttrId(item.term);
             const matchesTerm = !activeTermId || String(itemTermId) === String(activeTermId);
-
-            // 3. Match Hierarchy (Topic/Subtopic)
-            // Note: In your Data.js flattening:
-            // Schemes/Records/Lessons are grouped by subtopic (substrands)
-            // IEPs are grouped by topic (strand)
             const itemStrandId = getAttrId(item.strand);
             const itemSubstrandId = getAttrId(item.substrands);
-
             const matchesTopic = !selectedTopic || String(itemStrandId) === String(selectedTopic);
             const matchesSubtopic = !selectedSubtopic || String(itemSubstrandId) === String(selectedSubtopic);
-
             return matchesSubject && matchesTerm && matchesTopic && matchesSubtopic && !item.isDeleted;
         };
 
-        // Separate filter for IEPs because they don't necessarily require a subtopic selected
         const iepFilterFn = (item) => {
+            if (!item) return false;
             const itemSubjectId = getAttrId(item.subject);
             const itemStrandId = getAttrId(item.strand);
-
             const matchesSubject = !selectedSubject || String(itemSubjectId) === String(selectedSubject);
             const matchesTopic = !selectedTopic || String(itemStrandId) === String(selectedTopic);
-
             return matchesSubject && matchesTopic && !item.isDeleted;
         };
 
@@ -664,10 +659,10 @@ class CurriculumManagerV5 extends React.Component {
         });
 
         this.setState({
-            filteredSchemes: schemesOfWork?.filter(filterFn).map(resolveNames),
-            filteredRecords: recordsOfWork?.filter(filterFn).map(resolveNames),
-            filteredLessonPlans: lessonPlans?.filter(filterFn).map(resolveNames),
-            filteredIepTemplates: iepTemplates?.filter(iepFilterFn).map(resolveNames)
+            filteredSchemes: (schemesOfWork || []).filter(filterFn).map(resolveNames),
+            filteredRecords: (recordsOfWork || []).filter(filterFn).map(resolveNames),
+            filteredLessonPlans: (lessonPlans || []).filter(filterFn).map(resolveNames),
+            filteredIepTemplates: (iepTemplates || []).filter(iepFilterFn).map(resolveNames)
         });
     }
 
@@ -1175,7 +1170,14 @@ class CurriculumManagerV5 extends React.Component {
     }
 
     renderMainContentArea() {
-        const { activeTab, filteredTopics, selectedTopic, filteredSubtopics, selectedSubtopic, filteredQuestions, selectedQuestion, filteredOptions, selectedSubject, selectedGrade, topicSearchTerm, subtopicSearchTerm, questionSearchTerm, optionSearchTerm } = this.state;
+        const {
+            activeTab, filteredTopics = [], selectedTopic,
+            filteredSubtopics = [], selectedSubtopic,
+            filteredQuestions = [], selectedQuestion,
+            filteredOptions = [], selectedSubject, selectedGrade,
+            topicSearchTerm, subtopicSearchTerm, questionSearchTerm, optionSearchTerm
+        } = this.state;
+
         const userData = JSON.parse(localStorage.getItem("user") || "{}");
         const isTeacher = userData?.userType === 'teacher' || userData?.role === 'teacher' || userData?.userType === 'Teacher';
         const tableOptions = { reorderable: true, linkable: true, editable: true, deleteable: true };
@@ -1187,11 +1189,11 @@ class CurriculumManagerV5 extends React.Component {
         const currentSubtopicObj = selectedSubtopic ? (currentTopicObj?.subtopics || []).find(st => st.id === selectedSubtopic) : null;
         const currentQuestionObj = selectedQuestion ? (currentSubtopicObj?.questions || []).find(q => q.id === selectedQuestion) : null;
 
-        const topicsLoading = selectedSubject && currentSubjectObj?.topics === undefined && filteredTopics.length === 0;
-        const subtopicsLoading = selectedTopic && currentTopicObj?.subtopics === undefined && filteredSubtopics.length === 0;
-        const questionsLoading = selectedSubtopic && currentSubtopicObj?.questions === undefined && filteredQuestions.length === 0;
-        const optionsLoading = selectedQuestion && currentQuestionObj?.options === undefined && filteredOptions.length === 0;
-
+        // Inside renderMainContentArea, update these lines:
+        const topicsLoading = selectedSubject && currentSubjectObj?.topics === undefined && (filteredTopics || []).length === 0;
+        const subtopicsLoading = selectedTopic && currentTopicObj?.subtopics === undefined && (filteredSubtopics || []).length === 0;
+        const questionsLoading = selectedSubtopic && currentSubtopicObj?.questions === undefined && (filteredQuestions || []).length === 0;
+        const optionsLoading = selectedQuestion && currentQuestionObj?.options === undefined && (filteredOptions || []).length === 0;
         return (
             <div className="cm-column cm-column-large" style={{ minWidth: '800px', flexGrow: 4, display: 'flex', flexDirection: 'column' }}>
                 <div className="cm-tab-header">
@@ -1729,7 +1731,7 @@ class CurriculumManagerV5 extends React.Component {
     }
 
     renderSchemesTable() {
-        const { filteredSchemes } = this.state;
+        const { filteredSchemes = [] } = this.state;
         return (
             <div className="planning-table-container">
                 <table className="planning-table">
