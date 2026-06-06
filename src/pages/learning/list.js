@@ -1745,7 +1745,7 @@ class CurriculumManagerV5 extends React.Component {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredSchemes.length > 0 ? filteredSchemes.map(item => (
+                        {filteredSchemes?.length > 0 ? filteredSchemes.map(item => (
                             <tr key={item.id}>
                                 <td>
                                     <strong>Wk {item.week}</strong><br />
