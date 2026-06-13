@@ -400,7 +400,7 @@ class CurriculumManagerV5 extends React.Component {
 
         // Only extract planning data from nested hierarchy if flat arrays are empty
         // This preserves real-time updates from individual subscriptions
-        const planningData = (this.state.schemesOfWork.length === 0 &&
+        const planningData = (this.state.schemesOfWork?.length === 0 &&
             this.state.recordsOfWork.length === 0 &&
             this.state.lessonPlans.length === 0 &&
             this.state.iepTemplates.length === 0)

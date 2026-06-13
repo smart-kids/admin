@@ -79,7 +79,7 @@ export const FilterPanel = ({
               style={{ borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '0.875rem', minWidth: '150px' }}
             >
               <option value="">All Schools</option>
-              {schools.map(school => (
+              {schools?.map(school => (
                 <option key={school.id} value={school.id}>
                   {school.name}
                 </option>

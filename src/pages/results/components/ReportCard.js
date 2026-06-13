@@ -10,7 +10,7 @@ const ReportCard = ({ student, term, assessments, subjects, rubrics, assessmentT
     
     // Helper to find score for a specific subject and assessment type
     const getScore = (subjectId, typeId) => {
-        const a = assessments.find(a => 
+        const a = assessments?.find(a => 
             (a.student === student.id || a.student?.id === student.id) &&
             (a.subject === subjectId || a.subject?.id === subjectId) &&
             (a.term === term.id || a.term?.id === term.id) &&
