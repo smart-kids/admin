@@ -219,7 +219,7 @@ class BusModal extends React.Component {
                           onChange={(e) => this.setState({ driverId: e.target.value })}
                         >
                           <option value="">-- No Driver Assigned --</option>
-                          {this.state.driversList.map((driver) => (
+                          {(this.state.driversList || []).map((driver) => (
                             <option key={driver.id} value={driver.id}>
                               {driver.names || driver.username} ({driver.phone})
                             </option>
