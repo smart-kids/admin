@@ -484,7 +484,11 @@ class ResultsMatrix extends React.Component {
       let sentCount = 0;
       for (const msgObj of finalMessages) {
           try {
-              await Data.communication.sms.create({ phone: msgObj.phone, message: msgObj.message });
+              await Data.communication.sms.create({
+                  school: localStorage.getItem('school'),
+                  parents: [msgObj.parentId],
+                  message: msgObj.message
+              });
               sentCount++;
           } catch (e) { console.error(e); }
       }
@@ -560,7 +564,11 @@ class ResultsMatrix extends React.Component {
       if (!selectedStudentForSms?.parent?.phone || !smsMessage) return;
       this.setState({ sendingSms: true });
       try {
-          await Data.communication.sms.create({ phone: selectedStudentForSms.parent.phone, message: smsMessage });
+          await Data.communication.sms.create({
+              school: localStorage.getItem('school'),
+              parents: [selectedStudentForSms.parent.id],
+              message: smsMessage
+          });
           if (window.toastr) window.toastr.success(`SMS sent`);
           this.setState({ showSingleSmsModal: false });
       } catch (e) { console.error(e); }

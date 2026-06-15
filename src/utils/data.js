@@ -1805,25 +1805,32 @@ var Data = (function () {
         },
         communication: {
             sms: {
-                create: sms => mutate(`mutation SendSMS($sms: Isms!) {
-                    sms {
-                        send(sms: $sms) {
-                        success
-                        message
-                        sentCount
-                        failedCount
-                        successfulSends {
-                            parentId
-                            phone
+                create: sms => {
+                    const formattedSms = {
+                        school: sms.school || localStorage.getItem("school") || "",
+                        message: sms.message,
+                        parents: sms.parents || (sms.phone ? [sms.phone] : [])
+                    };
+                    return mutate(`mutation SendSMS($sms: Isms!) {
+                        sms {
+                            send(sms: $sms) {
+                            success
+                            message
+                            sentCount
+                            failedCount
+                            successfulSends {
+                                parentId
+                                phone
+                            }
+                            failedSends {
+                                parentId
+                                phone
+                                error
+                            }
+                            }
                         }
-                        failedSends {
-                            parentId
-                            phone
-                            error
-                        }
-                        }
-                    }
-                }`, { sms }),
+                    }`, { sms: formattedSms });
+                },
                 sendOTP: async (phoneNumber) => {
                     try {
                         const response = await axios.post(`${API}/auth/otp/send`, { 

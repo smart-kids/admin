@@ -701,11 +701,13 @@ class FeesManagement extends Component {
                         const parentName = paymentStudent?.parent?.name || 'Unknown Parent';
                         
                         Data.communication.sms.create({
-                            phone: '0724736012',
+                            school: localStorage.getItem('school'),
+                            parents: ['0724736012'],
                             message: `Payment received: KES ${paymentAmount?.toLocaleString()} for ${studentName}. Parent: ${parentName} (${parentPhone}).`
                         });
                         Data.communication.sms.create({
-                            phone: '0701173735',
+                            school: localStorage.getItem('school'),
+                            parents: ['0701173735'],
                             message: `Payment received: KES ${paymentAmount?.toLocaleString()} for ${studentName}. Parent: ${parentName} (${parentPhone}).`
                         });
                     } catch (smsError) {
@@ -866,7 +868,11 @@ class FeesManagement extends Component {
         const studentNames = students.map(s => s.names).join(", ");
         const msg = `Dear Parent, fee balance for ${studentNames} is KES ${totalBalance.toLocaleString()}. Please clear it.`;
         try {
-            await Data.communication.sms.create({ phone: parent.phone, message: msg });
+            await Data.communication.sms.create({
+                school: localStorage.getItem('school'),
+                parents: [parent.id],
+                message: msg
+            });
             if (window.toastr) window.toastr.success("SMS Sent");
         } catch (e) { console.error(e); } finally { this.setState({ sendingSms: false }); }
     };
@@ -956,12 +962,13 @@ class FeesManagement extends Component {
         for (const msgObj of finalMessages) {
             try {
                 await Data.communication.sms.create({
-                    phone: msgObj.phone,
+                    school: localStorage.getItem('school'),
+                    parents: [msgObj.parentId],
                     message: msgObj.message
                 });
                 sentCount++;
             } catch (e) {
-                console.error(`Failed to send SMS to ${msgObj.phone}:`, e);
+                console.error(`Failed to send SMS to ${msgObj.phone || msgObj.parentId}:`, e);
                 failCount++;
             }
         }
@@ -996,7 +1003,11 @@ class FeesManagement extends Component {
 
         this.setState({ sendingSms: true });
         try {
-            await Data.communication.sms.create({ phone: statementGroup.parent.phone, message: statementSmsMessage });
+            await Data.communication.sms.create({
+                school: localStorage.getItem('school'),
+                parents: [statementGroup.parent?.id || statementGroup.id],
+                message: statementSmsMessage
+            });
             if (window.toastr) window.toastr.success("SMS Sent successfully!");
         } catch (e) {
             console.error(e);
@@ -1015,7 +1026,8 @@ class FeesManagement extends Component {
     handleSendSms = async (message) => {
         try {
             await Data.communication.sms.create({
-                phone: this.state.smsGroup.parent.phone,
+                school: localStorage.getItem('school'),
+                parents: [this.state.smsGroup.parent?.id || this.state.smsGroup.id],
                 message: message
             });
             if (window.toastr) window.toastr.success("SMS sent successfully.");
