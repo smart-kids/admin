@@ -228,7 +228,7 @@ class Modal extends React.Component {
                           })}
                         >
                           <option value="">Select Route</option>
-                          {this.props.routes.map(
+                          {(this.props.routes || []).map(
                             route => (
                               <option key={route.name} value={route.name}>{route.name}</option>
                             )
@@ -250,7 +250,7 @@ class Modal extends React.Component {
                           })}
                         >
                           <option value="">Select Bus</option>
-                          {this.props.buses.map(
+                          {(this.props.buses || []).map(
                             bus => (
                               <option key={bus.make} value={bus.make}>{bus.make}</option>
                             )
@@ -317,7 +317,7 @@ class Modal extends React.Component {
                           })}
                         >
                           <option value="">Select driver</option>
-                          {this.props.drivers.map(
+                          {(this.props.drivers || []).map(
                             driver => (
                               <option key={driver.id} value={driver.id}>{driver.names}</option>
                             )

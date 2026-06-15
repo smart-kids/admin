@@ -196,7 +196,7 @@ class Modal extends React.Component {
                           })}
                         >
                           <option value="">Select class</option>
-                          {this.state.classes.map(Iclass => (
+                          {(this.state.classes || []).map(Iclass => (
                             <option key={Iclass.id} value={Iclass.id}>{Iclass.name}</option>
                           ))}
                         </select>
@@ -246,7 +246,7 @@ class Modal extends React.Component {
                           onChange={this.onParentChange}
                         >
                           <option value="">Select parent</option>
-                          {this.state.parents.map(parent => (
+                          {(this.state.parents || []).map(parent => (
                             // !this.state.selectedParents.includes(parent.id) && 
                             <option key={parent.id} value={parent.id}>{parent.name}</option>
 

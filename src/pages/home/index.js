@@ -29,8 +29,8 @@ class Home extends React.Component {
     // console.log(trips)
     // map points
     const locations = [];
-    trips.map(trip => {
-      trip.locReports.map(report => locations.push(report))
+    (trips || []).forEach(trip => {
+      (trip.locReports || []).forEach(report => locations.push(report))
     })
 
     this.setState({ locations })
@@ -50,8 +50,8 @@ class Home extends React.Component {
 
       // map points
       const locations = [];
-      this.state.trips.map(trip => {
-        trip.locReports.map(report => locations.push(report))
+      (this.state.trips || []).forEach(trip => {
+        (trip.locReports || []).forEach(report => locations.push(report))
       })
       this.setState({ locations })
     });

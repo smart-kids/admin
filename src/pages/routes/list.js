@@ -130,7 +130,7 @@ class RouteListV2 extends React.Component {
             <div className="text-center p-5"><span className="spinner-border text-primary"></span></div>
         ) : (
             <div className="row">
-            {filteredRoutes.map(route => {
+            {(filteredRoutes || []).map(route => {
                 const assignedStudents = this.getStudentsForRoute(route.id);
                 
                 return (

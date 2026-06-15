@@ -96,7 +96,8 @@ const injectOrUpdateEntity = (entityName, payload) => {
     
     // Notify subscribers
     if (Array.isArray(subs[entityName])) {
-        subs[entityName].forEach(cb => cb(allData[entityName]));
+        const safeList = Array.isArray(allData[entityName]) ? allData[entityName] : [];
+        subs[entityName].forEach(cb => cb({ [entityName]: [...safeList] }));
     }
 };
 
