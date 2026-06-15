@@ -36,7 +36,7 @@ const ReportCard = ({ student, term, assessments, subjects, rubrics, assessmentT
             const score = getScore(subject.id, type.id);
             const pct = type.percentage || 0;
             // Assuming outOf is 100 for now, or find it if we can
-            const assessment = assessments.find(a => 
+            const assessment = assessments?.find(a => 
                 (a.student === student.id || a.student?.id === student.id) &&
                 (a.subject === subject.id || a.subject?.id === subject.id) &&
                 (a.assessmentType === type.id || a.assessmentType?.id === type.id)
