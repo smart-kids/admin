@@ -12,6 +12,7 @@ import Subheader from "../../components/subheader";
 import StatementCard from "./components/StatementCard";
 import MobileFeesList from "./components/MobileFeesList";
 import BulkReportSmsModal from "../../components/reports/BulkReportSmsModal";
+import BulkFeeBalanceSmsModal from "./components/BulkFeeBalanceSmsModal";
 import SmsBalanceModal from "./components/SmsBalanceModal";
 import SearchAlphabetFilter from '../../components/search-alphabet-filter/SearchAlphabetFilter';
 import { calculateFinancials, aggregateByClass, isSuccessfulPayment } from '../../utils/financialEngine';
@@ -901,7 +902,7 @@ class FeesManagement extends Component {
                 .filter(h => h.isUnallocated && h.status === 'COMPLETED')
                 .reduce((sum, h) => sum + (h.processedAmount || 0), 0);
 
-            // Build comprehensive statement message
+            // Build comprehensive statement message (as default/fallback)
             let message = `--- FEE STATEMENT ---\n`;
             message += `Parent: ${parent.name || 'Parent'}\n`;
             message += `Period: ${selectedTerm ? currentTerm.name : 'All Terms'}\n\n`;
@@ -949,7 +950,16 @@ class FeesManagement extends Component {
                 name: parent.name || 'Parent',
                 phone: parent.phone || '',
                 studentNames: studentNames,
-                message
+                message,
+                // Include full data for template rendering
+                parent: parent,
+                students: students,
+                totalBalance: totalBalance,
+                totalExpected: totalExpected,
+                totalPaid: totalPaid,
+                charges: charges,
+                history: history,
+                termName: currentTerm.name || 'Term'
             };
         }).filter(r => r !== null);
 
@@ -3539,9 +3549,8 @@ class FeesManagement extends Component {
                 )}
 
                 {this.state.showBulkSmsModal && (
-                    <BulkReportSmsModal
+                    <BulkFeeBalanceSmsModal
                         show={this.state.showBulkSmsModal}
-                        title="Bulk Fee Balance SMS"
                         onClose={() => this.setState({ showBulkSmsModal: false })}
                         recipients={this.state.bulkSmsRecipients}
                         onSend={this.handleBulkSmsSend}
