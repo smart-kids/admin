@@ -87,7 +87,7 @@ class RouteListV2 extends React.Component {
 
     // Filter Routes
     const filteredRoutes = routes?.filter(r => 
-      r.name.toLowerCase().includes(searchTerm.toLowerCase())
+      r?.name?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
