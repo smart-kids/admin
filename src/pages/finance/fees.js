@@ -890,6 +890,10 @@ class FeesManagement extends Component {
             const { students, parent, totalBalance, totalExpected, totalPaid, charges, history } = group;
             if (!parent) return null;
 
+            // Resolve the actual parent ID — prefer parent.id, fall back to group.id
+            const resolvedParentId = parent.id || parent._id || group.id || null;
+            if (!resolvedParentId) return null;
+
             const studentNames = students.map(s => s.names).join(", ");
 
             // Check for unallocated payments
@@ -940,8 +944,8 @@ class FeesManagement extends Component {
             message += `Please clear your balance. Contact the school for inquiries.`;
 
             return {
-                id: group.id,
-                parentId: group.id,
+                id: resolvedParentId,
+                parentId: resolvedParentId,
                 name: parent.name || 'Parent',
                 phone: parent.phone || '',
                 studentNames: studentNames,
@@ -960,6 +964,13 @@ class FeesManagement extends Component {
         let failCount = 0;
 
         for (const msgObj of finalMessages) {
+            // Guard: skip if parentId is null/undefined/empty
+            if (!msgObj.parentId) {
+                console.warn('Skipping SMS — no parentId for recipient:', msgObj.name || msgObj.phone);
+                failCount++;
+                continue;
+            }
+
             try {
                 await Data.communication.sms.create({
                     school: localStorage.getItem('school'),
