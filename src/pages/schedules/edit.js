@@ -118,9 +118,25 @@ class Modal extends React.Component {
   }
   static getDerivedStateFromProps(props, state) {
     if (props.edit) {
-      if (!deepEqual(props.edit, state.edit)) {
+      const edit = { ...props.edit };
+      // Ensure days is always an array, not a stringified JSON
+      if (typeof edit.days === 'string') {
+        try {
+          edit.days = JSON.parse(edit.days);
+        } catch (e) {
+          edit.days = [];
+        }
+      }
+      if (!Array.isArray(edit.days)) {
+        edit.days = [];
+      }
+      // Ensure actions is an object, not an empty string
+      if (edit.actions === '' || edit.actions === null || edit.actions === undefined) {
+        edit.actions = {};
+      }
+      if (!deepEqual(edit, state.edit)) {
         return {
-          edit: props.edit
+          edit
         };
       }
       return null;
