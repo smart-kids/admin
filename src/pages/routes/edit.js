@@ -83,7 +83,12 @@ class RouteModal extends React.Component {
       const routeId = props.edit.id;
       let existingStudentIds = [];
 
-      if (state.allStudents && state.allStudents.length > 0) {
+      // First try to get student IDs from the route's own students array
+      if (props.edit.students && Array.isArray(props.edit.students)) {
+        existingStudentIds = props.edit.students.map(s => s.id);
+      }
+      // Fallback: check students' route field
+      else if (state.allStudents && state.allStudents.length > 0) {
         existingStudentIds = state.allStudents
           .filter(student => student.route && String(student.route.id) === String(routeId))
           .map(student => student.id);

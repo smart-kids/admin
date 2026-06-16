@@ -274,8 +274,15 @@ const createEntityAPI = (config) => {
                 }
                 const sanitizedPayload = filterPayload(payload, updateFields);
                 const mutationName = `U${singularName}`;
-                await mutate(
-                    `mutation ($data: ${mutationName}!) { ${name} { update(${singularName}: $data) { id } } }`,
+                
+                // For routes, request the full object including students to ensure persistence
+                let returnFields = 'id';
+                if (name === 'routes') {
+                    returnFields = 'id name description students { id names }';
+                }
+                
+                const response = await mutate(
+                    `mutation ($data: ${mutationName}!) { ${name} { update(${singularName}: $data) { ${returnFields} } } }`,
                     { data: { id, ...sanitizedPayload } }
                 );
 
@@ -287,6 +294,11 @@ const createEntityAPI = (config) => {
                     if (typeof normalizedData.term === 'string') normalizedData.term = { id: normalizedData.term };
                     if (typeof normalizedData.assessmentType === 'string') normalizedData.assessmentType = { id: normalizedData.assessmentType };
                     if (typeof normalizedData.type === 'string') normalizedData.type = { id: normalizedData.type };
+                }
+
+                // For routes, use the response data which includes the updated students
+                if (name === 'routes' && response[name] && response[name].update) {
+                    normalizedData = { ...normalizedData, ...response[name].update };
                 }
 
                 const { item: itemInTree } = findItemInTree(id, allData.schools);

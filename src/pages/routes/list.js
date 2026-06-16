@@ -164,6 +164,7 @@ class RouteListV2 extends React.Component {
                         {/* Student Avatars / Count */}
                         <div className="d-flex align-items-center justify-content-between mt-3 pt-3 border-top">
                             <div className="d-flex align-items-center">
+                                <span className="badge badge-primary mr-2">{assignedStudents.length} Students</span>
                                 {/* Stacked Avatars (Show max 3) */}
                                 <div className="d-flex position-relative" style={{height: '35px'}}>
                                     {assignedStudents.slice(0, 3).map((s, i) => (
@@ -234,8 +235,13 @@ class RouteListV2 extends React.Component {
                 } else {
                     await Data.routes.create(data);
                 }
-                // Clear selection after save
-                this.setState({ selectedRoute: null });
+                // Refresh students data to get updated route assignments
+                // This ensures the edit modal shows correct selections next time
+                const students = Data.students.list();
+                this.setState({ 
+                    selectedRoute: null,
+                    students: students
+                });
             }}
         />
 
