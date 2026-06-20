@@ -29,6 +29,7 @@ class QRModal extends React.Component {
     const schoolId = localStorage.getItem("school");
     const payload = JSON.stringify({
       "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "com.shule.plusapp/.AdminReceiver",
+      "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_NAME": "com.shule.plusapp",
       "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": {
         "schoolId": schoolId
       }
