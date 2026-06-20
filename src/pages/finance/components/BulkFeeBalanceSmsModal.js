@@ -37,6 +37,7 @@ const BulkFeeBalanceSmsModal = ({ show, onClose, recipients = [], onSend, onSave
     const [schoolBalance, setSchoolBalance] = useState(0);
     const [isSending, setIsSending] = useState(false);
     const [schoolName, setSchoolName] = useState('');
+    const [selectedIds, setSelectedIds] = useState(new Set()); // Set of selected recipient IDs
     
     // Template state
     const [messageTemplate, setMessageTemplate] = useState(`--- FEE STATEMENT ---\nParent: {{parent.name}}\nPeriod: {{term.name}}\n\n{{#each students}}\n{{names}}:\n  Expected: KES {{toLocaleString finances.expected}}\n  Paid: KES {{toLocaleString finances.paid}}\n  Balance: KES {{toLocaleString finances.balance}}\n{{/each}}\n\n{{#if charges}}\nAdditional Charges:\n{{#each charges}}\n  {{chargeType.name}}: KES {{toLocaleString amount}}\n{{/each}}\n{{/if}}\n\nTotal Balance: KES {{toLocaleString totalBalance}}\nPlease clear your balance. Contact the school for inquiries.`);
@@ -60,8 +61,31 @@ const BulkFeeBalanceSmsModal = ({ show, onClose, recipients = [], onSend, onSave
             setSearchTerm('');
             setEdits({});
             setPhoneEdits({});
+            setSelectedIds(new Set());
         }
     }, [show]);
+
+    // Selection handlers
+    const handleToggleSelect = (id) => {
+        setSelectedIds(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(id)) {
+                newSet.delete(id);
+            } else {
+                newSet.add(id);
+            }
+            return newSet;
+        });
+    };
+
+    const handleSelectAll = () => {
+        const allIds = filteredRecipients.map(r => r.id);
+        setSelectedIds(new Set(allIds));
+    };
+
+    const handleDeselectAll = () => {
+        setSelectedIds(new Set());
+    };
 
     const filteredRecipients = useMemo(() => {
         if (!searchTerm) return recipients;
@@ -72,6 +96,9 @@ const BulkFeeBalanceSmsModal = ({ show, onClose, recipients = [], onSend, onSave
             (r.phone && r.phone.includes(searchTerm))
         );
     }, [recipients, searchTerm]);
+
+    const isAllSelected = filteredRecipients.length > 0 && filteredRecipients.every(r => selectedIds.has(r.id));
+    const isSomeSelected = selectedIds.size > 0 && !isAllSelected;
 
     const activeRecipient = filteredRecipients[selectedIndex] || filteredRecipients[0];
 
@@ -137,8 +164,9 @@ const BulkFeeBalanceSmsModal = ({ show, onClose, recipients = [], onSend, onSave
     const COST_PER_SMS = 2.0;
     const CHARS_PER_SEGMENT = 160;
 
-    // Only count recipients that have a phone for cost/sending
-    const sendableRecipients = recipients.filter(r => getPhone(r));
+    // Only count selected recipients that have a phone for cost/sending
+    const selectedRecipients = recipients.filter(r => selectedIds.has(r.id));
+    const sendableRecipients = selectedRecipients.filter(r => getPhone(r));
 
     const campaignStats = useMemo(() => {
         let totalSegments = 0;
@@ -150,19 +178,17 @@ const BulkFeeBalanceSmsModal = ({ show, onClose, recipients = [], onSend, onSave
         const totalCost = totalSegments * COST_PER_SMS;
         return { totalSegments, totalCost };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [recipients, edits, phoneEdits, messageTemplate]);
+    }, [selectedRecipients, edits, phoneEdits, messageTemplate]);
 
     const handleConfirmSend = async () => {
-        const finalMessages = sendableRecipients.map(r => ({
-            id: r.id,
-            parentId: r.parentId || r.id,
-            phone: getPhone(r),
-            message: getMessage(r)
-        }));
+        const parentIds = sendableRecipients.map(r => r.parentId || r.id);
 
         setIsSending(true);
         try {
-            await onSend(finalMessages);
+            await onSend({
+                template: messageTemplate,
+                parentIds: parentIds
+            });
             onClose();
         } catch (e) {
             console.error(e);
@@ -173,7 +199,7 @@ const BulkFeeBalanceSmsModal = ({ show, onClose, recipients = [], onSend, onSave
 
     if (!show) return null;
 
-    const missingPhoneCount = recipients.filter(r => !getPhone(r)).length;
+    const missingPhoneCount = selectedRecipients.filter(r => !getPhone(r)).length;
 
     return (
         <div className="modal fade show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1050 }}>
@@ -190,11 +216,17 @@ const BulkFeeBalanceSmsModal = ({ show, onClose, recipients = [], onSend, onSave
                                 <div>
                                     <h5 className="modal-title font-weight-bolder text-dark">Bulk Fee Balance SMS</h5>
                                     <span className="text-muted font-weight-bold font-size-sm">
-                                        {recipients.length} recipients
-                                        {missingPhoneCount > 0 && (
+                                        {selectedIds.size > 0 ? `${selectedIds.size} selected` : `${recipients.length} recipients`}
+                                        {missingPhoneCount > 0 && selectedIds.size > 0 && (
                                             <span className="text-warning ml-2">
                                                 <i className="flaticon-warning text-warning mr-1"></i>
                                                 {missingPhoneCount} missing phone
+                                            </span>
+                                        )}
+                                        {selectedIds.size === 0 && (
+                                            <span className="text-warning ml-2">
+                                                <i className="flaticon-warning text-warning mr-1"></i>
+                                                No recipients selected
                                             </span>
                                         )}
                                     </span>
@@ -212,7 +244,7 @@ const BulkFeeBalanceSmsModal = ({ show, onClose, recipients = [], onSend, onSave
                         {/* Left Panel: Recipients List */}
                         <div style={{ width: '350px', flexShrink: 0 }} className="bg-light border-right h-100 d-flex flex-column">
                             <div className="p-4 bg-white border-bottom">
-                                <div className="input-icon input-icon-right">
+                                <div className="input-icon input-icon-right mb-3">
                                     <input
                                         type="text"
                                         className="form-control form-control-sm border-0 bg-light"
@@ -222,29 +254,66 @@ const BulkFeeBalanceSmsModal = ({ show, onClose, recipients = [], onSend, onSave
                                     />
                                     <span><i className="flaticon2-search-1 icon-sm text-muted"></i></span>
                                 </div>
+                                <div className="d-flex align-items-center justify-content-between">
+                                    <span className="text-muted font-size-xs font-weight-bold">
+                                        {selectedIds.size} of {filteredRecipients.length} selected
+                                    </span>
+                                    <div className="d-flex gap-1">
+                                        {isAllSelected ? (
+                                            <button
+                                                className="btn btn-xs btn-light-primary font-weight-bold"
+                                                onClick={handleDeselectAll}
+                                            >
+                                                Deselect All
+                                            </button>
+                                        ) : (
+                                            <button
+                                                className="btn btn-xs btn-light-primary font-weight-bold"
+                                                onClick={handleSelectAll}
+                                                disabled={filteredRecipients.length === 0}
+                                            >
+                                                Select All
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
                             <div className="flex-grow-1 overflow-auto custom-scroll">
                                 {filteredRecipients.map((r, idx) => {
                                     const hasPhone = !!getPhone(r);
                                     const isActive = activeRecipient?.id === r.id;
+                                    const isSelected = selectedIds.has(r.id);
                                     return (
                                         <div
                                             key={r.id}
                                             className={`px-5 py-4 border-bottom cursor-pointer ${isActive ? 'bg-white shadow-sm' : 'hover-bg-white'}`}
                                             style={{ borderLeft: isActive ? '4px solid #3699ff' : '4px solid transparent' }}
-                                            onClick={() => setSelectedIndex(idx)}
                                         >
                                             <div className="d-flex justify-content-between align-items-center">
-                                                <div style={{ minWidth: 0, flex: 1 }}>
-                                                    <div className="font-weight-bolder text-dark-75 text-truncate" style={{ fontSize: '0.9rem' }}>{r.name}</div>
-                                                    <div className="text-muted font-size-xs text-truncate">{r.studentNames}</div>
-                                                    {!hasPhone ? (
-                                                        <span className="label label-xs label-light-danger label-inline mt-1">
-                                                            <i className="flaticon-warning icon-xs mr-1"></i> No Phone
-                                                        </span>
-                                                    ) : (
-                                                        <div className="text-muted font-size-xs">{getPhone(r)}</div>
-                                                    )}
+                                                <div className="d-flex align-items-center" style={{ minWidth: 0, flex: 1 }} onClick={() => setSelectedIndex(idx)}>
+                                                    <div className="checkbox checkbox-inline mr-3">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isSelected}
+                                                            onChange={(e) => {
+                                                                e.stopPropagation();
+                                                                handleToggleSelect(r.id);
+                                                            }}
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        />
+                                                            <span></span>
+                                                    </div>
+                                                    <div style={{ minWidth: 0 }}>
+                                                        <div className="font-weight-bolder text-dark-75 text-truncate" style={{ fontSize: '0.9rem' }}>{r.name}</div>
+                                                        <div className="text-muted font-size-xs text-truncate">{r.studentNames}</div>
+                                                        {!hasPhone ? (
+                                                            <span className="label label-xs label-light-danger label-inline mt-1">
+                                                                <i className="flaticon-warning icon-xs mr-1"></i> No Phone
+                                                            </span>
+                                                        ) : (
+                                                            <div className="text-muted font-size-xs">{getPhone(r)}</div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                                 {edits[r.id] !== undefined && (
                                                     <span className="label label-xs label-light-warning label-inline ml-2">Edited</span>
@@ -397,8 +466,8 @@ const BulkFeeBalanceSmsModal = ({ show, onClose, recipients = [], onSend, onSave
                     <div className="modal-footer bg-light px-8 py-4 border-top d-flex justify-content-between align-items-center flex-shrink-0">
                         <div className="d-flex align-items-center flex-wrap">
                             <div className="d-flex flex-column mr-6">
-                                <span className="text-muted font-size-sm font-weight-bold">Total Recipients</span>
-                                <span className="font-weight-bolder font-size-h6">{recipients.length}</span>
+                                <span className="text-muted font-size-sm font-weight-bold">Selected</span>
+                                <span className="font-weight-bolder font-size-h6">{selectedIds.size}</span>
                             </div>
                             <div className="d-flex flex-column mr-6">
                                 <span className="text-muted font-size-sm font-weight-bold">Will Send</span>
@@ -435,7 +504,7 @@ const BulkFeeBalanceSmsModal = ({ show, onClose, recipients = [], onSend, onSave
                                     type="button"
                                     className={`btn btn-primary font-weight-bold px-8 ${isSending ? 'spinner spinner-white spinner-right' : ''}`}
                                     onClick={handleConfirmSend}
-                                    disabled={isSending || sendableRecipients.length === 0}
+                                    disabled={isSending || sendableRecipients.length === 0 || selectedIds.size === 0}
                                 >
                                     {isSending ? 'Sending...' : `Send to ${sendableRecipients.length} Parent${sendableRecipients.length !== 1 ? 's' : ''}`}
                                 </button>

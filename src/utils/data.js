@@ -1195,8 +1195,9 @@ var Data = (function () {
         {
             name: "students",
             singularName: "student",
-            createFields: ['names', 'route', 'gender', 'registration', 'parent', 'school', 'parent2', 'class'],
+            createFields: ['names', 'route', 'gender', 'registration', 'parent', 'school', 'parent2', 'class', 'paidFees', 'balanceBroughtForward'],
             updateFields: ['names', 'route', 'registration', 'gender', 'parent', 'parent2', 'class', 'balanceBroughtForward'],
+            returnFields: 'id names gender registration class { id name } route { id name } parent { id name } parent2 { id name } balanceBroughtForward',
             customMethods: (allData, subs) => ({
                 getPage: async ({ page = 1, limit = 15, search = "" }) => {
                     const offset = (page - 1) * limit;

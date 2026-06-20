@@ -969,34 +969,23 @@ class FeesManagement extends Component {
         });
     };
 
-    handleBulkSmsSend = async (finalMessages) => {
-        let sentCount = 0;
-        let failCount = 0;
+    handleBulkSmsSend = async ({ template, parentIds }) => {
+        try {
+            const response = await Data.communication.sms.create({
+                school: localStorage.getItem('school'),
+                message: template,
+                parents: parentIds
+            });
 
-        for (const msgObj of finalMessages) {
-            // Guard: skip if parentId is null/undefined/empty
-            if (!msgObj.parentId) {
-                console.warn('Skipping SMS — no parentId for recipient:', msgObj.name || msgObj.phone);
-                failCount++;
-                continue;
+            if (window.toastr) {
+                window.toastr.success(`Bulk SMS campaign initiated for ${parentIds.length} recipients.`);
             }
-
-            try {
-                await Data.communication.sms.create({
-                    school: localStorage.getItem('school'),
-                    parents: [msgObj.parentId],
-                    message: msgObj.message
-                });
-                sentCount++;
-            } catch (e) {
-                console.error(`Failed to send SMS to ${msgObj.phone || msgObj.parentId}:`, e);
-                failCount++;
+        } catch (e) {
+            console.error('Failed to send bulk SMS:', e);
+            if (window.toastr) {
+                window.toastr.error(e.message || 'Failed to send bulk SMS');
             }
-        }
-
-        if (window.toastr) {
-            if (failCount === 0) window.toastr.success(`Successfully sent ${sentCount} messages.`);
-            else window.toastr.warning(`Sent ${sentCount}, Failed ${failCount}.`);
+            throw e;
         }
     };
 

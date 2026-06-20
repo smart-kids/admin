@@ -246,8 +246,17 @@ export default function StudentDataTableV8() {
 
   const handleStudentCreated = (newStudent) => {
     if (!newStudent || !newStudent.id) return;
+    
+    // Enrich the new student with computed fields for display
+    const enrichedStudent = {
+      ...newStudent,
+      parent_name: newStudent.parent?.name || '',
+      class_name: newStudent.class?.name || '',
+      route_name: newStudent.route?.name || '',
+    };
+    
     setCurrentPage(1);
-    setStudents(prev => [newStudent, ...prev.slice(0, rowsPerPage - 1)]);
+    setStudents(prev => [enrichedStudent, ...prev.slice(0, rowsPerPage - 1)]);
     setTotalStudents(prev => prev + 1); 
 
     setNewlyAddedIds(prev => new Set(prev).add(newStudent.id));

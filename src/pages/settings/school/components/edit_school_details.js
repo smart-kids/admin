@@ -29,6 +29,7 @@ class Modal extends React.Component {
       inviteSmsText: "Hello {{username}}, you've been invited to join {{team_name}}. Your temporary password is {{password}}.", // Default
       logo: null, // For base64 string or URL
       themeColor: "#4e73df", // Default theme color (e.g., a nice blue)
+      mpesaPaybill: "", // M-Pesa Paybill for automatic transfers
     },
     logoPreview: null, // For immediate preview from file input
   };
@@ -103,6 +104,7 @@ class Modal extends React.Component {
         inviteSmsText: "Hello {{username}}, you've been invited to join {{team_name}}. Your temporary password is {{password}}.",
         logo: null,
         themeColor: "#4e73df", // Ensure default is here
+        mpesaPaybill: "",
     };
 
     if (props.edit) {
@@ -197,7 +199,7 @@ class Modal extends React.Component {
   };
 
   render() {
-    const { name, phone, email, address, schoolSize, schoolType, schoolLevel, numberOfStudents, inviteSmsText, themeColor } = this.state.edit; // Added new fields
+    const { name, phone, email, address, schoolSize, schoolType, schoolLevel, numberOfStudents, inviteSmsText, themeColor, mpesaPaybill } = this.state.edit; // Added new fields
     const { loading, logoPreview } = this.state;
     const currentModalId = modalNumber;
     const currentFormId = modalNumber + "form";
@@ -397,6 +399,30 @@ class Modal extends React.Component {
                      <small className="form-text text-muted">
                         Placeholders: <code>{`{{username}}`}</code>, <code>{`{{team_name}}`}</code>, <code>{`{{phone_number}}`}</code>, <code>{`{{password}}`}</code>
                      </small>
+                  </div>
+
+                  <hr />
+
+                  {/* Payment Configuration Section */}
+                  <h6 className="mb-3 text-muted">Payment Configuration</h6>
+                  <div className="form-group">
+                    <label htmlFor={`${currentFormId}_mpesaPaybill`}>M-Pesa Paybill Number:</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      id={`${currentFormId}_mpesaPaybill`}
+                      name="mpesaPaybill"
+                      placeholder="e.g. 123456"
+                      value={mpesaPaybill || ""}
+                      onChange={this.handleChange}
+                      disabled={loading}
+                      pattern="[0-9]{5,7}"
+                      title="Enter a valid M-Pesa paybill number (5-7 digits)"
+                    />
+                    <small className="form-text text-muted">
+                      Configure the school's M-Pesa paybill to receive automatic transfers from parent payments. 
+                      A platform fee will be deducted before transfer.
+                    </small>
                   </div>
                 </div>
                 <div className="modal-footer">
