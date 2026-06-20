@@ -25,12 +25,8 @@ class LibraryList extends React.Component {
   };
 
   componentDidMount() {
-    // 1. Dynamically Load external script dependencies (Plyr & Freewall)
-    this.loadExternalLibraries().then(() => {
-      this.setState({ libsLoaded: true }, () => {
-        this.initializeFreewall();
-      });
-    });
+    // 1. Dynamically Load Plyr CSS and JS for video player
+    this.loadPlyrLibrary();
 
     // 2. Subscribe to live data updates
     this._subscription = Data.books.subscribe(({ books }) => {
@@ -42,114 +38,26 @@ class LibraryList extends React.Component {
 
   componentWillUnmount() {
     if (this._subscription) this._subscription();
-    if (this.wall) {
-      try {
-        this.wall.destroy();
-      } catch (e) {}
-    }
-    if (this.initTimeout) clearTimeout(this.initTimeout);
   }
 
-  componentDidUpdate(prevProps, prevState) {
-    if (prevState.filteredBooks !== this.state.filteredBooks || prevState.libsLoaded !== this.state.libsLoaded) {
-      this.initializeFreewall();
+  loadPlyrLibrary = () => {
+    // Load Plyr CSS
+    if (!document.getElementById("plyr-css")) {
+      const link = document.createElement("link");
+      link.id = "plyr-css";
+      link.rel = "stylesheet";
+      link.href = "https://cdn.plyr.io/3.7.8/plyr.css";
+      document.head.appendChild(link);
     }
-  }
 
-  loadExternalLibraries = () => {
-    return new Promise((resolve) => {
-      let loadedCount = 0;
-      const totalToLoad = 3;
-
-      const checkAllLoaded = () => {
-        loadedCount++;
-        if (loadedCount === totalToLoad) {
-          resolve();
-        }
-      };
-
-      // 1. Load Plyr CSS
-      if (!document.getElementById("plyr-css")) {
-        const link = document.createElement("link");
-        link.id = "plyr-css";
-        link.rel = "stylesheet";
-        link.href = "https://cdn.plyr.io/3.7.8/plyr.css";
-        document.head.appendChild(link);
-      }
-
-      // 2. Load Plyr JS
-      if (window.Plyr) {
-        checkAllLoaded();
-      } else {
-        const script = document.createElement("script");
-        script.src = "https://cdn.plyr.io/3.7.8/plyr.js";
-        script.onload = checkAllLoaded;
-        script.onerror = checkAllLoaded;
-        document.head.appendChild(script);
-      }
-
-      // 3. Load Freewall JS
-      if (window.Freewall) {
-        checkAllLoaded();
-      } else {
-        const script = document.createElement("script");
-        script.src = "https://cdnjs.cloudflare.com/ajax/libs/freewall/1.0.8/freewall.min.js";
-        script.onload = checkAllLoaded;
-        script.onerror = checkAllLoaded;
-        document.head.appendChild(script);
-      }
-
-      // Sheet load bypass
-      checkAllLoaded();
-    });
+    // Load Plyr JS
+    if (!window.Plyr) {
+      const script = document.createElement("script");
+      script.src = "https://cdn.plyr.io/3.7.8/plyr.js";
+      document.head.appendChild(script);
+    }
   };
 
-  initializeFreewall = () => {
-    if (this.initTimeout) clearTimeout(this.initTimeout);
-
-    this.initTimeout = setTimeout(() => {
-      if (!window.Freewall) {
-        console.warn("Freewall not loaded yet");
-        return;
-      }
-      
-      const gridSelector = "#freewall-grid";
-      const $grid = window.$(gridSelector);
-      if ($grid.length === 0) return;
-
-      // Clean up previous instance
-      if (this.wall) {
-        try {
-          this.wall.destroy();
-        } catch (e) {}
-      }
-
-      const wall = new window.Freewall(gridSelector);
-      wall.reset({
-        selector: '.brick',
-        animate: true,
-        cellW: 10,
-        cellH: 10,
-        fixSize: 0,
-        gutterX: 20,
-        gutterY: 20,
-        onResize: function() {
-          wall.fitWidth();
-        }
-      });
-
-      // Fit width
-      wall.fitWidth();
-      this.wall = wall;
-
-      // Force fit width again as images finish downloading to correct dimensions
-      $grid.find("img").on("load", () => {
-        if (this.wall) {
-          this.wall.fitWidth();
-        }
-      });
-    }, 50);
-  };
 
   // --- Filtering Logic ---
 
@@ -315,150 +223,13 @@ class LibraryList extends React.Component {
 
   // --- Render Helpers ---
 
-  renderMosaicCard = (book, index) => {
-    const isFeatured = index % 6 === 0;
+  renderGridCard = (book) => {
     const isVideo = book.type === "video";
     const coverImage = book.coverUrl || NO_COVER_SVG;
 
-    if (isFeatured) {
-      return (
-        <div key={book.id} className="brick brick-featured">
-          <div className="featured-inner">
-            <div className="featured-left">
-              <img
-                src={coverImage}
-                alt={book.title}
-                className="book-cover-img"
-                onError={(e) => { e.target.onerror = null; e.target.src = NO_COVER_SVG; }}
-              />
-              {isVideo && (
-                <div className="video-play-overlay" onClick={() => this.openVideoPlayer(book)}>
-                  <div className="play-circle-btn">
-                    <i className="la la-play" style={{ marginLeft: '4px' }}></i>
-                  </div>
-                </div>
-              )}
-              {!isVideo && book.pdfUrl && (
-                <div className="book-quick-view-overlay" onClick={() => this.openReviewMode(book)}>
-                  <div className="quick-view-btn">
-                    <i className="la la-eye"></i>
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            <div className="featured-right">
-              <div className="d-flex flex-column">
-                <span className="featured-badge">{book.category || "General"}</span>
-                <h4 className="featured-title" title={book.title}>{book.title}</h4>
-                <span className="featured-author">{isVideo ? `Instructor: ${book.author}` : `Author: ${book.author}`}</span>
-              </div>
-              
-              <p className="featured-desc">
-                {book.description || "An essential resource added to the school's digital curriculum library."}
-              </p>
-              
-              <div className="featured-actions">
-                {isVideo ? (
-                  <button 
-                    className="btn-premium-action btn-primary"
-                    onClick={() => this.openVideoPlayer(book)}
-                  >
-                    <i className="la la-play mr-1"></i> Watch Video
-                  </button>
-                ) : (
-                  book.pdfUrl && (
-                    <button 
-                      className="btn-premium-action btn-primary"
-                      onClick={() => this.openReviewMode(book)}
-                    >
-                      <i className="la la-file-pdf mr-1"></i> Read Book
-                    </button>
-                  )
-                )}
-                
-                <button 
-                  className="btn-premium-action btn-secondary"
-                  onClick={() => this.openEditModal(book)}
-                  title="Edit resource"
-                  style={{ maxWidth: '40px' }}
-                >
-                  <i className="la la-edit" style={{ fontSize: '16px' }}></i>
-                </button>
-                
-                <button 
-                  className="btn-premium-action btn-secondary"
-                  onClick={() => this.deleteBook(book)}
-                  title="Delete resource"
-                  style={{ maxWidth: '40px', color: '#ff3b30' }}
-                >
-                  <i className="la la-trash" style={{ fontSize: '16px' }}></i>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    if (isVideo) {
-      return (
-        <div key={book.id} className="brick brick-video">
-          <div className="book-cover-wrapper" style={{ height: '140px', width: '100%', marginBottom: '8px', cursor: 'pointer' }}>
-            <span className="book-category-badge">{book.category || "General"}</span>
-            <img
-              src={coverImage}
-              alt={book.title}
-              className="book-cover-img"
-              onError={(e) => { e.target.onerror = null; e.target.src = NO_COVER_SVG; }}
-            />
-            <div className="video-play-overlay" onClick={() => this.openVideoPlayer(book)}>
-              <div className="play-circle-btn" style={{ width: '45px', height: '45px', fontSize: '20px' }}>
-                <i className="la la-play" style={{ marginLeft: '2px' }}></i>
-              </div>
-            </div>
-          </div>
-
-          <div className="book-info" style={{ textAlign: 'left', marginBottom: '8px' }}>
-            <div className="book-title" style={{ fontSize: '13px', fontWeight: '700' }} title={book.title}>
-              {book.title}
-            </div>
-            <div className="book-author" style={{ fontSize: '11px' }}>
-              Instructor: {book.author}
-            </div>
-          </div>
-
-          <div className="book-actions mt-auto" style={{ borderTop: '1px solid var(--border-primary)', paddingTop: '6px' }}>
-            <button 
-                className="book-action-btn edit-btn"
-                onClick={() => this.openEditModal(book)}
-                title="Edit Video"
-            >
-                <i className="la la-edit"></i>
-            </button>
-            <button 
-                className="book-action-btn view-btn"
-                onClick={() => this.openVideoPlayer(book)}
-                title="Play Video"
-            >
-                <i className="la la-play"></i>
-            </button>
-            <button 
-                className="book-action-btn delete-btn"
-                onClick={() => this.deleteBook(book)}
-                title="Delete Video"
-            >
-                <i className="la la-trash"></i>
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    // Standard Book Brick
     return (
-      <div key={book.id} className="brick brick-book">
-        <div className="book-cover-wrapper" style={{ height: '190px', width: '100%', marginBottom: '8px', cursor: 'pointer' }}>
+      <div key={book.id} className="book-card">
+        <div className="book-cover-wrapper" onClick={() => isVideo ? this.openVideoPlayer(book) : this.openReviewMode(book)} style={{ cursor: 'pointer' }}>
           <span className="book-category-badge">{book.category || "General"}</span>
           <img
             src={coverImage}
@@ -466,32 +237,48 @@ class LibraryList extends React.Component {
             className="book-cover-img"
             onError={(e) => { e.target.onerror = null; e.target.src = NO_COVER_SVG; }}
           />
-          <div className="book-quick-view-overlay" onClick={() => this.openReviewMode(book)}>
-              <div className="quick-view-btn" style={{ width: '45px', height: '45px', fontSize: '18px' }}>
-                  <i className="la la-eye"></i>
+          {isVideo ? (
+            <div className="video-play-overlay">
+              <div className="play-circle-btn" style={{ width: '45px', height: '45px', fontSize: '20px' }}>
+                <i className="la la-play" style={{ marginLeft: '2px' }}></i>
               </div>
-          </div>
+            </div>
+          ) : (
+            <div className="book-quick-view-overlay">
+                <div className="quick-view-btn" style={{ width: '45px', height: '45px', fontSize: '18px' }}>
+                    <i className="la la-eye"></i>
+                </div>
+            </div>
+          )}
         </div>
 
-        <div className="book-info" style={{ textAlign: 'left', marginBottom: '8px' }}>
-          <div className="book-title" style={{ fontSize: '13px', fontWeight: '700' }} title={book.title}>
+        <div className="book-info" style={{ textAlign: 'left' }}>
+          <div className="book-title" title={book.title}>
             {book.title}
           </div>
-          <div className="book-author" style={{ fontSize: '11px' }}>
-            Author: {book.author}
+          <div className="book-author">
+            {isVideo ? "Instructor: " : "Author: "} {book.author}
           </div>
         </div>
 
-        <div className="book-actions mt-auto" style={{ borderTop: '1px solid var(--border-primary)', paddingTop: '6px' }}>
+        <div className="book-actions mt-auto">
           <button 
               className="book-action-btn edit-btn"
               onClick={() => this.openEditModal(book)}
-              title="Edit Book"
+              title="Edit Resource"
           >
               <i className="la la-edit"></i>
           </button>
           
-          {book.pdfUrl && (
+          {isVideo ? (
+              <button 
+                  className="book-action-btn view-btn"
+                  onClick={() => this.openVideoPlayer(book)}
+                  title="Play Video"
+              >
+                  <i className="la la-play"></i>
+              </button>
+          ) : book.pdfUrl && (
               <>
                   <button 
                       className="book-action-btn view-btn"
@@ -513,7 +300,7 @@ class LibraryList extends React.Component {
           <button 
               className="book-action-btn delete-btn"
               onClick={() => this.deleteBook(book)}
-              title="Delete Book"
+              title="Delete Resource"
           >
               <i className="la la-trash"></i>
           </button>
@@ -574,9 +361,9 @@ class LibraryList extends React.Component {
             </div>
         </div>
 
-        {/* 3. The Mosaic Grid */}
-        <div id="freewall-grid" style={{ minHeight: '350px' }}>
-            {filteredBooks.map((book, idx) => this.renderMosaicCard(book, idx))}
+        {/* 3. The Grid Layout */}
+        <div className="book-shelf">
+            {filteredBooks.map((book) => this.renderGridCard(book))}
         </div>
 
         {/* Empty State */}
