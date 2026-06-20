@@ -2,6 +2,7 @@ import React from "react";
 import { Route, HashRouter, useHistory, Redirect } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
+import Footer from "./components/footer";
 
 import home from "./pages/home";
 import students from "./pages/students";
@@ -116,6 +117,7 @@ class App extends React.Component {
 
 
       {/* 3rd party admin routes */}
+          <Footer />
         </HashRouter>
       </ThemeProvider>
     )

@@ -7,6 +7,14 @@ import debug from "./debug";
 
 const log = debug("shuleplus:data");
 
+// Setup global debug state
+window.__debugState = {
+    action: 'Idle',
+    socketConnected: false,
+    pingMs: 0
+};
+const emitDebug = () => window.dispatchEvent(new Event('debug_update'));
+
 // Socket.IO configuration
 // WebSockets MUST bypass the Netlify serverless proxy because serverless functions 
 // do not support long-lived TCP connections. We connect directly to the true Kinsta backend.
@@ -19,12 +27,30 @@ const socket = io(SOCKET_URL, {
     path: "/live"
 });
 
+// Calculate socket ping every 5 seconds
+setInterval(() => {
+    if (socket.connected) {
+        const start = Date.now();
+        socket.emit("ping", () => {
+            window.__debugState.pingMs = Date.now() - start;
+            emitDebug();
+        });
+    }
+}, 5000);
+
 // Authenticate socket on connection
 socket.on("connect", () => {
+    window.__debugState.socketConnected = true;
+    emitDebug();
     const token = localStorage.getItem("token");
     if (token) {
         socket.emit("authenticate_socket", { token });
     }
+});
+
+socket.on("disconnect", () => {
+    window.__debugState.socketConnected = false;
+    emitDebug();
 });
 
 // Centralized cache for all data entities, both flat and nested.

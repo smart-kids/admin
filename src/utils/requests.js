@@ -142,6 +142,11 @@ const _executeRequestWithRetries = async (queryString, variables, isMutation = f
                 error
             });
 
+            if (window.__debugState) {
+                window.__debugState.action = 'Idle';
+                window.dispatchEvent(new Event('debug_update'));
+            }
+
             // Rethrow the most specific error information available.
             throw error.response?.data?.errors || error.response?.data || error;
         }
@@ -161,9 +166,19 @@ const _executeRequestWithRetries = async (queryString, variables, isMutation = f
  * @returns {Promise<any>} A promise that resolves with the GraphQL `data` object (e.g., `{ schools: [...] }`) on success or rejects on failure.
  */
 export const query = (queryString, params, callback) => {
+    if (window.__debugState) {
+        const opMatch = queryString.match(/(?:query|mutation)\s+(\w+)/);
+        window.__debugState.action = opMatch ? `Loading ${opMatch[1]}` : 'Fetching Data...';
+        window.dispatchEvent(new Event('debug_update'));
+    }
+
     return new Promise((resolve, reject) => {
         _executeRequestWithRetries(queryString, params, false)
             .then(data => {
+                if (window.__debugState) {
+                    window.__debugState.action = 'Idle';
+                    window.dispatchEvent(new Event('debug_update'));
+                }
                 // On success, first trigger the optional callback.
                 if (callback && typeof callback === 'function') {
                     try {
@@ -191,8 +206,20 @@ export const query = (queryString, params, callback) => {
  * @returns {Promise<any>} A promise that resolves with the mutation's result `data` object or rejects on failure.
  */
 export const mutate = (queryString, variables) => {
+    if (window.__debugState) {
+        const opMatch = queryString.match(/(?:query|mutation)\s+(\w+)/);
+        window.__debugState.action = opMatch ? `Saving ${opMatch[1]}` : 'Saving Data...';
+        window.dispatchEvent(new Event('debug_update'));
+    }
+
     // A mutation is a direct async operation. We can simply return the internal function's promise.
-    return _executeRequestWithRetries(queryString, variables, true);
+    return _executeRequestWithRetries(queryString, variables, true).then(res => {
+        if (window.__debugState) {
+            window.__debugState.action = 'Idle';
+            window.dispatchEvent(new Event('debug_update'));
+        }
+        return res;
+    });
 };
 
 export const resolveAssetUrl = (url) => {

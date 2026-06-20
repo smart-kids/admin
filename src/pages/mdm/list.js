@@ -288,6 +288,7 @@ class MDMList extends React.Component {
             )}
           </>
         ) : (
+          <>
           <div className="mdm-notification-panel">
             {/* Left Column: Composer Form */}
             <div className="mdm-panel-section mdm-composer-card">
@@ -351,7 +352,83 @@ class MDMList extends React.Component {
               </form>
             </div>
 
-            {/* Right Column: Sent Command Logs */}
+            {/* Left Column: Update App Composer Card */}
+            <div className="mdm-panel-section mdm-composer-card" style={{ marginTop: '20px' }}>
+              <h3 className="section-subtitle"><i className="la la-cloud-upload"></i> Deploy App Update</h3>
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                this.setState({ sending: true });
+                const { newNotification } = this.state;
+                // Reuse targetDevice from newNotification state or default to GLOBAL
+                const target = newNotification.targetDevice || 'GLOBAL';
+                
+                Data.device_commands.create({
+                  device: target,
+                  command: 'UPDATE_APP',
+                  status: 'PENDING',
+                  payload: JSON.stringify({ 
+                    targetVersion: this.state.updateVersion || '1.0.0'
+                  }),
+                }).then(() => {
+                  this.setState({ 
+                    sending: false,
+                    updateVersion: ''
+                  });
+                  this.loadLogs();
+                }).catch(err => {
+                  console.error(err);
+                  this.setState({ sending: false });
+                });
+              }} className="premium-composer-form">
+                
+                <div className="premium-form-group">
+                  <label className="premium-form-label">Target Device / Channel</label>
+                  <select 
+                    className="premium-form-select"
+                    value={this.state.newNotification?.targetDevice || 'GLOBAL'}
+                    onChange={(e) => this.handleFormChange('targetDevice', e.target.value)}
+                  >
+                    <option value="GLOBAL">Broadcast to All Connected Devices</option>
+                    {this.state.devices && this.state.devices.map(d => (
+                      <option key={d.id} value={d.macAddress}>
+                        {d.assignedStudent || "Unassigned"} ({d.macAddress})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="premium-form-group">
+                  <label className="premium-form-label">Target Version</label>
+                  <input 
+                    type="text"
+                    className="premium-form-input"
+                    placeholder="e.g. 1.0.5 or 20"
+                    value={this.state.updateVersion || ''}
+                    onChange={(e) => this.setState({ updateVersion: e.target.value })}
+                    required
+                  />
+                  <small style={{ color: '#666', marginTop: '5px', display: 'block' }}>
+                    Devices running an older version will automatically open the Play Store to update.
+                  </small>
+                </div>
+
+                <button 
+                  type="submit" 
+                  className="premium-send-btn"
+                  style={{ backgroundColor: '#28a745' }}
+                  disabled={this.state.sending}
+                >
+                  {this.state.sending ? (
+                    <><i className="la la-spinner la-spin"></i> Deploying...</>
+                  ) : (
+                    <><i className="la la-cloud-upload"></i> Deploy App Update</>
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>
+          <div className="mdm-notification-panel" style={{ marginTop: '20px' }}>
+            {/* Right Column equivalent: Sent Command Logs */}
             <div className="mdm-panel-section mdm-logs-card">
               <h3 className="section-subtitle"><i className="la la-history"></i> Realtime Command Logs</h3>
               <div className="mdm-logs-list">
@@ -389,6 +466,7 @@ class MDMList extends React.Component {
                         </div>
                         <div className="log-footer">
                           <span><i className="la la-mobile"></i> Target: {cmd.device === 'GLOBAL' || cmd.device === 'BROADCAST' ? 'Global Broadcast' : cmd.device}</span>
+                          <span><i className="la la-clock-o"></i> {new Date(cmd.createdAt).toLocaleString()}</span>
                         </div>
                       </div>
                     );
@@ -397,6 +475,7 @@ class MDMList extends React.Component {
               </div>
             </div>
           </div>
+          </>
         )}
 
         {showQRModal && (
