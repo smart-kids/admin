@@ -19,6 +19,14 @@ const socket = io(SOCKET_URL, {
     path: "/live"
 });
 
+// Authenticate socket on connection
+socket.on("connect", () => {
+    const token = localStorage.getItem("token");
+    if (token) {
+        socket.emit("authenticate_socket", { token });
+    }
+});
+
 // Centralized cache for all data entities, both flat and nested.
 const allData = {
     // Top-level tree structure
@@ -694,6 +702,9 @@ var Data = (function () {
             if (!schoolID && allData.schools.length > 0) {
                 schoolID = localStorage.getItem("school") || allData.schools[0].id;
                 localStorage.setItem("school", schoolID);
+            } else if (schoolID && schoolID !== localStorage.getItem("school")) {
+                // If school changes, update schoolID
+                schoolID = localStorage.getItem("school");
             }
 
             const activeSchool = allData.schools.find(s => String(s.id) === String(schoolID));
