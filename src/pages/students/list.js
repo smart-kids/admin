@@ -174,6 +174,7 @@ export default function StudentDataTableV8() {
 
   // --- HEADERS CONFIGURATION ---
   const headers = useMemo(() => [
+      { key: 'profileImage', label: 'Photo', sortable: false },
       { key: 'names', label: 'Student Name', sortable: true },
       { key: 'registration', label: 'Registration', sortable: true },
       { key: 'class_name', label: 'Current Class', sortable: true },
@@ -426,7 +427,21 @@ export default function StudentDataTableV8() {
               ) : students.length > 0 ? (
                 students.map(row => (
                     <tr key={row.id} className={newlyAddedIds.has(row.id) ? 'v8-new-row' : ''}>
-                      {headers.map(h => <td key={h.key} className={h.key === 'names' ? 'td-primary' : ''}>{getNestedValue(row, h.key)}</td>)}
+                      {headers.map(h => (
+                        <td key={h.key} className={h.key === 'names' ? 'td-primary' : ''}>
+                          {h.key === 'profileImage' ? (
+                            getNestedValue(row, h.key) ? (
+                              <img src={getNestedValue(row, h.key)} alt="Profile" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                            ) : (
+                              <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#E4E6EF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <i className="la la-user" style={{ fontSize: '20px', color: '#B5B5C3' }}></i>
+                              </div>
+                            )
+                          ) : (
+                            getNestedValue(row, h.key)
+                          )}
+                        </td>
+                      ))}
                       <td className="v8-table-actions" style={{textAlign: 'right'}}>
                         <button className="v8-tooltip-container" onClick={() => handleEdit(row)}>
                             <i className="la la-edit" style={{fontSize: '1.5rem'}}></i>

@@ -29,6 +29,10 @@ const initialState = {
   parent2: "",
   paidFees: 0,
   balanceBroughtForward: 0,
+  profileImageFile: null,
+  profileImageUrl: null,
+  isUploading: false,
+  uploadProgress: 0,
 
   // State for react-select value objects
   setClass: null,
@@ -75,6 +79,10 @@ class Modal extends React.Component {
       parent2: "",
       paidFees: 0,
       balanceBroughtForward: 0,
+      profileImageFile: null,
+      profileImageUrl: null,
+      isUploading: false,
+      uploadProgress: 0,
       setClass: null,
       setRoute: null,
       setParent: null,
@@ -85,6 +93,57 @@ class Modal extends React.Component {
       this.validator.resetForm();
     }
   }
+
+  // --- Image Upload Handlers ---
+  handleImageSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      this.setState({
+        profileImageFile: file,
+        profileImageUrl: URL.createObjectURL(file)
+      });
+    }
+  };
+
+  handleDrop = (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer?.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      this.setState({
+        profileImageFile: file,
+        profileImageUrl: URL.createObjectURL(file)
+      });
+    }
+  };
+
+  handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
+  removeImage = () => {
+    this.setState({ profileImageFile: null, profileImageUrl: null });
+  };
+
+  uploadFile = async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    
+    const UPLOAD_URL = window.location.href.includes('localhost')
+      ? 'http://localhost:4001/api/upload'
+      : 'https://graph-ongyy.kinsta.app/api/upload';
+
+    const response = await fetch(UPLOAD_URL, {
+      method: "POST",
+      body: formData
+    });
+    
+    if (!response.ok) {
+      throw new Error("Upload failed");
+    }
+    
+    const data = await response.json();
+    return data.url;
+  };
 
   async componentDidMount() {
     const classes = Data.classes.list();
@@ -116,8 +175,15 @@ class Modal extends React.Component {
         try {
           _this.setState({ loading: true });
 
-          const { names, route, gender, registration, class: className, parent, parent2, paidFees, balanceBroughtForward } = _this.state;
+          const { names, route, gender, registration, class: className, parent, parent2, paidFees, balanceBroughtForward, profileImageFile } = _this.state;
           
+          let profileImageUrl = null;
+          if (profileImageFile) {
+            _this.setState({ isUploading: true, uploadProgress: 50 });
+            profileImageUrl = await _this.uploadFile(profileImageFile);
+            _this.setState({ uploadProgress: 100 });
+          }
+
           const payload = { 
             names, 
             route, 
@@ -126,6 +192,7 @@ class Modal extends React.Component {
             class: className,
             parent, 
             parent2,
+            profileImage: profileImageUrl,
             paidFees: parseFloat(paidFees) || 0,
             balanceBroughtForward: parseFloat(balanceBroughtForward) || 0
           };
@@ -186,6 +253,37 @@ class Modal extends React.Component {
                   {/* ... Example input ... */}
                    <div className="kt-portlet__body">
                     <div className="form-group row">
+                      {/* Image Upload Zone */}
+                      <div className="col-lg-12 mb-4">
+                        <label>Profile Image:</label>
+                        {this.state.profileImageUrl ? (
+                          <div className="cover-preview-wrapper" style={{ position: 'relative', width: '120px', height: '120px' }}>
+                            <img src={this.state.profileImageUrl} alt="Preview" style={{ width: '120px', height: '120px', objectFit: 'cover', borderRadius: '60px' }} />
+                            {!this.state.isUploading && (
+                              <button 
+                                type="button" 
+                                onClick={this.removeImage} 
+                                style={{ position: 'absolute', top: 0, right: 0, background: 'red', color: 'white', borderRadius: '50%', width: '24px', height: '24px', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              >
+                                &times;
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <label 
+                            className="upload-zone" 
+                            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '30px', border: '2px dashed #e2e5ec', borderRadius: '8px', cursor: 'pointer', background: '#f8f9fa' }}
+                            onDragOver={this.handleDragOver}
+                            onDrop={this.handleDrop}
+                          >
+                            <input type="file" accept="image/*" hidden onChange={this.handleImageSelect} />
+                            <i className="la la-image" style={{ fontSize: '32px', color: '#a7abc3' }}></i>
+                            <span style={{ marginTop: '10px', color: '#595d6e', fontWeight: 500 }}>Click or drag to upload photo</span>
+                            <span style={{ fontSize: '12px', color: '#a7abc3' }}>JPG, PNG (Max 5MB)</span>
+                          </label>
+                        )}
+                      </div>
+                      
                       {/* Full Name, Registration, Gender are fine */}
                       <div className="col-lg-4">
                         <label>Full Name:</label>
@@ -295,8 +393,8 @@ class Modal extends React.Component {
                   </div>
                 </div>
                 <div className="modal-footer">
-                  <button className="btn btn-outline-brand" type="submit" disabled={this.state.loading}>
-                    {this.state.loading ? (<span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />) : ("Save")}
+                  <button className="btn btn-outline-brand" type="submit" disabled={this.state.loading || this.state.isUploading}>
+                    {this.state.loading || this.state.isUploading ? (<span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />) : ("Save")}
                   </button>
                   <button data-dismiss="modal" type="button" className="btn btn-outline-brand">
                     Cancel
