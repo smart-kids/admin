@@ -1,17 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-const isSuperAdmin = () => {
-    try {
-        const userData = JSON.parse(localStorage.getItem('user') || '{}');
-        return userData.userType === 'super_admin' || 
-               userData.userType === 'superadmin' || 
-               userData.userType === 'Super Admin' ||
-               userData.isSuperAdmin ||
-               userData.role === 'super_admin';
-    } catch (e) {
-        return false;
-    }
-};
+// Removed super admin restriction since we want everyone to see the requests
 
 const NetworkDebugOverlay = () => {
     const [debug, setDebug] = useState({
@@ -20,10 +9,23 @@ const NetworkDebugOverlay = () => {
         pingMs: 0
     });
     
-    const [superAdmin, setSuperAdmin] = useState(false);
+    const [speedMbps, setSpeedMbps] = useState(null);
 
     useEffect(() => {
-        setSuperAdmin(isSuperAdmin());
+        const updateSpeed = () => {
+            if (navigator.connection && navigator.connection.downlink) {
+                setSpeedMbps(navigator.connection.downlink);
+            }
+        };
+        updateSpeed();
+        
+        if (navigator.connection) {
+            navigator.connection.addEventListener('change', updateSpeed);
+            return () => navigator.connection.removeEventListener('change', updateSpeed);
+        }
+    }, []);
+
+    useEffect(() => {
 
         const handleUpdate = () => {
             if (window.__debugState) {
@@ -51,7 +53,7 @@ const NetworkDebugOverlay = () => {
                 opacity: 0.6,
                 display: 'inline-block'
             }}>
-                IDLE [{debug.pingMs}ms]
+                IDLE [{debug.pingMs}ms] {speedMbps ? `| ${speedMbps}Mbps` : ''}
             </div>
         );
     }
@@ -77,8 +79,14 @@ const NetworkDebugOverlay = () => {
                 <>
                     <span style={{opacity: 0.5}}>|</span>
                     <span style={{ color: '#00ccff', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {superAdmin ? activeRequests.map(r => r.action).join(', ') : 'Fetching...'}
+                        {activeRequests.map(r => r.action).join(', ')}
                     </span>
+                </>
+            )}
+            {speedMbps && (
+                <>
+                    <span style={{opacity: 0.5}}>|</span>
+                    <span style={{ color: '#00ffcc' }}>{speedMbps}Mbps</span>
                 </>
             )}
         </div>

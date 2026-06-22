@@ -162,7 +162,7 @@ const startDebugRequest = (queryString, type = 'Loading') => {
     const reqId = Date.now() + Math.random();
     
     if (!window.__debugState.requests) window.__debugState.requests = [];
-    window.__debugState.requests.push({ id: reqId, action: actionName });
+    window.__debugState.requests = [...window.__debugState.requests, { id: reqId, action: actionName }];
     window.dispatchEvent(new Event('debug_update'));
     return reqId;
 };
