@@ -20,15 +20,16 @@ const Footer = ({ location }) => {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: "0 15px",
+    padding: "0 10px",
     zIndex: 999999, // Ensure it sits on top globally
-    height: "35px"
+    height: "22px",
+    fontSize: "11px"
   };
 
   return (
     <div style={footerStyle}>
       <div>ShulePlus</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
         <NetworkDebugOverlay />
         v1.3.1 (Staging)
       </div>

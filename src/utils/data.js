@@ -9,7 +9,7 @@ const log = debug("shuleplus:data");
 
 // Setup global debug state
 window.__debugState = {
-    action: 'Idle',
+    requests: [],
     socketConnected: false,
     pingMs: 0
 };

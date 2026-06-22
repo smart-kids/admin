@@ -149,15 +149,30 @@ const _executeRequestWithRetries = async (queryString, variables, isMutation = f
                 error
             });
 
-            if (window.__debugState) {
-                window.__debugState.action = 'Idle';
-                window.dispatchEvent(new Event('debug_update'));
-            }
-
             // Rethrow the most specific error information available.
             throw error.response?.data?.errors || error.response?.data || error;
         }
     }
+};
+
+const startDebugRequest = (queryString, type = 'Loading') => {
+    if (!window.__debugState) return null;
+    const opMatch = queryString.match(/(?:query|mutation)\s+(\w+)/);
+    const actionName = opMatch ? `${type} ${opMatch[1]}` : `${type} Data...`;
+    const reqId = Date.now() + Math.random();
+    
+    if (!window.__debugState.requests) window.__debugState.requests = [];
+    window.__debugState.requests.push({ id: reqId, action: actionName });
+    window.dispatchEvent(new Event('debug_update'));
+    return reqId;
+};
+
+const endDebugRequest = (reqId) => {
+    if (!window.__debugState || !reqId) return;
+    if (window.__debugState.requests) {
+        window.__debugState.requests = window.__debugState.requests.filter(r => r.id !== reqId);
+    }
+    window.dispatchEvent(new Event('debug_update'));
 };
 
 /**
@@ -173,19 +188,12 @@ const _executeRequestWithRetries = async (queryString, variables, isMutation = f
  * @returns {Promise<any>} A promise that resolves with the GraphQL `data` object (e.g., `{ schools: [...] }`) on success or rejects on failure.
  */
 export const query = (queryString, params, callback) => {
-    if (window.__debugState) {
-        const opMatch = queryString.match(/(?:query|mutation)\s+(\w+)/);
-        window.__debugState.action = opMatch ? `Loading ${opMatch[1]}` : 'Fetching Data...';
-        window.dispatchEvent(new Event('debug_update'));
-    }
+    const reqId = startDebugRequest(queryString, 'Loading');
 
     return new Promise((resolve, reject) => {
         _executeRequestWithRetries(queryString, params, false)
             .then(data => {
-                if (window.__debugState) {
-                    window.__debugState.action = 'Idle';
-                    window.dispatchEvent(new Event('debug_update'));
-                }
+                endDebugRequest(reqId);
                 // On success, first trigger the optional callback.
                 if (callback && typeof callback === 'function') {
                     try {
@@ -200,6 +208,7 @@ export const query = (queryString, params, callback) => {
                 resolve(data);
             })
             .catch(error => {
+                endDebugRequest(reqId);
                 // On failure, reject the promise. The error is already logged by the internal function.
                 reject(error);
             });
@@ -213,20 +222,18 @@ export const query = (queryString, params, callback) => {
  * @returns {Promise<any>} A promise that resolves with the mutation's result `data` object or rejects on failure.
  */
 export const mutate = (queryString, variables) => {
-    if (window.__debugState) {
-        const opMatch = queryString.match(/(?:query|mutation)\s+(\w+)/);
-        window.__debugState.action = opMatch ? `Saving ${opMatch[1]}` : 'Saving Data...';
-        window.dispatchEvent(new Event('debug_update'));
-    }
+    const reqId = startDebugRequest(queryString, 'Saving');
 
     // A mutation is a direct async operation. We can simply return the internal function's promise.
-    return _executeRequestWithRetries(queryString, variables, true).then(res => {
-        if (window.__debugState) {
-            window.__debugState.action = 'Idle';
-            window.dispatchEvent(new Event('debug_update'));
-        }
-        return res;
-    });
+    return _executeRequestWithRetries(queryString, variables, true)
+        .then(res => {
+            endDebugRequest(reqId);
+            return res;
+        })
+        .catch(err => {
+            endDebugRequest(reqId);
+            throw err;
+        });
 };
 
 export const resolveAssetUrl = (url) => {
