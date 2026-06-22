@@ -150,8 +150,18 @@ class ResultsMatrix extends React.Component {
     let availableClasses = classes || [];
 
     if (isTeacher && teacherId) {
-        // Teacher can only see their assigned subjects
-        availableSubjects = availableSubjects.filter(s => s.teacher === teacherId || s.teacher?.id === teacherId);
+        // Teacher can see their assigned subjects
+        const directAssignedSubjects = availableSubjects.filter(s => s.teacher === teacherId || s.teacher?.id === teacherId);
+        
+        // Find classes where teacher is the class teacher
+        const myClasses = availableClasses.filter(c => (c.teacher?.id || c.teacher) === teacherId);
+        const myClassGradeIds = myClasses.map(c => String(c.grade?.id || c.grade));
+        
+        // Get all subjects for my classes
+        const classSubjects = availableSubjects.filter(s => myClassGradeIds.includes(String(s.grade?.id || s.grade)));
+        
+        // Merge them
+        availableSubjects = [...new Set([...directAssignedSubjects, ...classSubjects])];
         
         // Grades containing those subjects
         const teacherGradeIds = [...new Set(availableSubjects.map(s => s.grade?.id || s.grade))].map(String);

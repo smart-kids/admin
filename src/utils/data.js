@@ -99,6 +99,7 @@ const allData = {
     games: [],
     devices: [],
     device_commands: [],
+    activityLogs: [],
 };
 
 // Centralized subscriptions object. Each key will hold an array of callbacks.
@@ -1026,6 +1027,18 @@ var Data = (function () {
         Promise.allSettled(promises).then(() => {
             notifyLoading(false);
         });
+        
+        // Fetch activity logs separately since they are not school-specific
+        query(`query { activityLogs { id entity action userTitle userId createdAt } }`)
+            .then(res => {
+                if (res && res.activityLogs) {
+                    allData.activityLogs = res.activityLogs;
+                    if (Array.isArray(subs.activityLogs)) {
+                        subs.activityLogs.forEach(cb => cb({ activityLogs: [...allData.activityLogs] }));
+                    }
+                }
+            })
+            .catch(err => console.error("Failed to fetch activity logs", err));
     };
 
     init();
@@ -1331,6 +1344,7 @@ var Data = (function () {
         { name: "buses", singularName: "bus", createFields: ['make', 'plate', 'size', 'school', 'driver'], updateFields: ['make', 'plate', 'size', 'driver'] },
         { name: "routes", singularName: "route", createFields: ['name', 'description', 'school', 'students', 'path'], updateFields: ['name', 'description', 'students', 'path'] },
         { name: "schedules", singularName: "schedule", createFields: ['name', 'message', 'time', 'end_time', 'school', 'route', 'type', 'days', 'bus', 'driver', 'actions'], updateFields: ['name', 'message', 'time', 'end_time', 'type', 'days', 'route', 'bus', 'driver', 'actions'] },
+        { name: "activityLogs", singularName: "activityLog", createFields: [], updateFields: [] },
         { 
             name: "classes", 
             singularName: "class", 

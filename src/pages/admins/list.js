@@ -22,6 +22,7 @@ export default function AdminsDirectory() {
   const [schools, setSchools] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+  const [canEditAdmins, setCanEditAdmins] = useState(false);
   
   const [searchTerm, setSearchTerm] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
@@ -45,8 +46,12 @@ export default function AdminsDirectory() {
       const storedUser = localStorage.getItem('user');
       if (storedUser) {
         const parsed = JSON.parse(storedUser);
-        if (parsed?.admin?.user === 'Super Admin') {
+        const role = String(parsed?.userType || parsed?.role || '').toLowerCase().replace(/ /g, '_');
+        if (['super_admin', 'superadmin', 'sadmin'].includes(role) || parsed?.isSuperAdmin || parsed?.admin?.user === 'Super Admin') {
           setIsSuperAdmin(true);
+          setCanEditAdmins(true);
+        } else if (['customer_success_manager', 'csm', 'principal_admin', 'principal'].includes(role) || role === 'admin' || role === 'school_admin') {
+          setCanEditAdmins(true);
         }
       }
       
@@ -262,8 +267,12 @@ export default function AdminsDirectory() {
             <div className="value">{loading ? <div className="v8-spinner" style={{width: 20, height: 20}}></div> : totalAdmins}</div>
             <div className="label">Total Admins</div>
           </div>
-          <button onClick={() => uploadModalInstance.show()} className="btn" style={{backgroundColor: '#F3F6F9', color: '#3F4254'}}>Upload</button>
-          <button onClick={() => addModalInstance.show()} className="btn" style={{backgroundColor: 'var(--v8-accent-color)', color: 'white'}}>Add Admin</button>
+          {canEditAdmins && (
+            <>
+              <button onClick={() => uploadModalInstance.show()} className="btn" style={{backgroundColor: '#F3F6F9', color: '#3F4254'}}>Upload</button>
+              <button onClick={() => addModalInstance.show()} className="btn" style={{backgroundColor: 'var(--v8-accent-color)', color: 'white'}}>Add Admin</button>
+            </>
+          )}
         </div>
       </header>
 
@@ -301,8 +310,12 @@ export default function AdminsDirectory() {
                       <td className="v8-table-actions" style={{textAlign: 'right'}}>
                         <button title="Invite Admin" onClick={() => { setSelectedAdmin(row); inviteModalInstance.show(); }}><i className="la la-envelope" style={{fontSize: '1.5rem'}}></i></button>
                         {isSuperAdmin && <button title="Transfer Admin" onClick={() => { setAdminToTransfer(row); transferModalInstance.show(); }}><i className="la la-exchange" style={{fontSize: '1.5rem'}}></i></button>}
-                        <button title="Edit Admin" onClick={() => { setEdit(row); editModalInstance.show(); }}><i className="la la-edit" style={{fontSize: '1.5rem'}}></i></button>
-                        <button title="Delete Admin" onClick={() => { setRemove(row); deleteModalInstance.show(); }}><i className="la la-trash" style={{fontSize: '1.5rem'}}></i></button>
+                        {canEditAdmins && (
+                            <>
+                                <button title="Edit Admin" onClick={() => { setEdit(row); editModalInstance.show(); }}><i className="la la-edit" style={{fontSize: '1.5rem'}}></i></button>
+                                <button title="Delete Admin" onClick={() => { setRemove(row); deleteModalInstance.show(); }}><i className="la la-trash" style={{fontSize: '1.5rem'}}></i></button>
+                            </>
+                        )}
                       </td>
                     </tr>
                 ))

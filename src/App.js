@@ -26,6 +26,7 @@ import library from "./pages/library"
 import games from "./pages/games"
 import mdm from "./pages/mdm"
 import timeTables from "./pages/time-tables"
+import activityLog from "./pages/activity-log"
 
 import userSettings from "./pages/settings/user"
 import schoolSettings from "./pages/settings/school"
@@ -102,6 +103,7 @@ class App extends React.Component {
       <PrivateRoute path="/games" component={games} />
       <PrivateRoute path="/mdm" component={mdm} />
       <PrivateRoute path="/time-tables" component={timeTables} />
+      <PrivateRoute path="/activity-log" component={activityLog} />
       <PrivateRoute path="/fee-structures" component={feeStructures} />
       <PrivateRoute path="/terms" component={require("./pages/terms").default} />
       <PrivateRoute path="/assessment-types" component={require("./pages/learning/assessmentTypes").default} />

@@ -69,40 +69,27 @@ class Navbar extends React.Component {
   getUserFlags = () => {
     const storedUser = JSON.parse(localStorage.getItem("user")) || {};
     const effectiveRole = this.state.userRole || storedUser.userType || storedUser.role;
+    const normalizedRole = String(effectiveRole || '').toLowerCase().replace(/ /g, '_');
     
-    const isSuperAdmin = effectiveRole === 'super_admin' || effectiveRole === 'superadmin' || effectiveRole === 'Super Admin' || 
-                        effectiveRole === 'sAdmin' || effectiveRole === 'sadmin' ||
-                        (storedUser && !!storedUser.isSuperAdmin) || 
-                        (storedUser && storedUser.role === 'super_admin') ||
-                        (storedUser && storedUser.userType === 'sAdmin');
+    const isSuperAdmin = ['super_admin', 'superadmin', 'sadmin'].includes(normalizedRole) || 
+                        (storedUser && !!storedUser.isSuperAdmin);
+                        
+    const isCsm = ['customer_success_manager', 'csm'].includes(normalizedRole);
+    const isPrincipal = ['principal_admin', 'principal'].includes(normalizedRole);
+    const isOps = ['admin_operations', 'operations', 'finance'].includes(normalizedRole);
+    const isAcademics = ['admin_academics', 'academics', 'headteacher'].includes(normalizedRole);
+    const isAdmin = isSuperAdmin || isCsm || isPrincipal || isOps || isAcademics || ['admin', 'school_admin', 'schooladmin'].includes(normalizedRole);
     
-    // Super admins are never treated as teachers/parents in terms of UI restrictions
-    const isTeacher = !isSuperAdmin && (effectiveRole === 'teacher' || effectiveRole === 'Teacher' || effectiveRole === 'parent' || effectiveRole === 'Parent');
+    const isTeacher = !isAdmin && ['teacher', 'parent'].includes(normalizedRole);
     
-    return { isSuperAdmin, isTeacher, effectiveRole, storedUser };
+    return { isSuperAdmin, isCsm, isPrincipal, isOps, isAcademics, isAdmin, isTeacher, effectiveRole, storedUser, normalizedRole };
   };
 
   getSecondaryNavItems = () => {
-    const { isSuperAdmin, isTeacher, effectiveRole } = this.getUserFlags();
-    const normalizedRole = String(effectiveRole || '').toLowerCase();
-    
-    const isAdmin = normalizedRole === 'admin' || normalizedRole === 'school_admin' || normalizedRole === 'schooladmin';
-    const isAllowed = isSuperAdmin || isAdmin;
+    const { isSuperAdmin, isCsm, isPrincipal, isOps, isAcademics, isTeacher } = this.getUserFlags();
 
-    if (isSuperAdmin) {
-      return [
-        { path: "/comms", label: "SMS & Email", icon: "la-envelope" },
-        { path: "/learning", label: "Learning", icon: "la-graduation-cap" },
-        { path: "/library", label: "Library", icon: "la-book" },
-        { path: "/results", label: "Results", icon: "la-bar-chart" },
-        { path: "/time-tables", label: "Time Tables", icon: "la-calendar-check-o" },
-        { path: "/finance/fees", label: "Fee", icon: "la-money" },
-        { path: "/trips/all", label: "Transport", icon: "la-bus" },
-        { path: "/games", label: "Games", icon: "la-gamepad" },
-        { path: "/mdm", label: "Devices", icon: "la-tablet" }
-      ];
-    }
-    
+    let items = [];
+
     if (isTeacher) {
       return [
         { path: "/comms", label: "SMS & Email", icon: "la-envelope" },
@@ -112,23 +99,42 @@ class Navbar extends React.Component {
         { path: "/time-tables", label: "Time Tables", icon: "la-calendar-check-o" }
       ];
     }
-    
-    // Regular Admin / Fallback
-    const items = [
+
+    if (isOps) {
+      return [
+        { path: "/home", label: "Reports", icon: "la-dashboard" },
+        { path: "/finance/fees", label: "Fee", icon: "la-money" },
+        { path: "/trips/all", label: "Transport", icon: "la-bus" }
+      ];
+    }
+
+    if (isAcademics) {
+      return [
+        { path: "/home", label: "Reports", icon: "la-dashboard" },
+        { path: "/comms", label: "SMS & Email", icon: "la-envelope" },
+        { path: "/learning", label: "Learning", icon: "la-graduation-cap" },
+        { path: "/library", label: "Library", icon: "la-book" },
+        { path: "/results", label: "Results", icon: "la-bar-chart" },
+        { path: "/time-tables", label: "Time Tables", icon: "la-calendar-check-o" }
+      ];
+    }
+
+    // Default for Admin, Super Admin, CSM, Principal
+    items = [
       { path: "/home", label: "Reports", icon: "la-dashboard" },
       { path: "/comms", label: "SMS & Email", icon: "la-envelope" },
       { path: "/learning", label: "Learning", icon: "la-graduation-cap" },
+      { path: "/library", label: "Library", icon: "la-book" },
       { path: "/results", label: "Results", icon: "la-bar-chart" },
       { path: "/time-tables", label: "Time Tables", icon: "la-calendar-check-o" },
       { path: "/finance/fees", label: "Fee", icon: "la-money" },
       { path: "/trips/all", label: "Transport", icon: "la-bus" },
+      { path: "/games", label: "Games", icon: "la-gamepad" },
+      { path: "/mdm", label: "Devices", icon: "la-tablet" }
     ];
-
-    if (isAllowed) {
-      items.push(
-        { path: "/games", label: "Games", icon: "la-gamepad" },
-        { path: "/mdm", label: "Devices", icon: "la-tablet" }
-      );
+    
+    if (isSuperAdmin || isPrincipal) {
+      items.push({ path: "/activity-log", label: "Activity Log", icon: "la-history" });
     }
 
     return items;
@@ -417,9 +423,18 @@ class Navbar extends React.Component {
             return !forbidden.includes(item.path);
         }
         
-        // Only show Schools item to super admins
-        if (item.path === "/schools" && !isSuperAdmin) {
+        if (item.path === "/schools" && (!isSuperAdmin && !isCsm)) {
             return false;
+        }
+
+        if (isOps) {
+            const allowedForOps = ["/fee-structures", "/finance/fees", "/finance/charge-types", "/drivers", "/buses", "/routes", "/schedules"];
+            return allowedForOps.includes(item.path);
+        }
+
+        if (isAcademics) {
+            const forbiddenForAcademics = ["/schools", "/admins", "/invitations", "/fee-structures", "/finance/fees", "/finance/charge-types", "/drivers", "/buses", "/routes", "/schedules"];
+            return !forbiddenForAcademics.includes(item.path);
         }
         
         return true;
@@ -743,9 +758,18 @@ class Navbar extends React.Component {
             return !forbidden.includes(item.path);
         }
         
-        // Only show Schools item to super admins
-        if (item.path === "/schools" && !isSuperAdmin) {
+        if (item.path === "/schools" && (!isSuperAdmin && !isCsm)) {
             return false;
+        }
+
+        if (isOps) {
+            const allowedForOps = ["/fee-structures", "/finance/fees", "/finance/charge-types", "/drivers", "/buses", "/routes", "/schedules"];
+            return allowedForOps.includes(item.path);
+        }
+
+        if (isAcademics) {
+            const forbiddenForAcademics = ["/schools", "/admins", "/invitations", "/fee-structures", "/finance/fees", "/finance/charge-types", "/drivers", "/buses", "/routes", "/schedules"];
+            return !forbiddenForAcademics.includes(item.path);
         }
         
         return true;
