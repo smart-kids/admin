@@ -401,7 +401,7 @@ class Navbar extends React.Component {
     // Theme calculation for mobile nav
     const useSchoolTheme = selectedSchool && selectedSchool.theme_color;
     const effectiveTopBarBgColor = useSchoolTheme ? selectedSchool.theme_color : DEFAULT_TOP_NAV_BG_COLOR;
-    const { isTeacher, isSuperAdmin, effectiveRole, storedUser: userData } = this.getUserFlags();
+    const { isTeacher, isSuperAdmin, isCsm, isOps, isAcademics, effectiveRole, storedUser: userData } = this.getUserFlags();
     const showLowBalanceIndicator = selectedSchool && selectedSchool.financial && typeof selectedSchool.financial.balance === 'number' && selectedSchool.financial.balance < 300;
     const manageDataItems = [
         { path: "/schools", label: "Schools", IconComponent: SvgSchoolsIcon }, { path: "/admins", label: "Admins", IconComponent: SvgAdminsIcon },
@@ -707,7 +707,7 @@ class Navbar extends React.Component {
   }
 
   render() {
-    const { isSuperAdmin, isTeacher, effectiveRole, storedUser } = this.getUserFlags();
+    const { isSuperAdmin, isTeacher, isCsm, isOps, isAcademics, effectiveRole, storedUser } = this.getUserFlags();
     let user = storedUser.names || "Guest";
 
     const {
