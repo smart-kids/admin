@@ -91,7 +91,7 @@ const sanitizeResponseData = (data) => {
  * @throws Will throw an error if all retry attempts fail or a non-retryable error occurs.
  */
 const _executeRequestWithRetries = async (queryString, variables, isMutation = false) => {
-    const maxRetries = 3;
+    const maxRetries = 5;
     let delay = 1000; // 1-second initial delay
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -114,6 +114,9 @@ const _executeRequestWithRetries = async (queryString, variables, isMutation = f
             return sanitizeResponseData(response.data.data);
 
         } catch (error) {
+            let isRetryable = false;
+            let statusLog = "Network Error";
+
             // Axios places server responses in `error.response`.
             if (error.response) {
                 // Handle critical 401 Unauthorized error immediately.
@@ -124,14 +127,18 @@ const _executeRequestWithRetries = async (queryString, variables, isMutation = f
                 }
 
                 // Retry only on server-side errors (5xx), which might be temporary.
-                const isRetryable = error.response.status >= 500 && error.response.status <= 599;
+                isRetryable = error.response.status >= 500 && error.response.status <= 599;
+                statusLog = error.response.status;
+            } else if (error.request || error.message === 'Network Error' || error.code === 'ECONNABORTED') {
+                // Hard network error (no response received)
+                isRetryable = true;
+            }
 
-                if (isRetryable && attempt < maxRetries) {
-                    console.warn(`[API] Attempt ${attempt} failed with status ${error.response.status}. Retrying in ${delay / 1000}s...`);
-                    await wait(delay);
-                    delay *= 2; // Exponential backoff for subsequent retries.
-                    continue;   // Move to the next loop iteration.
-                }
+            if (isRetryable && attempt < maxRetries) {
+                console.warn(`[API] Attempt ${attempt} failed with status ${statusLog}. Retrying in ${delay / 1000}s...`);
+                await wait(delay);
+                delay *= 2; // Exponential backoff for subsequent retries.
+                continue;   // Move to the next loop iteration.
             }
 
             // If we reach here, the error is non-retryable or we've exhausted retries.
