@@ -22,6 +22,7 @@ class Modal extends React.Component {
       parent2: null,
       paidFees: 0,
       balanceBroughtForward: 0,
+      yearOfEntry: "",
       profileImage: null
     },
     profileImageFile: null,
@@ -129,6 +130,7 @@ class Modal extends React.Component {
             names: this.state.edit.names,
             registration: this.state.edit.registration,
             gender: this.state.edit.gender,
+            yearOfEntry: this.state.edit.yearOfEntry,
             class: this.state.edit.class?.id || "",
             route: this.state.edit.route?.id || "",
             parent: this.state.edit.parent?.id || "",
@@ -164,6 +166,7 @@ class Modal extends React.Component {
           parent: props.edit.parent || null,
           parent2: props.edit.parent2 || null,
           gender: props.edit.gender || "",
+          yearOfEntry: props.edit.yearOfEntry || "",
           profileImage: props.edit.profileImage || null,
           paidFees: props.edit.paidFees || 0,
           balanceBroughtForward: props.edit.balanceBroughtForward || 0
@@ -241,7 +244,7 @@ class Modal extends React.Component {
                       </div>
                       
                       {/* FULL NAME */}
-                      <div className="col-lg-4">
+                      <div className="col-lg-3">
                         <label>Full Name:</label>
                         <input
                           type="text"
@@ -261,7 +264,7 @@ class Modal extends React.Component {
                       </div>
 
                       {/* REGISTRATION */}
-                      <div className="col-lg-4">
+                      <div className="col-lg-3">
                         <label>Registration Number:</label>
                         <input
                           type="text"
@@ -280,8 +283,25 @@ class Modal extends React.Component {
                         />
                       </div>
 
+                      {/* YEAR OF ENTRY */}
+                      <div className="col-lg-3">
+                        <label>Year of Entry:</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          name="yearOfEntry"
+                          value={edit.yearOfEntry || ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            this.setState(prevState => ({ 
+                              edit: { ...prevState.edit, yearOfEntry: val } 
+                            }));
+                          }}
+                        />
+                      </div>
+
                       {/* CLASS DROPDOWN */}
-                      <div className="col-lg-4">
+                      <div className="col-lg-3">
                         <label>Class:</label>
                         <select
                           className="form-control"

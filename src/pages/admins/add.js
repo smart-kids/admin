@@ -15,7 +15,8 @@ class Modal extends React.Component {
     // password: "",
     email: "",
     phone: "",
-    password:""
+    password:"",
+    role: "ADMIN"
   };
 
   show() {
@@ -50,9 +51,11 @@ class Modal extends React.Component {
           _this.hide();
           _this.setState({
             loading: false,
-            username: "",
+            names: "",
             phone: "",
-            email: ""
+            email: "",
+            password: "",
+            role: "ADMIN"
           });
         } catch (error) {
           _this.setState({ loading: false });
@@ -142,7 +145,7 @@ class Modal extends React.Component {
                         />
                       </div>
                       <div className="col-lg-4">
-                        <label>Password</label>
+                        <label>Password:</label>
                         <input
                           type="text"
                           className="form-control"
@@ -156,6 +159,24 @@ class Modal extends React.Component {
                           required
                         />
                       </div>
+                      
+                      {this.props.isSuperAdmin && (
+                        <div className="col-lg-4">
+                          <label>Role:</label>
+                          <select
+                            className="form-control"
+                            value={this.state.role}
+                            onChange={(e) => this.setState({ role: e.target.value })}
+                          >
+                            <option value="ADMIN">Admin</option>
+                            <option value="SUPER_ADMIN">Super Admin</option>
+                            <option value="CUSTOMER_SUCCESS_MANAGER">Customer Success Manager</option>
+                            <option value="PRINCIPAL_ADMIN">Principal Admin</option>
+                            <option value="ADMIN_OPERATIONS">Operations Admin</option>
+                            <option value="ADMIN_ACADEMICS">Academics Admin</option>
+                          </select>
+                        </div>
+                      )}
                       
                      
                      

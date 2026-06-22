@@ -24,6 +24,7 @@ const initialState = {
   route: "",
   gender: "",
   registration: "",
+  yearOfEntry: "",
   class: "",
   parent: "",
   parent2: "",
@@ -74,6 +75,7 @@ class Modal extends React.Component {
       route: "",
       gender: "",
       registration: "",
+      yearOfEntry: "",
       class: "",
       parent: "",
       parent2: "",
@@ -175,7 +177,7 @@ class Modal extends React.Component {
         try {
           _this.setState({ loading: true });
 
-          const { names, route, gender, registration, class: className, parent, parent2, paidFees, balanceBroughtForward, profileImageFile } = _this.state;
+          const { names, route, gender, registration, yearOfEntry, class: className, parent, parent2, paidFees, balanceBroughtForward, profileImageFile } = _this.state;
           
           let profileImageUrl = null;
           if (profileImageFile) {
@@ -189,6 +191,7 @@ class Modal extends React.Component {
             route, 
             gender, 
             registration, 
+            yearOfEntry,
             class: className,
             parent, 
             parent2,
@@ -285,15 +288,19 @@ class Modal extends React.Component {
                       </div>
                       
                       {/* Full Name, Registration, Gender are fine */}
-                      <div className="col-lg-4">
+                      <div className="col-lg-3">
                         <label>Full Name:</label>
                         <input type="text" className="form-control" name="names" minLength="2" required value={this.state.names} onChange={(e) => this.setState({ names: e.target.value })} />
                       </div>
-                      <div className="col-lg-4">
+                      <div className="col-lg-3">
                         <label>Registration Number:</label>
                         <input type="text" className="form-control" name="registration" minLength="2" required value={this.state.registration} onChange={(e) => this.setState({ registration: e.target.value })} />
                       </div>
-                      <div className="col-lg-4">
+                      <div className="col-lg-3">
+                        <label>Year of Entry:</label>
+                        <input type="text" className="form-control" name="yearOfEntry" value={this.state.yearOfEntry} onChange={(e) => this.setState({ yearOfEntry: e.target.value })} />
+                      </div>
+                      <div className="col-lg-3">
                         <label htmlFor="gender">Gender:</label>
                         <select name="gender" className="form-control" id="gender" required value={this.state.gender} onChange={(e) => this.setState({ gender: e.target.value })}>
                           <option value="">Select gender</option>

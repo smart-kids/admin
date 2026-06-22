@@ -67,10 +67,19 @@ class Navbar extends React.Component {
   manageDataRef = React.createRef();
 
   getUserFlags = () => {
+    const ENABLE_ROLE_RESTRICTIONS = false; // Toggle this to true once all admins have assigned roles
     const storedUser = JSON.parse(localStorage.getItem("user")) || {};
     const effectiveRole = this.state.userRole || storedUser.userType || storedUser.role;
-    const normalizedRole = String(effectiveRole || '').toLowerCase().replace(/ /g, '_');
+    let normalizedRole = String(effectiveRole || '').toLowerCase().replace(/ /g, '_');
     
+    if (!ENABLE_ROLE_RESTRICTIONS) {
+       const isTeacherRole = ['teacher', 'parent'].includes(normalizedRole);
+       const isSuper = ['super_admin', 'superadmin', 'sadmin'].includes(normalizedRole) || (storedUser && !!storedUser.isSuperAdmin);
+       if (!isTeacherRole && !isSuper) {
+          normalizedRole = 'admin';
+       }
+    }
+
     const isSuperAdmin = ['super_admin', 'superadmin', 'sadmin'].includes(normalizedRole) || 
                         (storedUser && !!storedUser.isSuperAdmin);
                         

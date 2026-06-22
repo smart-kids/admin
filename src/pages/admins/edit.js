@@ -16,7 +16,8 @@ class Modal extends React.Component {
       // password: "",
       email: "",
       phone: "",
-      password:""
+      password:"",
+      role: "ADMIN"
     }
   };
 
@@ -168,6 +169,28 @@ class Modal extends React.Component {
                           })}
                         />
                       </div>
+
+                      {this.props.isSuperAdmin && (
+                        <div className="col-lg-4 mt-3">
+                          <label>Role:</label>
+                          <select
+                            className="form-control"
+                            value={this.state.edit.role || "ADMIN"}
+                            onChange={(e) => this.setState({
+                              edit: Object.assign(this.state.edit, {
+                                role: e.target.value
+                              })
+                            })}
+                          >
+                            <option value="ADMIN">Admin</option>
+                            <option value="SUPER_ADMIN">Super Admin</option>
+                            <option value="CUSTOMER_SUCCESS_MANAGER">Customer Success Manager</option>
+                            <option value="PRINCIPAL_ADMIN">Principal Admin</option>
+                            <option value="ADMIN_OPERATIONS">Operations Admin</option>
+                            <option value="ADMIN_ACADEMICS">Academics Admin</option>
+                          </select>
+                        </div>
+                      )}
                       
                       
                       {/* <div className="col-lg-4">

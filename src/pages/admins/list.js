@@ -45,8 +45,17 @@ export default function AdminsDirectory() {
     try {
       const storedUser = localStorage.getItem('user');
       if (storedUser) {
+        const ENABLE_ROLE_RESTRICTIONS = false; // Toggle this to true once all admins have assigned roles
         const parsed = JSON.parse(storedUser);
-        const role = String(parsed?.userType || parsed?.role || '').toLowerCase().replace(/ /g, '_');
+        let role = String(parsed?.userType || parsed?.role || '').toLowerCase().replace(/ /g, '_');
+        
+        if (!ENABLE_ROLE_RESTRICTIONS) {
+            const isSuper = ['super_admin', 'superadmin', 'sadmin'].includes(role) || parsed?.isSuperAdmin || parsed?.admin?.user === 'Super Admin';
+            if (!isSuper) {
+                role = 'admin'; // Treat all other admins as standard admin
+            }
+        }
+
         if (['super_admin', 'superadmin', 'sadmin'].includes(role) || parsed?.isSuperAdmin || parsed?.admin?.user === 'Super Admin') {
           setIsSuperAdmin(true);
           setCanEditAdmins(true);
@@ -187,9 +196,9 @@ export default function AdminsDirectory() {
 
   return (
     <div className="v8-datatable-container">
-      <AddModal save={handleCreateAdmin} />
+      <AddModal isSuperAdmin={isSuperAdmin} save={handleCreateAdmin} />
       <UploadModal admin={isSuperAdmin} save={data => data.forEach(a => Data.admins.create(a))} />
-      {edit && <EditModal edit={edit} save={a => Data.admins.update(a)} />}
+      {edit && <EditModal isSuperAdmin={isSuperAdmin} edit={edit} save={a => Data.admins.update(a)} />}
       {remove && <DeleteModal remove={remove} save={a => Data.admins.delete(a)} />}
       <InviteModal admin={selectedAdmin} invite={() => sendInvite(selectedAdmin.id)} />
       <TransferModal schools={schools} admin={adminToTransfer} transfer={a => Data.admins.transfer(a)} />
