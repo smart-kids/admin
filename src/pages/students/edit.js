@@ -211,18 +211,17 @@ class Modal extends React.Component {
 
                 <div className="modal-body">
                   <div className="kt-portlet__body">
-                    <div className="form-group row">
-                      {/* Image Upload Zone */}
-                      <div className="col-lg-12 mb-4">
-                        <label>Profile Image:</label>
+                    {/* Image Upload Zone */}
+                    <div className="row mb-5">
+                      <div className="col-12 d-flex flex-column align-items-center">
                         {this.state.profileImageUrl ? (
-                          <div className="cover-preview-wrapper" style={{ position: 'relative', width: '120px', height: '120px' }}>
-                            <img src={this.state.profileImageUrl} alt="Preview" style={{ width: '120px', height: '120px', objectFit: 'cover', borderRadius: '60px' }} />
+                          <div className="cover-preview-wrapper" style={{ position: 'relative', width: '150px', height: '150px' }}>
+                            <img src={this.state.profileImageUrl} alt="Preview" style={{ width: '150px', height: '150px', objectFit: 'cover', borderRadius: '75px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
                             {!this.state.isUploading && (
                               <button 
                                 type="button" 
                                 onClick={this.removeImage} 
-                                style={{ position: 'absolute', top: 0, right: 0, background: 'red', color: 'white', borderRadius: '50%', width: '24px', height: '24px', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                style={{ position: 'absolute', top: 0, right: 0, background: '#ff3b30', color: 'white', borderRadius: '50%', width: '28px', height: '28px', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}
                               >
                                 &times;
                               </button>
@@ -231,20 +230,21 @@ class Modal extends React.Component {
                         ) : (
                           <label 
                             className="upload-zone" 
-                            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '30px', border: '2px dashed #e2e5ec', borderRadius: '8px', cursor: 'pointer', background: '#f8f9fa' }}
+                            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '200px', height: '200px', padding: '20px', border: '2px dashed #a7abc3', borderRadius: '100px', cursor: 'pointer', background: '#f8f9fa', transition: 'all 0.2s' }}
                             onDragOver={this.handleDragOver}
                             onDrop={this.handleDrop}
                           >
                             <input type="file" accept="image/*" hidden onChange={this.handleImageSelect} />
-                            <i className="la la-image" style={{ fontSize: '32px', color: '#a7abc3' }}></i>
-                            <span style={{ marginTop: '10px', color: '#595d6e', fontWeight: 500 }}>Click or drag to upload photo</span>
-                            <span style={{ fontSize: '12px', color: '#a7abc3' }}>JPG, PNG (Max 5MB)</span>
+                            <i className="la la-camera" style={{ fontSize: '42px', color: '#a7abc3', marginBottom: '10px' }}></i>
+                            <span style={{ color: '#595d6e', fontWeight: 500, textAlign: 'center', fontSize: '13px' }}>Upload Photo</span>
                           </label>
                         )}
                       </div>
-                      
-                      {/* FULL NAME */}
-                      <div className="col-lg-3">
+                    </div>
+                    
+                    {/* Personal Details Row */}
+                    <div className="row mb-4">
+                      <div className="col-lg-3 col-md-6 mb-3 mb-lg-0">
                         <label>Full Name:</label>
                         <input
                           type="text"
@@ -253,7 +253,6 @@ class Modal extends React.Component {
                           minLength="2"
                           required
                           value={edit.names || ""}
-                          // FIX: Capture value outside setState
                           onChange={(e) => {
                             const val = e.target.value;
                             this.setState(prevState => ({ 
@@ -262,9 +261,7 @@ class Modal extends React.Component {
                           }}
                         />
                       </div>
-
-                      {/* REGISTRATION */}
-                      <div className="col-lg-3">
+                      <div className="col-lg-3 col-md-6 mb-3 mb-lg-0">
                         <label>Registration Number:</label>
                         <input
                           type="text"
@@ -273,7 +270,6 @@ class Modal extends React.Component {
                           minLength="2"
                           required
                           value={edit.registration || ""}
-                          // FIX: Capture value outside setState
                           onChange={(e) => {
                             const val = e.target.value;
                             this.setState(prevState => ({ 
@@ -282,9 +278,7 @@ class Modal extends React.Component {
                           }}
                         />
                       </div>
-
-                      {/* YEAR OF ENTRY */}
-                      <div className="col-lg-3">
+                      <div className="col-lg-3 col-md-6 mb-3 mb-lg-0">
                         <label>Year of Entry:</label>
                         <input
                           type="text"
@@ -299,9 +293,31 @@ class Modal extends React.Component {
                           }}
                         />
                       </div>
+                      <div className="col-lg-3 col-md-6 mb-3 mb-lg-0">
+                        <label>Gender:</label>
+                        <select
+                          name="gender"
+                          className="form-control"
+                          required
+                          value={edit.gender || ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            this.setState(prevState => ({ 
+                              edit: { ...prevState.edit, gender: val } 
+                            }));
+                          }}
+                        >
+                          <option value="">Select gender</option>
+                          {["MALE", "FEMALE"].map(g => (
+                            <option key={g} value={g}>{g}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
 
-                      {/* CLASS DROPDOWN */}
-                      <div className="col-lg-3">
+                    {/* School & Transport Row */}
+                    <div className="row mb-4">
+                      <div className="col-lg-6 mb-3 mb-lg-0">
                         <label>Class:</label>
                         <select
                           className="form-control"
@@ -322,9 +338,7 @@ class Modal extends React.Component {
                           ))}
                         </select>
                       </div>
-
-                      {/* ROUTE DROPDOWN */}
-                      <div className="col-lg-6">
+                      <div className="col-lg-6 mb-3 mb-lg-0">
                         <label>Route:</label>
                         <select
                           name="route"
@@ -345,32 +359,11 @@ class Modal extends React.Component {
                           ))}
                         </select>
                       </div>
+                    </div>
 
-                      {/* GENDER DROPDOWN */}
-                      <div className="col-lg-6">
-                        <label>Gender:</label>
-                        <select
-                          name="gender"
-                          className="form-control"
-                          required
-                          value={edit.gender || ""}
-                          // FIX: Capture value outside setState
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            this.setState(prevState => ({ 
-                              edit: { ...prevState.edit, gender: val } 
-                            }));
-                          }}
-                        >
-                          <option value="">Select gender</option>
-                          {["MALE", "FEMALE"].map(g => (
-                            <option key={g} value={g}>{g}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* PARENT 1 DROPDOWN */}
-                      <div className="col-lg-6">
+                    {/* Parents Row */}
+                    <div className="row mb-4">
+                      <div className="col-lg-6 mb-3 mb-lg-0">
                         <label>Parent:</label>
                         <select
                           name="parent"
@@ -393,9 +386,7 @@ class Modal extends React.Component {
                           ))}
                         </select>
                       </div>
-
-                      {/* PARENT 2 DROPDOWN */}
-                      <div className="col-lg-6">
+                      <div className="col-lg-6 mb-3 mb-lg-0">
                         <label>Alternative Parent:</label>
                         <select
                           name="parent2"
@@ -417,9 +408,11 @@ class Modal extends React.Component {
                           ))}
                         </select>
                       </div>
+                    </div>
 
-                      {/* Paid Fees */}
-                      <div className="col-lg-6">
+                    {/* Fees Row */}
+                    <div className="row">
+                      <div className="col-lg-6 mb-3 mb-lg-0">
                         <label>Paid Fees:</label>
                         <input
                           type="number"
@@ -434,9 +427,7 @@ class Modal extends React.Component {
                           }}
                         />
                       </div>
-
-                      {/* Balance Brought Forward */}
-                      <div className="col-lg-6">
+                      <div className="col-lg-6 mb-3 mb-lg-0">
                         <label>Balance Brought Forward:</label>
                         <input
                           type="number"
@@ -451,7 +442,6 @@ class Modal extends React.Component {
                           }}
                         />
                       </div>
-
                     </div>
                   </div>
                 </div>

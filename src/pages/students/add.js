@@ -255,18 +255,17 @@ class Modal extends React.Component {
                   {/* ... The rest of your form JSX is unchanged ... */}
                   {/* ... Example input ... */}
                    <div className="kt-portlet__body">
-                    <div className="form-group row">
-                      {/* Image Upload Zone */}
-                      <div className="col-lg-12 mb-4">
-                        <label>Profile Image:</label>
+                    {/* Image Upload Zone */}
+                    <div className="row mb-5">
+                      <div className="col-12 d-flex flex-column align-items-center">
                         {this.state.profileImageUrl ? (
-                          <div className="cover-preview-wrapper" style={{ position: 'relative', width: '120px', height: '120px' }}>
-                            <img src={this.state.profileImageUrl} alt="Preview" style={{ width: '120px', height: '120px', objectFit: 'cover', borderRadius: '60px' }} />
+                          <div className="cover-preview-wrapper" style={{ position: 'relative', width: '150px', height: '150px' }}>
+                            <img src={this.state.profileImageUrl} alt="Preview" style={{ width: '150px', height: '150px', objectFit: 'cover', borderRadius: '75px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
                             {!this.state.isUploading && (
                               <button 
                                 type="button" 
                                 onClick={this.removeImage} 
-                                style={{ position: 'absolute', top: 0, right: 0, background: 'red', color: 'white', borderRadius: '50%', width: '24px', height: '24px', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                                style={{ position: 'absolute', top: 0, right: 0, background: '#ff3b30', color: 'white', borderRadius: '50%', width: '28px', height: '28px', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 2px 5px rgba(0,0,0,0.2)' }}
                               >
                                 &times;
                               </button>
@@ -275,44 +274,47 @@ class Modal extends React.Component {
                         ) : (
                           <label 
                             className="upload-zone" 
-                            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '100%', padding: '30px', border: '2px dashed #e2e5ec', borderRadius: '8px', cursor: 'pointer', background: '#f8f9fa' }}
+                            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '200px', height: '200px', padding: '20px', border: '2px dashed #a7abc3', borderRadius: '100px', cursor: 'pointer', background: '#f8f9fa', transition: 'all 0.2s' }}
                             onDragOver={this.handleDragOver}
                             onDrop={this.handleDrop}
                           >
                             <input type="file" accept="image/*" hidden onChange={this.handleImageSelect} />
-                            <i className="la la-image" style={{ fontSize: '32px', color: '#a7abc3' }}></i>
-                            <span style={{ marginTop: '10px', color: '#595d6e', fontWeight: 500 }}>Click or drag to upload photo</span>
-                            <span style={{ fontSize: '12px', color: '#a7abc3' }}>JPG, PNG (Max 5MB)</span>
+                            <i className="la la-camera" style={{ fontSize: '42px', color: '#a7abc3', marginBottom: '10px' }}></i>
+                            <span style={{ color: '#595d6e', fontWeight: 500, textAlign: 'center', fontSize: '13px' }}>Upload Photo</span>
                           </label>
                         )}
                       </div>
-                      
-                      {/* Full Name, Registration, Gender are fine */}
-                      <div className="col-lg-3">
+                    </div>
+                    
+                    {/* Personal Details Row */}
+                    <div className="row mb-4">
+                      <div className="col-lg-3 col-md-6 mb-3 mb-lg-0">
                         <label>Full Name:</label>
                         <input type="text" className="form-control" name="names" minLength="2" required value={this.state.names} onChange={(e) => this.setState({ names: e.target.value })} />
                       </div>
-                      <div className="col-lg-3">
+                      <div className="col-lg-3 col-md-6 mb-3 mb-lg-0">
                         <label>Registration Number:</label>
                         <input type="text" className="form-control" name="registration" minLength="2" required value={this.state.registration} onChange={(e) => this.setState({ registration: e.target.value })} />
                       </div>
-                      <div className="col-lg-3">
+                      <div className="col-lg-3 col-md-6 mb-3 mb-lg-0">
                         <label>Year of Entry:</label>
                         <input type="text" className="form-control" name="yearOfEntry" value={this.state.yearOfEntry} onChange={(e) => this.setState({ yearOfEntry: e.target.value })} />
                       </div>
-                      <div className="col-lg-3">
+                      <div className="col-lg-3 col-md-6 mb-3 mb-lg-0">
                         <label htmlFor="gender">Gender:</label>
                         <select name="gender" className="form-control" id="gender" required value={this.state.gender} onChange={(e) => this.setState({ gender: e.target.value })}>
                           <option value="">Select gender</option>
                           {["MALE", "FEMALE"].map(gender => (<option key={gender} value={gender}>{gender}</option>))}
                         </select>
                       </div>
+                    </div>
 
-                      {/* Class Selector */}
-                      <div className="col-lg-6">
-                        <div className="row">
-                          <div className="col-lg-8">
-                            <label>Class:</label>
+                    {/* School & Transport Row */}
+                    <div className="row mb-4">
+                      <div className="col-lg-6 mb-3 mb-lg-0">
+                        <label>Class:</label>
+                        <div className="d-flex gap-2" style={{ gap: '10px' }}>
+                          <div style={{ flex: 1 }}>
                             <Select
                               name="class" 
                               value={this.state.setClass}
@@ -320,19 +322,15 @@ class Modal extends React.Component {
                               onChange={({ value, label }) => this.setState({ class: value, setClass: { value, label } })}
                             />
                           </div>
-                          <div className="col-lg-4 align-self-end">
-                            <button className="btn btn-outline-brand" type="button" onClick={() => { this.hide(); addClassModal.show(); }}>
-                              Add a Class
-                            </button>
-                          </div>
+                          <button className="btn btn-outline-brand" type="button" onClick={() => { this.hide(); addClassModal.show(); }}>
+                            + Class
+                          </button>
                         </div>
                       </div>
-
-                      {/* Route Selector */}
-                      <div className="col-lg-6">
-                        <div className="row">
-                          <div className="col-lg-8">
-                            <label>Route:</label>
+                      <div className="col-lg-6 mb-3 mb-lg-0">
+                        <label>Route:</label>
+                        <div className="d-flex gap-2" style={{ gap: '10px' }}>
+                          <div style={{ flex: 1 }}>
                             <Select
                               name="route"
                               value={this.state.setRoute}
@@ -340,19 +338,19 @@ class Modal extends React.Component {
                               onChange={({ value, label }) => this.setState({ route: value, setRoute: { value, label } })}
                             />
                           </div>
-                          <div className="col-lg-4 align-self-end">
-                            <button className="btn btn-outline-brand" type="button" onClick={() => { this.hide(); addRouteModal.show(); }}>
-                              Add a Route
-                            </button>
-                          </div>
+                          <button className="btn btn-outline-brand" type="button" onClick={() => { this.hide(); addRouteModal.show(); }}>
+                            + Route
+                          </button>
                         </div>
                       </div>
+                    </div>
 
-                      {/* Parent Selector */}
-                      <div className="col-lg-6">
-                        <div className="row">
-                          <div className="col-lg-8">
-                            <label>Parent:</label>
+                    {/* Parents Row */}
+                    <div className="row mb-4">
+                      <div className="col-lg-6 mb-3 mb-lg-0">
+                        <label>Parent:</label>
+                        <div className="d-flex gap-2" style={{ gap: '10px' }}>
+                          <div style={{ flex: 1 }}>
                             <Select
                               name="parent"
                               value={this.state.setParent}
@@ -360,43 +358,35 @@ class Modal extends React.Component {
                               onChange={({ value, label }) => this.setState({ parent: value, setParent: { value, label } })}
                             />
                           </div>
-                          <div className="col-lg-4 align-self-end">
-                            <button className="btn btn-outline-brand" type="button" onClick={() => { this.hide(); addParentModal.show(); }}>
-                              Add a Parent
-                            </button>
-                          </div>
+                          <button className="btn btn-outline-brand" type="button" onClick={() => { this.hide(); addParentModal.show(); }}>
+                            + Parent
+                          </button>
                         </div>
                       </div>
-
-                      {/* Second Parent Selector */}
-                      <div className="col-lg-6">
-                        <div className="row">
-                          <div className="col-lg-8">
-                            <label>Second Parent (Optional):</label>
-                            <Select
-                              name="parent2"
-                              isClearable
-                              value={this.state.setParent2}
-                              options={this.state.parents?.map(({ id: value, name, phone }) => ({ value, label: `${name} (${phone || 'No Phone'})` }))}
-                              onChange={(selected) => this.setState({ parent2: selected ? selected.value : "", setParent2: selected })}
-                            />
-                          </div>
-                        </div>
+                      <div className="col-lg-6 mb-3 mb-lg-0">
+                        <label>Second Parent (Optional):</label>
+                        <Select
+                          name="parent2"
+                          isClearable
+                          value={this.state.setParent2}
+                          options={this.state.parents?.map(({ id: value, name, phone }) => ({ value, label: `${name} (${phone || 'No Phone'})` }))}
+                          onChange={(selected) => this.setState({ parent2: selected ? selected.value : "", setParent2: selected })}
+                        />
                       </div>
+                    </div>
 
-                      {/* Paid Fees */}
-                      <div className="col-lg-6">
+                    {/* Fees Row */}
+                    <div className="row">
+                      <div className="col-lg-6 mb-3 mb-lg-0">
                         <label>Paid Fees:</label>
                         <input type="number" className="form-control" name="paidFees" value={this.state.paidFees} onChange={(e) => this.setState({ paidFees: e.target.value })} />
                       </div>
-
-                      {/* Balance Brought Forward */}
-                      <div className="col-lg-6">
+                      <div className="col-lg-6 mb-3 mb-lg-0">
                         <label>Balance Brought Forward:</label>
                         <input type="number" className="form-control" name="balanceBroughtForward" value={this.state.balanceBroughtForward} onChange={(e) => this.setState({ balanceBroughtForward: e.target.value })} />
                       </div>
-
                     </div>
+
                   </div>
                 </div>
                 <div className="modal-footer">
