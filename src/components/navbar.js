@@ -61,6 +61,7 @@ class Navbar extends React.Component {
     showSchoolSelector: false, // State for desktop school selector dropdown
     showManageData: false, // State for manage data dropdown
     isDataLoading: false, // State to track data loading from Data utility
+    pwaInstallAvailable: false, // Whether the PWA install prompt is available
   };
 
   schoolSelectorRef = React.createRef();
@@ -249,11 +250,23 @@ class Navbar extends React.Component {
     setTimeout(() => this.initDesktopMenu(), 500);
     window.addEventListener('resize', this.handleResize);
     document.addEventListener('mousedown', this.handleClickOutside);
+
+    // Track PWA install prompt availability
+    this._pwaPromptListener = () => {
+      const isStandalone = window.matchMedia && window.matchMedia('(display-mode: standalone)').matches;
+      this.setState({ pwaInstallAvailable: !isStandalone && !!window.deferredInstallPrompt });
+    };
+    window.addEventListener('pwa_prompt_ready', this._pwaPromptListener);
+    // Check immediately in case it was already set
+    this._pwaPromptListener();
   }
 
   componentWillUnmount() {
     window.removeEventListener('resize', this.handleResize);
     document.removeEventListener('mousedown', this.handleClickOutside);
+    if (this._pwaPromptListener) {
+      window.removeEventListener('pwa_prompt_ready', this._pwaPromptListener);
+    }
     if (this.loadingTimeout) {
       clearTimeout(this.loadingTimeout);
     }
@@ -1160,7 +1173,7 @@ class Navbar extends React.Component {
                     <button className="btn btn-sm btn-bold compact-profile-btn" style={{ backgroundColor: 'var(--brand-color)', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 12px', fontSize: '0.85rem' }} type="button" onClick={() => this.props.history.push({ pathname: "/settings/user" })}>
                         <i className="la la-cog" style={{ marginRight: '6px' }}></i> Profile Settings
                     </button>
-                    {typeof window.matchMedia === 'function' && !window.matchMedia('(display-mode: standalone)').matches && typeof window.deferredInstallPrompt !== 'undefined' && (
+                    {this.state.pwaInstallAvailable && (
                         <button className="btn btn-sm btn-bold compact-profile-btn" style={{ backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 12px', fontSize: '0.85rem' }} type="button" onClick={this.handleInstallApp}>
                             <i className="la la-download" style={{ marginRight: '6px' }}></i> Install App
                         </button>
