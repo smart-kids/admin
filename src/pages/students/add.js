@@ -255,9 +255,10 @@ class Modal extends React.Component {
                   {/* ... The rest of your form JSX is unchanged ... */}
                   {/* ... Example input ... */}
                    <div className="kt-portlet__body">
-                    {/* Image Upload Zone */}
-                    <div className="row mb-5">
-                      <div className="col-12 d-flex flex-column align-items-center">
+                    {/* Top Row: Image + Personal Details */}
+                    <div className="row mb-4">
+                      {/* Image Upload Zone (Left Column) */}
+                      <div className="col-lg-3 d-flex flex-column align-items-center justify-content-center mb-4 mb-lg-0">
                         {this.state.profileImageUrl ? (
                           <div className="cover-preview-wrapper" style={{ position: 'relative', width: '150px', height: '150px' }}>
                             <img src={this.state.profileImageUrl} alt="Preview" style={{ width: '150px', height: '150px', objectFit: 'cover', borderRadius: '75px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }} />
@@ -274,38 +275,40 @@ class Modal extends React.Component {
                         ) : (
                           <label 
                             className="upload-zone" 
-                            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '200px', height: '200px', padding: '20px', border: '2px dashed #a7abc3', borderRadius: '100px', cursor: 'pointer', background: '#f8f9fa', transition: 'all 0.2s' }}
+                            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: '160px', height: '160px', padding: '15px', border: '2px dashed #a7abc3', borderRadius: '80px', cursor: 'pointer', background: '#f8f9fa', transition: 'all 0.2s' }}
                             onDragOver={this.handleDragOver}
                             onDrop={this.handleDrop}
                           >
                             <input type="file" accept="image/*" hidden onChange={this.handleImageSelect} />
-                            <i className="la la-camera" style={{ fontSize: '42px', color: '#a7abc3', marginBottom: '10px' }}></i>
-                            <span style={{ color: '#595d6e', fontWeight: 500, textAlign: 'center', fontSize: '13px' }}>Upload Photo</span>
+                            <i className="la la-camera" style={{ fontSize: '32px', color: '#a7abc3', marginBottom: '8px' }}></i>
+                            <span style={{ color: '#595d6e', fontWeight: 500, textAlign: 'center', fontSize: '12px' }}>Upload Photo</span>
                           </label>
                         )}
                       </div>
-                    </div>
-                    
-                    {/* Personal Details Row */}
-                    <div className="row mb-4">
-                      <div className="col-lg-3 col-md-6 mb-3 mb-lg-0">
-                        <label>Full Name:</label>
-                        <input type="text" className="form-control" name="names" minLength="2" required value={this.state.names} onChange={(e) => this.setState({ names: e.target.value })} />
-                      </div>
-                      <div className="col-lg-3 col-md-6 mb-3 mb-lg-0">
-                        <label>Registration Number:</label>
-                        <input type="text" className="form-control" name="registration" minLength="2" required value={this.state.registration} onChange={(e) => this.setState({ registration: e.target.value })} />
-                      </div>
-                      <div className="col-lg-3 col-md-6 mb-3 mb-lg-0">
-                        <label>Year of Entry:</label>
-                        <input type="text" className="form-control" name="yearOfEntry" value={this.state.yearOfEntry} onChange={(e) => this.setState({ yearOfEntry: e.target.value })} />
-                      </div>
-                      <div className="col-lg-3 col-md-6 mb-3 mb-lg-0">
-                        <label htmlFor="gender">Gender:</label>
-                        <select name="gender" className="form-control" id="gender" required value={this.state.gender} onChange={(e) => this.setState({ gender: e.target.value })}>
-                          <option value="">Select gender</option>
-                          {["MALE", "FEMALE"].map(gender => (<option key={gender} value={gender}>{gender}</option>))}
-                        </select>
+                      
+                      {/* Personal Details (Right Column) */}
+                      <div className="col-lg-9">
+                        <div className="row">
+                          <div className="col-md-6 mb-3">
+                            <label>Full Name:</label>
+                            <input type="text" className="form-control" name="names" minLength="2" required value={this.state.names} onChange={(e) => this.setState({ names: e.target.value })} />
+                          </div>
+                          <div className="col-md-6 mb-3">
+                            <label>Registration Number:</label>
+                            <input type="text" className="form-control" name="registration" minLength="2" required value={this.state.registration} onChange={(e) => this.setState({ registration: e.target.value })} />
+                          </div>
+                          <div className="col-md-6 mb-3">
+                            <label>Year of Entry:</label>
+                            <input type="text" className="form-control" name="yearOfEntry" value={this.state.yearOfEntry} onChange={(e) => this.setState({ yearOfEntry: e.target.value })} />
+                          </div>
+                          <div className="col-md-6 mb-3">
+                            <label htmlFor="gender">Gender:</label>
+                            <select name="gender" className="form-control" id="gender" required value={this.state.gender} onChange={(e) => this.setState({ gender: e.target.value })}>
+                              <option value="">Select gender</option>
+                              {["MALE", "FEMALE"].map(gender => (<option key={gender} value={gender}>{gender}</option>))}
+                            </select>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
