@@ -71,7 +71,7 @@ const NetworkDebugOverlay = () => {
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
-            maxWidth: '180px'
+            maxWidth: '600px'
         }}>
             <span>{debug.socketConnected ? '⚡' : '❌'}</span>
             <span>{debug.pingMs}ms</span>
