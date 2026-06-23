@@ -1764,6 +1764,7 @@ class CurriculumManagerV5 extends React.Component {
                                 <td>
                                     <div className="rich-content-cell" dangerouslySetInnerHTML={{ __html: item.learningexperience }}></div>
                                     <div className="small mt-1 font-italic" dangerouslySetInnerHTML={{ __html: item.corecompetencies }}></div>
+                                    <div className="small mt-1 text-success" dangerouslySetInnerHTML={{ __html: item.valueslearnt }}></div>
                                 </td>
                                 <td>
                                     <div className="small" dangerouslySetInnerHTML={{ __html: item.learningresources }}></div>
@@ -2091,6 +2092,7 @@ class CurriculumManagerV5 extends React.Component {
                                             <PlanningField label="Key Enquiring Questions" name="keyenquiringquestions" value={item?.keyenquiringquestions} />
                                             <PlanningField label="Learning Experience / Activities" name="learningexperience" value={item?.learningexperience} />
                                             <PlanningField label="Core Competencies" name="corecompetencies" value={item?.corecompetencies} />
+                                            <PlanningField label="Values Learnt" name="valueslearnt" value={item?.valueslearnt} />
                                             <PlanningField label="Learning Resources" name="learningresources" value={item?.learningresources} />
                                             <PlanningField label="Methods" name="assessment" value={item?.assessment} />
                                             <PlanningField label="Reflection" name="reflection" value={item?.reflection} />

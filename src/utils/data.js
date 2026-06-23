@@ -434,7 +434,7 @@ var Data = (function () {
 
     const init = () => {
         const FRAGMENT_USER_DATA = `fragment UserData on user { names email phone }`;
-        const FRAGMENT_SCHOOL_DETAILS = `fragment schoolDetails on school { id name phone email address logo themeColor studentsCount parentsCount schoolSize schoolType schoolLevel numberOfStudents gradeOrder isDeleted }`;
+        const FRAGMENT_SCHOOL_DETAILS = `fragment schoolDetails on school { id name phone email address logo themeColor studentsCount parentsCount schoolSize schoolType schoolLevel numberOfStudents gradeOrder isDeleted inviteSmsText mpesaPaybill }`;
         const FRAGMENT_GRADES_DATA = `fragment GradesData on school {
             grades { 
                 id name subjectsOrder 
@@ -595,6 +595,8 @@ var Data = (function () {
                 checkoutRequestID
                 resultCode
                 resultDesc
+                transactionDate
+                errorMessage
                 createdAt
                 updatedAt
                 metadata
