@@ -8,7 +8,11 @@ const MODAL_ID = "qr_onboarding_modal_" + Math.random().toString(36).substr(2, 9
 class QRModal extends React.Component {
   state = {
     qrUrl: "",
-    error: null
+    error: null,
+    wifiSsid: "",
+    wifiPassword: "",
+    wifiSecurityType: "WPA",
+    wifiHidden: false
   };
 
   componentDidMount() {
@@ -27,13 +31,30 @@ class QRModal extends React.Component {
 
   generateQR = () => {
     const schoolId = localStorage.getItem("school");
-    const payload = JSON.stringify({
+    const { wifiSsid, wifiPassword, wifiSecurityType, wifiHidden } = this.state;
+
+    const payloadObj = {
       "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "com.shule.plusapp/.AdminReceiver",
       "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_NAME": "com.shule.plusapp",
       "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": {
         "schoolId": schoolId
       }
-    });
+    };
+
+    if (wifiSsid.trim()) {
+      payloadObj["android.app.extra.PROVISIONING_WIFI_SSID"] = wifiSsid.trim();
+      payloadObj["android.app.extra.PROVISIONING_WIFI_SECURITY_TYPE"] = wifiSecurityType;
+      
+      if (wifiSecurityType !== "NONE" && wifiPassword) {
+        payloadObj["android.app.extra.PROVISIONING_WIFI_PASSWORD"] = wifiPassword;
+      }
+      
+      if (wifiHidden) {
+        payloadObj["android.app.extra.PROVISIONING_WIFI_HIDDEN"] = true;
+      }
+    }
+
+    const payload = JSON.stringify(payloadObj);
 
     QRCode.toDataURL(payload, {
       width: 250,
@@ -58,7 +79,7 @@ class QRModal extends React.Component {
   };
 
   render() {
-    const { qrUrl, error } = this.state;
+    const { qrUrl, error, wifiSsid, wifiPassword, wifiSecurityType, wifiHidden } = this.state;
 
     return (
       <div
@@ -87,7 +108,7 @@ class QRModal extends React.Component {
               <div className="d-flex flex-wrap flex-md-nowrap align-items-stretch">
                 
                 {/* Left Side: QR Code Panel */}
-                <div className="p-4 bg-light border-right text-center d-flex flex-column align-items-center justify-content-center" style={{ flex: '1 0 320px', minWidth: '320px' }}>
+                <div className="p-4 bg-light border-right text-center d-flex flex-column align-items-center" style={{ flex: '1 0 320px', minWidth: '320px' }}>
                   <div className="mb-3">
                     <span className="badge badge-primary px-3 py-2 font-weight-bold" style={{ borderRadius: '20px', letterSpacing: '0.5px' }}>
                       ONBOARDING CONFIG
@@ -104,9 +125,76 @@ class QRModal extends React.Component {
                     )}
                   </div>
                   
-                  <div className="mt-4 text-muted small px-3">
+                  <div className="mt-3 text-muted small px-3">
                     <i className="la la-shield-alt mr-1 text-primary"></i>
-                    This QR code contains the secure school provisioning parameters used by Android Enterprise.
+                    This QR code contains secure school provisioning parameters.
+                  </div>
+
+                  {/* Optional Wi-Fi Pre-Configuration Form */}
+                  <div className="wifi-config-section mt-4 w-100 text-left border-top pt-4 px-2">
+                    <h6 className="font-weight-bold text-dark mb-3 d-flex align-items-center" style={{ fontSize: '0.9rem', gap: '6px' }}>
+                      <i className="la la-wifi text-primary" style={{ fontSize: '16px' }}></i> Pre-Configure Wi-Fi (Optional)
+                    </h6>
+                    
+                    <div className="form-group mb-2">
+                      <label className="small font-weight-bold text-muted mb-1" style={{ fontSize: '11px' }}>Wi-Fi SSID</label>
+                      <input 
+                        type="text" 
+                        className="form-control form-control-sm" 
+                        placeholder="e.g. School_Staff_WiFi"
+                        value={wifiSsid}
+                        onChange={(e) => this.setState({ wifiSsid: e.target.value }, this.generateQR)}
+                        style={{ borderRadius: '6px' }}
+                      />
+                    </div>
+
+                    <div className="row mb-2">
+                      <div className="col-6 pr-1">
+                        <div className="form-group mb-0">
+                          <label className="small font-weight-bold text-muted mb-1" style={{ fontSize: '11px' }}>Security</label>
+                          <select 
+                            className="form-control form-control-sm"
+                            value={wifiSecurityType}
+                            onChange={(e) => this.setState({ wifiSecurityType: e.target.value }, this.generateQR)}
+                            style={{ borderRadius: '6px' }}
+                          >
+                            <option value="WPA">WPA/WPA2</option>
+                            <option value="WEP">WEP</option>
+                            <option value="NONE">None (Open)</option>
+                          </select>
+                        </div>
+                      </div>
+                      
+                      <div className="col-6 pl-1">
+                        <div className="form-group mb-0">
+                          <label className="small font-weight-bold text-muted mb-1" style={{ fontSize: '11px' }}>Network Visibility</label>
+                          <div className="custom-control custom-checkbox mt-1">
+                            <input 
+                              type="checkbox" 
+                              className="custom-control-input" 
+                              id="wifiHiddenCheckbox"
+                              checked={wifiHidden}
+                              onChange={(e) => this.setState({ wifiHidden: e.target.checked }, this.generateQR)}
+                            />
+                            <label className="custom-control-label small text-muted font-weight-bold mt-1" htmlFor="wifiHiddenCheckbox" style={{ cursor: 'pointer' }}>Hidden</label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {wifiSecurityType !== "NONE" && (
+                      <div className="form-group mb-0">
+                        <label className="small font-weight-bold text-muted mb-1" style={{ fontSize: '11px' }}>Wi-Fi Password</label>
+                        <input 
+                          type="password" 
+                          className="form-control form-control-sm" 
+                          placeholder="Enter Wi-Fi password"
+                          value={wifiPassword}
+                          onChange={(e) => this.setState({ wifiPassword: e.target.value }, this.generateQR)}
+                          style={{ borderRadius: '6px' }}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -153,7 +241,7 @@ class QRModal extends React.Component {
                       <div>
                         <h6 className="font-weight-bold text-dark mb-1" style={{ fontSize: '14px' }}>Connect WiFi & Scan QR</h6>
                         <p className="text-muted m-0" style={{ fontSize: '12px', lineHeight: '1.4' }}>
-                          Connect the tablet to WiFi when prompted by the wizard, then align the tablet camera with the onboarding QR code on this screen.
+                          Scan the onboarding QR code on this screen. If you pre-configured Wi-Fi on the left, the tablet will connect automatically. Otherwise, connect to Wi-Fi manually when prompted.
                         </p>
                       </div>
                     </div>
