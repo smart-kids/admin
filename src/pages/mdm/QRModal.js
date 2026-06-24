@@ -12,7 +12,10 @@ class QRModal extends React.Component {
     wifiSsid: "",
     wifiPassword: "",
     wifiSecurityType: "WPA",
-    wifiHidden: false
+    wifiHidden: false,
+    downloadUrl: "",
+    signatureChecksum: "FB:14:AD:27:3C:DC:F3:33:CF:94:F9:01:9F:F1:63:70:1B:84:D2:23:1D:0B:0E:CF:4A:C2:BC:B7:66:C7:AB:76",
+    enrollmentToken: ""
   };
 
   componentDidMount() {
@@ -31,12 +34,18 @@ class QRModal extends React.Component {
 
   generateQR = () => {
     const schoolId = localStorage.getItem("school");
-    const { wifiSsid, wifiPassword, wifiSecurityType, wifiHidden } = this.state;
+    const { wifiSsid, wifiPassword, wifiSecurityType, wifiHidden, downloadUrl, signatureChecksum, enrollmentToken } = this.state;
+
+    // Generate enrollment token if not provided
+    const token = enrollmentToken || this.generateEnrollmentToken(schoolId);
 
     const payloadObj = {
       "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "com.shule.plusapp/.AdminReceiver",
+      "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_DOWNLOAD_LOCATION": downloadUrl,
+      "android.app.extra.PROVISIONING_DEVICE_ADMIN_SIGNATURE_CHECKSUM": signatureChecksum,
       "android.app.extra.PROVISIONING_DEVICE_ADMIN_PACKAGE_NAME": "com.shule.plusapp",
       "android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE": {
+        "com.google.android.apps.work.clouddpc.EXTRA_ENROLLMENT_TOKEN": token,
         "schoolId": schoolId
       }
     };
@@ -52,6 +61,11 @@ class QRModal extends React.Component {
       if (wifiHidden) {
         payloadObj["android.app.extra.PROVISIONING_WIFI_HIDDEN"] = true;
       }
+    }
+
+    // Store the generated token
+    if (!enrollmentToken) {
+      this.setState({ enrollmentToken: token });
     }
 
     const payload = JSON.stringify(payloadObj);
@@ -78,8 +92,15 @@ class QRModal extends React.Component {
     this.props.onClose();
   };
 
+  generateEnrollmentToken = (schoolId) => {
+    // Generate a unique enrollment token based on schoolId and timestamp
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substring(2, 8);
+    return `${schoolId}_${timestamp}_${random}`.toUpperCase();
+  };
+
   render() {
-    const { qrUrl, error, wifiSsid, wifiPassword, wifiSecurityType, wifiHidden } = this.state;
+    const { qrUrl, error, wifiSsid, wifiPassword, wifiSecurityType, wifiHidden, downloadUrl, signatureChecksum, enrollmentToken } = this.state;
 
     return (
       <div
@@ -128,6 +149,50 @@ class QRModal extends React.Component {
                   <div className="mt-3 text-muted small px-3">
                     <i className="la la-shield-alt mr-1 text-primary"></i>
                     This QR code contains secure school provisioning parameters.
+                  </div>
+
+                  {/* DPC Configuration Form */}
+                  <div className="dpc-config-section mt-4 w-100 text-left border-top pt-4 px-2">
+                    <h6 className="font-weight-bold text-dark mb-3 d-flex align-items-center" style={{ fontSize: '0.9rem', gap: '6px' }}>
+                      <i className="la la-download text-primary" style={{ fontSize: '16px' }}></i> DPC Download URL
+                    </h6>
+                    
+                    <div className="form-group mb-3">
+                      <label className="small font-weight-bold text-muted mb-1" style={{ fontSize: '11px' }}>APK Download URL</label>
+                      <input 
+                        type="text" 
+                        className="form-control form-control-sm" 
+                        placeholder="https://your-server.com/api/uploads/app.apk"
+                        value={downloadUrl}
+                        onChange={(e) => this.setState({ downloadUrl: e.target.value }, this.generateQR)}
+                        style={{ borderRadius: '6px' }}
+                      />
+                    </div>
+
+                    <div className="form-group mb-3">
+                      <label className="small font-weight-bold text-muted mb-1" style={{ fontSize: '11px' }}>Signature Checksum (SHA-256)</label>
+                      <input 
+                        type="text" 
+                        className="form-control form-control-sm" 
+                        placeholder="FB:14:AD:27:..."
+                        value={signatureChecksum}
+                        onChange={(e) => this.setState({ signatureChecksum: e.target.value }, this.generateQR)}
+                        style={{ borderRadius: '6px', fontFamily: 'monospace', fontSize: '0.75rem' }}
+                      />
+                    </div>
+
+                    <div className="form-group mb-0">
+                      <label className="small font-weight-bold text-muted mb-1" style={{ fontSize: '11px' }}>Enrollment Token</label>
+                      <input 
+                        type="text" 
+                        className="form-control form-control-sm" 
+                        placeholder="Auto-generated or custom token"
+                        value={enrollmentToken}
+                        onChange={(e) => this.setState({ enrollmentToken: e.target.value }, this.generateQR)}
+                        style={{ borderRadius: '6px', fontFamily: 'monospace', fontSize: '0.75rem' }}
+                      />
+                      <small className="text-muted" style={{ fontSize: '10px' }}>Leave empty to auto-generate</small>
+                    </div>
                   </div>
 
                   {/* Optional Wi-Fi Pre-Configuration Form */}
