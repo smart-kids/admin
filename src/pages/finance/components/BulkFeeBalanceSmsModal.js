@@ -65,6 +65,16 @@ const BulkFeeBalanceSmsModal = ({ show, onClose, recipients = [], onSend, onSave
         }
     }, [show]);
 
+    const filteredRecipients = useMemo(() => {
+        if (!searchTerm) return recipients;
+        const lower = searchTerm.toLowerCase();
+        return recipients.filter(r =>
+            r.name.toLowerCase().includes(lower) ||
+            (r.studentNames && r.studentNames.toLowerCase().includes(lower)) ||
+            (r.phone && r.phone.includes(searchTerm))
+        );
+    }, [recipients, searchTerm]);
+
     // Selection handlers
     const handleToggleSelect = (id) => {
         setSelectedIds(prev => {
@@ -86,16 +96,6 @@ const BulkFeeBalanceSmsModal = ({ show, onClose, recipients = [], onSend, onSave
     const handleDeselectAll = () => {
         setSelectedIds(new Set());
     };
-
-    const filteredRecipients = useMemo(() => {
-        if (!searchTerm) return recipients;
-        const lower = searchTerm.toLowerCase();
-        return recipients.filter(r =>
-            r.name.toLowerCase().includes(lower) ||
-            (r.studentNames && r.studentNames.toLowerCase().includes(lower)) ||
-            (r.phone && r.phone.includes(searchTerm))
-        );
-    }, [recipients, searchTerm]);
 
     const isAllSelected = filteredRecipients.length > 0 && filteredRecipients.every(r => selectedIds.has(r.id));
     const isSomeSelected = selectedIds.size > 0 && !isAllSelected;
