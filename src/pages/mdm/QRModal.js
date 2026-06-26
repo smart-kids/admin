@@ -357,7 +357,7 @@ class QRModal extends React.Component {
                   </p>
 
                   <div className="steps-container" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    
+
                     <div className="step-item d-flex" style={{ gap: '15px' }}>
                       <div className="step-number d-flex align-items-center justify-content-center font-weight-bold" style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#E8F0FE', color: '#1A73E8', fontSize: '13px', flexShrink: 0 }}>
                         1
@@ -406,6 +406,76 @@ class QRModal extends React.Component {
                       </div>
                     </div>
 
+                  </div>
+
+                  {/* Security Benefits Section */}
+                  <div className="mt-5 pt-4 border-top">
+                    <h6 className="font-weight-bold text-dark mb-3 d-flex align-items-center" style={{ fontSize: '1rem' }}>
+                      <i className="la la-shield-alt text-primary mr-2" style={{ fontSize: '20px' }}></i>
+                      Security Benefits
+                    </h6>
+
+                    <div className="security-benefits" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div className="benefit-item">
+                        <div className="d-flex align-items-start" style={{ gap: '10px' }}>
+                          <i className="la la-lock text-primary mt-1" style={{ fontSize: '16px' }}></i>
+                          <div>
+                            <h6 className="font-weight-bold text-dark mb-1" style={{ fontSize: '13px' }}>App Locking</h6>
+                            <p className="text-muted m-0" style={{ fontSize: '12px', lineHeight: '1.4' }}>
+                              The device is locked to ShulePlus only. Kids cannot exit the app, open other apps, or access the home screen. The app becomes the only thing they can use.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="benefit-item">
+                        <div className="d-flex align-items-start" style={{ gap: '10px' }}>
+                          <i className="la fa-user-shield text-primary mt-1" style={{ fontSize: '16px' }}></i>
+                          <div>
+                            <h6 className="font-weight-bold text-dark mb-1" style={{ fontSize: '13px' }}>Burglar Protection</h6>
+                            <p className="text-muted m-0" style={{ fontSize: '12px', lineHeight: '1.4' }}>
+                              If a tablet is stolen, thieves cannot factory reset it, cannot bypass security via USB debugging, and cannot access any data. The device remains locked to your school.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="benefit-item">
+                        <div className="d-flex align-items-start" style={{ gap: '10px' }}>
+                          <i className="la fa-ban text-primary mt-1" style={{ fontSize: '16px' }}></i>
+                          <div>
+                            <h6 className="font-weight-bold text-dark mb-1" style={{ fontSize: '13px' }}>No Unauthorized Access</h6>
+                            <p className="text-muted m-0" style={{ fontSize: '12px', lineHeight: '1.4' }}>
+                              USB file transfer is blocked, external drives cannot be mounted, and safe boot is disabled. This prevents anyone from bypassing security or installing unauthorized software.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="benefit-item">
+                        <div className="d-flex align-items-start" style={{ gap: '10px' }}>
+                          <i className="la fa-users text-primary mt-1" style={{ fontSize: '16px' }}></i>
+                          <div>
+                            <h6 className="font-weight-bold text-dark mb-1" style={{ fontSize: '13px' }}>Multi-Tablet Management</h6>
+                            <p className="text-muted m-0" style={{ fontSize: '12px', lineHeight: '1.4' }}>
+                              Perfect for schools with many tablets. Each device is enrolled with your school's unique token, preventing misuse and ensuring all tablets remain under your control.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="benefit-item">
+                        <div className="d-flex align-items-start" style={{ gap: '10px' }}>
+                          <i className="la fa-child text-primary mt-1" style={{ fontSize: '16px' }}></i>
+                          <div>
+                            <h6 className="font-weight-bold text-dark mb-1" style={{ fontSize: '13px' }}>Child-Safe Environment</h6>
+                            <p className="text-muted m-0" style={{ fontSize: '12px', lineHeight: '1.4' }}>
+                              Kids can only access educational content in ShulePlus. No social media, games, or inappropriate content. The status bar is hidden, preventing access to notifications and system settings.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
