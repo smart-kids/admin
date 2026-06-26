@@ -1,5 +1,6 @@
 import React from "react";
 import QRCode from "qrcode";
+import Data from "../../utils/data";
 
 const $ = window.$;
 
@@ -19,7 +20,9 @@ class QRModal extends React.Component {
     downloadUrl: "",
     signatureChecksum: "FB:14:AD:27:3C:DC:F3:33:CF:94:F9:01:9F:F1:63:70:1B:84:D2:23:1D:0B:0E:CF:4A:C2:BC:B7:66:C7:AB:76",
     enrollmentToken: "",
-    showAdvancedConfig: false
+    showAdvancedConfig: false,
+    enrolledDevices: [],
+    initialDeviceIds: new Set()
   };
 
   componentDidMount() {
@@ -29,6 +32,19 @@ class QRModal extends React.Component {
       keyboard: false
     });
 
+    // Capture currently known devices so we only show newly enrolled ones in the live feed
+    const currentDevices = Data.devices?.list() || [];
+    this.setState({ initialDeviceIds: new Set(currentDevices.map(d => d.id)) });
+
+    // Subscribe to real-time device updates
+    this.unsubscribeDevices = Data.devices?.subscribe(({ devices }) => {
+      if (!devices) return;
+      const { initialDeviceIds } = this.state;
+      // Reverse array to show newest first
+      const newDevices = devices.filter(d => !initialDeviceIds.has(d.id)).reverse();
+      this.setState({ enrolledDevices: newDevices });
+    });
+
     // Restore persisted WiFi settings first, then fetch the latest APK info
     this.loadWifiFromStorage();
     this.fetchApkInfo();
@@ -36,6 +52,9 @@ class QRModal extends React.Component {
 
   componentWillUnmount() {
     $("#" + MODAL_ID).modal("hide");
+    if (this.unsubscribeDevices) {
+      this.unsubscribeDevices();
+    }
   }
 
   generateQR = () => {
@@ -164,7 +183,7 @@ class QRModal extends React.Component {
   };
 
   render() {
-    const { qrUrl, error, wifiSsid, wifiPassword, wifiSecurityType, wifiHidden, downloadUrl, signatureChecksum, enrollmentToken, showAdvancedConfig } = this.state;
+    const { qrUrl, error, wifiSsid, wifiPassword, wifiSecurityType, wifiHidden, downloadUrl, signatureChecksum, enrollmentToken, showAdvancedConfig, enrolledDevices } = this.state;
 
     return (
       <div
@@ -346,9 +365,47 @@ class QRModal extends React.Component {
                   </div>
                 </div>
 
-                {/* Right Side: Step-by-Step Secure Lockdown Guide */}
-                <div className="p-4 flex-grow-1" style={{ backgroundColor: '#ffffff' }}>
-                  <h6 className="font-weight-bold text-dark mb-3 d-flex align-items-center" style={{ fontSize: '1rem' }}>
+                {/* Right Side: Step-by-Step Secure Lockdown Guide & Live Feed */}
+                <div className="p-4 flex-grow-1" style={{ backgroundColor: '#ffffff', overflowY: 'auto', maxHeight: '80vh' }}>
+                  
+                  {/* Mass Onboarding Live Feed */}
+                  <div className="mb-4">
+                    <h6 className="font-weight-bold text-dark mb-3 d-flex align-items-center" style={{ fontSize: '1rem' }}>
+                      <i className="la la-broadcast-tower text-success mr-2" style={{ fontSize: '20px' }}></i>
+                      Mass Onboarding Live Feed
+                    </h6>
+                    <p className="text-muted mb-3" style={{ fontSize: '13px', lineHeight: '1.5' }}>
+                      Scan this QR code on multiple tablets in a row. As each device successfully enrolls, it will appear here instantly. Users can simply pick them up to login.
+                    </p>
+                    
+                    <div className="enrolled-devices-list border rounded bg-light p-3" style={{ maxHeight: '220px', overflowY: 'auto' }}>
+                      {enrolledDevices.length === 0 ? (
+                        <div className="text-center text-muted py-4 small">
+                          <i className="la la-spinner la-spin mr-2" style={{ fontSize: '16px' }}></i>
+                          Waiting for devices to be scanned...
+                        </div>
+                      ) : (
+                        <ul className="list-unstyled mb-0">
+                          {enrolledDevices.map((device, idx) => (
+                            <li key={device.id} className="d-flex justify-content-between align-items-center bg-white p-2 border rounded mb-2 shadow-sm">
+                              <div className="d-flex align-items-center">
+                                <i className="la la-tablet text-primary mr-2" style={{ fontSize: '20px' }}></i>
+                                <div>
+                                  <div className="font-weight-bold small text-dark">Tablet #{enrolledDevices.length - idx}</div>
+                                  <div className="text-muted" style={{ fontSize: '11px' }}>MAC: {device.macAddress || 'Unknown'}</div>
+                                </div>
+                              </div>
+                              <span className="badge badge-success px-2 py-1" style={{ fontSize: '10px' }}>
+                                <i className="la la-check mr-1"></i> Ready
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+
+                  <h6 className="font-weight-bold text-dark mb-3 d-flex align-items-center pt-2 border-top" style={{ fontSize: '1rem', marginTop: '20px' }}>
                     <i className="la la-info-circle text-primary mr-2" style={{ fontSize: '20px' }}></i>
                     Ultimate Lockdown Instructions
                   </h6>
