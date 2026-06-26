@@ -6,6 +6,9 @@ const $ = window.$;
 const MODAL_ID = "qr_onboarding_modal_" + Math.random().toString(36).substr(2, 9);
 
 class QRModal extends React.Component {
+  WIFI_STORAGE_KEY = 'qrmodal_wifi_config';
+  API_BASE = 'https://cloud.shuleplus.co.ke/api';
+
   state = {
     qrUrl: "",
     error: null,
@@ -25,7 +28,9 @@ class QRModal extends React.Component {
       keyboard: false
     });
 
-    this.generateQR();
+    // Restore persisted WiFi settings first, then fetch the latest APK info
+    this.loadWifiFromStorage();
+    this.fetchApkInfo();
   }
 
   componentWillUnmount() {
@@ -90,6 +95,64 @@ class QRModal extends React.Component {
   handleClose = () => {
     $("#" + MODAL_ID).modal("hide");
     this.props.onClose();
+  };
+
+  /**
+   * Fetches the latest APK info from the server and pre-populates downloadUrl.
+   * Falls back to generating the QR with whatever state is already set.
+   */
+  fetchApkInfo = async () => {
+    try {
+      const res = await fetch(`${this.API_BASE}/apk-info`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.downloadUrl) {
+          this.setState({ downloadUrl: data.downloadUrl }, this.generateQR);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('Could not fetch APK info, using current state:', e.message);
+    }
+    this.generateQR();
+  };
+
+  /** Persists current WiFi fields to localStorage so they survive modal close/reopen. */
+  saveWifiToStorage = () => {
+    try {
+      const { wifiSsid, wifiPassword, wifiSecurityType, wifiHidden } = this.state;
+      localStorage.setItem(
+        this.WIFI_STORAGE_KEY,
+        JSON.stringify({ wifiSsid, wifiPassword, wifiSecurityType, wifiHidden })
+      );
+    } catch (e) { /* ignore quota errors */ }
+  };
+
+  /** Restores WiFi fields from localStorage on mount. */
+  loadWifiFromStorage = () => {
+    try {
+      const saved = localStorage.getItem(this.WIFI_STORAGE_KEY);
+      if (saved) {
+        const config = JSON.parse(saved);
+        this.setState({
+          wifiSsid: config.wifiSsid || '',
+          wifiPassword: config.wifiPassword || '',
+          wifiSecurityType: config.wifiSecurityType || 'WPA',
+          wifiHidden: config.wifiHidden || false,
+        });
+      }
+    } catch (e) { /* ignore parse errors */ }
+  };
+
+  /**
+   * Central handler for all WiFi field changes.
+   * Updates state, persists to localStorage, and regenerates the QR code.
+   */
+  handleWifiChange = (field, value) => {
+    this.setState({ [field]: value }, () => {
+      this.saveWifiToStorage();
+      this.generateQR();
+    });
   };
 
   generateEnrollmentToken = (schoolId) => {
@@ -208,7 +271,7 @@ class QRModal extends React.Component {
                         className="form-control form-control-sm" 
                         placeholder="e.g. School_Staff_WiFi"
                         value={wifiSsid}
-                        onChange={(e) => this.setState({ wifiSsid: e.target.value }, this.generateQR)}
+                        onChange={(e) => this.handleWifiChange('wifiSsid', e.target.value)}
                         style={{ borderRadius: '6px' }}
                       />
                     </div>
@@ -220,7 +283,7 @@ class QRModal extends React.Component {
                           <select 
                             className="form-control form-control-sm"
                             value={wifiSecurityType}
-                            onChange={(e) => this.setState({ wifiSecurityType: e.target.value }, this.generateQR)}
+                            onChange={(e) => this.handleWifiChange('wifiSecurityType', e.target.value)}
                             style={{ borderRadius: '6px' }}
                           >
                             <option value="WPA">WPA/WPA2</option>
@@ -239,7 +302,7 @@ class QRModal extends React.Component {
                               className="custom-control-input" 
                               id="wifiHiddenCheckbox"
                               checked={wifiHidden}
-                              onChange={(e) => this.setState({ wifiHidden: e.target.checked }, this.generateQR)}
+                              onChange={(e) => this.handleWifiChange('wifiHidden', e.target.checked)}
                             />
                             <label className="custom-control-label small text-muted font-weight-bold mt-1" htmlFor="wifiHiddenCheckbox" style={{ cursor: 'pointer' }}>Hidden</label>
                           </div>
@@ -255,7 +318,7 @@ class QRModal extends React.Component {
                           className="form-control form-control-sm" 
                           placeholder="Enter Wi-Fi password"
                           value={wifiPassword}
-                          onChange={(e) => this.setState({ wifiPassword: e.target.value }, this.generateQR)}
+                           onChange={(e) => this.handleWifiChange('wifiPassword', e.target.value)}
                           style={{ borderRadius: '6px' }}
                         />
                       </div>
