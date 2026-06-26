@@ -18,7 +18,8 @@ class QRModal extends React.Component {
     wifiHidden: false,
     downloadUrl: "",
     signatureChecksum: "FB:14:AD:27:3C:DC:F3:33:CF:94:F9:01:9F:F1:63:70:1B:84:D2:23:1D:0B:0E:CF:4A:C2:BC:B7:66:C7:AB:76",
-    enrollmentToken: ""
+    enrollmentToken: "",
+    showAdvancedConfig: false
   };
 
   componentDidMount() {
@@ -163,7 +164,7 @@ class QRModal extends React.Component {
   };
 
   render() {
-    const { qrUrl, error, wifiSsid, wifiPassword, wifiSecurityType, wifiHidden, downloadUrl, signatureChecksum, enrollmentToken } = this.state;
+    const { qrUrl, error, wifiSsid, wifiPassword, wifiSecurityType, wifiHidden, downloadUrl, signatureChecksum, enrollmentToken, showAdvancedConfig } = this.state;
 
     return (
       <div
@@ -211,51 +212,70 @@ class QRModal extends React.Component {
                   
                   <div className="mt-3 text-muted small px-3">
                     <i className="la la-shield-alt mr-1 text-primary"></i>
-                    This QR code contains secure school provisioning parameters.
+                    This QR code contains:
+                    <ul className="mb-0 mt-2 pl-3" style={{ fontSize: '11px', lineHeight: '1.4' }}>
+                      <li>APK download URL (auto-fetched from server)</li>
+                      <li>App signature checksum for security verification</li>
+                      <li>School enrollment token for device registration</li>
+                      <li>Optional WiFi credentials for auto-connection</li>
+                    </ul>
                   </div>
 
-                  {/* DPC Configuration Form */}
-                  <div className="dpc-config-section mt-4 w-100 text-left border-top pt-4 px-2">
-                    <h6 className="font-weight-bold text-dark mb-3 d-flex align-items-center" style={{ fontSize: '0.9rem', gap: '6px' }}>
-                      <i className="la la-download text-primary" style={{ fontSize: '16px' }}></i> DPC Download URL
-                    </h6>
-                    
-                    <div className="form-group mb-3">
-                      <label className="small font-weight-bold text-muted mb-1" style={{ fontSize: '11px' }}>APK Download URL</label>
-                      <input 
-                        type="text" 
-                        className="form-control form-control-sm" 
-                        placeholder="https://your-server.com/api/uploads/app.apk"
-                        value={downloadUrl}
-                        onChange={(e) => this.setState({ downloadUrl: e.target.value }, this.generateQR)}
-                        style={{ borderRadius: '6px' }}
-                      />
-                    </div>
+                  {/* Collapsible Advanced Config */}
+                  <div className="mt-4 w-100">
+                    <button
+                      className="btn btn-sm btn-outline-secondary w-100 d-flex align-items-center justify-content-center"
+                      onClick={() => this.setState({ showAdvancedConfig: !showAdvancedConfig })}
+                      style={{ borderRadius: '8px', fontSize: '12px' }}
+                    >
+                      <i className={`la la-${showAdvancedConfig ? 'chevron-up' : 'chevron-down'} mr-2`}></i>
+                      {showAdvancedConfig ? 'Hide' : 'Show'} Advanced Configuration
+                    </button>
 
-                    <div className="form-group mb-3">
-                      <label className="small font-weight-bold text-muted mb-1" style={{ fontSize: '11px' }}>Signature Checksum (SHA-256)</label>
-                      <input 
-                        type="text" 
-                        className="form-control form-control-sm" 
-                        placeholder="FB:14:AD:27:..."
-                        value={signatureChecksum}
-                        onChange={(e) => this.setState({ signatureChecksum: e.target.value }, this.generateQR)}
-                        style={{ borderRadius: '6px', fontFamily: 'monospace', fontSize: '0.75rem' }}
-                      />
-                    </div>
+                    {showAdvancedConfig && (
+                      <div className="dpc-config-section mt-3 text-left border-top pt-3 px-2">
+                        <h6 className="font-weight-bold text-dark mb-3 d-flex align-items-center" style={{ fontSize: '0.9rem', gap: '6px' }}>
+                          <i className="la fa-cog text-primary" style={{ fontSize: '16px' }}></i> DPC Configuration
+                        </h6>
 
-                    <div className="form-group mb-0">
-                      <label className="small font-weight-bold text-muted mb-1" style={{ fontSize: '11px' }}>Enrollment Token</label>
-                      <input 
-                        type="text" 
-                        className="form-control form-control-sm" 
-                        placeholder="Auto-generated or custom token"
-                        value={enrollmentToken}
-                        onChange={(e) => this.setState({ enrollmentToken: e.target.value }, this.generateQR)}
-                        style={{ borderRadius: '6px', fontFamily: 'monospace', fontSize: '0.75rem' }}
-                      />
-                      <small className="text-muted" style={{ fontSize: '10px' }}>Leave empty to auto-generate</small>
-                    </div>
+                        <div className="form-group mb-3">
+                          <label className="small font-weight-bold text-muted mb-1" style={{ fontSize: '11px' }}>APK Download URL</label>
+                          <input
+                            type="text"
+                            className="form-control form-control-sm"
+                            placeholder="https://your-server.com/api/uploads/app.apk"
+                            value={downloadUrl}
+                            onChange={(e) => this.setState({ downloadUrl: e.target.value }, this.generateQR)}
+                            style={{ borderRadius: '6px' }}
+                          />
+                        </div>
+
+                        <div className="form-group mb-3">
+                          <label className="small font-weight-bold text-muted mb-1" style={{ fontSize: '11px' }}>Signature Checksum (SHA-256)</label>
+                          <input
+                            type="text"
+                            className="form-control form-control-sm"
+                            placeholder="FB:14:AD:27:..."
+                            value={signatureChecksum}
+                            onChange={(e) => this.setState({ signatureChecksum: e.target.value }, this.generateQR)}
+                            style={{ borderRadius: '6px', fontFamily: 'monospace', fontSize: '0.75rem' }}
+                          />
+                        </div>
+
+                        <div className="form-group mb-0">
+                          <label className="small font-weight-bold text-muted mb-1" style={{ fontSize: '11px' }}>Enrollment Token</label>
+                          <input
+                            type="text"
+                            className="form-control form-control-sm"
+                            placeholder="Auto-generated or custom token"
+                            value={enrollmentToken}
+                            onChange={(e) => this.setState({ enrollmentToken: e.target.value }, this.generateQR)}
+                            style={{ borderRadius: '6px', fontFamily: 'monospace', fontSize: '0.75rem' }}
+                          />
+                          <small className="text-muted" style={{ fontSize: '10px' }}>Leave empty to auto-generate</small>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Optional Wi-Fi Pre-Configuration Form */}
