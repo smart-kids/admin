@@ -128,23 +128,33 @@ class Modal extends React.Component {
 
   uploadFile = async (file) => {
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", file); // Must match upload.single("file") in server.js
     
-    const UPLOAD_URL = window.location.href.includes('localhost')
-      ? 'http://localhost:4001/api/upload'
-      : 'https://graph-ongyy.kinsta.app/api/upload';
+    const UPLOAD_URL = 'https://graph-ongyy.kinsta.app/upload';
 
-    const response = await fetch(UPLOAD_URL, {
-      method: "POST",
-      body: formData
-    });
-    
-    if (!response.ok) {
-      throw new Error("Upload failed");
+    try {
+      const response = await fetch(UPLOAD_URL, {
+        method: "POST",
+        body: formData 
+        // Note: NEVER set 'Content-Type' manually when sending FormData. 
+        // The browser automatically sets it to 'multipart/form-data' with the correct boundary.
+      });
+      
+      if (!response.ok) {
+        // Attempt to extract the error message from the backend
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || errData.details || `Upload failed with status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // Server returns: { message: "Upload successful", url: proxyUrl, key: req.file.key }
+      return data.url; 
+      
+    } catch (error) {
+      console.error("Upload Error:", error);
+      throw error; // Let the handleSubmit catch block update the UI errors
     }
-    
-    const data = await response.json();
-    return data.url;
   };
 
   async componentDidMount() {
