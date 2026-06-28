@@ -57,12 +57,12 @@ class QRModal extends React.Component {
     }
   }
 
-  generateQR = () => {
+  generateQR = async () => {
     const schoolId = localStorage.getItem("school");
     const { wifiSsid, wifiPassword, wifiSecurityType, wifiHidden, downloadUrl, signatureChecksum, enrollmentToken } = this.state;
 
     // Generate enrollment token if not provided
-    const token = enrollmentToken || this.generateEnrollmentToken(schoolId);
+    const token = enrollmentToken || await this.generateEnrollmentToken(schoolId);
 
     const payloadObj = {
       "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "com.shule.plusapp/.AdminReceiver",
@@ -175,11 +175,32 @@ class QRModal extends React.Component {
     });
   };
 
-  generateEnrollmentToken = (schoolId) => {
-    // Generate a unique enrollment token based on schoolId and timestamp
-    const timestamp = Date.now().toString(36);
-    const random = Math.random().toString(36).substring(2, 8);
-    return `${schoolId}_${timestamp}_${random}`.toUpperCase();
+  generateEnrollmentToken = async (schoolId) => {
+    try {
+      const res = await fetch(`${this.API_BASE}/mdm/enrollment-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ schoolId })
+      });
+      
+      if (!res.ok) {
+        console.error('Failed to generate Google AMAPI token, falling back to local generation');
+        // Fallback to local generation if Google API fails
+        const timestamp = Date.now().toString(36);
+        const random = Math.random().toString(36).substring(2, 8);
+        return `${schoolId}_${timestamp}_${random}`.toUpperCase();
+      }
+      
+      const data = await res.json();
+      console.log('✅ Generated Google AMAPI enrollment token:', data.token);
+      return data.token;
+    } catch (error) {
+      console.error('Error generating enrollment token:', error);
+      // Fallback to local generation on error
+      const timestamp = Date.now().toString(36);
+      const random = Math.random().toString(36).substring(2, 8);
+      return `${schoolId}_${timestamp}_${random}`.toUpperCase();
+    }
   };
 
   render() {
