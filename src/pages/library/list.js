@@ -73,13 +73,14 @@ class LibraryList extends React.Component {
 
     // 2. Filter by Search Term
     if (searchTerm) {
-      const lower = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (b) =>
-            (b.title || "").toLowerCase().includes(lower) ||
-            (b.author || "").toLowerCase().includes(lower)
-      );
-    }
+        const lower = searchTerm.toLowerCase();
+        filtered = filtered.filter(
+          (b) =>
+              (b.title || "").toLowerCase().includes(lower) ||
+              (b.author || "").toLowerCase().includes(lower) ||
+              (b.tags || []).some(t => t.toLowerCase().includes(lower))
+        );
+      }
 
     this.setState({ filteredBooks: filtered });
   };
@@ -259,6 +260,15 @@ class LibraryList extends React.Component {
           <div className="book-author">
             {isVideo ? "Instructor: " : "Author: "} {book.author}
           </div>
+          {book.tags && book.tags.length > 0 && (
+            <div className="book-tags" style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+              {book.tags.map((tag, idx) => (
+                <span key={idx} style={{ backgroundColor: '#f0f0f0', color: '#555', fontSize: '10px', padding: '2px 6px', borderRadius: '4px' }}>
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="book-actions mt-auto">

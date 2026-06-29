@@ -62,7 +62,28 @@ class QRModal extends React.Component {
     const { wifiSsid, wifiPassword, wifiSecurityType, wifiHidden, downloadUrl, signatureChecksum, enrollmentToken } = this.state;
 
     // Generate enrollment token if not provided
-    const token = enrollmentToken || await this.generateEnrollmentToken(schoolId);
+    const tokenData = enrollmentToken ? { token: enrollmentToken, qrCode: null } : await this.generateEnrollmentToken(schoolId);
+
+    // If Google AMAPI returned a QR code, use it directly
+    if (tokenData.qrCode) {
+      try {
+        const url = await QRCode.toDataURL(tokenData.qrCode, {
+          width: 250,
+          margin: 2,
+          color: {
+            dark: "#000000",
+            light: "#FFFFFF"
+          }
+        });
+        this.setState({ qrUrl: url, enrollmentToken: tokenData.token });
+        return;
+      } catch (err) {
+        console.error("Failed to generate Google AMAPI QR code, falling back to DPC", err);
+      }
+    }
+
+    // Fallback to local DPC QR code generation
+    const token = tokenData.token;
 
     const payloadObj = {
       "android.app.extra.PROVISIONING_DEVICE_ADMIN_COMPONENT_NAME": "com.shule.plusapp/.AdminReceiver",
@@ -118,7 +139,7 @@ class QRModal extends React.Component {
   };
 
   /**
-   * Fetches the latest APK info from the server and pre-populates downloadUrl.
+   * Fetches the latest APK info from the server and pre-populates downloadUrl and checksum.
    * Falls back to generating the QR with whatever state is already set.
    */
   fetchApkInfo = async () => {
@@ -126,8 +147,11 @@ class QRModal extends React.Component {
       const res = await fetch(`${this.API_BASE}/apk-info`);
       if (res.ok) {
         const data = await res.json();
-        if (data.downloadUrl) {
-          this.setState({ downloadUrl: data.downloadUrl }, this.generateQR);
+        const newState = {};
+        if (data.downloadUrl) newState.downloadUrl = data.downloadUrl;
+        if (data.checksum) newState.signatureChecksum = data.checksum;
+        if (Object.keys(newState).length > 0) {
+          this.setState(newState, this.generateQR);
           return;
         }
       }
@@ -188,18 +212,18 @@ class QRModal extends React.Component {
         // Fallback to local generation if Google API fails
         const timestamp = Date.now().toString(36);
         const random = Math.random().toString(36).substring(2, 8);
-        return `${schoolId}_${timestamp}_${random}`.toUpperCase();
+        return { token: `${schoolId}_${timestamp}_${random}`.toUpperCase(), qrCode: null };
       }
       
       const data = await res.json();
       console.log('✅ Generated Google AMAPI enrollment token:', data.token);
-      return data.token;
+      return { token: data.token, qrCode: data.qrCode };
     } catch (error) {
       console.error('Error generating enrollment token:', error);
       // Fallback to local generation on error
       const timestamp = Date.now().toString(36);
       const random = Math.random().toString(36).substring(2, 8);
-      return `${schoolId}_${timestamp}_${random}`.toUpperCase();
+      return { token: `${schoolId}_${timestamp}_${random}`.toUpperCase(), qrCode: null };
     }
   };
 
