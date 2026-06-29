@@ -50,15 +50,6 @@ class BookModal extends React.Component {
   async show(bookToEdit = null) {
     // 1. Logic to Populate or Reset State
     if (bookToEdit) {
-      this.setState({ analyticsLoading: true, analyticsEvents: [] });
-      try {
-        const res = await query(`query GetAnalytics { analyticsEvents(limit: 1000) { id properties timestamp userId } }`);
-        const events = (res.analyticsEvents || []).filter(e => e.properties && e.properties.bookId === bookToEdit.id);
-        this.setState({ analyticsEvents: events, analyticsLoading: false });
-      } catch (err) {
-        console.error("Error fetching analytics:", err);
-        this.setState({ analyticsLoading: false });
-      }
 
       // Edit Mode: Populate state
       this.setState({
@@ -343,61 +334,6 @@ class BookModal extends React.Component {
     }
   };
 
-  renderAnalyticsCol() {
-    const { analyticsEvents, analyticsLoading } = this.state;
-    if (analyticsLoading) {
-      return (
-        <div style={{ flex: 1, borderRight: '1px solid #eee', paddingRight: '1.5rem', marginRight: '1rem' }}>
-          <h6 className="font-weight-bold mb-3">Metrics & Access Log</h6>
-          <p className="text-muted"><i className="la la-spinner la-spin"></i> Loading analytics...</p>
-        </div>
-      );
-    }
-    
-    const totalReads = analyticsEvents.length;
-    const totalTimeSpent = analyticsEvents.reduce((acc, ev) => acc + (ev.properties?.durationSeconds || 0), 0);
-    const totalMins = Math.round(totalTimeSpent / 60);
-
-    return (
-      <div style={{ flex: 1.2, borderRight: '1px solid #eee', paddingRight: '1.5rem', marginRight: '1rem' }}>
-        <h6 className="font-weight-bold mb-3">Metrics & Access Log</h6>
-        <div className="d-flex justify-content-between mb-4 bg-light p-3 rounded">
-          <div className="text-center"><span className="font-weight-bold h3 text-primary">{totalReads}</span><br/><small className="text-muted font-weight-bold">Total Views</small></div>
-          <div className="text-center"><span className="font-weight-bold h3 text-primary">{totalMins}m</span><br/><small className="text-muted font-weight-bold">Total Time</small></div>
-        </div>
-        <h6 className="font-size-sm font-weight-bold text-muted mb-3">STUDENT ACCESS</h6>
-        <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-          {analyticsEvents.length === 0 ? (
-            <p className="text-muted small">No reads recorded yet.</p>
-          ) : (
-            analyticsEvents.map(ev => {
-              const uId = ev.userId || 'Anonymous';
-              // Try to find the name from allData.students if it's there
-              let name = uId;
-              if (window.DataService && window.DataService.allData && window.DataService.allData.students) {
-                const student = window.DataService.allData.students.find(s => s.id === uId);
-                if (student) name = student.names || student.name || uId;
-              }
-              const props = ev.properties || {};
-              const progressStr = props.maxPageReached && props.totalPages ? `Pg ${props.maxPageReached} / ${props.totalPages}` : '';
-              return (
-                <div key={ev.id} className="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
-                  <div>
-                    <div className="font-weight-bold font-size-sm">{name}</div>
-                    {progressStr && <small className="text-primary font-weight-bold">{progressStr}</small>}
-                  </div>
-                  <div className="text-muted small text-right">
-                    <i className="la la-clock"></i> {Math.round((props.durationSeconds || 0)/60)}m<br/>
-                    {new Date(Number(ev.timestamp) || Date.now()).toLocaleDateString()}
-                  </div>
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
-    );
-  }
 
   render() {
     const { errors, isUploading, isSaving, uploadProgress, type, coverUrl, pdfUrl, pdfFile, videoUrl, videoFile, id } = this.state;
@@ -412,7 +348,7 @@ class BookModal extends React.Component {
         aria-labelledby="bookModalLabel"
         aria-hidden="true"
       >
-        <div className={`modal-dialog modal-dialog-centered ${isEdit ? 'modal-xl' : 'modal-lg'}`} role="document">
+        <div className="modal-dialog modal-lg modal-dialog-centered" role="document">
           <div className="modal-content border-0 shadow-lg" style={{borderRadius: '16px'}}>
             
             {/* Header */}
@@ -431,9 +367,6 @@ class BookModal extends React.Component {
             <div className="modal-body p-4">
               <div className="modal-split-layout">
                 
-                {/* --- ANALYTICS COL (Only in Edit Mode) --- */}
-                {isEdit && this.renderAnalyticsCol()}
-
                 {/* --- LEFT: Metadata --- */}
                 <div className="modal-left-col">
                   <div className="form-group mb-4">

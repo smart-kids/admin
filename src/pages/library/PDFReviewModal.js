@@ -1,5 +1,6 @@
 import React from "react";
 import "./Library.css";
+import { query } from "../../utils/requests";
 
 const $ = window.$;
 
@@ -8,13 +9,32 @@ const MODAL_ID = "pdf_review_modal_" + Math.random().toString(36).substr(2, 9);
 
 class PDFReviewModal extends React.Component {
   
-  componentDidMount() {
+  state = {
+    analyticsEvents: [],
+    analyticsLoading: true
+  };
+
+  async componentDidMount() {
     // Show modal when component mounts
     $("#" + MODAL_ID).modal({
       show: true,
       backdrop: "static",
       keyboard: false
     });
+
+    const { book } = this.props;
+    if (book && book.id) {
+      try {
+        const res = await query(`query GetAnalytics { analyticsEvents(limit: 1000) { id properties timestamp userId } }`);
+        const events = (res.analyticsEvents || []).filter(e => e.properties && e.properties.bookId === book.id);
+        this.setState({ analyticsEvents: events, analyticsLoading: false });
+      } catch (err) {
+        console.error("Error fetching analytics:", err);
+        this.setState({ analyticsLoading: false });
+      }
+    } else {
+      this.setState({ analyticsLoading: false });
+    }
   }
 
   componentWillUnmount() {
@@ -40,6 +60,62 @@ class PDFReviewModal extends React.Component {
     // If it's a regular URL, return as is
     return book.pdfUrl;
   };
+
+  renderAnalyticsCol() {
+    const { analyticsEvents, analyticsLoading } = this.state;
+    if (analyticsLoading) {
+      return (
+        <div style={{ flex: '0 0 320px', borderLeft: '1px solid #eee', padding: '1.5rem', backgroundColor: '#fff', overflowY: 'auto' }}>
+          <h6 className="font-weight-bold mb-3">Metrics & Access Log</h6>
+          <p className="text-muted"><i className="la la-spinner la-spin"></i> Loading analytics...</p>
+        </div>
+      );
+    }
+    
+    const totalReads = analyticsEvents.length;
+    const totalTimeSpent = analyticsEvents.reduce((acc, ev) => acc + (ev.properties?.durationSeconds || 0), 0);
+    const totalMins = Math.round(totalTimeSpent / 60);
+
+    return (
+      <div style={{ flex: '0 0 320px', borderLeft: '1px solid #eee', padding: '1.5rem', backgroundColor: '#fff', overflowY: 'auto' }}>
+        <h6 className="font-weight-bold mb-3">Metrics & Access Log</h6>
+        <div className="d-flex justify-content-between mb-4 bg-light p-3 rounded">
+          <div className="text-center"><span className="font-weight-bold h3 text-primary">{totalReads}</span><br/><small className="text-muted font-weight-bold">Total Views</small></div>
+          <div className="text-center"><span className="font-weight-bold h3 text-primary">{totalMins}m</span><br/><small className="text-muted font-weight-bold">Total Time</small></div>
+        </div>
+        <h6 className="font-size-sm font-weight-bold text-muted mb-3">STUDENT ACCESS</h6>
+        <div>
+          {analyticsEvents.length === 0 ? (
+            <p className="text-muted small">No reads recorded yet.</p>
+          ) : (
+            analyticsEvents.map(ev => {
+              const uId = ev.userId || 'Anonymous';
+              // Try to find the name from allData.students if it's there
+              let name = uId;
+              if (window.DataService && window.DataService.allData && window.DataService.allData.students) {
+                const student = window.DataService.allData.students.find(s => s.id === uId);
+                if (student) name = student.names || student.name || uId;
+              }
+              const props = ev.properties || {};
+              const progressStr = props.maxPageReached && props.totalPages ? `Pg ${props.maxPageReached} / ${props.totalPages}` : '';
+              return (
+                <div key={ev.id} className="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                  <div>
+                    <div className="font-weight-bold font-size-sm">{name}</div>
+                    {progressStr && <small className="text-primary font-weight-bold">{progressStr}</small>}
+                  </div>
+                  <div className="text-muted small text-right">
+                    <i className="la la-clock"></i> {Math.round((props.durationSeconds || 0)/60)}m<br/>
+                    {new Date(Number(ev.timestamp) || Date.now()).toLocaleDateString()}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    );
+  }
 
   render() {
     const { book } = this.props;
@@ -93,38 +169,44 @@ class PDFReviewModal extends React.Component {
               </button>
             </div>
 
-            {/* Body - PDF Viewer */}
-            <div className="modal-body p-0" style={{height: 'calc(100% - 70px)', overflow: 'hidden'}}>
-              {pdfUrl.startsWith('data:application/pdf;base64,') ? (
-                // For base64 PDFs, create blob URL
-                <iframe
-                  src={URL.createObjectURL(
-                    new Blob(
-                      [Uint8Array.from(atob(pdfUrl.split(',')[1]), c => c.charCodeAt(0))],
-                      { type: 'application/pdf' }
-                    )
-                  )}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    border: 'none',
-                    borderRadius: '0 0 12px 12px'
-                  }}
-                  title="PDF Viewer"
-                />
-              ) : (
-                // For regular URLs
-                <iframe
-                  src={pdfUrl}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    border: 'none',
-                    borderRadius: '0 0 12px 12px'
-                  }}
-                  title="PDF Viewer"
-                />
-              )}
+            {/* Body - Split View */}
+            <div className="modal-body p-0 d-flex" style={{height: 'calc(100% - 70px)', overflow: 'hidden'}}>
+              {/* Left Side - PDF Viewer */}
+              <div style={{ flex: 1, position: 'relative' }}>
+                {pdfUrl.startsWith('data:application/pdf;base64,') ? (
+                  // For base64 PDFs, create blob URL
+                  <iframe
+                    src={URL.createObjectURL(
+                      new Blob(
+                        [Uint8Array.from(atob(pdfUrl.split(',')[1]), c => c.charCodeAt(0))],
+                        { type: 'application/pdf' }
+                      )
+                    )}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      border: 'none',
+                      borderRadius: '0 0 0 12px'
+                    }}
+                    title="PDF Viewer"
+                  />
+                ) : (
+                  // For regular URLs
+                  <iframe
+                    src={pdfUrl}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      border: 'none',
+                      borderRadius: '0 0 0 12px'
+                    }}
+                    title="PDF Viewer"
+                  />
+                )}
+              </div>
+              
+              {/* Right Side - Stats */}
+              {this.renderAnalyticsCol()}
             </div>
 
             {/* Footer - Action Buttons */}
