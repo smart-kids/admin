@@ -25,7 +25,7 @@ class PDFReviewModal extends React.Component {
     const { book } = this.props;
     if (book && book.id) {
       try {
-        const res = await query(`query GetAnalytics { analyticsEvents(limit: 1000) { id properties timestamp userId } }`);
+        const res = await query(`query GetAnalytics { analyticsEvents { id properties timestamp userId } }`);
         const events = (res.analyticsEvents || []).filter(e => e.properties && e.properties.bookId === book.id);
         this.setState({ analyticsEvents: events, analyticsLoading: false });
       } catch (err) {
