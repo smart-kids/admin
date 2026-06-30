@@ -260,6 +260,9 @@ class LibraryList extends React.Component {
           <div className="book-author">
             {isVideo ? "Instructor: " : "Author: "} {book.author}
           </div>
+          <div className="book-reads" style={{ fontSize: '11px', color: '#888', marginTop: '4px' }}>
+            <i className="la la-eye"></i> {book.readsCount || 0} reads
+          </div>
           {book.tags && book.tags.length > 0 && (
             <div className="book-tags" style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
               {book.tags.map((tag, idx) => (

@@ -14,27 +14,13 @@ class PDFReviewModal extends React.Component {
     analyticsLoading: true
   };
 
-  async componentDidMount() {
+  componentDidMount() {
     // Show modal when component mounts
     $("#" + MODAL_ID).modal({
       show: true,
       backdrop: "static",
       keyboard: false
     });
-
-    const { book } = this.props;
-    if (book && book.id) {
-      try {
-        const res = await query(`query GetAnalytics { analyticsEvents { id properties timestamp userId } }`);
-        const events = (res.analyticsEvents || []).filter(e => e.properties && e.properties.bookId === book.id);
-        this.setState({ analyticsEvents: events, analyticsLoading: false });
-      } catch (err) {
-        console.error("Error fetching analytics:", err);
-        this.setState({ analyticsLoading: false });
-      }
-    } else {
-      this.setState({ analyticsLoading: false });
-    }
   }
 
   componentWillUnmount() {
@@ -61,19 +47,24 @@ class PDFReviewModal extends React.Component {
     return book.pdfUrl;
   };
 
+  timeAgo = (timestamp) => {
+    const time = Number(timestamp) || Date.now();
+    const diff = Math.floor((Date.now() - time) / 1000);
+    if (diff < 60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
+  };
+
   renderAnalyticsCol() {
-    const { analyticsEvents, analyticsLoading } = this.state;
-    if (analyticsLoading) {
-      return (
-        <div style={{ flex: '0 0 320px', borderLeft: '1px solid #eee', padding: '1.5rem', backgroundColor: '#fff', overflowY: 'auto' }}>
-          <h6 className="font-weight-bold mb-3">Metrics & Access Log</h6>
-          <p className="text-muted"><i className="la la-spinner la-spin"></i> Loading analytics...</p>
-        </div>
-      );
-    }
+    const { book } = this.props;
+    const analyticsEvents = book.readEvents || [];
     
     const totalReads = analyticsEvents.length;
-    const totalTimeSpent = analyticsEvents.reduce((acc, ev) => acc + (ev.properties?.durationSeconds || 0), 0);
+    const totalTimeSpent = analyticsEvents.reduce((acc, ev) => {
+      const props = typeof ev.properties === 'string' ? JSON.parse(ev.properties) : (ev.properties || {});
+      return acc + (props.durationSeconds || 0);
+    }, 0);
     const totalMins = Math.round(totalTimeSpent / 60);
 
     return (
@@ -89,24 +80,29 @@ class PDFReviewModal extends React.Component {
             <p className="text-muted small">No reads recorded yet.</p>
           ) : (
             analyticsEvents.map(ev => {
-              const uId = ev.userId || 'Anonymous';
-              // Try to find the name from allData.students if it's there
-              let name = uId;
-              if (window.DataService && window.DataService.allData && window.DataService.allData.students) {
-                const student = window.DataService.allData.students.find(s => s.id === uId);
-                if (student) name = student.names || student.name || uId;
-              }
-              const props = ev.properties || {};
-              const progressStr = props.maxPageReached && props.totalPages ? `Pg ${props.maxPageReached} / ${props.totalPages}` : '';
+              const uId = ev.user ? ev.user.id : (ev.userId || 'Anonymous');
+              let name = ev.user ? (ev.user.name || ev.user.names || uId) : uId;
+              let role = ev.user ? ev.user.role : '';
+
+              const props = typeof ev.properties === 'string' ? JSON.parse(ev.properties) : (ev.properties || {});
+              const maxPage = props.maxPageReached || 0;
+              const totalPg = props.totalPages || 1;
+              const percent = Math.min(100, Math.round((maxPage / totalPg) * 100));
+
               return (
-                <div key={ev.id} className="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
-                  <div>
-                    <div className="font-weight-bold font-size-sm">{name}</div>
-                    {progressStr && <small className="text-primary font-weight-bold">{progressStr}</small>}
+                <div key={ev.id} className="mb-3 pb-3 border-bottom">
+                  <div className="d-flex justify-content-between align-items-center mb-1">
+                    <div className="font-weight-bold font-size-sm" style={{flex: 1}}>{name} <small className="text-muted">({role || 'Reader'})</small></div>
+                    <div className="text-muted small" style={{whiteSpace: 'nowrap'}}>{this.timeAgo(ev.timestamp)}</div>
                   </div>
-                  <div className="text-muted small text-right">
-                    <i className="la la-clock"></i> {Math.round((props.durationSeconds || 0)/60)}m<br/>
-                    {new Date(Number(ev.timestamp) || Date.now()).toLocaleDateString()}
+                  
+                  <div className="d-flex justify-content-between align-items-center mb-1">
+                    <small className="text-muted"><i className="la la-clock"></i> {Math.round((props.durationSeconds || 0)/60)}m read time</small>
+                    <small className="text-primary font-weight-bold">Pg {maxPage} / {totalPg}</small>
+                  </div>
+                  
+                  <div className="progress" style={{ height: '6px', borderRadius: '3px' }}>
+                    <div className="progress-bar bg-success" role="progressbar" style={{ width: `${percent}%` }} aria-valuenow={percent} aria-valuemin="0" aria-valuemax="100"></div>
                   </div>
                 </div>
               );

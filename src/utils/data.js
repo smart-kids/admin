@@ -646,7 +646,7 @@ var Data = (function () {
         }
     } 
 }`;
-        const FRAGMENT_BOOKS_DATA = `fragment BooksData on school { books { id title author category tags coverUrl pdfUrl videoUrl type description isDeleted } }`;
+        const FRAGMENT_BOOKS_DATA = `fragment BooksData on school { books { id title author category tags coverUrl pdfUrl videoUrl type description isDeleted readsCount readEvents { id timestamp userId properties user { id name role } } } }`;
         const FRAGMENT_GAMES_DATA = `fragment GamesData on school { games { id title developer category coverUrl gameUrl description isDeleted } }`;
         const FRAGMENT_DEVICES_DATA = `fragment DevicesData on school { devices { id macAddress status assignedStudent lastSeen osVersion batteryLevel isDeleted } }`;
         const FRAGMENT_DEVICE_COMMANDS_DATA = `fragment DeviceCommandsData on school { device_commands { id device command status payload isDeleted } }`;
