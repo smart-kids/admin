@@ -80,9 +80,11 @@ class PDFReviewModal extends React.Component {
             <p className="text-muted small">No reads recorded yet.</p>
           ) : (
             analyticsEvents.map(ev => {
-              const uId = ev.user ? ev.user.id : (ev.userId || 'Anonymous');
-              let name = ev.user ? (ev.user.name || ev.user.names || uId) : uId;
-              let role = ev.user ? ev.user.role : '';
+              let name = (ev.reader && ev.reader.name) ? ev.reader.name : (ev.userId || 'Anonymous');
+              let role = (ev.reader && ev.reader.role) ? ev.reader.role : '';
+              let children = (ev.reader && ev.reader.students && ev.reader.students.length > 0) 
+                  ? ev.reader.students.map(s => s.names || s.name).join(', ') 
+                  : null;
 
               const props = typeof ev.properties === 'string' ? JSON.parse(ev.properties) : (ev.properties || {});
               const maxPage = props.maxPageReached || 0;
@@ -92,7 +94,10 @@ class PDFReviewModal extends React.Component {
               return (
                 <div key={ev.id} className="mb-3 pb-3 border-bottom">
                   <div className="d-flex justify-content-between align-items-center mb-1">
-                    <div className="font-weight-bold font-size-sm" style={{flex: 1}}>{name} <small className="text-muted">({role || 'Reader'})</small></div>
+                    <div className="font-weight-bold font-size-sm" style={{flex: 1}}>
+                      {name} <small className="text-muted">({role || 'Reader'})</small>
+                      {children && <div className="text-muted small mt-1">Parent of: <span className="font-weight-bold">{children}</span></div>}
+                    </div>
                     <div className="text-muted small" style={{whiteSpace: 'nowrap'}}>{this.timeAgo(ev.timestamp)}</div>
                   </div>
                   
