@@ -66,9 +66,9 @@ class LibraryList extends React.Component {
     // Filter out deleted books
     let filtered = (books || []).filter((b) => !b.isDeleted);
 
-    // 1. Filter by Category
+    // 1. Filter by Tag (formerly Category)
     if (activeCategory !== "All") {
-      filtered = filtered.filter((b) => b.category === activeCategory);
+      filtered = filtered.filter((b) => (b.tags || []).includes(activeCategory));
     }
 
     // 2. Filter by Search Term
@@ -320,8 +320,16 @@ class LibraryList extends React.Component {
   };
 
   render() {
-    const { filteredBooks, activeCategory, loading } = this.state;
-    const categories = ["All", "Science", "Mathematics", "History", "Storybooks", "Geography", "Languages", "Other"];
+    const { books, filteredBooks, activeCategory, loading } = this.state;
+    
+    // Extract unique tags from all non-deleted books
+    const allTags = new Set();
+    (books || []).forEach(b => {
+        if (!b.isDeleted && b.tags && Array.isArray(b.tags)) {
+            b.tags.forEach(t => allTags.add(t));
+        }
+    });
+    const categories = ["All", ...Array.from(allTags).sort()];
 
     if (loading) {
         return <div className="library-container text-center pt-5">Loading Library...</div>;

@@ -1,4 +1,5 @@
 import React from "react";
+import CreatableSelect from 'react-select/creatable';
 import "./Library.css"; // Ensure you have the CSS file from the previous step
 import { query } from "../../utils/requests";
 
@@ -14,8 +15,7 @@ class BookModal extends React.Component {
     id: "",
     title: "",
     author: "",
-    category: "Science",
-    tags: "",
+    tags: [],
     description: "",
     type: "book", // "book" or "video"
     
@@ -56,8 +56,7 @@ class BookModal extends React.Component {
         id: bookToEdit.id || "",
         title: bookToEdit.title || "",
         author: bookToEdit.author || "",
-        category: bookToEdit.category || "Science",
-        tags: Array.isArray(bookToEdit.tags) ? bookToEdit.tags.join(", ") : (bookToEdit.tags || ""),
+        tags: Array.isArray(bookToEdit.tags) ? bookToEdit.tags.map(t => ({label: t, value: t})) : [],
         description: bookToEdit.description || "",
         type: bookToEdit.type || "book",
         coverUrl: bookToEdit.coverUrl || "",
@@ -92,11 +91,11 @@ class BookModal extends React.Component {
   // --- Form Handling & Logic ---
 
   handleChange = (e) => {
-    let val = e.target.value;
-    if (e.target.name === 'tags') {
-      val = val.toLowerCase();
-    }
-    this.setState({ [e.target.name]: val, errors: {} });
+    this.setState({ [e.target.name]: e.target.value });
+  };
+
+  handleTagsChange = (newValue) => {
+    this.setState({ tags: newValue || [] });
   };
 
   handleImageSelect = (e) => {
@@ -301,8 +300,7 @@ class BookModal extends React.Component {
         id: this.state.id,
         title: this.state.title,
         author: this.state.author,
-        category: this.state.category,
-        tags: this.state.tags ? this.state.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+        tags: this.state.tags.map(t => t.value),
         description: this.state.description,
         type: this.state.type,
         coverUrl: finalCoverUrl,
@@ -325,15 +323,6 @@ class BookModal extends React.Component {
       });
     }
   };
-
-  appendTag = (tag) => {
-    let currentTags = this.state.tags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
-    if (!currentTags.includes(tag)) {
-      currentTags.push(tag);
-      this.setState({ tags: currentTags.join(', '), errors: {} });
-    }
-  };
-
 
   render() {
     const { errors, isUploading, isSaving, uploadProgress, type, coverUrl, pdfUrl, pdfFile, videoUrl, videoFile, id } = this.state;
@@ -421,55 +410,26 @@ class BookModal extends React.Component {
                       />
                       {errors.author && <small className="text-danger">{errors.author}</small>}
                     </div>
-                    <div className="col-md-6 form-group">
-                      <label className="font-weight-bold">Category</label>
-                      <select
-                        className="form-control"
-                        name="category"
-                        value={this.state.category}
-                        onChange={this.handleChange}
-                        disabled={isUploading}
-                      >
-                        <option value="Science">Science</option>
-                        <option value="Mathematics">Mathematics</option>
-                        <option value="History">History</option>
-                        <option value="Storybooks">Storybooks</option>
-                        <option value="Geography">Geography</option>
-                        <option value="Languages">Languages</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
                   </div>
 
                   <div className="form-group">
-                    <label className="font-weight-bold">Tags (Comma-separated)</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="tags"
-                      value={this.state.tags}
-                      onChange={this.handleChange}
-                      placeholder="e.g. physics, exam prep, grade 10"
-                      disabled={isUploading}
+                    <label className="font-weight-bold">Tags</label>
+                    <CreatableSelect
+                        isMulti
+                        name="tags"
+                        value={this.state.tags}
+                        onChange={this.handleTagsChange}
+                        placeholder="Select or type to create tags..."
+                        className="basic-multi-select"
+                        classNamePrefix="select"
+                        isDisabled={isUploading}
+                        options={Array.from(new Set(
+                          ((window.DataService && window.DataService.allData && window.DataService.allData.books) || [])
+                            .flatMap(b => Array.isArray(b.tags) ? b.tags : [])
+                            .map(t => typeof t === 'string' ? t.trim() : '')
+                            .filter(Boolean)
+                        )).map(t => ({label: t, value: t}))}
                     />
-                    {/* Tag Suggestions */}
-                    <div className="d-flex flex-wrap mt-2" style={{ gap: '6px' }}>
-                      {Array.from(new Set(
-                        ((window.DataService && window.DataService.allData && window.DataService.allData.books) || [])
-                          .flatMap(b => Array.isArray(b.tags) ? b.tags : [])
-                          .map(t => typeof t === 'string' ? t.toLowerCase().trim() : '')
-                          .filter(Boolean)
-                      )).slice(0, 15).map(tag => (
-                        <span 
-                          key={tag} 
-                          className="badge badge-light border" 
-                          style={{ cursor: 'pointer', padding: '6px 10px' }}
-                          onClick={() => this.appendTag(tag)}
-                        >
-                          +{tag}
-                        </span>
-                      ))}
-                    </div>
                   </div>
 
                   <div className="form-group">

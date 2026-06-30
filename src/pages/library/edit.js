@@ -1,4 +1,5 @@
 import React from "react";
+import CreatableSelect from 'react-select/creatable';
 import "./Library.css"; // Uses the CSS defined above
 
 class BookModal extends React.Component {
@@ -6,7 +7,7 @@ class BookModal extends React.Component {
     id: "",
     title: "",
     author: "",
-    category: "Science", // Default
+    tags: [],
     coverUrl: "",
     pdfUrl: "",
     description: "",
@@ -16,12 +17,12 @@ class BookModal extends React.Component {
   componentDidMount() {
     // If a book prop is passed, we are in EDIT mode
     if (this.props.book) {
-      const { id, title, author, category, coverUrl, pdfUrl, description } = this.props.book;
+      const { id, title, author, tags, coverUrl, pdfUrl, description } = this.props.book;
       this.setState({
         id: id || "",
         title: title || "",
         author: author || "",
-        category: category || "Science",
+        tags: Array.isArray(tags) ? tags.map(t => ({label: t, value: t})) : [],
         coverUrl: coverUrl || "",
         pdfUrl: pdfUrl || "",
         description: description || ""
@@ -31,6 +32,10 @@ class BookModal extends React.Component {
 
   handleChange = (e) => {
     this.setState({ [e.target.name]: e.target.value, errors: {} });
+  };
+
+  handleTagsChange = (newValue) => {
+    this.setState({ tags: newValue || [] });
   };
 
   validate = () => {
@@ -50,7 +55,7 @@ class BookModal extends React.Component {
       id: this.state.id, // Will be empty string if adding
       title: this.state.title,
       author: this.state.author,
-      category: this.state.category,
+      tags: this.state.tags.map(t => t.value),
       coverUrl: this.state.coverUrl,
       pdfUrl: this.state.pdfUrl,
       description: this.state.description
@@ -102,21 +107,21 @@ class BookModal extends React.Component {
 
             <div className="row">
               <div className="col-md-6 form-group">
-                <label>Category</label>
-                <select
-                  className="form-control"
-                  name="category"
-                  value={this.state.category}
-                  onChange={this.handleChange}
-                >
-                  <option value="Science">Science</option>
-                  <option value="Mathematics">Mathematics</option>
-                  <option value="History">History</option>
-                  <option value="Storybooks">Storybooks</option>
-                  <option value="Geography">Geography</option>
-                  <option value="Languages">Languages</option>
-                  <option value="Other">Other</option>
-                </select>
+                <label>Tags</label>
+                <CreatableSelect
+                  isMulti
+                  name="tags"
+                  value={this.state.tags}
+                  onChange={this.handleTagsChange}
+                  placeholder="Select or create tags..."
+                  classNamePrefix="select"
+                  options={Array.from(new Set(
+                    ((window.DataService && window.DataService.allData && window.DataService.allData.books) || [])
+                      .flatMap(b => Array.isArray(b.tags) ? b.tags : [])
+                      .map(t => typeof t === 'string' ? t.trim() : '')
+                      .filter(Boolean)
+                  )).map(t => ({label: t, value: t}))}
+                />
               </div>
               <div className="col-md-6 form-group">
                 <label>Cover Image URL</label>
