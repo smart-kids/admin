@@ -2,6 +2,7 @@ import React from "react";
 import CreatableSelect from 'react-select/creatable';
 import "./Library.css"; // Ensure you have the CSS file from the previous step
 import { query } from "../../utils/requests";
+import Data from "../../utils/data";
 
 const $ = window.$;
 
@@ -35,14 +36,20 @@ class BookModal extends React.Component {
     uploadProgress: 0,
     errors: {},
     analyticsEvents: [],
-    analyticsLoading: false
+    analyticsLoading: false,
+    allBooks: []
   };
 
   state = { ...this.initialState };
 
   componentDidMount() {
-    // Initialize jQuery validation or specific modal events if needed here
-    // But for this setup, the logic is largely in show()
+    this._subscription = Data.books.subscribe(({ books }) => {
+      this.setState({ allBooks: books || [] });
+    });
+  }
+
+  componentWillUnmount() {
+    if (this._subscription) this._subscription();
   }
 
   // --- THE REQUESTED SHOW/HIDE IMPLEMENTATION ---
@@ -424,7 +431,7 @@ class BookModal extends React.Component {
                         classNamePrefix="select"
                         isDisabled={isUploading}
                         options={Array.from(new Set(
-                          ((window.DataService && window.DataService.allData && window.DataService.allData.books) || [])
+                          (this.state.allBooks || [])
                             .flatMap(b => Array.isArray(b.tags) ? b.tags : [])
                             .map(t => typeof t === 'string' ? t.trim() : '')
                             .filter(Boolean)

@@ -1,6 +1,7 @@
 import React from "react";
 import CreatableSelect from 'react-select/creatable';
 import "./Library.css"; // Uses the CSS defined above
+import Data from "../../utils/data";
 
 class BookModal extends React.Component {
   state = {
@@ -11,7 +12,8 @@ class BookModal extends React.Component {
     coverUrl: "",
     pdfUrl: "",
     description: "",
-    errors: {}
+    errors: {},
+    allBooks: []
   };
 
   componentDidMount() {
@@ -28,6 +30,14 @@ class BookModal extends React.Component {
         description: description || ""
       });
     }
+
+    this._subscription = Data.books.subscribe(({ books }) => {
+      this.setState({ allBooks: books || [] });
+    });
+  }
+
+  componentWillUnmount() {
+    if (this._subscription) this._subscription();
   }
 
   handleChange = (e) => {
@@ -116,7 +126,7 @@ class BookModal extends React.Component {
                   placeholder="Select or create tags..."
                   classNamePrefix="select"
                   options={Array.from(new Set(
-                    ((window.DataService && window.DataService.allData && window.DataService.allData.books) || [])
+                    (this.state.allBooks || [])
                       .flatMap(b => Array.isArray(b.tags) ? b.tags : [])
                       .map(t => typeof t === 'string' ? t.trim() : '')
                       .filter(Boolean)
