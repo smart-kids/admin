@@ -22,7 +22,14 @@ class QRModal extends React.Component {
     enrollmentToken: "",
     showAdvancedConfig: false,
     enrolledDevices: [],
-    initialDeviceIds: new Set()
+    initialDeviceIds: new Set(),
+    // Local MDM Service state
+    localServiceConnected: false,
+    localServiceAuthenticated: false,
+    localDevices: [],
+    onboardingDevices: [],
+    localLogs: ["🔌 Waiting for local MDM service..."],
+    setupLoading: false
   };
 
   componentDidMount() {
@@ -48,6 +55,7 @@ class QRModal extends React.Component {
     // Restore persisted WiFi settings first, then fetch the latest APK info
     this.loadWifiFromStorage();
     this.fetchApkInfo();
+    this.startLocalServicePolling();
   }
 
   componentWillUnmount() {
@@ -55,7 +63,96 @@ class QRModal extends React.Component {
     if (this.unsubscribeDevices) {
       this.unsubscribeDevices();
     }
+    if (this.localPollInterval) clearInterval(this.localPollInterval);
+    if (this.eventSource) this.eventSource.close();
   }
+
+  startLocalServicePolling = () => {
+    this.localPollInterval = setInterval(async () => {
+      try {
+        const devices = await Data.localMdm.getDevices();
+        if (!this.state.localServiceConnected) {
+          this.setState({ localServiceConnected: true });
+          this.authenticateLocalService();
+          this.connectLocalLogs();
+        }
+        this.setState({ localDevices: devices || [] });
+        this.autoOnboardDevices(devices || []);
+      } catch (e) {
+        if (this.state.localServiceConnected) {
+          this.setState({ 
+            localServiceConnected: false, 
+            localServiceAuthenticated: false,
+            localLogs: [...this.state.localLogs, "❌ Local service disconnected."]
+          });
+          if (this.eventSource) {
+            this.eventSource.close();
+            this.eventSource = null;
+          }
+        }
+      }
+    }, 2000);
+  };
+
+  authenticateLocalService = async () => {
+    if (this.state.localServiceAuthenticated) return;
+    const schoolId = localStorage.getItem("school");
+    const isLocalClient = window.location.href.includes('localhost') || window.location.href.includes('127.0.0.1');
+    const apiBase = isLocalClient ? "http://localhost:4001/api" : "https://cloud.shuleplus.co.ke/api";
+    
+    const tokenData = this.state.enrollmentToken ? { token: this.state.enrollmentToken } : await this.generateEnrollmentToken(schoolId);
+    
+    try {
+      await Data.localMdm.auth({
+        token: tokenData.token,
+        school_id: schoolId,
+        wifi_ssid: this.state.wifiSsid,
+        wifi_password: this.state.wifiPassword,
+        api_base: apiBase
+      });
+      this.setState({ localServiceAuthenticated: true });
+    } catch (e) {
+      console.error("Local auth failed", e);
+    }
+  };
+
+  connectLocalLogs = () => {
+    if (this.eventSource) this.eventSource.close();
+    this.eventSource = Data.localMdm.connectLogs(
+      (event) => {
+        this.setState(prev => ({ localLogs: [...prev.localLogs, event.data] }), () => {
+          if (this.logsEnd) this.logsEnd.scrollIntoView({ behavior: "smooth" });
+        });
+      },
+      () => {
+        // error handling handled by poll failure
+      }
+    );
+  };
+
+  autoOnboardDevices = async (devices) => {
+    const { onboardingDevices } = this.state;
+    for (const serial of devices) {
+      if (!onboardingDevices.includes(serial)) {
+        this.setState(prev => ({ onboardingDevices: [...prev.onboardingDevices, serial] }));
+        try {
+          await Data.localMdm.onboard(serial);
+        } catch (e) {
+          console.error("Failed to auto-onboard", serial);
+        }
+      }
+    }
+  };
+
+  installPlatformTools = async () => {
+    this.setState({ setupLoading: true });
+    try {
+      await Data.localMdm.setup();
+    } catch (e) {
+      console.error(e);
+    }
+    setTimeout(() => this.setState({ setupLoading: false }), 2000);
+  };
 
   generateQR = async () => {
     const schoolId = localStorage.getItem("school");
@@ -410,175 +507,141 @@ class QRModal extends React.Component {
                   </div>
                 </div>
 
-                {/* Right Side: Step-by-Step Secure Lockdown Guide & Live Feed */}
+                {/* Right Side: MDM Dashboard or Guide */}
                 <div className="p-4 flex-grow-1" style={{ backgroundColor: '#ffffff', overflowY: 'auto', maxHeight: '80vh' }}>
                   
-                  {/* Mass Onboarding Live Feed */}
-                  <div className="mb-4">
-                    <h6 className="font-weight-bold text-dark mb-3 d-flex align-items-center" style={{ fontSize: '1rem' }}>
-                      <i className="la la-broadcast-tower text-success mr-2" style={{ fontSize: '20px' }}></i>
-                      Mass Onboarding Live Feed
-                    </h6>
-                    <p className="text-muted mb-3" style={{ fontSize: '13px', lineHeight: '1.5' }}>
-                      Scan this QR code on multiple tablets in a row. As each device successfully enrolls, it will appear here instantly. Users can simply pick them up to login.
-                    </p>
-                    
-                    <div className="enrolled-devices-list border rounded bg-light p-3" style={{ maxHeight: '220px', overflowY: 'auto' }}>
-                      {enrolledDevices.length === 0 ? (
-                        <div className="text-center text-muted py-4 small">
-                          <i className="la la-spinner la-spin mr-2" style={{ fontSize: '16px' }}></i>
-                          Waiting for devices to be scanned...
-                        </div>
-                      ) : (
-                        <ul className="list-unstyled mb-0">
-                          {enrolledDevices.map((device, idx) => (
-                            <li key={device.id} className="d-flex justify-content-between align-items-center bg-white p-2 border rounded mb-2 shadow-sm">
-                              <div className="d-flex align-items-center">
-                                <i className="la la-tablet text-primary mr-2" style={{ fontSize: '20px' }}></i>
-                                <div>
-                                  <div className="font-weight-bold small text-dark">Tablet #{enrolledDevices.length - idx}</div>
-                                  <div className="text-muted" style={{ fontSize: '11px' }}>MAC: {device.macAddress || 'Unknown'}</div>
-                                </div>
+                  {this.state.localServiceConnected ? (
+                    <div className="h-100 d-flex flex-column">
+                      <div className="d-flex justify-content-between align-items-center mb-3">
+                        <h6 className="font-weight-bold text-success m-0 d-flex align-items-center">
+                          <i className="la la-check-circle mr-2" style={{ fontSize: '24px' }}></i>
+                          Local Service Connected
+                        </h6>
+                        <button 
+                          className="btn btn-outline-primary btn-sm rounded-pill font-weight-bold shadow-sm"
+                          onClick={this.installPlatformTools}
+                          disabled={this.state.setupLoading}
+                        >
+                          {this.state.setupLoading ? <i className="la la-spinner la-spin mr-1"></i> : <i className="la la-tools mr-1"></i>}
+                          Setup ADB Tools
+                        </button>
+                      </div>
+
+                      <div className="card border-0 bg-light rounded-lg mb-3 shadow-sm">
+                        <div className="card-body p-3">
+                          <h6 className="font-weight-bold text-dark mb-2" style={{ fontSize: '13px' }}>
+                            <i className="la la-usb mr-2 text-primary"></i>
+                            Connected USB Devices
+                          </h6>
+                          <div style={{ maxHeight: '120px', overflowY: 'auto' }}>
+                            {this.state.localDevices.length === 0 ? (
+                              <div className="text-muted small text-center py-2">
+                                Waiting for devices... (Plug in via USB)
                               </div>
-                              <span className="badge badge-success px-2 py-1" style={{ fontSize: '10px' }}>
-                                <i className="la la-check mr-1"></i> Ready
-                              </span>
-                            </li>
+                            ) : (
+                              <ul className="list-unstyled mb-0">
+                                {this.state.localDevices.map(serial => (
+                                  <li key={serial} className="d-flex justify-content-between align-items-center p-2 bg-white rounded border mb-1 shadow-sm">
+                                    <span className="small font-weight-bold text-dark">{serial}</span>
+                                    {this.state.onboardingDevices.includes(serial) ? (
+                                      <span className="badge badge-warning text-dark"><i className="la la-spinner la-spin mr-1"></i> Onboarding...</span>
+                                    ) : (
+                                      <span className="badge badge-success"><i className="la la-check mr-1"></i> Ready</span>
+                                    )}
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex-grow-1 d-flex flex-column">
+                        <h6 className="font-weight-bold text-dark mb-2" style={{ fontSize: '13px' }}>
+                          <i className="la la-terminal mr-2 text-primary"></i>
+                          Live Automation Logs
+                        </h6>
+                        <div 
+                          className="bg-dark rounded-lg p-3 text-success w-100 flex-grow-1"
+                          style={{ fontFamily: 'monospace', fontSize: '12px', minHeight: '200px', maxHeight: '300px', overflowY: 'auto', boxShadow: 'inset 0 4px 6px rgba(0,0,0,0.3)' }}
+                        >
+                          {this.state.localLogs.map((log, i) => (
+                            <div key={i} className="mb-1">❯ {log}</div>
                           ))}
-                        </ul>
-                      )}
+                          <div ref={(el) => { this.logsEnd = el; }}></div>
+                        </div>
+                      </div>
+
                     </div>
-                  </div>
+                  ) : (
+                    <div>
+                      {/* Security Benefits Section (Reduced Text) */}
+                      <div className="mb-4">
+                        <h6 className="font-weight-bold text-dark mb-3 d-flex align-items-center" style={{ fontSize: '1rem' }}>
+                          <i className="la la-shield-alt text-primary mr-2" style={{ fontSize: '20px' }}></i>
+                          Security Benefits
+                        </h6>
 
-                  <h6 className="font-weight-bold text-dark mb-3 d-flex align-items-center pt-2 border-top" style={{ fontSize: '1rem', marginTop: '20px' }}>
-                    <i className="la la-info-circle text-primary mr-2" style={{ fontSize: '20px' }}></i>
-                    Ultimate Lockdown Instructions
-                  </h6>
-                  <p className="text-muted mb-4" style={{ fontSize: '13px', lineHeight: '1.5' }}>
-                    Follow this exact workflow to register a school tablet as a fully managed Device Owner, automatically enforcing air-tight child locking and making it burglar/ADB-proof.
-                  </p>
+                        <div className="security-benefits" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                          <div className="benefit-item">
+                            <div className="d-flex align-items-start" style={{ gap: '10px' }}>
+                              <i className="la la-lock text-primary mt-1" style={{ fontSize: '16px' }}></i>
+                              <div>
+                                <h6 className="font-weight-bold text-dark mb-1" style={{ fontSize: '13px' }}>App Locking</h6>
+                                <p className="text-muted m-0" style={{ fontSize: '12px', lineHeight: '1.4' }}>
+                                  Locked to ShulePlus only. Kids cannot exit or open other apps.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
 
-                  <div className="steps-container" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-
-                    <div className="step-item d-flex" style={{ gap: '15px' }}>
-                      <div className="step-number d-flex align-items-center justify-content-center font-weight-bold" style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#E8F0FE', color: '#1A73E8', fontSize: '13px', flexShrink: 0 }}>
-                        1
-                      </div>
-                      <div>
-                        <h6 className="font-weight-bold text-dark mb-1" style={{ fontSize: '14px' }}>Factory Reset Tablet</h6>
-                        <p className="text-muted m-0" style={{ fontSize: '12px', lineHeight: '1.4' }}>
-                          Start with a completely new or factory-reset tablet. If it is already set up, perform a full Factory Reset first.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="step-item d-flex" style={{ gap: '15px' }}>
-                      <div className="step-number d-flex align-items-center justify-content-center font-weight-bold" style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#E8F0FE', color: '#1A73E8', fontSize: '13px', flexShrink: 0 }}>
-                        2
-                      </div>
-                      <div>
-                        <h6 className="font-weight-bold text-dark mb-1" style={{ fontSize: '14px' }}>Activate Hidden Scan Wizard</h6>
-                        <p className="text-muted m-0" style={{ fontSize: '12px', lineHeight: '1.4' }}>
-                          On the initial Android <strong>"Welcome"</strong> screen (setup wizard), tap the empty background space <strong>6 times rapidly</strong>. This will launch Android's hidden QR provisioning camera.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="step-item d-flex" style={{ gap: '15px' }}>
-                      <div className="step-number d-flex align-items-center justify-content-center font-weight-bold" style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#E8F0FE', color: '#1A73E8', fontSize: '13px', flexShrink: 0 }}>
-                        3
-                      </div>
-                      <div>
-                        <h6 className="font-weight-bold text-dark mb-1" style={{ fontSize: '14px' }}>Connect WiFi & Scan QR</h6>
-                        <p className="text-muted m-0" style={{ fontSize: '12px', lineHeight: '1.4' }}>
-                          Scan the onboarding QR code on this screen. If you pre-configured Wi-Fi on the left, the tablet will connect automatically. Otherwise, connect to Wi-Fi manually when prompted.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="step-item d-flex" style={{ gap: '15px' }}>
-                      <div className="step-number d-flex align-items-center justify-content-center font-weight-bold" style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#E8F0FE', color: '#1A73E8', fontSize: '13px', flexShrink: 0 }}>
-                        4
-                      </div>
-                      <div>
-                        <h6 className="font-weight-bold text-dark mb-1" style={{ fontSize: '14px' }}>Automatic MDM Enrollment</h6>
-                        <p className="text-muted m-0" style={{ fontSize: '12px', lineHeight: '1.4' }}>
-                          Android will enroll the tablet, download <strong>ShulePlus</strong>, set it as the secure Device Owner, and automatically block ADB Debugging, Factory Reset, and USB File Transfers.
-                        </p>
-                      </div>
-                    </div>
-
-                  </div>
-
-                  {/* Security Benefits Section */}
-                  <div className="mt-5 pt-4 border-top">
-                    <h6 className="font-weight-bold text-dark mb-3 d-flex align-items-center" style={{ fontSize: '1rem' }}>
-                      <i className="la la-shield-alt text-primary mr-2" style={{ fontSize: '20px' }}></i>
-                      Security Benefits
-                    </h6>
-
-                    <div className="security-benefits" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <div className="benefit-item">
-                        <div className="d-flex align-items-start" style={{ gap: '10px' }}>
-                          <i className="la la-lock text-primary mt-1" style={{ fontSize: '16px' }}></i>
-                          <div>
-                            <h6 className="font-weight-bold text-dark mb-1" style={{ fontSize: '13px' }}>App Locking</h6>
-                            <p className="text-muted m-0" style={{ fontSize: '12px', lineHeight: '1.4' }}>
-                              The device is locked to ShulePlus only. Kids cannot exit the app, open other apps, or access the home screen. The app becomes the only thing they can use.
-                            </p>
+                          <div className="benefit-item">
+                            <div className="d-flex align-items-start" style={{ gap: '10px' }}>
+                              <i className="la fa-user-shield text-primary mt-1" style={{ fontSize: '16px' }}></i>
+                              <div>
+                                <h6 className="font-weight-bold text-dark mb-1" style={{ fontSize: '13px' }}>Burglar Protection</h6>
+                                <p className="text-muted m-0" style={{ fontSize: '12px', lineHeight: '1.4' }}>
+                                  Thieves cannot factory reset or bypass security via USB.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="benefit-item">
+                            <div className="d-flex align-items-start" style={{ gap: '10px' }}>
+                              <i className="la fa-users text-primary mt-1" style={{ fontSize: '16px' }}></i>
+                              <div>
+                                <h6 className="font-weight-bold text-dark mb-1" style={{ fontSize: '13px' }}>Multi-Tablet Management</h6>
+                                <p className="text-muted m-0" style={{ fontSize: '12px', lineHeight: '1.4' }}>
+                                  Each device is enrolled with your school's unique token.
+                                </p>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
 
-                      <div className="benefit-item">
-                        <div className="d-flex align-items-start" style={{ gap: '10px' }}>
-                          <i className="la fa-user-shield text-primary mt-1" style={{ fontSize: '16px' }}></i>
-                          <div>
-                            <h6 className="font-weight-bold text-dark mb-1" style={{ fontSize: '13px' }}>Burglar Protection</h6>
-                            <p className="text-muted m-0" style={{ fontSize: '12px', lineHeight: '1.4' }}>
-                              If a tablet is stolen, thieves cannot factory reset it, cannot bypass security via USB debugging, and cannot access any data. The device remains locked to your school.
-                            </p>
-                          </div>
+                      {/* Mass Onboarding Section */}
+                      <div className="card shadow-sm border-0 mb-4 rounded-lg" style={{ background: "linear-gradient(145deg, #f0f4f8, #e2e8f0)" }}>
+                        <div className="card-header bg-transparent border-bottom-0 pt-4 pb-0">
+                          <h6 className="font-weight-bold text-dark mb-0">
+                            <i className="la la-bolt text-warning mr-2"></i> Zero-Click Mass Onboarding
+                          </h6>
                         </div>
-                      </div>
-
-                      <div className="benefit-item">
-                        <div className="d-flex align-items-start" style={{ gap: '10px' }}>
-                          <i className="la fa-ban text-primary mt-1" style={{ fontSize: '16px' }}></i>
-                          <div>
-                            <h6 className="font-weight-bold text-dark mb-1" style={{ fontSize: '13px' }}>No Unauthorized Access</h6>
-                            <p className="text-muted m-0" style={{ fontSize: '12px', lineHeight: '1.4' }}>
-                              USB file transfer is blocked, external drives cannot be mounted, and safe boot is disabled. This prevents anyone from bypassing security or installing unauthorized software.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="benefit-item">
-                        <div className="d-flex align-items-start" style={{ gap: '10px' }}>
-                          <i className="la fa-users text-primary mt-1" style={{ fontSize: '16px' }}></i>
-                          <div>
-                            <h6 className="font-weight-bold text-dark mb-1" style={{ fontSize: '13px' }}>Multi-Tablet Management</h6>
-                            <p className="text-muted m-0" style={{ fontSize: '12px', lineHeight: '1.4' }}>
-                              Perfect for schools with many tablets. Each device is enrolled with your school's unique token, preventing misuse and ensuring all tablets remain under your control.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="benefit-item">
-                        <div className="d-flex align-items-start" style={{ gap: '10px' }}>
-                          <i className="la fa-child text-primary mt-1" style={{ fontSize: '16px' }}></i>
-                          <div>
-                            <h6 className="font-weight-bold text-dark mb-1" style={{ fontSize: '13px' }}>Child-Safe Environment</h6>
-                            <p className="text-muted m-0" style={{ fontSize: '12px', lineHeight: '1.4' }}>
-                              Kids can only access educational content in ShulePlus. No social media, games, or inappropriate content. The status bar is hidden, preventing access to notifications and system settings.
-                            </p>
+                        <div className="card-body">
+                          <p className="text-muted small mb-3">
+                            Download the local server to enable zero-click USB onboarding. Once running, this screen will automatically transform into the MDM Dashboard.
+                          </p>
+                          <div className="d-flex flex-wrap gap-2 mb-3" style={{ gap: '8px' }}>
+                            <a href="/mass-onboarder.exe" download className="btn btn-primary btn-sm rounded-pill font-weight-bold px-3 shadow-sm">
+                              <i className="la la-windows mr-1"></i> Download for Windows
+                            </a>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  )}
+
                 </div>
 
               </div>

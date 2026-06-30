@@ -2243,6 +2243,43 @@ var Data = (function () {
                 return response.school?.teacherAllocations || [];
             }
         },
+        localMdm: {
+            auth: async (payload) => {
+                const res = await fetch("http://localhost:18205/api/auth", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) throw new Error("Local auth failed");
+                return true;
+            },
+            getDevices: async () => {
+                const res = await fetch("http://localhost:18205/api/devices");
+                if (!res.ok) throw new Error("Local service disconnected");
+                const data = await res.json();
+                return data.devices || [];
+            },
+            onboard: async (serial) => {
+                const res = await fetch("http://localhost:18205/api/onboard", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ serial })
+                });
+                if (!res.ok) throw new Error("Onboard failed");
+                return true;
+            },
+            setup: async () => {
+                const res = await fetch("http://localhost:18205/api/setup", { method: "POST" });
+                if (!res.ok) throw new Error("Setup failed");
+                return true;
+            },
+            connectLogs: (onMessage, onError) => {
+                const eventSource = new EventSource("http://localhost:18205/api/logs");
+                eventSource.onmessage = onMessage;
+                eventSource.onerror = onError;
+                return eventSource;
+            }
+        },
     };
 
     return {
