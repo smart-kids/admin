@@ -113,15 +113,21 @@ const styles = {
 export default class SchoolDetails extends React.Component {
   state = {
     school: null,
+    isSuperAdmin: false,
   };
 
   _isMounted = false;
 
   componentDidMount() {
     this._isMounted = true;
+    const userData = JSON.parse(localStorage.getItem("user")) || {};
+    const isSuperAdmin = userData.userType === 'sAdmin';
+
     const school = Data.schools.getSelected();
     if (school) {
-      this.setState({ school });
+      this.setState({ school, isSuperAdmin });
+    } else {
+      this.setState({ isSuperAdmin });
     }
 
     Data.schools.subscribe(({ schools }) => {
@@ -174,7 +180,7 @@ export default class SchoolDetails extends React.Component {
   }
 
   render() {
-    const { school } = this.state;
+    const { school, isSuperAdmin } = this.state;
 
     if (!school) {
       return (
@@ -249,6 +255,12 @@ export default class SchoolDetails extends React.Component {
                <span style={styles.label}>Invite SMS:</span>
                <span style={styles.value}>{school.inviteSmsText}</span>
              </div>
+            )}
+            {isSuperAdmin && (
+              <div style={styles.detailItem}>
+                <span style={styles.label}>Rate / Student:</span>
+                <span style={styles.value}>{school.ratePerStudent ? `KES ${school.ratePerStudent}` : 'Not set'}</span>
+              </div>
             )}
           </div>
 

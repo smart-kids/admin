@@ -16,6 +16,7 @@ class Modal extends React.Component {
   // Updated initial state to include new fields and better defaults
   state = {
     loading: false,
+    isSuperAdmin: false,
     edit: {
       id: null, // Important for getDerivedStateFromProps
       name: "",
@@ -30,6 +31,7 @@ class Modal extends React.Component {
       logo: null, // For base64 string or URL
       themeColor: "#4e73df", // Default theme color (e.g., a nice blue)
       mpesaPaybill: "", // M-Pesa Paybill for automatic transfers
+      ratePerStudent: "", // KES per student rate for SaaS billing
     },
     logoPreview: null, // For immediate preview from file input
   };
@@ -52,6 +54,10 @@ class Modal extends React.Component {
   }
 
   componentDidMount() {
+    const userData = JSON.parse(localStorage.getItem("user")) || {};
+    const isSuperAdmin = userData.userType === 'sAdmin';
+    this.setState({ isSuperAdmin });
+
     const _this = this; // Keep _this for submitHandler context
     if (!this.formRef.current) return;
 
@@ -105,6 +111,7 @@ class Modal extends React.Component {
         logo: null,
         themeColor: "#4e73df", // Ensure default is here
         mpesaPaybill: "",
+        ratePerStudent: "",
     };
 
     if (props.edit) {
@@ -199,8 +206,8 @@ class Modal extends React.Component {
   };
 
   render() {
-    const { name, phone, email, address, schoolSize, schoolType, schoolLevel, numberOfStudents, inviteSmsText, themeColor, mpesaPaybill } = this.state.edit; // Added new fields
-    const { loading, logoPreview } = this.state;
+    const { name, phone, email, address, schoolSize, schoolType, schoolLevel, numberOfStudents, inviteSmsText, themeColor, mpesaPaybill, ratePerStudent } = this.state.edit; // Added new fields
+    const { loading, logoPreview, isSuperAdmin } = this.state;
     const currentModalId = modalNumber;
     const currentFormId = modalNumber + "form";
     const modalTitle = this.state.edit.id ? "Edit School's Details" : "Add New School";
@@ -424,6 +431,25 @@ class Modal extends React.Component {
                       A platform fee will be deducted before transfer.
                     </small>
                   </div>
+                  {isSuperAdmin && (
+                    <div className="form-group">
+                      <label htmlFor={`${currentFormId}_ratePerStudent`}>Rate per student (KES):</label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        id={`${currentFormId}_ratePerStudent`}
+                        name="ratePerStudent"
+                        placeholder="e.g. 500"
+                        value={ratePerStudent || ""}
+                        onChange={this.handleChange}
+                        disabled={loading}
+                        title="Enter agreed SaaS rate per student"
+                      />
+                      <small className="form-text text-muted">
+                        Set the contractual SaaS charge per student for invoicing purposes.
+                      </small>
+                    </div>
+                  )}
                 </div>
                 <div className="modal-footer">
                    <button

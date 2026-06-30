@@ -75,14 +75,14 @@ class Navbar extends React.Component {
     
     if (!ENABLE_ROLE_RESTRICTIONS) {
        const isTeacherRole = ['teacher', 'parent'].includes(normalizedRole);
-       const isSuper = ['super_admin', 'superadmin', 'sadmin'].includes(normalizedRole) || (storedUser && !!storedUser.isSuperAdmin);
+       const isSuper = normalizedRole === 'sAdmin' || (storedUser && storedUser.userType === 'sAdmin');
        if (!isTeacherRole && !isSuper) {
           normalizedRole = 'admin';
        }
     }
 
-    const isSuperAdmin = ['super_admin', 'superadmin', 'sadmin'].includes(normalizedRole) || 
-                        (storedUser && !!storedUser.isSuperAdmin);
+    const isSuperAdmin = normalizedRole === 'sAdmin' || 
+                        (storedUser && storedUser.userType === 'sAdmin');
                         
     const isCsm = ['customer_success_manager', 'csm'].includes(normalizedRole);
     const isPrincipal = ['principal_admin', 'principal'].includes(normalizedRole);

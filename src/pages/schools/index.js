@@ -23,18 +23,8 @@ class App extends React.Component {
     const enhancedUserData = JSON.parse(localStorage.getItem("enhancedUser")) || userData;
     
     // Check if user is super admin
-    const isSuperAdmin = userData.userType === 'super_admin' || 
-                        userData.userType === 'superadmin' || 
-                        userData.userType === 'Super Admin' ||
-                        userData.userType === 'sAdmin' ||
-                        userData.userType === 'sadmin' ||
-                        userData.isSuperAdmin ||
-                        userData.role === 'super_admin' ||
-                        enhancedUserData.userType === 'super_admin' ||
-                        enhancedUserData.userType === 'sAdmin' ||
-                        enhancedUserData.userType === 'sadmin' ||
-                        enhancedUserData.isSuperAdmin ||
-                        enhancedUserData.role === 'super_admin';
+    const isSuperAdmin = userData.userType === 'sAdmin' || 
+                         enhancedUserData.userType === 'sAdmin';
     
     this.setState({ 
       isSuperAdmin, 

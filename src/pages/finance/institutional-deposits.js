@@ -123,14 +123,18 @@ class InstitutionalDeposits extends Component {
             amount: '',
             description: '',
             schoolId: '',
-            dueDate: ''
-        }
+            dueDate: '',
+            billingCycle: 'Monthly',
+            restrictDashboardOnOverdue: false
+        },
+        editInvoice: null,
+        showEditInvoiceModal: false,
     };
 
     componentDidMount() {
         // Get current user and check role
         const userData = JSON.parse(localStorage.getItem("user")) || {};
-        const isSuperAdmin = userData.userType === 'super_admin' || userData.userType === 'superadmin' || userData.role === 'super_admin' || userData.isSuperAdmin;
+        const isSuperAdmin = userData.userType === 'sAdmin';
         const savedBillingPhone = localStorage.getItem('billingPhone') || '';
         const savedPaymentMethod = localStorage.getItem('paymentMethod') || 'mpesa';
         
@@ -236,7 +240,9 @@ class InstitutionalDeposits extends Component {
                 month: 'short', 
                 day: 'numeric' 
             }),
-            schoolId: newInvoice.schoolId || 'school_001'
+            schoolId: newInvoice.schoolId || 'school_001',
+            billingCycle: newInvoice.billingCycle || 'Monthly',
+            restrictDashboardOnOverdue: newInvoice.restrictDashboardOnOverdue || false
         };
 
         this.setState({ 
@@ -247,7 +253,9 @@ class InstitutionalDeposits extends Component {
                 amount: '',
                 description: '',
                 schoolId: '',
-                dueDate: ''
+                dueDate: '',
+                billingCycle: 'Monthly',
+                restrictDashboardOnOverdue: false
             }
         });
 
@@ -255,6 +263,88 @@ class InstitutionalDeposits extends Component {
             message: `Invoice ${invoiceId} created successfully!`,
             header: 'Invoice Created'
         });
+    };
+
+    handleEditInvoice = (invoice) => {
+        // Parse raw numeric amount from "KES 1,000" formatted string
+        const parsedAmount = typeof invoice.amount === 'string' ? invoice.amount.replace(/[^0-9.]/g, '') : invoice.amount;
+        
+        // Convert "Nov 15, 2026" back to YYYY-MM-DD for date input
+        let parsedDueDate = invoice.dueDate;
+        if (invoice.dueDate) {
+            try {
+                const d = new Date(invoice.dueDate);
+                if (!isNaN(d.getTime())) {
+                    parsedDueDate = d.toISOString().split('T')[0];
+                }
+            } catch(e) {}
+        }
+        
+        this.setState({
+            editInvoice: {
+                id: invoice.id,
+                amount: parsedAmount,
+                description: invoice.description,
+                schoolId: invoice.schoolId || '',
+                dueDate: parsedDueDate,
+                billingCycle: invoice.billingCycle || 'Monthly',
+                restrictDashboardOnOverdue: invoice.restrictDashboardOnOverdue || false
+            },
+            showEditInvoiceModal: true
+        });
+    };
+
+    handleUpdateInvoice = () => {
+        const { editInvoice, invoices } = this.state;
+        
+        if (!editInvoice.amount || !editInvoice.description || !editInvoice.dueDate) {
+            errorToast.show({ message: 'Please fill in all required fields' });
+            return;
+        }
+
+        const updatedInvoices = invoices.map(inv => {
+            if (inv.id === editInvoice.id) {
+                return {
+                    ...inv,
+                    amount: `KES ${parseInt(editInvoice.amount).toLocaleString()}`,
+                    description: editInvoice.description,
+                    dueDate: new Date(editInvoice.dueDate).toLocaleDateString('en-US', { 
+                        year: 'numeric', 
+                        month: 'short', 
+                        day: 'numeric' 
+                    }),
+                    schoolId: editInvoice.schoolId,
+                    billingCycle: editInvoice.billingCycle,
+                    restrictDashboardOnOverdue: editInvoice.restrictDashboardOnOverdue
+                };
+            }
+            return inv;
+        });
+
+        this.setState({ 
+            invoices: updatedInvoices,
+            showEditInvoiceModal: false,
+            editInvoice: null
+        });
+
+        successToast.show({ 
+            message: `Invoice ${editInvoice.id} updated successfully!`,
+            header: 'Invoice Updated'
+        });
+    };
+
+    handleDeleteInvoice = (invoiceId) => {
+        if (window.confirm('Are you sure you want to delete this invoice? This action cannot be undone.')) {
+            const { invoices } = this.state;
+            this.setState({
+                invoices: invoices.filter(inv => inv.id !== invoiceId),
+                totalInvoices: this.state.totalInvoices - 1
+            });
+            successToast.show({ 
+                message: `Invoice deleted successfully!`,
+                header: 'Invoice Deleted'
+            });
+        }
     };
 
     handlePayInvoice = (invoice) => {
@@ -899,10 +989,156 @@ class InstitutionalDeposits extends Component {
                                     </div>
                                 </div>
                             </div>
+                            
+                            <div className="row mt-6">
+                                <div className="col-6">
+                                    <div className="form-group mb-0">
+                                        <label className="font-weight-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>Billing Cycle</label>
+                                        <select 
+                                            className="form-control border-0 bg-light font-weight-bold" 
+                                            value={newInvoice.billingCycle}
+                                            onChange={(e) => this.setState({ newInvoice: { ...newInvoice, billingCycle: e.target.value }})}
+                                            style={{ borderRadius: '0.8rem' }}
+                                        >
+                                            <option value="Monthly">Monthly</option>
+                                            <option value="Termly">Termly</option>
+                                            <option value="Annually">Annually</option>
+                                            <option value="One-off">One-off</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="col-6 d-flex align-items-end">
+                                    <div className="form-group mb-0 w-100">
+                                        <label className="kt-checkbox kt-checkbox--brand font-weight-bold text-dark">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={newInvoice.restrictDashboardOnOverdue}
+                                                onChange={(e) => this.setState({ newInvoice: { ...newInvoice, restrictDashboardOnOverdue: e.target.checked }})}
+                                            /> Restrict Dashboard if Overdue
+                                            <span></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         <div className="modal-footer border-0 pt-0">
                             <button className="btn btn-light-danger font-weight-bold px-8 py-3" onClick={() => this.setState({ showCreateInvoiceModal: false })} style={{ borderRadius: '0.8rem' }}>Discard</button>
                             <button className="btn btn-primary font-weight-bold px-10 py-3" onClick={this.handleSaveInvoice} style={{ borderRadius: '0.8rem', boxShadow: '0 4px 15px rgba(54, 153, 255, 0.3)' }}>Create Invoice</button>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    renderEditInvoiceModal = () => {
+        const { showEditInvoiceModal, editInvoice } = this.state;
+        
+        if (!showEditInvoiceModal || !editInvoice) return null;
+
+        return (
+            <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal-dialog">
+                    <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '1.2rem' }}>
+                        <div className="modal-header border-0 pb-0">
+                            <h5 className="modal-title font-weight-boldest text-dark" style={{ fontSize: '1.5rem' }}>Edit Invoice #{editInvoice.id}</h5>
+                            <button type="button" className="close" onClick={() => this.setState({ showEditInvoiceModal: false })}>
+                                <i className="ki ki-close"></i>
+                            </button>
+                        </div>
+                        <div className="modal-body pt-8">
+                            <div className="form-group mb-6">
+                                <label className="font-weight-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>Amount (KES)</label>
+                                <div className="input-group input-group-solid input-group-lg">
+                                    <div className="input-group-prepend">
+                                        <span className="input-group-text border-0 bg-light"><i className="la la-money text-primary"></i></span>
+                                    </div>
+                                    <input 
+                                        type="number" 
+                                        className="form-control border-0 bg-light font-weight-bold" 
+                                        placeholder="0.00"
+                                        value={editInvoice.amount}
+                                        onChange={(e) => this.setState({ editInvoice: { ...editInvoice, amount: e.target.value }})}
+                                        style={{ borderRadius: '0 0.8rem 0.8rem 0' }}
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div className="form-group mb-6">
+                                <label className="font-weight-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>Service Description</label>
+                                <textarea 
+                                    className="form-control border-0 bg-light font-weight-bold" 
+                                    rows="3"
+                                    placeholder="Enter details about this invoice..."
+                                    value={editInvoice.description}
+                                    onChange={(e) => this.setState({ editInvoice: { ...editInvoice, description: e.target.value }})}
+                                    style={{ borderRadius: '0.8rem' }}
+                                ></textarea>
+                            </div>
+
+                            <div className="row">
+                                <div className="col-6">
+                                    <div className="form-group mb-0">
+                                        <label className="font-weight-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>Target Institution</label>
+                                        <input 
+                                            type="text" 
+                                            className="form-control border-0 bg-light font-weight-bold" 
+                                            placeholder="Institution ID"
+                                            value={editInvoice.schoolId}
+                                            onChange={(e) => this.setState({ editInvoice: { ...editInvoice, schoolId: e.target.value }})}
+                                            style={{ borderRadius: '0.8rem' }}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="col-6">
+                                    <div className="form-group mb-0">
+                                        <label className="font-weight-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>Due Date</label>
+                                        <input 
+                                            type="date" 
+                                            className="form-control border-0 bg-light font-weight-bold" 
+                                            value={editInvoice.dueDate}
+                                            onChange={(e) => this.setState({ editInvoice: { ...editInvoice, dueDate: e.target.value }})}
+                                            style={{ borderRadius: '0.8rem' }}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="row mt-6">
+                                <div className="col-6">
+                                    <div className="form-group mb-0">
+                                        <label className="font-weight-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>Billing Cycle</label>
+                                        <select 
+                                            className="form-control border-0 bg-light font-weight-bold" 
+                                            value={editInvoice.billingCycle}
+                                            onChange={(e) => this.setState({ editInvoice: { ...editInvoice, billingCycle: e.target.value }})}
+                                            style={{ borderRadius: '0.8rem' }}
+                                        >
+                                            <option value="Monthly">Monthly</option>
+                                            <option value="Termly">Termly</option>
+                                            <option value="Annually">Annually</option>
+                                            <option value="One-off">One-off</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="col-6 d-flex align-items-end">
+                                    <div className="form-group mb-0 w-100">
+                                        <label className="kt-checkbox kt-checkbox--brand font-weight-bold text-dark">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={editInvoice.restrictDashboardOnOverdue}
+                                                onChange={(e) => this.setState({ editInvoice: { ...editInvoice, restrictDashboardOnOverdue: e.target.checked }})}
+                                            /> Restrict Dashboard if Overdue
+                                            <span></span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="modal-footer border-0 pt-0">
+                            <button className="btn btn-light-danger font-weight-bold px-8 py-3" onClick={() => this.setState({ showEditInvoiceModal: false })} style={{ borderRadius: '0.8rem' }}>Discard</button>
+                            <button className="btn btn-primary font-weight-bold px-10 py-3" onClick={this.handleUpdateInvoice} style={{ borderRadius: '0.8rem', boxShadow: '0 4px 15px rgba(54, 153, 255, 0.3)' }}>Update Invoice</button>
                         </div>
 
                     </div>
@@ -1104,6 +1340,24 @@ class InstitutionalDeposits extends Component {
                                                         >
                                                             <i className="la la-envelope"></i>
                                                         </button>
+                                                        {this.state.isSuperAdmin && (
+                                                            <>
+                                                                <button 
+                                                                    className="btn btn-sm btn-clean btn-icon btn-icon-md text-primary"
+                                                                    title="Edit Invoice"
+                                                                    onClick={() => this.handleEditInvoice(invoice)}
+                                                                >
+                                                                    <i className="la la-edit"></i>
+                                                                </button>
+                                                                <button 
+                                                                    className="btn btn-sm btn-clean btn-icon btn-icon-md text-danger"
+                                                                    title="Delete Invoice"
+                                                                    onClick={() => this.handleDeleteInvoice(invoice.id)}
+                                                                >
+                                                                    <i className="la la-trash"></i>
+                                                                </button>
+                                                            </>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </td>
@@ -1172,8 +1426,8 @@ class InstitutionalDeposits extends Component {
                                             <div className="invoice-details">
                                                 <p><strong>Invoice Number:</strong> {printInvoice.id}</p>
                                                 <p><strong>Date Created:</strong> {printInvoice.created}</p>
-                                                <p><strong>Due Date:</strong> {printInvoice.created}</p>
-                                                <p><strong>Billing Period:</strong> Monthly Subscription</p>
+                                                <p><strong>Due Date:</strong> {printInvoice.dueDate}</p>
+                                                <p><strong>Billing Period:</strong> {printInvoice.billingCycle || 'Monthly'} Subscription</p>
                                                 <p><strong>Payment Method:</strong> Auto-debit</p>
                                             </div>
                                         </div>
@@ -1291,6 +1545,7 @@ class InstitutionalDeposits extends Component {
                             {this.renderInvoiceModal()}
                             {this.renderEmailModal()}
                             {this.renderCreateInvoiceModal()}
+                            {this.renderEditInvoiceModal()}
                             {this.renderPaymentModal()}
                             {this.renderBillingModal()}
                             {this.renderBankPaymentModal()}
