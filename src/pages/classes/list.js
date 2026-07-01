@@ -28,9 +28,6 @@ const apiRequest = async (mutation, variables) => {
 const getSchoolData = () => {
   try {
     const schools = Data.schools.list();
-    if (!schools || schools.length === 0) {
-      throw new Error('No school data available');
-    }
     return schools[0];
   } catch (error) {
     console.error('Error accessing school data:', error);
