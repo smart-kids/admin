@@ -2257,6 +2257,7 @@ var Data = (function () {
             },
             getDevices: async () => {
                 const res = await fetch("http://localhost:18205/api/devices");
+                if (res.status === 503) throw new Error("adb_not_found");
                 if (!res.ok) throw new Error("Local service disconnected");
                 const data = await res.json();
                 return data.devices || [];
@@ -2280,6 +2281,18 @@ var Data = (function () {
                 eventSource.onmessage = onMessage;
                 eventSource.onerror = onError;
                 return eventSource;
+            }
+        },
+        mdm: {
+            getApkInfo: async (apiBase) => {
+                const res = await fetch(`${apiBase}/apk-info?t=${Date.now()}`, { cache: "no-store" });
+                if (!res.ok) throw new Error("Failed to fetch APK info");
+                return await res.json();
+            },
+            getToolInfo: async () => {
+                const res = await fetch(`https://graph-ongyy.kinsta.app/tool-info?t=${Date.now()}`, { cache: "no-store" });
+                if (!res.ok) throw new Error("Failed to fetch tool info");
+                return await res.json();
             }
         },
     };

@@ -86,7 +86,11 @@ class QRModal extends React.Component {
         this.setState({ localDevices: devices || [] });
         this.autoOnboardDevices(devices || []);
       } catch (e) {
-        if (this.state.localServiceConnected) {
+        if (e.message === "adb_not_found") {
+          if (!this.state.setupLoading) {
+            this.installPlatformTools();
+          }
+        } else if (this.state.localServiceConnected) {
           this.setState({ 
             localServiceConnected: false, 
             localServiceAuthenticated: false,
@@ -203,7 +207,7 @@ class QRModal extends React.Component {
     } catch (e) {
       console.error(e);
     }
-    setTimeout(() => this.setState({ setupLoading: false }), 2000);
+    setTimeout(() => this.setState({ setupLoading: false }), 30000);
   };
 
   generateQR = async () => {
@@ -294,29 +298,23 @@ class QRModal extends React.Component {
   fetchApkInfo = async () => {
     this.setState({ isFetchingTools: true });
     try {
-      const res = await fetch(`${this.API_BASE}/apk-info`);
-      if (res.ok) {
-        const data = await res.json();
-        const newState = {};
-        if (data.downloadUrl) newState.downloadUrl = data.downloadUrl;
-        if (data.checksum) newState.signatureChecksum = data.checksum;
-        if (Object.keys(newState).length > 0) {
-          this.setState(newState);
-        }
+      const data = await Data.mdm.getApkInfo(this.API_BASE);
+      const newState = {};
+      if (data.downloadUrl) newState.downloadUrl = data.downloadUrl;
+      if (data.checksum) newState.signatureChecksum = data.checksum;
+      if (Object.keys(newState).length > 0) {
+        this.setState(newState);
       }
     } catch (e) {
       console.warn('Could not fetch APK info, using current state:', e.message);
     }
     
     try {
-      const toolRes = await fetch("https://graph-ongyy.kinsta.app/tool-info");
-      if (toolRes.ok) {
-        const toolData = await toolRes.json();
-        if (toolData.urls) {
-           this.setState(prevState => ({
-             toolUrls: { ...prevState.toolUrls, ...toolData.urls }
-           }));
-        }
+      const toolData = await Data.mdm.getToolInfo();
+      if (toolData.urls) {
+         this.setState(prevState => ({
+           toolUrls: { ...prevState.toolUrls, ...toolData.urls }
+         }));
       }
     } catch (e) {
       console.warn('Could not fetch tool info:', e.message);
