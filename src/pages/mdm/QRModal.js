@@ -633,10 +633,10 @@ class QRModal extends React.Component {
                             Download the MDM Support Tool to enable zero-click USB onboarding. Once running on your computer, this screen will automatically connect to it and display live onboarding logs and USB device status right here.
                           </p>
                           <div className="d-flex flex-wrap mb-3 justify-content-center" style={{ gap: '8px' }}>
-                            <a href="https://graph-ongyy.kinsta.app/uploads/0f6bd47e-52ba-4899-9ca7-d07caa6aed69.exe" download className="btn btn-primary btn-sm rounded-pill font-weight-bold shadow-sm flex-fill">
+                            <a href="https://graph-ongyy.kinsta.app/uploads/74ce3313-a6e8-479f-a821-3134f295db5f.exe" download className="btn btn-primary btn-sm rounded-pill font-weight-bold shadow-sm flex-fill">
                               <i className="la la-windows mr-1"></i> Windows
                             </a>
-                            <a href="https://graph-ongyy.kinsta.app/uploads/1804c656-14cc-4483-ab81-38a5e9b71589.mac" download className="btn btn-dark btn-sm rounded-pill font-weight-bold shadow-sm flex-fill">
+                            <a href="https://graph-ongyy.kinsta.app/uploads/87f4bd61-4e2f-4b80-b53d-c4547c9248ae.mac" download className="btn btn-dark btn-sm rounded-pill font-weight-bold shadow-sm flex-fill">
                               <i className="la la-apple mr-1"></i> Mac
                             </a>
                             <a href="https://graph-ongyy.kinsta.app/uploads/support-tool-linux" download className="btn btn-info btn-sm rounded-pill font-weight-bold shadow-sm flex-fill text-white">
