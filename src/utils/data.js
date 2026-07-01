@@ -616,7 +616,7 @@ var Data = (function () {
         const FRAGMENT_DRIVERS_DATA = `fragment DriversData on school { drivers { id names phone license_expiry licence_number home } }`;
         const FRAGMENT_ADMINS_DATA = `fragment AdminsData on school { admins { id names email phone } }`;
         const FRAGMENT_PARENTS_DATA = `fragment ParentsData on school { parents(limit: 1000) { id national_id name gender email phone students { id, names, gender, route { id, name }, balanceBroughtForward } } }`;        const FRAGMENT_TEACHERS_DATA = `fragment TeachersData on school { teachers(limit: 1000) { id national_id tsc_number name gender phone email classes { id, name } } }`;
-        const FRAGMENT_CLASSES_DATA = `fragment ClassesData on school { classes(limit: 1000) { id name feeAmount grade students { id, names, gender, registration, parent { id, name, phone }, parent2 { id, name }, route { id, name }, feeStatus { balance, balanceFormated }, balanceBroughtForward } teacher { id, name } } }`;
+        const FRAGMENT_CLASSES_DATA = `fragment ClassesData on school { classes(limit: 1000) { id name feeAmount grade { id name subjects { id } } students { id, names, gender, registration, parent { id, name, phone }, parent2 { id, name }, route { id, name }, feeStatus { balance, balanceFormated }, balanceBroughtForward } teacher { id, name } } }`;
         const FRAGMENT_ROUTES_DATA = `fragment RoutesData on school { routes(limit: 1000) { id name description path { lat lng } } }`;
         const FRAGMENT_SCHEDULES_DATA = `fragment SchedulesData on school { schedules(limit: 1000) { id message time type end_time name days route { id, name } bus { id, make } } }`;
         const FRAGMENT_TRIPS_DATA = `fragment TripsData on school { trips(limit: 1000) { id startedAt isCancelled completedAt schedule { name id time end_time, route { id, name, students { id } } } bus { id, make, plate } driver { id, names } locReports { id time loc { lat lng } } events { time, type, student { id, names } } } }`;
@@ -1351,8 +1351,8 @@ var Data = (function () {
         { 
             name: "classes", 
             singularName: "class", 
-            createFields: ['name', 'teacher', 'school', 'feeAmount', 'order'], 
-            updateFields: ['name', 'teacher', 'feeAmount', 'order'],
+            createFields: ['name', 'teacher', 'school', 'order', 'grade'], 
+            updateFields: ['name', 'teacher', 'order', 'grade'],
             customMethods: (allData, subs, api) => ({
                 updateOrder: (orders) => new Promise(async (resolve, reject) => {
                     if (!orders || orders.length === 0) return resolve(true);

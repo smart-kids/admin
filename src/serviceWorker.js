@@ -32,7 +32,10 @@ export function register(config) {
     }
 
     window.addEventListener('load', () => {
-      const publicUrl = process.env?.PUBLIC_URL || '';
+      let publicUrl = process.env?.PUBLIC_URL || '';
+      if (publicUrl.endsWith('/')) {
+        publicUrl = publicUrl.slice(0, -1);
+      }
       // Cache busting version based on environment or static value
       const version = process.env?.REACT_APP_VERSION || '1.0.0';
       const swUrl = `${publicUrl}/service-worker.js?v=${version}`;

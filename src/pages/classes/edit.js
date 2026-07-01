@@ -14,7 +14,6 @@ class Modal extends React.Component {
     loading: false,
     edit: {
       teacher: "",
-      feeAmount: 0,
       grade: ""
     },
     grades: []
@@ -55,7 +54,6 @@ class Modal extends React.Component {
             id: _this.state.edit.id,
             name: _this.state.edit.name,
             teacher: (_this.state.edit.teacher && typeof _this.state.edit.teacher === 'object') ? _this.state.edit.teacher.id : String(_this.state.edit.teacher || ""),
-            feeAmount: Number(_this.state.edit.feeAmount || 0),
             grade: String(_this.state.edit.grade || "")
           };
 

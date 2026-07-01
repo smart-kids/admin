@@ -654,10 +654,10 @@ class ClassesManagement extends Component {
                             const teacher = teachers.find(t => t.id === cls.teacher || (cls.teacher && typeof cls.teacher === 'object' && t.id === cls.teacher.id));
                             let gradeDisplay = null;
                             if (cls.grade) {
-                              const gradeObj = grades?.find(g => String(g.id) === String(cls.grade));
+                              const gradeObj = typeof cls.grade === 'object' ? cls.grade : grades?.find(g => String(g.id) === String(cls.grade));
                               if (gradeObj) {
                                 const subjectCount = gradeObj.subjects ? gradeObj.subjects.length : 0;
-                                gradeDisplay = `${gradeObj.name || cls.grade} (${subjectCount} subjects)`;
+                                gradeDisplay = `${gradeObj.name || (typeof cls.grade === 'object' ? cls.grade.id : cls.grade)} (${subjectCount} subjects)`;
                               } else {
                                 gradeDisplay = cls.grade;
                               }
