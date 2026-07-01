@@ -97,6 +97,7 @@ class ClassesManagement extends Component {
       // Use standardized data access patterns
       const classes = [...(Data.classes.list() || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
       const teachers = Data.teachers.list();
+      const grades = Data.grades.list() || [];
       const school = getSchoolData();
       
       // Only set loading to false if we have data
@@ -105,6 +106,7 @@ class ClassesManagement extends Component {
         classes, 
         filteredClasses: classes, 
         teachers,
+        grades,
         school,
         loading: !hasData 
       });
@@ -121,6 +123,10 @@ class ClassesManagement extends Component {
 
       Data.teachers.subscribe(({ teachers }) => {
         this.setState({ teachers });
+      });
+
+      Data.grades.subscribe(({ grades }) => {
+        this.setState({ grades: Array.isArray(grades) ? grades : [] });
       });
 
       Data.schools.subscribe(({ schools }) => {
@@ -536,6 +542,7 @@ class ClassesManagement extends Component {
     const { 
       classes, 
       teachers, 
+      grades,
       filteredClasses, 
       loading, 
       currentPage, 
@@ -647,6 +654,16 @@ class ClassesManagement extends Component {
                           {paginatedClasses.map((cls, index) => {
                             const isExpanded = !!expandedClasses[cls.id];
                             const teacher = teachers.find(t => t.id === cls.teacher || (cls.teacher && typeof cls.teacher === 'object' && t.id === cls.teacher.id));
+                            let gradeDisplay = null;
+                            if (cls.grade) {
+                              const gradeObj = grades?.find(g => String(g.id) === String(cls.grade));
+                              if (gradeObj) {
+                                const subjectCount = gradeObj.subjects ? gradeObj.subjects.length : 0;
+                                gradeDisplay = `${gradeObj.name || cls.grade} (${subjectCount} subjects)`;
+                              } else {
+                                gradeDisplay = cls.grade;
+                              }
+                            }
                             
                             return (
                               <React.Fragment key={cls.id}>
@@ -676,8 +693,8 @@ class ClassesManagement extends Component {
                                       <td>
                                         <div className="d-flex flex-column">
                                           <span className="text-dark-75 font-weight-bolder">{cls.name}</span>
-                                          {cls.grade && (
-                                            <span className="text-muted font-size-xs">Grade: {cls.grade}</span>
+                                          {gradeDisplay && (
+                                            <span className="text-muted font-size-xs">Grade: {gradeDisplay}</span>
                                           )}
                                         </div>
                                       </td>

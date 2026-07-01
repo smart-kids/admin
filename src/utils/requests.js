@@ -103,6 +103,12 @@ const _executeRequestWithRetries = async (queryString, variables, isMutation = f
                 headers: { authorization: localStorage.getItem("authorization") }
             });
 
+            const renewedToken = response.headers['x-renewed-token'];
+            if (renewedToken) {
+                localStorage.setItem("authorization", renewedToken);
+                console.log("Token auto-renewed and saved to localStorage");
+            }
+
             // GraphQL can return errors in the body of a 200 OK response.
             if (response.data.errors) {
                 console.error("GraphQL Errors returned from API:", response.data.errors);

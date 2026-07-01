@@ -19,7 +19,7 @@ class Modal extends React.Component {
     loading: false,
     name: "",
     teacher: "",
-    feeAmount: 0,
+    setTeacher: null,
     grade: "",
     grades: []
   };
@@ -59,7 +59,6 @@ class Modal extends React.Component {
           const payload = {
             name: _this.state.name,
             teacher: String(_this.state.teacher || ""),
-            feeAmount: Number(_this.state.feeAmount || 0),
             grade: String(_this.state.grade || "")
           };
 
@@ -114,9 +113,11 @@ class Modal extends React.Component {
                 </div>
                 <div className="modal-body">
                   <div className="kt-portlet__body">
+                    
                     <div className="row">
-                      <div className="col-md-6">
-                        <div className="form-group">
+                      <div className="col-md-8 offset-md-2">
+                        
+                        <div className="form-group mb-4">
                           <label>Class Name:</label>
                           <input
                             type="text"
@@ -125,35 +126,37 @@ class Modal extends React.Component {
                             name="fullname"
                             minLength="2"
                             value={this.state.name || ''}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              this.setState({ name: value });
-                            }}
+                            onChange={(e) => this.setState({ name: e.target.value })}
                             required
                           />
                         </div>
-                      </div>
-                      <div className="col-md-6">
-                        <div className="form-group">
-                          <label>Fee Amount:</label>
-                          <input
-                            type="number"
+
+                        <div className="form-group mb-4">
+                          <label>Grade Association:</label>
+                          <select
+                            name="grade"
                             className="form-control"
-                            name="feeAmount"
-                            value={this.state.feeAmount || ''}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              this.setState({ feeAmount: value });
-                            }}
+                            value={this.state.grade || ''}
+                            onChange={(e) => this.setState({ grade: e.target.value })}
                             required
-                          />
+                          >
+                            <option value="">Select Grade (Linking to Curriculum)</option>
+                            {this.state.grades && this.state.grades.map(grade => {
+                              const subjectCount = grade.subjects ? grade.subjects.length : 0;
+                              return (
+                                <option key={grade.id} value={grade.id}>
+                                  {grade.name || `Unnamed Level (${grade.id?.substring(0, 5)})`} ({subjectCount} subjects)
+                                </option>
+                              );
+                            })}
+                          </select>
+                          <small className="text-muted">This links the class to a specific level in the learning module to show the correct subjects/results.</small>
                         </div>
-                      </div>
-                      <div className="col-md-6">
-                        <div className="form-group">
-                          <label>Teacher:</label>
-                          <div className="row">
-                            <div className="col-8">
+
+                        <div className="form-group mb-4">
+                          <label>Class Teacher:</label>
+                          <div className="d-flex gap-2" style={{ gap: '10px' }}>
+                            <div style={{ flex: 1 }}>
                               <Select
                                 name="teacher"
                                 value={this.state.setTeacher}
@@ -164,47 +167,22 @@ class Modal extends React.Component {
                                 })}
                               />
                             </div>
-                            <div className="col-4 pl-0">
-                              <label>&nbsp;</label>
-                              <div>
-                                <button
-                                  className="btn btn-outline-brand btn-sm btn-block"
-                                  type="button"
-                                  onClick={() => {
-                                    console.log("adding")
-                                    this.hide()
-                                    addTeacherModal.show()
-                                  }}
-                                >
-                                  Add Teacher
-                                </button>
-                              </div>
-                            </div>
+                            <button
+                              className="btn btn-outline-brand"
+                              type="button"
+                              onClick={() => {
+                                this.hide();
+                                addTeacherModal.show();
+                              }}
+                            >
+                              + Teacher
+                            </button>
                           </div>
                         </div>
-                      </div>
-                      <div className="col-md-6">
-                        <div className="form-group">
-                          <label>Grade Association:</label>
-                          <select
-                            name="grade"
-                            className="form-control"
-                            value={this.state.grade || ''}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              this.setState({ grade: value });
-                            }}
-                            required
-                          >
-                            <option value="">Select Grade (Linking to Curriculum)</option>
-                            {this.state.grades && this.state.grades.map(grade => (
-                              <option key={grade.id} value={grade.id}>{grade.name || `Unnamed Level (${grade.id?.substring(0, 5)})`}</option>
-                            ))}
-                          </select>
-                          <small className="text-muted">This links the class to a specific level in the learning module to show the correct subjects/results.</small>
-                        </div>
+
                       </div>
                     </div>
+
                   </div>
                 </div>
                 <div className="modal-footer">
