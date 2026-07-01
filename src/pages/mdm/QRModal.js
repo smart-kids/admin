@@ -28,13 +28,15 @@ class QRModal extends React.Component {
     localServiceAuthenticated: false,
     localDevices: [],
     onboardingDevices: [],
+    deviceStates: {},
     localLogs: ["🔌 Waiting for local MDM service..."],
     setupLoading: false,
     toolUrls: {
-      mac: "https://graph-ongyy.kinsta.app/uploads/support-tool-mac",
-      windows: "https://graph-ongyy.kinsta.app/uploads/support-tool-windows.exe",
-      linux: "https://graph-ongyy.kinsta.app/uploads/support-tool-linux"
-    }
+      mac: "",
+      windows: "",
+      linux: ""
+    },
+    isFetchingTools: false
   };
 
   componentDidMount() {
@@ -125,7 +127,41 @@ class QRModal extends React.Component {
     if (this.eventSource) this.eventSource.close();
     this.eventSource = Data.localMdm.connectLogs(
       (event) => {
-        this.setState(prev => ({ localLogs: [...prev.localLogs, event.data] }), () => {
+        const msg = event.data;
+        const match = msg.match(/^\[\d{2}:\d{2}:\d{2}\]\s(?:\[([^\]]+)\]\s)?(.*)/);
+        let serial = null;
+        let content = msg;
+        if (match && match[1]) {
+           serial = match[1];
+           content = match[2];
+        }
+
+        this.setState(prev => {
+          const nextState = { localLogs: [...prev.localLogs, msg] };
+          if (serial) {
+             const dState = prev.deviceStates[serial] || { status: 'progress', progress: 0, error: '' };
+             let newStatus = dState.status;
+             let newProgress = dState.progress;
+             let newError = dState.error;
+             
+             if (content.includes("❌") || content.includes("⚠️ Failed to launch")) {
+                newStatus = "failed";
+                newError = content.replace(/[❌⚠️]\s*/, "");
+             } else if (content.includes("🎉 Onboarding sequence completed")) {
+                newStatus = "success";
+                newProgress = 100;
+             } else if (newStatus !== "failed") {
+                newStatus = "progress";
+                if (content.includes("Fetching MDM token")) newProgress = 20;
+                else if (content.includes("Downloading MDM APK")) newProgress = 40;
+                else if (content.includes("Installing APK on device")) newProgress = 60;
+                else if (content.includes("Setting MDM App as Device Owner")) newProgress = 80;
+                else if (content.includes("Injecting MDM configuration")) newProgress = 90;
+             }
+             nextState.deviceStates = { ...prev.deviceStates, [serial]: { status: newStatus, progress: newProgress, error: newError } };
+          }
+          return nextState;
+        }, () => {
           if (this.logsEnd) this.logsEnd.scrollIntoView({ behavior: "smooth" });
         });
       },
@@ -133,6 +169,17 @@ class QRModal extends React.Component {
         // error handling handled by poll failure
       }
     );
+  };
+
+  retryOnboard = async (serial) => {
+    this.setState(prev => ({
+      deviceStates: { ...prev.deviceStates, [serial]: { status: 'progress', progress: 0, error: '' } }
+    }));
+    try {
+      await Data.localMdm.onboard(serial);
+    } catch (e) {
+      console.error("Failed to retry onboard", serial);
+    }
   };
 
   autoOnboardDevices = async (devices) => {
@@ -245,6 +292,7 @@ class QRModal extends React.Component {
    * Falls back to generating the QR with whatever state is already set.
    */
   fetchApkInfo = async () => {
+    this.setState({ isFetchingTools: true });
     try {
       const res = await fetch(`${this.API_BASE}/apk-info`);
       if (res.ok) {
@@ -274,6 +322,7 @@ class QRModal extends React.Component {
       console.warn('Could not fetch tool info:', e.message);
     }
 
+    this.setState({ isFetchingTools: false });
     this.generateQR();
   };
 
@@ -558,18 +607,48 @@ class QRModal extends React.Component {
                                 Waiting for devices... (Plug in via USB)
                               </div>
                             ) : (
-                              <ul className="list-unstyled mb-0">
-                                {this.state.localDevices.map(serial => (
-                                  <li key={serial} className="d-flex justify-content-between align-items-center p-2 bg-white rounded border mb-1 shadow-sm">
-                                    <span className="small font-weight-bold text-dark">{serial}</span>
-                                    {this.state.onboardingDevices.includes(serial) ? (
-                                      <span className="badge badge-warning text-dark"><i className="la la-spinner la-spin mr-1"></i> Onboarding...</span>
-                                    ) : (
-                                      <span className="badge badge-success"><i className="la la-check mr-1"></i> Ready</span>
-                                    )}
-                                  </li>
-                                ))}
-                              </ul>
+                                <ul className="list-unstyled mb-0">
+                                  {this.state.localDevices.map(serial => {
+                                    const dState = this.state.deviceStates[serial];
+                                    const isOnboarding = this.state.onboardingDevices.includes(serial);
+                                    
+                                    return (
+                                      <li key={serial} className="p-2 bg-white rounded border mb-2 shadow-sm">
+                                        <div className="d-flex justify-content-between align-items-center mb-1">
+                                          <span className="small font-weight-bold text-dark">{serial}</span>
+                                          {dState ? (
+                                            dState.status === 'failed' ? (
+                                              <button onClick={() => this.retryOnboard(serial)} className="btn btn-xs btn-danger font-weight-bold py-0 px-2" style={{ fontSize: '10px' }}>
+                                                <i className="la la-redo mr-1"></i> Retry
+                                              </button>
+                                            ) : dState.status === 'success' ? (
+                                              <span className="badge badge-success"><i className="la la-check mr-1"></i> Ready</span>
+                                            ) : (
+                                              <span className="badge badge-warning text-dark"><i className="la la-spinner la-spin mr-1"></i> Onboarding...</span>
+                                            )
+                                          ) : isOnboarding ? (
+                                            <span className="badge badge-warning text-dark"><i className="la la-spinner la-spin mr-1"></i> Onboarding...</span>
+                                          ) : (
+                                            <span className="badge badge-light text-muted">Waiting...</span>
+                                          )}
+                                        </div>
+                                        
+                                        {dState && dState.status === 'progress' && (
+                                          <div className="progress mt-1" style={{ height: '4px' }}>
+                                            <div className="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style={{ width: `${dState.progress}%` }}></div>
+                                          </div>
+                                        )}
+                                        
+                                        {dState && dState.status === 'failed' && (
+                                          <div className="text-danger mt-1" style={{ fontSize: '11px', lineHeight: '1.2' }}>
+                                            <i className="la la-exclamation-triangle mr-1"></i>
+                                            {dState.error}
+                                          </div>
+                                        )}
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
                             )}
                           </div>
                         </div>
@@ -642,23 +721,30 @@ class QRModal extends React.Component {
 
                       {/* Mass Onboarding Section */}
                       <div className="card shadow-sm border-0 mb-4 rounded-lg" style={{ background: "linear-gradient(145deg, #f0f4f8, #e2e8f0)" }}>
-                        <div className="card-header bg-transparent border-bottom-0 pt-4 pb-0">
+                        <div className="card-header bg-transparent border-bottom-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
                           <h6 className="font-weight-bold text-dark mb-0">
                             <i className="la la-bolt text-warning mr-2"></i> Zero-Click Mass Onboarding
                           </h6>
+                          <button 
+                            className="btn btn-sm btn-outline-secondary rounded-pill font-weight-bold shadow-sm" 
+                            onClick={this.fetchApkInfo}
+                            disabled={this.state.isFetchingTools}
+                          >
+                            <i className={`la la-sync mr-1 ${this.state.isFetchingTools ? 'la-spin' : ''}`}></i> Refresh
+                          </button>
                         </div>
                         <div className="card-body">
                           <p className="text-muted small mb-3">
                             Download the MDM Support Tool to enable zero-click USB onboarding. Once running on your computer, this screen will automatically connect to it and display live onboarding logs and USB device status right here.
                           </p>
                           <div className="d-flex flex-wrap mb-3 justify-content-center" style={{ gap: '8px' }}>
-                            <a href={toolUrls.windows} download className="btn btn-primary btn-sm rounded-pill font-weight-bold shadow-sm flex-fill">
+                            <a href={toolUrls.windows || '#'} download={!!toolUrls.windows} className={`btn btn-primary btn-sm rounded-pill font-weight-bold shadow-sm flex-fill ${!toolUrls.windows ? 'disabled' : ''}`}>
                               <i className="la la-windows mr-1"></i> Windows
                             </a>
-                            <a href={toolUrls.mac} download className="btn btn-dark btn-sm rounded-pill font-weight-bold shadow-sm flex-fill">
+                            <a href={toolUrls.mac || '#'} download={!!toolUrls.mac} className={`btn btn-dark btn-sm rounded-pill font-weight-bold shadow-sm flex-fill ${!toolUrls.mac ? 'disabled' : ''}`}>
                               <i className="la la-apple mr-1"></i> Mac
                             </a>
-                            <a href={toolUrls.linux} download className="btn btn-info btn-sm rounded-pill font-weight-bold shadow-sm flex-fill text-white">
+                            <a href={toolUrls.linux || '#'} download={!!toolUrls.linux} className={`btn btn-info btn-sm rounded-pill font-weight-bold shadow-sm flex-fill text-white ${!toolUrls.linux ? 'disabled' : ''}`}>
                               <i className="la la-linux mr-1"></i> Linux
                             </a>
                           </div>
