@@ -92,7 +92,7 @@ class ClassesManagement extends Component {
       this.setState({ loading: true });
       
       // Use standardized data access patterns
-      const classes = [...(Data.classes.list() || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
+      const classes = [...(Data.classes.list() || [])].filter(c => !c.isDeleted).sort((a, b) => (a.order || 0) - (b.order || 0));
       const teachers = Data.teachers.list();
       const grades = Data.grades.list() || [];
       const school = getSchoolData();
@@ -109,7 +109,7 @@ class ClassesManagement extends Component {
       });
 
       Data.classes.subscribe(({ classes }) => {
-        const sortedClasses = [...(classes || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
+        const sortedClasses = [...(classes || [])].filter(c => !c.isDeleted).sort((a, b) => (a.order || 0) - (b.order || 0));
         const hasSubscribedData = sortedClasses && sortedClasses.length > 0;
         this.setState({ 
           classes: sortedClasses, 
