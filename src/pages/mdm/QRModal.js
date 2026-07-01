@@ -632,13 +632,34 @@ class QRModal extends React.Component {
                           <p className="text-muted small mb-3">
                             Download the MDM Support Tool to enable zero-click USB onboarding. Once running on your computer, this screen will automatically connect to it and display live onboarding logs and USB device status right here.
                           </p>
-                          <div className="d-flex flex-wrap gap-2 mb-3" style={{ gap: '8px' }}>
-                            <a href="https://graph-ongyy.kinsta.app/uploads/fee82aca-e14d-438a-8681-a0fd931f31c2.exe" download className="btn btn-primary btn-sm rounded-pill font-weight-bold px-3 shadow-sm">
-                              <i className="la la-windows mr-1"></i> Download for Windows
+                          <div className="d-flex flex-wrap mb-3 justify-content-center" style={{ gap: '8px' }}>
+                            <a href="https://graph-ongyy.kinsta.app/uploads/0f6bd47e-52ba-4899-9ca7-d07caa6aed69.exe" download className="btn btn-primary btn-sm rounded-pill font-weight-bold shadow-sm flex-fill">
+                              <i className="la la-windows mr-1"></i> Windows
                             </a>
-                            <a href="https://graph-ongyy.kinsta.app/uploads/acd5d21c-7864-47dd-adb6-07fe15011c75.support-tool-mac" download className="btn btn-dark btn-sm rounded-pill font-weight-bold px-3 shadow-sm">
-                              <i className="la la-apple mr-1"></i> Download for Mac
+                            <a href="https://graph-ongyy.kinsta.app/uploads/1804c656-14cc-4483-ab81-38a5e9b71589.mac" download className="btn btn-dark btn-sm rounded-pill font-weight-bold shadow-sm flex-fill">
+                              <i className="la la-apple mr-1"></i> Mac
                             </a>
+                            <a href="https://graph-ongyy.kinsta.app/uploads/support-tool-linux" download className="btn btn-info btn-sm rounded-pill font-weight-bold shadow-sm flex-fill text-white">
+                              <i className="la la-linux mr-1"></i> Linux
+                            </a>
+                          </div>
+                          
+                          <div className="bg-white p-3 rounded border text-left shadow-sm">
+                            <h6 className="font-weight-bold text-dark mb-2" style={{ fontSize: '13px' }}>
+                              <i className="la la-info-circle mr-1 text-primary"></i> Setup Instructions
+                            </h6>
+                            <ul className="text-muted small mb-3 pl-3" style={{ lineHeight: '1.5' }}>
+                              <li><strong>Windows:</strong> Double-click the downloaded <code>.exe</code> file to run it.</li>
+                              <li><strong>Mac:</strong> Open Terminal, run <code>xattr -d com.apple.quarantine &lt;file&gt;</code> then <code>chmod +x &lt;file&gt;</code>, and execute it.</li>
+                              <li><strong>Linux:</strong> Open Terminal, run <code>chmod +x &lt;file&gt;</code> and execute it.</li>
+                            </ul>
+                            
+                            <div className="alert alert-warning m-0 p-2 d-flex align-items-center" style={{ fontSize: '12px' }}>
+                              <i className="la la-exclamation-triangle mr-2" style={{ fontSize: '18px' }}></i>
+                              <div>
+                                <strong>Important:</strong> Please ensure <b>USB Debugging</b> is turned on in your device's Developer Options before connecting it via USB.
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
