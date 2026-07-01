@@ -117,89 +117,80 @@ class Modal extends React.Component {
                 </div>
                 <div className="modal-body">
                   <div className="kt-portlet__body">
-                    <div className="row">
-                      <div className="col-md-6">
-                        <div className="form-group">
-                          <label>Class Name:</label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            id="fullname"
-                            name="fullname"
-                            minLength="2"
-                            value={this.state.edit.name || ''}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              this.setState(prevState => ({
-                                edit: { ...prevState.edit, name: value }
-                              }));
-                            }}
-                            required
-                          />
-                        </div>
+                    <div className="row mb-4">
+                      <div className="col-md-3 mb-3">
+                        <label>Class Name:</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="fullname"
+                          name="fullname"
+                          minLength="2"
+                          value={this.state.edit.name || ''}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            this.setState(prevState => ({
+                              edit: { ...prevState.edit, name: value }
+                            }));
+                          }}
+                          required
+                        />
                       </div>
-                      <div className="col-md-6">
-                        <div className="form-group">
-                          <label>Fee Amount:</label>
-                          <input
-                            type="number"
-                            className="form-control"
-                            name="feeAmount"
-                            value={this.state.edit.feeAmount || ''}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              this.setState(prevState => ({
-                                edit: { ...prevState.edit, feeAmount: value }
-                              }));
-                            }}
-                            required
-                          />
-                        </div>
+                      <div className="col-md-3 mb-3">
+                        <label>Fee Amount:</label>
+                        <input
+                          type="number"
+                          className="form-control"
+                          name="feeAmount"
+                          value={this.state.edit.feeAmount || ''}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            this.setState(prevState => ({
+                              edit: { ...prevState.edit, feeAmount: value }
+                            }));
+                          }}
+                          required
+                        />
                       </div>
-                      <div className="col-md-6">
-                        <div className="form-group">
-                          <label>Teacher:</label>
-                          <select
-                            name="teacher"
-                            className="form-control"
-                            required
-                            value={this.state.edit.teacher || ''}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              this.setState(prevState => ({
-                                edit: { ...prevState.edit, teacher: value }
-                              }));
-                            }}
-                          >
-                            <option value="">Select teacher</option>
-                            {this.props.teachers?.map(teacher => {
-                              return <option key={teacher.id} value={teacher.id}>{teacher.name}</option>
-                            })}
-                          </select>
-                        </div>
+                      <div className="col-md-3 mb-3">
+                        <label>Class Teacher:</label>
+                        <select
+                          name="teacher"
+                          className="form-control"
+                          required
+                          value={this.state.edit.teacher || ''}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            this.setState(prevState => ({
+                              edit: { ...prevState.edit, teacher: value }
+                            }));
+                          }}
+                        >
+                          <option value="">Select teacher</option>
+                          {this.props.teachers?.map(teacher => {
+                            return <option key={teacher.id} value={teacher.id}>{teacher.name}</option>
+                          })}
+                        </select>
                       </div>
-                      <div className="col-md-6">
-                        <div className="form-group">
-                          <label>Grade Association:</label>
-                          <select
-                            name="grade"
-                            className="form-control"
-                            value={this.state.edit.grade || ''}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              this.setState(prevState => ({
-                                edit: { ...prevState.edit, grade: value }
-                              }));
-                            }}
-                            required
-                          >
-                             <option value="">Select Grade (Linking to Curriculum)</option>
-                             {this.state.grades && this.state.grades.map(grade => (
-                               <option key={grade.id} value={grade.id}>{grade.name || `Unnamed Level (${grade.id?.substring(0, 5)})`}</option>
-                             ))}
-                          </select>
-                          <small className="text-muted">This links the class to a specific level in the learning module to show the correct subjects/results.</small>
-                        </div>
+                      <div className="col-md-3 mb-3">
+                        <label>Grade Association:</label>
+                        <select
+                          name="grade"
+                          className="form-control"
+                          value={this.state.edit.grade || ''}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            this.setState(prevState => ({
+                              edit: { ...prevState.edit, grade: value }
+                            }));
+                          }}
+                          required
+                        >
+                           <option value="">Select Grade</option>
+                           {this.state.grades && this.state.grades.map(grade => (
+                             <option key={grade.id} value={grade.id}>{grade.name || `Unnamed Level (${grade.id?.substring(0, 5)})`}</option>
+                           ))}
+                        </select>
                       </div>
                     </div>
                   </div>

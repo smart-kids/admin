@@ -57,7 +57,7 @@ class ClassesManagement extends Component {
     filteredClasses:[],
     loading: true,
     currentPage: 1,
-    itemsPerPage: 20,
+    itemsPerPage: 999999,
     expandedClasses: {},
     showSmsModal: false,
     selectedStudent: null,
@@ -642,6 +642,7 @@ class ClassesManagement extends Component {
                         <th>Class Name</th>
                         <th>Number of Students</th>
                         <th>Teacher</th>
+                        <th>Associated Grade</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
@@ -690,9 +691,6 @@ class ClassesManagement extends Component {
                                       <td>
                                         <div className="d-flex flex-column">
                                           <span className="text-dark-75 font-weight-bolder">{cls.name}</span>
-                                          {gradeDisplay && (
-                                            <span className="text-muted font-size-xs">Grade: {gradeDisplay}</span>
-                                          )}
                                         </div>
                                       </td>
                                       <td>
@@ -707,9 +705,12 @@ class ClassesManagement extends Component {
                                           </span>
                                         ) : (
                                           <span className="badge badge-secondary">
-                                            No teacher assigned
+                                            Not Assigned
                                           </span>
                                         )}
+                                      </td>
+                                      <td>
+                                        <span className="text-dark-75">{gradeDisplay || '-'}</span>
                                       </td>
                                       <td>
                                         <button 
@@ -884,16 +885,16 @@ class ClassesManagement extends Component {
         </div>
         
         {/* Modals */}
-        <AddModal teachers={teachers} classes={classes} save={Iclass => Data.classes.create(Iclass)} />
-        <UploadModal save={classes=> classes.forEach(Iclass => Data.classes.create(Iclass))} />
+        <AddModal teachers={teachers} classes={classes} save={async Iclass => { await Data.classes.create(Iclass); await this.loadData(); }} />
+        <UploadModal save={async classes => { for (const Iclass of classes) { await Data.classes.create(Iclass); } await this.loadData(); }} />
         <DeleteModal
           remove={this.state.remove}
-          save={Iclass => Data.classes.delete(Iclass)}
+          save={async Iclass => { await Data.classes.delete(Iclass); await this.loadData(); }}
         />
         <EditModal
           teachers={teachers}
           edit={this.state.edit}
-          save={Iclass => Data.classes.update(Iclass)}
+          save={async Iclass => { await Data.classes.update(Iclass); await this.loadData(); }}
         />
         
         {/* Compose Message Modal with Variables */}

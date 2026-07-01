@@ -114,72 +114,66 @@ class Modal extends React.Component {
                 <div className="modal-body">
                   <div className="kt-portlet__body">
                     
-                    <div className="row">
-                      <div className="col-md-8 offset-md-2">
-                        
-                        <div className="form-group mb-4">
-                          <label>Class Name:</label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            id="fullname"
-                            name="fullname"
-                            minLength="2"
-                            value={this.state.name || ''}
-                            onChange={(e) => this.setState({ name: e.target.value })}
-                            required
-                          />
-                        </div>
-
-                        <div className="form-group mb-4">
-                          <label>Grade Association:</label>
-                          <select
-                            name="grade"
-                            className="form-control"
-                            value={this.state.grade || ''}
-                            onChange={(e) => this.setState({ grade: e.target.value })}
-                            required
-                          >
-                            <option value="">Select Grade (Linking to Curriculum)</option>
-                            {this.state.grades && this.state.grades.map(grade => {
-                              const subjectCount = grade.subjects ? grade.subjects.length : 0;
-                              return (
-                                <option key={grade.id} value={grade.id}>
-                                  {grade.name || `Unnamed Level (${grade.id?.substring(0, 5)})`} ({subjectCount} subjects)
-                                </option>
-                              );
-                            })}
-                          </select>
-                          <small className="text-muted">This links the class to a specific level in the learning module to show the correct subjects/results.</small>
-                        </div>
-
-                        <div className="form-group mb-4">
-                          <label>Class Teacher:</label>
-                          <div className="d-flex gap-2" style={{ gap: '10px' }}>
-                            <div style={{ flex: 1 }}>
-                              <Select
-                                name="teacher"
-                                value={this.state.setTeacher}
-                                options={this.props.teachers?.map(({ id: value, name: label }) => ({ value, label }))}
-                                onChange={({ value, label }) => this.setState({
-                                  teacher: value,
-                                  setTeacher: { value, label }
-                                })}
-                              />
-                            </div>
-                            <button
-                              className="btn btn-outline-brand"
-                              type="button"
-                              onClick={() => {
-                                this.hide();
-                                addTeacherModal.show();
-                              }}
-                            >
-                              + Teacher
-                            </button>
+                    <div className="row mb-4">
+                      <div className="col-md-4 mb-3">
+                        <label>Class Name:</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          id="fullname"
+                          name="fullname"
+                          minLength="2"
+                          value={this.state.name || ''}
+                          onChange={(e) => this.setState({ name: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div className="col-md-4 mb-3">
+                        <label>Grade Association:</label>
+                        <select
+                          name="grade"
+                          className="form-control"
+                          value={this.state.grade || ''}
+                          onChange={(e) => this.setState({ grade: e.target.value })}
+                          required
+                        >
+                          <option value="">Select Grade (Linking to Curriculum)</option>
+                          {this.state.grades && this.state.grades.map(grade => {
+                            const subjectCount = grade.subjects ? grade.subjects.length : 0;
+                            return (
+                              <option key={grade.id} value={grade.id}>
+                                {grade.name || `Unnamed Level (${grade.id?.substring(0, 5)})`} ({subjectCount} subjects)
+                              </option>
+                            );
+                          })}
+                        </select>
+                        <small className="text-muted">This links the class to a specific level in the learning module to show the correct subjects/results.</small>
+                      </div>
+                      <div className="col-md-4 mb-3">
+                        <label>Class Teacher:</label>
+                        <div className="d-flex gap-2" style={{ gap: '10px' }}>
+                          <div style={{ flex: 1 }}>
+                            <Select
+                              name="teacher"
+                              value={this.state.setTeacher}
+                              options={this.props.teachers?.map(({ id: value, name: label }) => ({ value, label }))}
+                              onChange={({ value, label }) => this.setState({
+                                teacher: value,
+                                setTeacher: { value, label }
+                              })}
+                            />
                           </div>
+                          <button
+                            className="btn btn-outline-brand"
+                            type="button"
+                            onClick={() => {
+                              this.hide();
+                              addTeacherModal.show();
+                            }}
+                          >
+                            + Teacher
+                          </button>
                         </div>
-
                       </div>
                     </div>
 
