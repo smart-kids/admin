@@ -885,8 +885,12 @@ class ClassesManagement extends Component {
         </div>
         
         {/* Modals */}
-        <AddModal teachers={teachers} classes={classes} save={async Iclass => { await Data.classes.create(Iclass); await this.loadData(); }} />
         <UploadModal save={async classes => { for (const Iclass of classes) { await Data.classes.create(Iclass); } await this.loadData(); }} />
+        <AddModal
+          teachers={teachers}
+          classes={this.state.classes}
+          save={async Iclass => { await Data.classes.create(Iclass); await this.loadData(); }}
+        />
         <DeleteModal
           remove={this.state.remove}
           save={async Iclass => { await Data.classes.delete(Iclass); await this.loadData(); }}

@@ -59,7 +59,8 @@ class Modal extends React.Component {
           const payload = {
             name: _this.state.name,
             teacher: String(_this.state.teacher || ""),
-            grade: String(_this.state.grade || "")
+            grade: String(_this.state.grade || ""),
+            order: _this.props.classes ? _this.props.classes.length : 0
           };
 
           await _this.props.save(payload);
