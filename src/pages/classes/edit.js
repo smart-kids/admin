@@ -118,7 +118,7 @@ class Modal extends React.Component {
                 <div className="modal-body">
                   <div className="kt-portlet__body">
                     <div className="row mb-4">
-                      <div className="col-md-3 mb-3">
+                      <div className="col-md-4 mb-3">
                         <label>Class Name:</label>
                         <input
                           type="text"
@@ -136,23 +136,7 @@ class Modal extends React.Component {
                           required
                         />
                       </div>
-                      <div className="col-md-3 mb-3">
-                        <label>Fee Amount:</label>
-                        <input
-                          type="number"
-                          className="form-control"
-                          name="feeAmount"
-                          value={this.state.edit.feeAmount || ''}
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            this.setState(prevState => ({
-                              edit: { ...prevState.edit, feeAmount: value }
-                            }));
-                          }}
-                          required
-                        />
-                      </div>
-                      <div className="col-md-3 mb-3">
+                      <div className="col-md-4 mb-3">
                         <label>Class Teacher:</label>
                         <select
                           name="teacher"
@@ -172,7 +156,7 @@ class Modal extends React.Component {
                           })}
                         </select>
                       </div>
-                      <div className="col-md-3 mb-3">
+                      <div className="col-md-4 mb-3">
                         <label>Grade Association:</label>
                         <select
                           name="grade"
