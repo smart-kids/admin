@@ -29,7 +29,12 @@ class QRModal extends React.Component {
     localDevices: [],
     onboardingDevices: [],
     localLogs: ["🔌 Waiting for local MDM service..."],
-    setupLoading: false
+    setupLoading: false,
+    toolUrls: {
+      mac: "https://graph-ongyy.kinsta.app/uploads/support-tool-mac",
+      windows: "https://graph-ongyy.kinsta.app/uploads/support-tool-windows.exe",
+      linux: "https://graph-ongyy.kinsta.app/uploads/support-tool-linux"
+    }
   };
 
   componentDidMount() {
@@ -248,13 +253,27 @@ class QRModal extends React.Component {
         if (data.downloadUrl) newState.downloadUrl = data.downloadUrl;
         if (data.checksum) newState.signatureChecksum = data.checksum;
         if (Object.keys(newState).length > 0) {
-          this.setState(newState, this.generateQR);
-          return;
+          this.setState(newState);
         }
       }
     } catch (e) {
       console.warn('Could not fetch APK info, using current state:', e.message);
     }
+    
+    try {
+      const toolRes = await fetch("https://graph-ongyy.kinsta.app/tool-info");
+      if (toolRes.ok) {
+        const toolData = await toolRes.json();
+        if (toolData.urls) {
+           this.setState(prevState => ({
+             toolUrls: { ...prevState.toolUrls, ...toolData.urls }
+           }));
+        }
+      }
+    } catch (e) {
+      console.warn('Could not fetch tool info:', e.message);
+    }
+
     this.generateQR();
   };
 
@@ -325,7 +344,7 @@ class QRModal extends React.Component {
   };
 
   render() {
-    const { qrUrl, error, wifiSsid, wifiPassword, wifiSecurityType, wifiHidden, downloadUrl, signatureChecksum, enrollmentToken, showAdvancedConfig, enrolledDevices } = this.state;
+    const { qrUrl, error, wifiSsid, wifiPassword, wifiSecurityType, wifiHidden, downloadUrl, signatureChecksum, enrollmentToken, showAdvancedConfig, enrolledDevices, toolUrls } = this.state;
 
     return (
       <div
@@ -633,13 +652,13 @@ class QRModal extends React.Component {
                             Download the MDM Support Tool to enable zero-click USB onboarding. Once running on your computer, this screen will automatically connect to it and display live onboarding logs and USB device status right here.
                           </p>
                           <div className="d-flex flex-wrap mb-3 justify-content-center" style={{ gap: '8px' }}>
-                            <a href="https://graph-ongyy.kinsta.app/uploads/41594774-0aa6-43ca-b972-c5f3396d7ab7.exe" download className="btn btn-primary btn-sm rounded-pill font-weight-bold shadow-sm flex-fill">
+                            <a href={toolUrls.windows} download className="btn btn-primary btn-sm rounded-pill font-weight-bold shadow-sm flex-fill">
                               <i className="la la-windows mr-1"></i> Windows
                             </a>
-                            <a href="https://graph-ongyy.kinsta.app/uploads/702e3033-d323-430e-89ee-d39dca4637b3.mac" download className="btn btn-dark btn-sm rounded-pill font-weight-bold shadow-sm flex-fill">
+                            <a href={toolUrls.mac} download className="btn btn-dark btn-sm rounded-pill font-weight-bold shadow-sm flex-fill">
                               <i className="la la-apple mr-1"></i> Mac
                             </a>
-                            <a href="https://graph-ongyy.kinsta.app/uploads/support-tool-linux" download className="btn btn-info btn-sm rounded-pill font-weight-bold shadow-sm flex-fill text-white">
+                            <a href={toolUrls.linux} download className="btn btn-info btn-sm rounded-pill font-weight-bold shadow-sm flex-fill text-white">
                               <i className="la la-linux mr-1"></i> Linux
                             </a>
                           </div>
@@ -654,11 +673,17 @@ class QRModal extends React.Component {
                               <li><strong>Linux:</strong> Open Terminal, run <code>chmod +x &lt;file&gt;</code> and execute it.</li>
                             </ul>
                             
-                            <div className="alert alert-warning m-0 p-2 d-flex align-items-center" style={{ fontSize: '12px' }}>
-                              <i className="la la-exclamation-triangle mr-2" style={{ fontSize: '18px' }}></i>
-                              <div>
-                                <strong>Important:</strong> Please ensure <b>USB Debugging</b> is turned on in your device's Developer Options before connecting it via USB.
+                            <div className="alert alert-warning m-0 p-3" style={{ fontSize: '12px' }}>
+                              <div className="d-flex align-items-center mb-2">
+                                <i className="la la-exclamation-triangle mr-2 text-warning" style={{ fontSize: '20px' }}></i>
+                                <strong>Important: Turn on USB Debugging first!</strong>
                               </div>
+                              <ol className="mb-0 pl-3">
+                                <li>Open <b>Settings</b> &gt; <b>About tablet</b></li>
+                                <li>Tap <b>Build number</b> 7 times rapidly to unlock developer mode</li>
+                                <li>Go back to <b>System</b> &gt; <b>Developer options</b></li>
+                                <li>Toggle <b>USB Debugging</b> ON</li>
+                              </ol>
                             </div>
                           </div>
                         </div>
