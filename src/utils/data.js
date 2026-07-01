@@ -573,6 +573,7 @@ var Data = (function () {
                             eventType
                             eventTimestamp
                             userAnswer
+                            metadata
                             isCorrect
                         }
                     }
@@ -1508,6 +1509,7 @@ var Data = (function () {
                                         eventType
                                         eventTimestamp
                                         userAnswer
+                                        metadata
                                         isCorrect
                                     }
                                     parent {
@@ -1538,8 +1540,8 @@ var Data = (function () {
             isNested: true,
             parentEntity: "lessonAttempts",
             parentKey: "lessonAttempt",
-            createFields: ['lessonAttempt', 'questionId', 'eventType', 'school', 'eventTimestamp', 'userAnswer', 'isCorrect'],
-            updateFields: ['id', 'lessonAttempt', 'questionId', 'eventType', 'school', 'eventTimestamp', 'userAnswer', 'isCorrect']
+            createFields: ['lessonAttempt', 'questionId', 'eventType', 'school', 'eventTimestamp', 'userAnswer', 'metadata', 'isCorrect'],
+            updateFields: ['id', 'lessonAttempt', 'questionId', 'eventType', 'school', 'eventTimestamp', 'userAnswer', 'metadata', 'isCorrect']
         },
         {
             name: "terms",

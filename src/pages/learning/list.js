@@ -1030,10 +1030,10 @@ class CurriculumManagerV5 extends React.Component {
     // --- Render Methods ---
 
     renderAnswerDetails = (question, event) => {
-        if (!event || !event.userAnswer) return null;
+        if (!event || (!event.userAnswer && !event.metadata)) return null;
         let answer;
         try {
-            answer = typeof event.userAnswer === 'string' ? JSON.parse(event.userAnswer) : event.userAnswer;
+            answer = event.metadata || (typeof event.userAnswer === 'string' ? JSON.parse(event.userAnswer) : event.userAnswer);
         } catch (e) {
             return <div className="text-danger">Error parsing answer data.</div>
         }
