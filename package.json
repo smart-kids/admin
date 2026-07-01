@@ -55,9 +55,10 @@
     "@babel/core": "^7.16.0"
   },
   "scripts": {
-    "dev": "npx react-app-rewired start",
+    "dev": "cross-env REACT_APP_VERSION=$npm_package_version npx react-app-rewired start",
     "start": "npx serve -s build -l $PORT",
-    "build": "npx react-app-rewired build",
+    "build": "cross-env REACT_APP_VERSION=$npm_package_version npx react-app-rewired build",
+    "prepare-release": "curl -sL https://raw.githubusercontent.com/BransonGitomeh/misc/master/scripts/prepare_release.sh | bash -s",
     "test": "npx react-app-rewired test",
     "test:finance": "npx jest src/test/finance-frontend.test.js --verbose",
     "test:backend": "cd ../graph && npm test -- --grep 'Fee Structure Calculations'",
@@ -99,6 +100,7 @@
     "@testing-library/user-event": "^13.5.0",
     "cross-env": "^7.0.3",
     "customize-cra": "^0.9.1",
+    "husky": "^9.1.7",
     "identity-obj-proxy": "^3.0.0",
     "react-app-rewired": "^2.1.6",
     "serve": "^11.3.2",

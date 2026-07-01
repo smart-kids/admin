@@ -172,7 +172,7 @@ class Modal extends React.Component {
                         >
                            <option value="">Select Grade</option>
                            {this.state.grades && this.state.grades.map(grade => (
-                             <option key={grade.id} value={grade.id}>{grade.name || `Unnamed Level (${grade.id?.substring(0, 5)})`}</option>
+                             <option key={grade.id} value={grade.id}>{grade.name || `Unnamed Level (${grade.id?.substring(0, 5)})`} ({grade.subjects ? grade.subjects.length : 0} subjects)</option>
                            ))}
                         </select>
                       </div>

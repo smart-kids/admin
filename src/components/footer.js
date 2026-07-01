@@ -31,7 +31,7 @@ const Footer = ({ location }) => {
       <div>ShulePlus</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
         <NetworkDebugOverlay />
-        v1.3.1 (Staging)
+        v{process.env.REACT_APP_VERSION || '1.0.0'}
       </div>
     </div>
   );
