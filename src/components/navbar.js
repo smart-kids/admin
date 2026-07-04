@@ -462,6 +462,10 @@ class Navbar extends React.Component {
         return true;
     });
     const financeItems = [
+      { path: "/finance/budgets/dashboard", label: "Budgets Dashboard" },
+      { path: "/finance/budgets", label: "Budgets" },
+      { path: "/finance/expenses/dashboard", label: "Expenses Dashboard" },
+      { path: "/finance/expenses", label: "Expenses" },
       { path: "/finance/topup", label: "Mpesa Top Up" },
       { path: "/finance/charges", label: "SMS Usage History" },
       { path: "/finance/institutional-deposits", label: "Billing" },
@@ -797,6 +801,10 @@ class Navbar extends React.Component {
         return true;
     });
     const financeItems = [
+      { path: "/finance/budgets/dashboard", label: "Budgets Dashboard" },
+      { path: "/finance/budgets", label: "Budgets" },
+      { path: "/finance/expenses/dashboard", label: "Expenses Dashboard" },
+      { path: "/finance/expenses", label: "Expenses" },
       { path: "/finance/topup", label: "Top Up SMS: " + `${selectedSchool?.financial?.balanceFormated || "0 SMS's"}`
       }, { path: "/finance/charges", label: "SMS Usage History" },
     ];

@@ -43,6 +43,10 @@ import topup from "./pages/finance/topup"
 import charges from "./pages/finance/charges"
 import chargeTypes from "./pages/finance/chargeTypes"
 import institutionalDeposits from "./pages/finance/institutional-deposits"
+import budgets from "./pages/finance/budgets"
+import expenses from "./pages/finance/expenses"
+import budgetsDashboard from "./pages/finance/budgets/dashboard"
+import expensesDashboard from "./pages/finance/expenses/dashboard"
 import admins from "./pages/admins";
 import feeStructures from "./pages/fee-structures";
 
@@ -92,6 +96,10 @@ class App extends React.Component {
       <PrivateRoute path="/finance/charges" component={charges} />
       <PrivateRoute path="/finance/charge-types" component={chargeTypes} />
       <PrivateRoute path="/finance/institutional-deposits" component={institutionalDeposits} />
+      <PrivateRoute path="/finance/budgets" component={budgets} exact />
+      <PrivateRoute path="/finance/expenses" component={expenses} exact />
+      <PrivateRoute path="/finance/budgets/dashboard" component={budgetsDashboard} />
+      <PrivateRoute path="/finance/expenses/dashboard" component={expensesDashboard} />
       <PrivateRoute path="/finance/fees" component={require("./pages/finance/fees").default} />
       <PrivateRoute path="/results" component={require("./pages/results").default} />
       <PrivateRoute path="/teams" component={teams} />

@@ -40,6 +40,7 @@ export default function AdminsDirectory() {
   const [selectedAdmin, setSelectedAdmin] = useState({});
   
   const school = localStorage.getItem("school");
+  const currentUserEmail = JSON.parse(localStorage.getItem("user") || "{}")?.email || "";
 
   const fetchAdminsAndSchools = async () => {
     try {
@@ -103,7 +104,8 @@ export default function AdminsDirectory() {
     { key: 'names', label: 'Admin Names', sortable: true },
     { key: 'email', label: 'Email', sortable: true },
     { key: 'phone', label: 'Phone', sortable: true },
-    { key: 'role', label: 'Role', sortable: true }
+    { key: 'role', label: 'Role', sortable: true },
+    { key: 'schools', label: 'Schools', sortable: false }
   ], []);
 
   // Filtering & Sorting
@@ -198,7 +200,7 @@ export default function AdminsDirectory() {
     <div className="v8-datatable-container">
       <AddModal isSuperAdmin={isSuperAdmin} save={handleCreateAdmin} />
       <UploadModal admin={isSuperAdmin} save={data => data.forEach(a => Data.admins.create(a))} />
-      {edit && <EditModal isSuperAdmin={isSuperAdmin} edit={edit} save={a => Data.admins.update(a)} />}
+      {edit && <EditModal isSuperAdmin={isSuperAdmin} schools={schools} edit={edit} save={a => Data.admins.update(a)} />}
       {remove && <DeleteModal remove={remove} save={a => Data.admins.delete(a)} />}
       <InviteModal admin={selectedAdmin} invite={() => sendInvite(selectedAdmin.id)} />
       <TransferModal schools={schools} admin={adminToTransfer} transfer={a => Data.admins.transfer(a)} />
@@ -313,21 +315,30 @@ export default function AdminsDirectory() {
               {loading ? (
                 [...Array(rowsPerPage)].map((_, i) => <tr key={i}><td colSpan={headers.length + 1}><div style={{height: '2rem', backgroundColor: '#EFF2F5', borderRadius: '4px', margin: '1rem 0', animation: 'pulse 1.5s infinite ease-in-out'}}></div></td></tr>)
               ) : paginatedData.length > 0 ? (
-                paginatedData.map((row, idx) => (
+                  paginatedData.map((row, idx) => {
+                    const isSelf = row.email === currentUserEmail;
+                    return (
                     <tr key={row.id || idx} className={newlyAddedIds.has(row.id) ? 'v8-new-row' : ''}>
-                      {headers.map(h => <td key={h.key} className={h.key === 'names' ? 'td-primary' : ''}>{row[h.key] || '-'}</td>)}
+                      {headers.map(h => {
+                        if (h.key === 'schools') {
+                          return <td key={h.key}>{Array.isArray(row.schools) ? row.schools.map(s => s.name || s).join(', ') : '-'}</td>;
+                        }
+                        return <td key={h.key} className={h.key === 'names' ? 'td-primary' : ''}>{row[h.key] || '-'}</td>;
+                      })}
                       <td className="v8-table-actions" style={{textAlign: 'right'}}>
                         <button title="Invite Admin" onClick={() => { setSelectedAdmin(row); inviteModalInstance.show(); }}><i className="la la-envelope" style={{fontSize: '1.5rem'}}></i></button>
-                        {isSuperAdmin && <button title="Transfer Admin" onClick={() => { setAdminToTransfer(row); transferModalInstance.show(); }}><i className="la la-exchange" style={{fontSize: '1.5rem'}}></i></button>}
-                        {canEditAdmins && (
+                        {isSuperAdmin && !isSelf && <button title="Transfer Admin" onClick={() => { setAdminToTransfer(row); transferModalInstance.show(); }}><i className="la la-exchange" style={{fontSize: '1.5rem'}}></i></button>}
+                        {canEditAdmins && !isSelf && (
                             <>
                                 <button title="Edit Admin" onClick={() => { setEdit(row); editModalInstance.show(); }}><i className="la la-edit" style={{fontSize: '1.5rem'}}></i></button>
                                 <button title="Delete Admin" onClick={() => { setRemove(row); deleteModalInstance.show(); }}><i className="la la-trash" style={{fontSize: '1.5rem'}}></i></button>
                             </>
                         )}
+                        {isSelf && <span style={{fontSize: '0.8rem', color: '#B5B5C3', marginLeft: '0.5rem'}}>(You)</span>}
                       </td>
                     </tr>
-                ))
+                  );
+                })
               ) : (
                 <tr><td colSpan={headers.length + 1} style={{ textAlign: 'center', padding: '4rem', color: '#B5B5C3' }}>No admins found.</td></tr>
               )}

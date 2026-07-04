@@ -15,6 +15,7 @@ export default function emitize(obj, eventName) {
                 },
                 get() {
                     _subscriptions = new Set();
+                    return true;
                 }
             });
 

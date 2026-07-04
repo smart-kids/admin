@@ -192,6 +192,30 @@ class Modal extends React.Component {
                         </div>
                       )}
                       
+                      {this.props.isSuperAdmin && (
+                        <div className="col-lg-4 mt-3">
+                          <label>Schools (Ctrl/Cmd+Click to select multiple):</label>
+                          <select
+                            multiple
+                            className="form-control"
+                            style={{ minHeight: '120px' }}
+                            value={(this.state.edit.schools || []).map(s => s.id || s)}
+                            onChange={(e) => {
+                              const selected = Array.from(e.target.selectedOptions, option => option.value);
+                              this.setState({
+                                edit: Object.assign(this.state.edit, {
+                                  schools: selected
+                                })
+                              });
+                            }}
+                          >
+                            {(this.props.schools || []).map(school => (
+                              <option key={school.id} value={school.id}>{school.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+                      
                       
                       {/* <div className="col-lg-4">
                         <label>Password:</label>

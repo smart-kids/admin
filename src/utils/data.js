@@ -100,6 +100,8 @@ const allData = {
     devices: [],
     device_commands: [],
     activityLogs: [],
+    budgets: [],
+    expenses: [],
 };
 
 // Centralized subscriptions object. Each key will hold an array of callbacks.
@@ -1050,7 +1052,7 @@ var Data = (function () {
         { name: "grades", singularName: "grade", createFields: ['name', 'school', 'subjectsOrder', 'isvisible'], updateFields: ['name', 'school', 'subjectsOrder', 'isvisible'] },
         { name: "subjects", singularName: "subject", isNested: true, parentEntity: "grades", parentKey: "grade", createFields: ['name', 'grade', 'topicsOrder', 'teacher', 'aiGeneratedCurriculum', 'topicalImages'], updateFields: ['name', 'grade', 'topicsOrder', 'teacher', 'aiGeneratedCurriculum', 'topicalImages'] },
         { name: "topics", singularName: "topic", isNested: true, parentEntity: "subjects", parentKey: "subject", createFields: ['name', 'subject', 'icon', 'subtopicOrder', 'isvisible'], updateFields: ['name', 'subject', 'icon', 'subtopicOrder', 'isvisible'] },
-        { name: "subtopics", singularName: "subtopic", isNested: true, parentEntity: "topics", parentKey: "topic", createFields: ['name', 'topic', 'questionsOrder'], updateFields: ['name', 'topic', 'questionsOrder'] },
+        { name: "subtopics", singularName: "subtopic", isNested: true, parentEntity: "topics", parentKey: "topic", createFields: ['name', 'topic', 'questionsOrder', 'isTimed', 'startDate', 'startTime', 'endTime'], updateFields: ['name', 'topic', 'questionsOrder', 'isTimed', 'startDate', 'startTime', 'endTime'] },
         { name: "questions", singularName: "question", isNested: true, parentEntity: "subtopics", parentKey: "subtopic", createFields: ['name', 'type', 'subtopic', 'videos', 'attachments', 'images', 'optionsOrder', 'contentOrder'], updateFields: ['name', 'type', 'subtopic', 'videos', 'attachments', 'images', 'optionsOrder', 'contentOrder'], customMethods: (allData, subs, api) => ({ getImages: (id) => new Promise(async (resolve, reject) => { try { const response = await query(`query GetQuestionImages($id: String!) { questionImages(id: $id) }`, { id }); resolve(response.questionImages || []); } catch (e) { console.error(e); resolve([]); } }) }) },
         { name: "options", singularName: "option", isNested: true, parentEntity: "questions", parentKey: "question", createFields: ['value', 'correct', 'question'], updateFields: ['value', 'correct', 'question'] },
         { name: "options", singularName: "option", isNested: true, parentEntity: "questions", parentKey: "question", createFields: ['value', 'correct', 'question'], updateFields: ['value', 'correct', 'question'] },
@@ -1834,6 +1836,18 @@ var Data = (function () {
             createFields: ['device', 'command', 'status', 'payload', 'school'],
             updateFields: ['device', 'command', 'status']
         },
+        {
+            name: "budgets",
+            singularName: "budget",
+            createFields: ['school', 'title', 'amount', 'startDate', 'endDate', 'description'],
+            updateFields: ['school', 'title', 'amount', 'startDate', 'endDate', 'description']
+        },
+        {
+            name: "expenses",
+            singularName: "expense",
+            createFields: ['school', 'title', 'amount', 'date', 'category', 'receiptImage', 'budget', 'description'],
+            updateFields: ['school', 'title', 'amount', 'date', 'category', 'receiptImage', 'budget', 'description']
+        }
     ];
     const generatedApis = {};
     entityConfigs.forEach(config => {

@@ -22,6 +22,10 @@ class Modal extends React.Component {
     subject: "",
     subjects: [],
     topics: [],
+    isTimed: false,
+    startDate: "",
+    startTime: "",
+    endTime: "",
   };
 
   show() {
@@ -107,6 +111,10 @@ class Modal extends React.Component {
           Object.assign(data, {
             name: _this.state.name,
             topic: _this.props.topic,
+            isTimed: _this.state.isTimed,
+            startDate: _this.state.startDate,
+            startTime: _this.state.startTime,
+            endTime: _this.state.endTime,
           });
           await _this.props.save(data);
           _this.hide();
@@ -121,6 +129,7 @@ class Modal extends React.Component {
           selectedTopic = null;
           _this.setState({ name: "" });
           _this.setState({ topic: "" });
+          _this.setState({ isTimed: false, startDate: "", startTime: "", endTime: "" });
         } catch (error) {
           _this.setState({ loading: false });
           if (error) {
@@ -179,6 +188,52 @@ class Modal extends React.Component {
                         />
                       </div>
                     </div>
+                    <div className="form-group row mt-4">
+                      <div className="col-lg-12">
+                        <label className="kt-checkbox kt-checkbox--brand">
+                          <input
+                            type="checkbox"
+                            checked={this.state.isTimed}
+                            onChange={(e) => this.setState({ isTimed: e.target.checked })}
+                          /> Is Timed Exam?
+                          <span></span>
+                        </label>
+                      </div>
+                    </div>
+                    {this.state.isTimed && (
+                      <div className="form-group row mt-2">
+                        <div className="col-lg-4">
+                          <label>Start Date:</label>
+                          <input
+                            type="date"
+                            className="form-control"
+                            value={this.state.startDate}
+                            onChange={(e) => this.setState({ startDate: e.target.value })}
+                            required={this.state.isTimed}
+                          />
+                        </div>
+                        <div className="col-lg-4">
+                          <label>Start Time:</label>
+                          <input
+                            type="time"
+                            className="form-control"
+                            value={this.state.startTime}
+                            onChange={(e) => this.setState({ startTime: e.target.value })}
+                            required={this.state.isTimed}
+                          />
+                        </div>
+                        <div className="col-lg-4">
+                          <label>End Time:</label>
+                          <input
+                            type="time"
+                            className="form-control"
+                            value={this.state.endTime}
+                            onChange={(e) => this.setState({ endTime: e.target.value })}
+                            required={this.state.isTimed}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="modal-footer">

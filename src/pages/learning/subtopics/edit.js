@@ -26,6 +26,10 @@ class EditSubtopicModal extends React.Component {
       selectedGradeId: grade || "",
       availableSubjects: [],
       availableTopics: [],
+      isTimed: subtopic?.isTimed || false,
+      startDate: subtopic?.startDate || "",
+      startTime: subtopic?.startTime || "",
+      endTime: subtopic?.endTime || "",
     };
   };
 
@@ -73,6 +77,10 @@ class EditSubtopicModal extends React.Component {
       selectedGradeId: gradeForSubtopic || "",
       // availableSubjects: availableSubjects,
       availableTopics: availableTopics,
+      isTimed: subtopic?.isTimed || false,
+      startDate: subtopic?.startDate || "",
+      startTime: subtopic?.startTime || "",
+      endTime: subtopic?.endTime || "",
     }, () => {
       $("#" + this.modalId).modal({
         show: true,
@@ -155,6 +163,10 @@ class EditSubtopicModal extends React.Component {
             id: _this.state.id,         // ID of the subtopic being edited
             name: _this.state.name,     // New name for the subtopic
             // topic: _this.state.selectedTopicId, // ID of the parent topic
+            isTimed: _this.state.isTimed,
+            startDate: _this.state.startDate,
+            startTime: _this.state.startTime,
+            endTime: _this.state.endTime,
           };
 
           // console.log("Submitting subtopic data (id, name, topic only):", dataToSave);
@@ -171,7 +183,7 @@ class EditSubtopicModal extends React.Component {
 
   render() {
     const { grades } = this.props;
-    const { loading, name, selectedTopicId, availableTopics } = this.state;
+    const { loading, name, selectedTopicId, availableTopics, isTimed, startDate, startTime, endTime } = this.state;
 
     return (
       <div>
@@ -263,8 +275,59 @@ class EditSubtopicModal extends React.Component {
                       required
                       disabled={loading}
                     />
+                    </div>
+                    
+                    <div className="form-group row mt-4">
+                      <div className="col-lg-12">
+                        <label className="kt-checkbox kt-checkbox--brand">
+                          <input
+                            type="checkbox"
+                            checked={isTimed}
+                            onChange={(e) => this.setState({ isTimed: e.target.checked })}
+                            disabled={loading}
+                          /> Is Timed Exam?
+                          <span></span>
+                        </label>
+                      </div>
+                    </div>
+                    {isTimed && (
+                      <div className="form-group row mt-2">
+                        <div className="col-lg-4">
+                          <label>Start Date:</label>
+                          <input
+                            type="date"
+                            className="form-control"
+                            value={startDate}
+                            onChange={(e) => this.setState({ startDate: e.target.value })}
+                            required={isTimed}
+                            disabled={loading}
+                          />
+                        </div>
+                        <div className="col-lg-4">
+                          <label>Start Time:</label>
+                          <input
+                            type="time"
+                            className="form-control"
+                            value={startTime}
+                            onChange={(e) => this.setState({ startTime: e.target.value })}
+                            required={isTimed}
+                            disabled={loading}
+                          />
+                        </div>
+                        <div className="col-lg-4">
+                          <label>End Time:</label>
+                          <input
+                            type="time"
+                            className="form-control"
+                            value={endTime}
+                            onChange={(e) => this.setState({ endTime: e.target.value })}
+                            required={isTimed}
+                            disabled={loading}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
                 <div className="modal-footer">
                   <button
                     type="button"

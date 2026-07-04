@@ -77,14 +77,13 @@ class QRModal extends React.Component {
   startLocalServicePolling = () => {
     this.localPollInterval = setInterval(async () => {
       try {
-        const devices = await Data.localMdm.getDevices();
+        const devicesMap = await Data.localMdm.getDevices();
         if (!this.state.localServiceConnected) {
           this.setState({ localServiceConnected: true });
           this.authenticateLocalService();
-          this.connectLocalLogs();
         }
-        this.setState({ localDevices: devices || [] });
-        this.autoOnboardDevices(devices || []);
+        this.setState({ localDevices: devicesMap || {} });
+        this.autoOnboardDevices(Object.keys(devicesMap || {}));
       } catch (e) {
         if (e.message === "adb_not_found") {
           if (!this.state.setupLoading) {
@@ -93,13 +92,8 @@ class QRModal extends React.Component {
         } else if (this.state.localServiceConnected) {
           this.setState({ 
             localServiceConnected: false, 
-            localServiceAuthenticated: false,
-            localLogs: [...this.state.localLogs, "❌ Local service disconnected."]
+            localServiceAuthenticated: false
           });
-          if (this.eventSource) {
-            this.eventSource.close();
-            this.eventSource = null;
-          }
         }
       }
     }, 2000);
@@ -175,10 +169,19 @@ class QRModal extends React.Component {
     );
   };
 
+  rebootDevice = async (serial) => {
+    try {
+      await fetch("http://localhost:18205/api/reboot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serial })
+      });
+    } catch (e) {
+      console.error("Failed to reboot", serial);
+    }
+  };
+
   retryOnboard = async (serial) => {
-    this.setState(prev => ({
-      deviceStates: { ...prev.deviceStates, [serial]: { status: 'progress', progress: 0, error: '' } }
-    }));
     try {
       await Data.localMdm.onboard(serial);
     } catch (e) {
@@ -593,78 +596,62 @@ class QRModal extends React.Component {
                         </button>
                       </div>
 
-                      <div className="card border-0 bg-light rounded-lg mb-3 shadow-sm">
-                        <div className="card-body p-3">
+                      <div className="card border-0 bg-light rounded-lg mb-3 shadow-sm flex-grow-1 d-flex flex-column">
+                        <div className="card-body p-3 d-flex flex-column">
                           <h6 className="font-weight-bold text-dark mb-2" style={{ fontSize: '13px' }}>
                             <i className="la la-usb mr-2 text-primary"></i>
-                            Connected USB Devices
+                            Connected Fleet Devices
                           </h6>
-                          <div style={{ maxHeight: '120px', overflowY: 'auto' }}>
-                            {this.state.localDevices.length === 0 ? (
-                              <div className="text-muted small text-center py-2">
+                          <div className="flex-grow-1" style={{ overflowY: 'auto' }}>
+                            {Object.keys(this.state.localDevices).length === 0 ? (
+                              <div className="text-muted small text-center py-4">
                                 Waiting for devices... (Plug in via USB)
                               </div>
                             ) : (
-                                <ul className="list-unstyled mb-0">
-                                  {this.state.localDevices.map(serial => {
-                                    const dState = this.state.deviceStates[serial];
-                                    const isOnboarding = this.state.onboardingDevices.includes(serial);
-                                    
-                                    return (
-                                      <li key={serial} className="p-2 bg-white rounded border mb-2 shadow-sm">
-                                        <div className="d-flex justify-content-between align-items-center mb-1">
-                                          <span className="small font-weight-bold text-dark">{serial}</span>
-                                          {dState ? (
-                                            dState.status === 'failed' ? (
-                                              <button onClick={() => this.retryOnboard(serial)} className="btn btn-xs btn-danger font-weight-bold py-0 px-2" style={{ fontSize: '10px' }}>
-                                                <i className="la la-redo mr-1"></i> Retry
-                                              </button>
-                                            ) : dState.status === 'success' ? (
-                                              <span className="badge badge-success"><i className="la la-check mr-1"></i> Ready</span>
-                                            ) : (
-                                              <span className="badge badge-warning text-dark"><i className="la la-spinner la-spin mr-1"></i> Onboarding...</span>
-                                            )
-                                          ) : isOnboarding ? (
-                                            <span className="badge badge-warning text-dark"><i className="la la-spinner la-spin mr-1"></i> Onboarding...</span>
-                                          ) : (
-                                            <span className="badge badge-light text-muted">Waiting...</span>
-                                          )}
-                                        </div>
-                                        
-                                        {dState && dState.status === 'progress' && (
-                                          <div className="progress mt-1" style={{ height: '4px' }}>
-                                            <div className="progress-bar progress-bar-striped progress-bar-animated bg-primary" role="progressbar" style={{ width: `${dState.progress}%` }}></div>
-                                          </div>
-                                        )}
-                                        
-                                        {dState && dState.status === 'failed' && (
-                                          <div className="text-danger mt-1" style={{ fontSize: '11px', lineHeight: '1.2' }}>
-                                            <i className="la la-exclamation-triangle mr-1"></i>
-                                            {dState.error}
-                                          </div>
-                                        )}
-                                      </li>
-                                    );
-                                  })}
-                                </ul>
+                              <div className="table-responsive">
+                                <table className="table table-sm table-borderless align-middle mb-0" style={{ fontSize: '12px' }}>
+                                  <thead className="text-muted border-bottom">
+                                    <tr>
+                                      <th>Device ID</th>
+                                      <th>Battery</th>
+                                      <th>Progress</th>
+                                      <th>CPU/RAM</th>
+                                      <th className="text-right">Action</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {Object.entries(this.state.localDevices).map(([serial, state]) => {
+                                      const isBatteryLow = parseInt(state.battery) < 20;
+                                      return (
+                                        <tr key={serial} className="border-bottom">
+                                          <td className="font-weight-bold py-2">{serial}</td>
+                                          <td className={`font-weight-bold py-2 ${isBatteryLow ? 'text-danger' : 'text-success'}`}>
+                                            <i className="la la-battery-half mr-1"></i>
+                                            {state.battery}%
+                                          </td>
+                                          <td className="py-2 text-primary font-weight-bold">
+                                            {state.progress}
+                                          </td>
+                                          <td className="py-2 text-muted">
+                                            {state.stats.cpu} / {state.stats.memory}
+                                          </td>
+                                          <td className="py-2 text-right">
+                                            <button 
+                                              onClick={() => this.rebootDevice(serial)} 
+                                              className="btn btn-xs btn-outline-danger py-0 px-2 font-weight-bold" 
+                                              style={{ fontSize: '10px', borderRadius: '4px' }}
+                                            >
+                                              <i className="la la-redo mr-1"></i> Reboot
+                                            </button>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
                             )}
                           </div>
-                        </div>
-                      </div>
-
-                      <div className="flex-grow-1 d-flex flex-column">
-                        <h6 className="font-weight-bold text-dark mb-2" style={{ fontSize: '13px' }}>
-                          <i className="la la-terminal mr-2 text-primary"></i>
-                          Live Automation Logs
-                        </h6>
-                        <div 
-                          className="bg-dark rounded-lg p-3 text-success w-100 flex-grow-1"
-                          style={{ fontFamily: 'monospace', fontSize: '12px', minHeight: '200px', maxHeight: '300px', overflowY: 'auto', boxShadow: 'inset 0 4px 6px rgba(0,0,0,0.3)' }}
-                        >
-                          {this.state.localLogs.map((log, i) => (
-                            <div key={i} className="mb-1">❯ {log}</div>
-                          ))}
-                          <div ref={(el) => { this.logsEnd = el; }}></div>
                         </div>
                       </div>
 
