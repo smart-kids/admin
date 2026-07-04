@@ -1047,9 +1047,9 @@ var Data = (function () {
     init();
 
     const entityConfigs = [
-        { name: "grades", singularName: "grade", createFields: ['name', 'school', 'subjectsOrder', 'isVisible'], updateFields: ['name', 'school', 'subjectsOrder', 'isVisible'] },
+        { name: "grades", singularName: "grade", createFields: ['name', 'school', 'subjectsOrder', 'isvisible'], updateFields: ['name', 'school', 'subjectsOrder', 'isvisible'] },
         { name: "subjects", singularName: "subject", isNested: true, parentEntity: "grades", parentKey: "grade", createFields: ['name', 'grade', 'topicsOrder', 'teacher', 'aiGeneratedCurriculum', 'topicalImages'], updateFields: ['name', 'grade', 'topicsOrder', 'teacher', 'aiGeneratedCurriculum', 'topicalImages'] },
-        { name: "topics", singularName: "topic", isNested: true, parentEntity: "subjects", parentKey: "subject", createFields: ['name', 'subject', 'icon', 'subtopicOrder', 'isVisible'], updateFields: ['name', 'subject', 'icon', 'subtopicOrder', 'isVisible'] },
+        { name: "topics", singularName: "topic", isNested: true, parentEntity: "subjects", parentKey: "subject", createFields: ['name', 'subject', 'icon', 'subtopicOrder', 'isvisible'], updateFields: ['name', 'subject', 'icon', 'subtopicOrder', 'isvisible'] },
         { name: "subtopics", singularName: "subtopic", isNested: true, parentEntity: "topics", parentKey: "topic", createFields: ['name', 'topic', 'questionsOrder'], updateFields: ['name', 'topic', 'questionsOrder'] },
         { name: "questions", singularName: "question", isNested: true, parentEntity: "subtopics", parentKey: "subtopic", createFields: ['name', 'type', 'subtopic', 'videos', 'attachments', 'images', 'optionsOrder', 'contentOrder'], updateFields: ['name', 'type', 'subtopic', 'videos', 'attachments', 'images', 'optionsOrder', 'contentOrder'], customMethods: (allData, subs, api) => ({ getImages: (id) => new Promise(async (resolve, reject) => { try { const response = await query(`query GetQuestionImages($id: String!) { questionImages(id: $id) }`, { id }); resolve(response.questionImages || []); } catch (e) { console.error(e); resolve([]); } }) }) },
         { name: "options", singularName: "option", isNested: true, parentEntity: "questions", parentKey: "question", createFields: ['value', 'correct', 'question'], updateFields: ['value', 'correct', 'question'] },
@@ -2290,7 +2290,7 @@ var Data = (function () {
                 return await res.json();
             },
             getToolInfo: async () => {
-                const res = await fetch(`https://graph-ongyy.kinsta.app/tool-info?t=${Date.now()}`, { cache: "no-store" });
+                const res = await fetch(`https://graph-ongyy.kinsta.app/uploads/tool-info.json?t=${Date.now()}`, { cache: "no-store" });
                 if (!res.ok) throw new Error("Failed to fetch tool info");
                 return await res.json();
             }

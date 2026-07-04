@@ -119,18 +119,18 @@ class Modal extends React.Component {
                     </div>
                   </div>
                   <div className="form-group row">
-                    <div className="col-lg-12">
-                      <label className="kt-checkbox kt-checkbox--brand">
-                        <input
-                          type="checkbox"
-                          checked={this.state.grade.isVisible !== false}
-                          onChange={(e) => this.setState(Object.assign(this.state.grade, {
-                            isVisible: e.target.checked
-                          }))}
-                        /> Visible to users
-                        <span></span>
-                      </label>
-                    </div>
+                      <div className="col-lg-12">
+                        <label className="kt-checkbox kt-checkbox--brand">
+                          <input
+                            type="checkbox"
+                            checked={this.state.grade.isvisible !== false}
+                            onChange={(e) => this.setState(Object.assign(this.state.grade, {
+                              isvisible: e.target.checked
+                            }))}
+                          /> Visible to users
+                          <span></span>
+                        </label>
+                      </div>
                   </div>
                 </div>
                 <div className="modal-footer">
