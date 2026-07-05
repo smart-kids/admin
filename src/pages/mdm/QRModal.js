@@ -1,5 +1,6 @@
 import React from "react";
 import QRCode from "qrcode";
+import moment from "moment";
 import Data from "../../utils/data";
 import { BASE_URL } from "../../utils/config";
 
@@ -37,6 +38,8 @@ class QRModal extends React.Component {
       windows: "",
       linux: ""
     },
+    toolVersion: "",
+    toolUploadedAt: "",
     isFetchingTools: false,
     activeTab: 'qr' // 'qr' or 'usb'
   };
@@ -325,7 +328,9 @@ class QRModal extends React.Component {
       const toolData = await Data.mdm.getToolInfo();
       if (toolData.urls) {
          this.setState(prevState => ({
-           toolUrls: { ...prevState.toolUrls, ...toolData.urls }
+           toolUrls: { ...prevState.toolUrls, ...toolData.urls },
+           toolVersion: toolData.version || "",
+           toolUploadedAt: toolData.uploadedAt || ""
          }));
       }
     } catch (e) {
@@ -402,8 +407,17 @@ class QRModal extends React.Component {
     }
   };
 
+  getOS = () => {
+    const userAgent = window.navigator.userAgent;
+    if (userAgent.indexOf("Mac") !== -1) return "mac";
+    if (userAgent.indexOf("Win") !== -1) return "windows";
+    if (userAgent.indexOf("Linux") !== -1) return "linux";
+    return "windows";
+  };
+
   render() {
-    const { qrUrl, error, wifiSsid, wifiPassword, wifiSecurityType, wifiHidden, downloadUrl, signatureChecksum, enrollmentToken, showAdvancedConfig, enrolledDevices, toolUrls, activeTab, localLogs } = this.state;
+    const { qrUrl, error, wifiSsid, wifiPassword, wifiSecurityType, wifiHidden, downloadUrl, signatureChecksum, enrollmentToken, showAdvancedConfig, enrolledDevices, toolUrls, toolVersion, toolUploadedAt, activeTab, localLogs } = this.state;
+    const os = this.getOS();
 
     return (
       <div
@@ -688,15 +702,30 @@ class QRModal extends React.Component {
                     </p>
                     
                     <div className="d-flex flex-column mb-4" style={{ gap: '8px' }}>
-                      <a href={toolUrls.windows || '#'} download={!!toolUrls.windows} className={`btn btn-primary btn-sm rounded-pill font-weight-bold shadow-sm ${!toolUrls.windows ? 'disabled' : ''}`}>
-                        <i className="la la-windows mr-1"></i> Download for Windows
-                      </a>
-                      <a href={toolUrls.mac || '#'} download={!!toolUrls.mac} className={`btn btn-dark btn-sm rounded-pill font-weight-bold shadow-sm ${!toolUrls.mac ? 'disabled' : ''}`}>
-                        <i className="la la-apple mr-1"></i> Download for Mac
-                      </a>
-                      <a href={toolUrls.linux || '#'} download={!!toolUrls.linux} className={`btn btn-info btn-sm rounded-pill font-weight-bold shadow-sm text-white ${!toolUrls.linux ? 'disabled' : ''}`}>
-                        <i className="la la-linux mr-1"></i> Download for Linux
-                      </a>
+                      {os === 'windows' && (
+                        <a href={toolUrls.windows || '#'} download={!!toolUrls.windows} className={`btn btn-primary btn-sm rounded-pill font-weight-bold shadow-sm ${!toolUrls.windows ? 'disabled' : ''}`}>
+                          <i className="la la-windows mr-1"></i> Download for Windows
+                        </a>
+                      )}
+                      {os === 'mac' && (
+                        <a href={toolUrls.mac || '#'} download={!!toolUrls.mac} className={`btn btn-dark btn-sm rounded-pill font-weight-bold shadow-sm ${!toolUrls.mac ? 'disabled' : ''}`}>
+                          <i className="la la-apple mr-1"></i> Download for Mac
+                        </a>
+                      )}
+                      {os === 'linux' && (
+                        <a href={toolUrls.linux || '#'} download={!!toolUrls.linux} className={`btn btn-info btn-sm rounded-pill font-weight-bold shadow-sm text-white ${!toolUrls.linux ? 'disabled' : ''}`}>
+                          <i className="la la-linux mr-1"></i> Download for Linux
+                        </a>
+                      )}
+
+                      {(toolVersion || toolUploadedAt) && (
+                        <div className="text-center text-muted mt-1" style={{ fontSize: '11px' }}>
+                          {toolVersion && <span className="font-weight-bold">v{toolVersion}</span>}
+                          {toolVersion && toolUploadedAt && <span className="mx-1">•</span>}
+                          {toolUploadedAt && <span>{moment(toolUploadedAt).fromNow()}</span>}
+                        </div>
+                      )}
+
                       <button className="btn btn-outline-secondary btn-sm rounded-pill font-weight-bold shadow-sm mt-2" onClick={this.fetchApkInfo} disabled={this.state.isFetchingTools}>
                         <i className={`la la-sync mr-1 ${this.state.isFetchingTools ? 'la-spin' : ''}`}></i> Refresh Links
                       </button>
