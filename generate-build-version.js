@@ -13,8 +13,16 @@ const jsonContent = JSON.stringify(jsonData, null, 2);
 
 fs.writeFile('./public/meta.json', jsonContent, 'utf8', function (err) {
   if (err) {
-    console.log('An error occurred while writing JSON Object to meta.json');
+    console.log('An error occurred while writing JSON Object to public/meta.json');
     return console.log(err);
   }
   console.log('meta.json file has been saved with version ' + appVersion);
+});
+
+fs.writeFile('./src/build-meta.json', jsonContent, 'utf8', function (err) {
+  if (err) {
+    console.log('An error occurred while writing JSON Object to src/build-meta.json');
+    return console.log(err);
+  }
+  console.log('src/build-meta.json file has been saved');
 });

@@ -786,6 +786,13 @@ class QRModal extends React.Component {
                                             </td>
                                             <td className="py-2 text-right">
                                               <button 
+                                                onClick={() => this.retryOnboard(serial)} 
+                                                className="btn btn-xs btn-outline-primary py-0 px-2 font-weight-bold shadow-sm mr-1" 
+                                                style={{ fontSize: '10px', borderRadius: '4px' }}
+                                              >
+                                                <i className="la la-play mr-1"></i> Onboard
+                                              </button>
+                                              <button 
                                                 onClick={() => this.rebootDevice(serial)} 
                                                 className="btn btn-xs btn-outline-danger py-0 px-2 font-weight-bold shadow-sm" 
                                                 style={{ fontSize: '10px', borderRadius: '4px' }}

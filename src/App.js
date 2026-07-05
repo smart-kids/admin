@@ -2,6 +2,7 @@ import React from "react";
 import { Route, HashRouter, useHistory, Redirect } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
+import UpdateChecker from "./components/UpdateChecker";
 import Footer from "./components/footer";
 
 import home from "./pages/home";
@@ -65,6 +66,7 @@ class App extends React.Component {
       <ThemeProvider>
         <HashRouter>
           <PWAInstallPrompt />
+          <UpdateChecker />
       {/* overal stuff */}
       <Route exact path="/" component={login} />
       <Route exact path="/register" component={register} />
