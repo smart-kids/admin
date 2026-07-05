@@ -35,6 +35,47 @@ class ExpensesDashboard extends Component {
             return acc;
         }, {});
 
+        const content = (
+            <div className="row">
+                <div className="col-lg-12">
+                    <div className="kt-portlet">
+                        <div className="kt-portlet__head">
+                            <div className="kt-portlet__head-label">
+                                <h3 className="kt-portlet__head-title">Expense Summary (Total: KES {loading ? '...' : totalSpent.toLocaleString()})</h3>
+                            </div>
+                        </div>
+                        <div className="kt-portlet__body">
+                            <table className="table">
+                                <thead>
+                                    <tr>
+                                        <th>Category</th>
+                                        <th>Total Spent (KES)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {Object.keys(byCategory).map(cat => (
+                                        <tr key={cat}>
+                                            <td>{cat}</td>
+                                            <td>{byCategory[cat].toLocaleString()}</td>
+                                        </tr>
+                                    ))}
+                                    {Object.keys(byCategory).length === 0 && (
+                                        <tr>
+                                            <td colSpan="2" className="text-center">No expenses recorded yet.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+
+        if (this.props.isComponent) {
+            return content;
+        }
+
         return (
             <div className="kt-grid__item kt-grid__item--fluid kt-grid kt-grid--ver kt-page">
                 <div className="kt-grid__item kt-grid__item--fluid kt-grid kt-grid--hor kt-wrapper" id="kt_wrapper">
@@ -42,40 +83,7 @@ class ExpensesDashboard extends Component {
                     <Subheader links={["Finance", "Expenses Dashboard"]} />
                     <div className="kt-content kt-grid__item kt-grid__item--fluid kt-grid kt-grid--hor" id="kt_content">
                         <div className="kt-container kt-grid__item kt-grid__item--fluid">
-                            <div className="row">
-                                <div className="col-lg-12">
-                                    <div className="kt-portlet">
-                                        <div className="kt-portlet__head">
-                                            <div className="kt-portlet__head-label">
-                                                <h3 className="kt-portlet__head-title">Expense Summary (Total: KES {loading ? '...' : totalSpent.toLocaleString()})</h3>
-                                            </div>
-                                        </div>
-                                        <div className="kt-portlet__body">
-                                            <table className="table">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Category</th>
-                                                        <th>Total Spent (KES)</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {Object.keys(byCategory).map(cat => (
-                                                        <tr key={cat}>
-                                                            <td>{cat}</td>
-                                                            <td>{byCategory[cat].toLocaleString()}</td>
-                                                        </tr>
-                                                    ))}
-                                                    {Object.keys(byCategory).length === 0 && (
-                                                        <tr>
-                                                            <td colSpan="2" className="text-center">No expenses recorded yet.</td>
-                                                        </tr>
-                                                    )}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            {content}
                         </div>
                     </div>
                     <Footer />

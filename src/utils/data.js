@@ -4,6 +4,7 @@ import { query, mutate } from "./requests";
 import axios from "axios";
 import { API } from "./requests";
 import debug from "./debug";
+import { BASE_URL } from "./config";
 
 const log = debug("shuleplus:data");
 
@@ -18,9 +19,7 @@ const emitDebug = () => window.dispatchEvent(new Event('debug_update'));
 // Socket.IO configuration
 // WebSockets MUST bypass the Netlify serverless proxy because serverless functions 
 // do not support long-lived TCP connections. We connect directly to the true Kinsta backend.
-const SOCKET_URL = window.location.href.includes('localhost') 
-    ? 'http://localhost:4001' 
-    : 'https://graph-ongyy.kinsta.app';
+const SOCKET_URL = BASE_URL;
 const socket = io(SOCKET_URL, {
     withCredentials: true,
     transports: ["websocket"],
@@ -2274,7 +2273,20 @@ var Data = (function () {
                 if (res.status === 503) throw new Error("adb_not_found");
                 if (!res.ok) throw new Error("Local service disconnected");
                 const data = await res.json();
-                return data.devices || [];
+                
+                if (!data.devices && typeof data === 'object' && !Array.isArray(data)) {
+                    // New Rust tool returns a flat HashMap
+                    return data;
+                } else if (Array.isArray(data.devices)) {
+                    // Very old tool returned array of strings
+                    const mapped = {};
+                    data.devices.forEach(serial => {
+                        mapped[serial] = { stats: {}, progress: '', battery: '' };
+                    });
+                    return mapped;
+                }
+                
+                return data.devices || {};
             },
             onboard: async (serial) => {
                 const res = await fetch("http://localhost:18205/api/onboard", {

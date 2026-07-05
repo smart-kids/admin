@@ -102,11 +102,11 @@ class Navbar extends React.Component {
 
     if (isTeacher) {
       return [
-        { path: "/comms", label: "SMS & Email", icon: "la-envelope" },
+        { path: "/comms", label: "Comms", icon: "la-envelope" },
         { path: "/learning", label: "Learning", icon: "la-graduation-cap" },
         { path: "/library", label: "Library", icon: "la-book" },
         { path: "/results", label: "Results", icon: "la-bar-chart" },
-        { path: "/time-tables", label: "Time Tables", icon: "la-calendar-check-o" }
+        { path: "/time-tables", label: "Timetables", icon: "la-calendar-check-o" }
       ];
     }
 
@@ -121,30 +121,32 @@ class Navbar extends React.Component {
     if (isAcademics) {
       return [
         { path: "/home", label: "Reports", icon: "la-dashboard" },
-        { path: "/comms", label: "SMS & Email", icon: "la-envelope" },
+        { path: "/comms", label: "Comms", icon: "la-envelope" },
         { path: "/learning", label: "Learning", icon: "la-graduation-cap" },
         { path: "/library", label: "Library", icon: "la-book" },
         { path: "/results", label: "Results", icon: "la-bar-chart" },
-        { path: "/time-tables", label: "Time Tables", icon: "la-calendar-check-o" }
+        { path: "/time-tables", label: "Timetables", icon: "la-calendar-check-o" }
       ];
     }
 
     // Default for Admin, Super Admin, CSM, Principal
     items = [
       { path: "/home", label: "Reports", icon: "la-dashboard" },
-      { path: "/comms", label: "SMS & Email", icon: "la-envelope" },
+      { path: "/comms", label: "Comms", icon: "la-envelope" },
       { path: "/learning", label: "Learning", icon: "la-graduation-cap" },
       { path: "/library", label: "Library", icon: "la-book" },
       { path: "/results", label: "Results", icon: "la-bar-chart" },
-      { path: "/time-tables", label: "Time Tables", icon: "la-calendar-check-o" },
+      { path: "/time-tables", label: "Timetables", icon: "la-calendar-check-o" },
       { path: "/finance/fees", label: "Fee", icon: "la-money" },
+      { path: "/finance/budgets", label: "Budgets", icon: "la-pie-chart" },
+      { path: "/finance/expenses", label: "Expenses", icon: "la-credit-card" },
       { path: "/trips/all", label: "Transport", icon: "la-bus" },
       { path: "/games", label: "Games", icon: "la-gamepad" },
       { path: "/mdm", label: "Devices", icon: "la-tablet" }
     ];
     
     if (isSuperAdmin || isPrincipal) {
-      items.push({ path: "/activity-log", label: "Activity Log", icon: "la-history" });
+      items.push({ path: "/activity-log", label: "Logs", icon: "la-history" });
     }
 
     return items;
@@ -462,10 +464,6 @@ class Navbar extends React.Component {
         return true;
     });
     const financeItems = [
-      { path: "/finance/budgets/dashboard", label: "Budgets Dashboard" },
-      { path: "/finance/budgets", label: "Budgets" },
-      { path: "/finance/expenses/dashboard", label: "Expenses Dashboard" },
-      { path: "/finance/expenses", label: "Expenses" },
       { path: "/finance/topup", label: "Mpesa Top Up" },
       { path: "/finance/charges", label: "SMS Usage History" },
       { path: "/finance/institutional-deposits", label: "Billing" },
@@ -773,7 +771,7 @@ class Navbar extends React.Component {
       { path: "/finance/fees", label: "Payment", IconComponent: SvgFinanceIcon },
       { path: "/finance/charge-types", label: "Charge Types", IconComponent: SvgFinanceIcon },
       { path: "/results", label: "Results", IconComponent: SvgResultsIcon },
-      { path: "/time-tables", label: "Time Tables", IconComponent: SvgTimeTablesIcon },
+      { path: "/time-tables", label: "Timetables", IconComponent: SvgTimeTablesIcon },
       { path: "/terms", label: "Terms", IconComponent: SvgSchedulesIcon },
       { path: "/assessment-types", label: "Assessment Types", IconComponent: SvgSettingsIcon },
       { path: "/rubrics", label: "Rubrics", IconComponent: SvgSettingsIcon },
@@ -801,10 +799,6 @@ class Navbar extends React.Component {
         return true;
     });
     const financeItems = [
-      { path: "/finance/budgets/dashboard", label: "Budgets Dashboard" },
-      { path: "/finance/budgets", label: "Budgets" },
-      { path: "/finance/expenses/dashboard", label: "Expenses Dashboard" },
-      { path: "/finance/expenses", label: "Expenses" },
       { path: "/finance/topup", label: "Top Up SMS: " + `${selectedSchool?.financial?.balanceFormated || "0 SMS's"}`
       }, { path: "/finance/charges", label: "SMS Usage History" },
     ];

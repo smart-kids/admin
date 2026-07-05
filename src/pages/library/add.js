@@ -3,6 +3,7 @@ import CreatableSelect from 'react-select/creatable';
 import "./Library.css"; // Ensure you have the CSS file from the previous step
 import { query } from "../../utils/requests";
 import Data from "../../utils/data";
+import { BASE_URL } from "../../utils/config";
 
 const $ = window.$;
 
@@ -172,9 +173,7 @@ class BookModal extends React.Component {
     const formData = new FormData();
     formData.append("file", file);
     
-    const UPLOAD_URL = window.location.href.includes('localhost')
-      ? 'http://localhost:4001/api/upload'
-      : 'https://graph-ongyy.kinsta.app/api/upload';
+    const UPLOAD_URL = `${BASE_URL}/api/upload`;
 
     const response = await fetch(UPLOAD_URL, {
       method: "POST",

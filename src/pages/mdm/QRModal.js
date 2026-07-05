@@ -1,6 +1,7 @@
 import React from "react";
 import QRCode from "qrcode";
 import Data from "../../utils/data";
+import { BASE_URL } from "../../utils/config";
 
 const $ = window.$;
 
@@ -8,7 +9,7 @@ const MODAL_ID = "qr_onboarding_modal_" + Math.random().toString(36).substr(2, 9
 
 class QRModal extends React.Component {
   WIFI_STORAGE_KEY = 'qrmodal_wifi_config';
-  API_BASE = 'https://cloud.shuleplus.co.ke/api';
+  API_BASE = `${BASE_URL}/api`;
 
   state = {
     qrUrl: "",
@@ -36,7 +37,16 @@ class QRModal extends React.Component {
       windows: "",
       linux: ""
     },
-    isFetchingTools: false
+    isFetchingTools: false,
+    activeTab: 'qr' // 'qr' or 'usb'
+  };
+
+  formatCpu = (cpuStr) => {
+    if (!cpuStr || cpuStr === '-') return '-';
+    // e.g. "55% TOTAL: ..." -> "55%"
+    const match = cpuStr.match(/^(\d+(?:\.\d+)?%)/);
+    if (match) return match[1];
+    return cpuStr; // fallback if regex fails
   };
 
   componentDidMount() {
@@ -102,8 +112,7 @@ class QRModal extends React.Component {
   authenticateLocalService = async () => {
     if (this.state.localServiceAuthenticated) return;
     const schoolId = localStorage.getItem("school");
-    const isLocalClient = window.location.href.includes('localhost') || window.location.href.includes('127.0.0.1');
-    const apiBase = isLocalClient ? "http://localhost:4001/api" : "https://cloud.shuleplus.co.ke/api";
+    const apiBase = `${BASE_URL}/api`;
     
     const tokenData = this.state.enrollmentToken ? { token: this.state.enrollmentToken } : await this.generateEnrollmentToken(schoolId);
     
@@ -394,7 +403,7 @@ class QRModal extends React.Component {
   };
 
   render() {
-    const { qrUrl, error, wifiSsid, wifiPassword, wifiSecurityType, wifiHidden, downloadUrl, signatureChecksum, enrollmentToken, showAdvancedConfig, enrolledDevices, toolUrls } = this.state;
+    const { qrUrl, error, wifiSsid, wifiPassword, wifiSecurityType, wifiHidden, downloadUrl, signatureChecksum, enrollmentToken, showAdvancedConfig, enrolledDevices, toolUrls, activeTab, localLogs } = this.state;
 
     return (
       <div
@@ -404,274 +413,227 @@ class QRModal extends React.Component {
         role="dialog"
         aria-hidden="true"
       >
-        <div className="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div className="modal-dialog modal-dialog-centered modal-xl" role="document">
           <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '20px', overflow: 'hidden' }}>
             
             {/* Header */}
-            <div className="modal-header border-0 bg-light p-4 align-items-center">
-              <h5 className="modal-title font-weight-bold text-dark d-flex align-items-center" style={{ fontSize: '1.25rem', gap: '8px' }}>
-                <i className="la la-laptop-medical text-primary" style={{ fontSize: '24px' }}></i>
-                Tablet Provisioning & MDM Onboarding
-              </h5>
-              <button type="button" className="close" onClick={this.handleClose} style={{ fontSize: '24px' }}>
-                <span aria-hidden="true">&times;</span>
-              </button>
+            <div className="modal-header border-0 bg-light p-4 flex-column align-items-start">
+              <div className="d-flex w-100 justify-content-between align-items-center">
+                <h5 className="modal-title font-weight-bold text-dark d-flex align-items-center" style={{ fontSize: '1.25rem', gap: '8px' }}>
+                  <i className="la la-laptop-medical text-primary" style={{ fontSize: '24px' }}></i>
+                  Tablet Provisioning & MDM Onboarding
+                </h5>
+                <button type="button" className="close" onClick={this.handleClose} style={{ fontSize: '24px' }}>
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+
+              <ul className="nav nav-pills mt-3 w-100" role="tablist">
+                <li className="nav-item">
+                  <a 
+                    className={`nav-link font-weight-bold ${activeTab === 'qr' ? 'active' : ''}`} 
+                    onClick={() => this.setState({ activeTab: 'qr' })}
+                    style={{ cursor: 'pointer', borderRadius: '10px' }}
+                  >
+                    <i className="la la-qrcode mr-2"></i> QR Onboarding
+                  </a>
+                </li>
+                <li className="nav-item ml-2">
+                  <a 
+                    className={`nav-link font-weight-bold ${activeTab === 'usb' ? 'active' : ''}`} 
+                    onClick={() => this.setState({ activeTab: 'usb' })}
+                    style={{ cursor: 'pointer', borderRadius: '10px' }}
+                  >
+                    <i className="la la-usb mr-2"></i> USB Mass Onboarding
+                  </a>
+                </li>
+              </ul>
             </div>
 
             {/* Split Content Body */}
-            <div className="modal-body p-0">
-              <div className="d-flex flex-wrap flex-md-nowrap align-items-stretch">
-                
-                {/* Left Side: QR Code Panel */}
-                <div className="p-4 bg-light border-right text-center d-flex flex-column align-items-center" style={{ flex: '1 0 320px', minWidth: '320px' }}>
-                  <div className="mb-3">
-                    <span className="badge badge-primary px-3 py-2 font-weight-bold" style={{ borderRadius: '20px', letterSpacing: '0.5px' }}>
-                      ONBOARDING CONFIG
-                    </span>
-                  </div>
+            <div className="modal-body p-0" style={{ backgroundColor: '#ffffff', overflowY: 'auto', maxHeight: '80vh' }}>
+              
+              {activeTab === 'qr' && (
+                <div className="d-flex flex-wrap flex-md-nowrap align-items-stretch">
                   
-                  <div className="qr-wrapper bg-white p-3 border rounded shadow-sm d-flex align-items-center justify-content-center" style={{ height: '230px', width: '230px', borderRadius: '16px' }}>
-                    {error ? (
-                      <div className="text-danger small">{error}</div>
-                    ) : qrUrl ? (
-                      <img src={qrUrl} alt="Onboarding QR Code" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                    ) : (
-                      <div className="kt-spinner kt-spinner--brand kt-spinner--sm"></div>
-                    )}
-                  </div>
-                  
-                  <div className="mt-3 text-muted small px-3">
-                    <i className="la la-shield-alt mr-1 text-primary"></i>
-                    This QR code contains:
-                    <ul className="mb-0 mt-2 pl-3" style={{ fontSize: '11px', lineHeight: '1.4' }}>
-                      <li>APK download URL (auto-fetched from server)</li>
-                      <li>App signature checksum for security verification</li>
-                      <li>School enrollment token for device registration</li>
-                      <li>Optional WiFi credentials for auto-connection</li>
-                    </ul>
-                  </div>
-
-                  {/* Collapsible Advanced Config */}
-                  <div className="mt-4 w-100">
-                    <button
-                      className="btn btn-sm btn-outline-secondary w-100 d-flex align-items-center justify-content-center"
-                      onClick={() => this.setState({ showAdvancedConfig: !showAdvancedConfig })}
-                      style={{ borderRadius: '8px', fontSize: '12px' }}
-                    >
-                      <i className={`la la-${showAdvancedConfig ? 'chevron-up' : 'chevron-down'} mr-2`}></i>
-                      {showAdvancedConfig ? 'Hide' : 'Show'} Advanced Configuration
-                    </button>
-
-                    {showAdvancedConfig && (
-                      <div className="dpc-config-section mt-3 text-left border-top pt-3 px-2">
-                        <h6 className="font-weight-bold text-dark mb-3 d-flex align-items-center" style={{ fontSize: '0.9rem', gap: '6px' }}>
-                          <i className="la fa-cog text-primary" style={{ fontSize: '16px' }}></i> DPC Configuration
-                        </h6>
-
-                        <div className="form-group mb-3">
-                          <label className="small font-weight-bold text-muted mb-1" style={{ fontSize: '11px' }}>APK Download URL</label>
-                          <input
-                            type="text"
-                            className="form-control form-control-sm"
-                            placeholder="https://your-server.com/api/uploads/app.apk"
-                            value={downloadUrl}
-                            onChange={(e) => this.setState({ downloadUrl: e.target.value }, this.generateQR)}
-                            style={{ borderRadius: '6px' }}
-                          />
-                        </div>
-
-                        <div className="form-group mb-3">
-                          <label className="small font-weight-bold text-muted mb-1" style={{ fontSize: '11px' }}>Signature Checksum (SHA-256)</label>
-                          <input
-                            type="text"
-                            className="form-control form-control-sm"
-                            placeholder="FB:14:AD:27:..."
-                            value={signatureChecksum}
-                            onChange={(e) => this.setState({ signatureChecksum: e.target.value }, this.generateQR)}
-                            style={{ borderRadius: '6px', fontFamily: 'monospace', fontSize: '0.75rem' }}
-                          />
-                        </div>
-
-                        <div className="form-group mb-0">
-                          <label className="small font-weight-bold text-muted mb-1" style={{ fontSize: '11px' }}>Enrollment Token</label>
-                          <input
-                            type="text"
-                            className="form-control form-control-sm"
-                            placeholder="Auto-generated or custom token"
-                            value={enrollmentToken}
-                            onChange={(e) => this.setState({ enrollmentToken: e.target.value }, this.generateQR)}
-                            style={{ borderRadius: '6px', fontFamily: 'monospace', fontSize: '0.75rem' }}
-                          />
-                          <small className="text-muted" style={{ fontSize: '10px' }}>Leave empty to auto-generate</small>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Optional Wi-Fi Pre-Configuration Form */}
-                  <div className="wifi-config-section mt-4 w-100 text-left border-top pt-4 px-2">
-                    <h6 className="font-weight-bold text-dark mb-3 d-flex align-items-center" style={{ fontSize: '0.9rem', gap: '6px' }}>
-                      <i className="la la-wifi text-primary" style={{ fontSize: '16px' }}></i> Pre-Configure Wi-Fi (Optional)
-                    </h6>
+                  {/* Left Side: QR Code Panel */}
+                  <div className="p-4 bg-light border-right text-center d-flex flex-column align-items-center" style={{ flex: '1 0 320px', minWidth: '320px' }}>
+                    <div className="mb-3">
+                      <span className="badge badge-primary px-3 py-2 font-weight-bold" style={{ borderRadius: '20px', letterSpacing: '0.5px' }}>
+                        ONBOARDING CONFIG
+                      </span>
+                    </div>
                     
-                    <div className="form-group mb-2">
-                      <label className="small font-weight-bold text-muted mb-1" style={{ fontSize: '11px' }}>Wi-Fi SSID</label>
-                      <input 
-                        type="text" 
-                        className="form-control form-control-sm" 
-                        placeholder="e.g. School_Staff_WiFi"
-                        value={wifiSsid}
-                        onChange={(e) => this.handleWifiChange('wifiSsid', e.target.value)}
-                        style={{ borderRadius: '6px' }}
-                      />
+                    <div className="qr-wrapper bg-white p-3 border rounded shadow-sm d-flex align-items-center justify-content-center" style={{ height: '230px', width: '230px', borderRadius: '16px' }}>
+                      {error ? (
+                        <div className="text-danger small">{error}</div>
+                      ) : qrUrl ? (
+                        <img src={qrUrl} alt="Onboarding QR Code" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      ) : (
+                        <div className="kt-spinner kt-spinner--brand kt-spinner--sm"></div>
+                      )}
+                    </div>
+                    
+                    <div className="mt-3 text-muted small px-3">
+                      <i className="la la-shield-alt mr-1 text-primary"></i>
+                      This QR code contains:
+                      <ul className="mb-0 mt-2 pl-3" style={{ fontSize: '11px', lineHeight: '1.4', textAlign: 'left' }}>
+                        <li>APK download URL (auto-fetched from server)</li>
+                        <li>App signature checksum for security verification</li>
+                        <li>School enrollment token for device registration</li>
+                        <li>Optional WiFi credentials for auto-connection</li>
+                      </ul>
                     </div>
 
-                    <div className="row mb-2">
-                      <div className="col-6 pr-1">
-                        <div className="form-group mb-0">
-                          <label className="small font-weight-bold text-muted mb-1" style={{ fontSize: '11px' }}>Security</label>
-                          <select 
-                            className="form-control form-control-sm"
-                            value={wifiSecurityType}
-                            onChange={(e) => this.handleWifiChange('wifiSecurityType', e.target.value)}
-                            style={{ borderRadius: '6px' }}
-                          >
-                            <option value="WPA">WPA/WPA2</option>
-                            <option value="WEP">WEP</option>
-                            <option value="NONE">None (Open)</option>
-                          </select>
-                        </div>
-                      </div>
-                      
-                      <div className="col-6 pl-1">
-                        <div className="form-group mb-0">
-                          <label className="small font-weight-bold text-muted mb-1" style={{ fontSize: '11px' }}>Network Visibility</label>
-                          <div className="custom-control custom-checkbox mt-1">
-                            <input 
-                              type="checkbox" 
-                              className="custom-control-input" 
-                              id="wifiHiddenCheckbox"
-                              checked={wifiHidden}
-                              onChange={(e) => this.handleWifiChange('wifiHidden', e.target.checked)}
+                    {/* Collapsible Advanced Config */}
+                    <div className="mt-4 w-100">
+                      <button
+                        className="btn btn-sm btn-outline-secondary w-100 d-flex align-items-center justify-content-center"
+                        onClick={() => this.setState({ showAdvancedConfig: !showAdvancedConfig })}
+                        style={{ borderRadius: '8px', fontSize: '12px' }}
+                      >
+                        <i className={`la la-${showAdvancedConfig ? 'chevron-up' : 'chevron-down'} mr-2`}></i>
+                        {showAdvancedConfig ? 'Hide' : 'Show'} Advanced Configuration
+                      </button>
+
+                      {showAdvancedConfig && (
+                        <div className="dpc-config-section mt-3 text-left border-top pt-3 px-2">
+                          <h6 className="font-weight-bold text-dark mb-3 d-flex align-items-center" style={{ fontSize: '0.9rem', gap: '6px' }}>
+                            <i className="la fa-cog text-primary" style={{ fontSize: '16px' }}></i> DPC Configuration
+                          </h6>
+
+                          <div className="form-group mb-3">
+                            <label className="small font-weight-bold text-muted mb-1" style={{ fontSize: '11px' }}>APK Download URL</label>
+                            <input
+                              type="text"
+                              className="form-control form-control-sm"
+                              placeholder="https://your-server.com/api/uploads/app.apk"
+                              value={downloadUrl}
+                              onChange={(e) => this.setState({ downloadUrl: e.target.value }, this.generateQR)}
+                              style={{ borderRadius: '6px' }}
                             />
-                            <label className="custom-control-label small text-muted font-weight-bold mt-1" htmlFor="wifiHiddenCheckbox" style={{ cursor: 'pointer' }}>Hidden</label>
+                          </div>
+
+                          <div className="form-group mb-3">
+                            <label className="small font-weight-bold text-muted mb-1" style={{ fontSize: '11px' }}>Signature Checksum (SHA-256)</label>
+                            <input
+                              type="text"
+                              className="form-control form-control-sm"
+                              placeholder="FB:14:AD:27:..."
+                              value={signatureChecksum}
+                              onChange={(e) => this.setState({ signatureChecksum: e.target.value }, this.generateQR)}
+                              style={{ borderRadius: '6px', fontFamily: 'monospace', fontSize: '0.75rem' }}
+                            />
+                          </div>
+
+                          <div className="form-group mb-0">
+                            <label className="small font-weight-bold text-muted mb-1" style={{ fontSize: '11px' }}>Enrollment Token</label>
+                            <input
+                              type="text"
+                              className="form-control form-control-sm"
+                              placeholder="Auto-generated or custom token"
+                              value={enrollmentToken}
+                              onChange={(e) => this.setState({ enrollmentToken: e.target.value }, this.generateQR)}
+                              style={{ borderRadius: '6px', fontFamily: 'monospace', fontSize: '0.75rem' }}
+                            />
+                            <small className="text-muted" style={{ fontSize: '10px' }}>Leave empty to auto-generate</small>
                           </div>
                         </div>
-                      </div>
+                      )}
                     </div>
 
-                    {wifiSecurityType !== "NONE" && (
-                      <div className="form-group mb-0">
-                        <label className="small font-weight-bold text-muted mb-1" style={{ fontSize: '11px' }}>Wi-Fi Password</label>
+                    {/* Optional Wi-Fi Pre-Configuration Form */}
+                    <div className="wifi-config-section mt-4 w-100 text-left border-top pt-4 px-2">
+                      <h6 className="font-weight-bold text-dark mb-3 d-flex align-items-center" style={{ fontSize: '0.9rem', gap: '6px' }}>
+                        <i className="la la-wifi text-primary" style={{ fontSize: '16px' }}></i> Pre-Configure Wi-Fi (Optional)
+                      </h6>
+                      
+                      <div className="form-group mb-2">
+                        <label className="small font-weight-bold text-muted mb-1" style={{ fontSize: '11px' }}>Wi-Fi SSID</label>
                         <input 
-                          type="password" 
+                          type="text" 
                           className="form-control form-control-sm" 
-                          placeholder="Enter Wi-Fi password"
-                          value={wifiPassword}
-                           onChange={(e) => this.handleWifiChange('wifiPassword', e.target.value)}
+                          placeholder="e.g. School_Staff_WiFi"
+                          value={wifiSsid}
+                          onChange={(e) => this.handleWifiChange('wifiSsid', e.target.value)}
                           style={{ borderRadius: '6px' }}
                         />
                       </div>
-                    )}
-                  </div>
-                </div>
 
-                {/* Right Side: MDM Dashboard or Guide */}
-                <div className="p-4 flex-grow-1" style={{ backgroundColor: '#ffffff', overflowY: 'auto', maxHeight: '80vh' }}>
-                  
-                  {this.state.localServiceConnected ? (
-                    <div className="h-100 d-flex flex-column">
-                      <div className="d-flex justify-content-between align-items-center mb-3">
-                        <h6 className="font-weight-bold text-success m-0 d-flex align-items-center">
-                          <i className="la la-check-circle mr-2" style={{ fontSize: '24px' }}></i>
-                          Local Service Connected
-                        </h6>
-                        <button 
-                          className="btn btn-outline-primary btn-sm rounded-pill font-weight-bold shadow-sm"
-                          onClick={this.installPlatformTools}
-                          disabled={this.state.setupLoading}
-                        >
-                          {this.state.setupLoading ? <i className="la la-spinner la-spin mr-1"></i> : <i className="la la-tools mr-1"></i>}
-                          Setup ADB Tools
-                        </button>
-                      </div>
-
-                      <div className="card border-0 bg-light rounded-lg mb-3 shadow-sm flex-grow-1 d-flex flex-column">
-                        <div className="card-body p-3 d-flex flex-column">
-                          <h6 className="font-weight-bold text-dark mb-2" style={{ fontSize: '13px' }}>
-                            <i className="la la-usb mr-2 text-primary"></i>
-                            Connected Fleet Devices
-                          </h6>
-                          <div className="flex-grow-1" style={{ overflowY: 'auto' }}>
-                            {Object.keys(this.state.localDevices).length === 0 ? (
-                              <div className="text-muted small text-center py-4">
-                                Waiting for devices... (Plug in via USB)
-                              </div>
-                            ) : (
-                              <div className="table-responsive">
-                                <table className="table table-sm table-borderless align-middle mb-0" style={{ fontSize: '12px' }}>
-                                  <thead className="text-muted border-bottom">
-                                    <tr>
-                                      <th>Device ID</th>
-                                      <th>Battery</th>
-                                      <th>Progress</th>
-                                      <th>CPU/RAM</th>
-                                      <th className="text-right">Action</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {Object.entries(this.state.localDevices).map(([serial, state]) => {
-                                      const isBatteryLow = parseInt(state.battery) < 20;
-                                      return (
-                                        <tr key={serial} className="border-bottom">
-                                          <td className="font-weight-bold py-2">{serial}</td>
-                                          <td className={`font-weight-bold py-2 ${isBatteryLow ? 'text-danger' : 'text-success'}`}>
-                                            <i className="la la-battery-half mr-1"></i>
-                                            {state.battery}%
-                                          </td>
-                                          <td className="py-2 text-primary font-weight-bold">
-                                            {state.progress}
-                                          </td>
-                                          <td className="py-2 text-muted">
-                                            {state.stats.cpu} / {state.stats.memory}
-                                          </td>
-                                          <td className="py-2 text-right">
-                                            <button 
-                                              onClick={() => this.rebootDevice(serial)} 
-                                              className="btn btn-xs btn-outline-danger py-0 px-2 font-weight-bold" 
-                                              style={{ fontSize: '10px', borderRadius: '4px' }}
-                                            >
-                                              <i className="la la-redo mr-1"></i> Reboot
-                                            </button>
-                                          </td>
-                                        </tr>
-                                      );
-                                    })}
-                                  </tbody>
-                                </table>
-                              </div>
-                            )}
+                      <div className="row mb-2">
+                        <div className="col-6 pr-1">
+                          <div className="form-group mb-0">
+                            <label className="small font-weight-bold text-muted mb-1" style={{ fontSize: '11px' }}>Security</label>
+                            <select 
+                              className="form-control form-control-sm"
+                              value={wifiSecurityType}
+                              onChange={(e) => this.handleWifiChange('wifiSecurityType', e.target.value)}
+                              style={{ borderRadius: '6px' }}
+                            >
+                              <option value="WPA">WPA/WPA2</option>
+                              <option value="WEP">WEP</option>
+                              <option value="NONE">None (Open)</option>
+                            </select>
+                          </div>
+                        </div>
+                        
+                        <div className="col-6 pl-1">
+                          <div className="form-group mb-0">
+                            <label className="small font-weight-bold text-muted mb-1" style={{ fontSize: '11px' }}>Network Visibility</label>
+                            <div className="custom-control custom-checkbox mt-1">
+                              <input 
+                                type="checkbox" 
+                                className="custom-control-input" 
+                                id="wifiHiddenCheckbox"
+                                checked={wifiHidden}
+                                onChange={(e) => this.handleWifiChange('wifiHidden', e.target.checked)}
+                              />
+                              <label className="custom-control-label small text-muted font-weight-bold mt-1" htmlFor="wifiHiddenCheckbox" style={{ cursor: 'pointer' }}>Hidden</label>
+                            </div>
                           </div>
                         </div>
                       </div>
 
+                      {wifiSecurityType !== "NONE" && (
+                        <div className="form-group mb-0">
+                          <label className="small font-weight-bold text-muted mb-1" style={{ fontSize: '11px' }}>Wi-Fi Password</label>
+                          <input 
+                            type="password" 
+                            className="form-control form-control-sm" 
+                            placeholder="Enter Wi-Fi password"
+                            value={wifiPassword}
+                             onChange={(e) => this.handleWifiChange('wifiPassword', e.target.value)}
+                            style={{ borderRadius: '6px' }}
+                          />
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <div>
-                      {/* Security Benefits Section (Reduced Text) */}
-                      <div className="mb-4">
-                        <h6 className="font-weight-bold text-dark mb-3 d-flex align-items-center" style={{ fontSize: '1rem' }}>
+                  </div>
+
+                  {/* Right Side: Features Guide */}
+                  <div className="p-4 flex-grow-1 d-flex flex-column align-items-center justify-content-center" style={{ backgroundColor: '#ffffff' }}>
+                    <div style={{ maxWidth: '400px' }}>
+                      <div className="mb-5 text-center">
+                        <i className="la la-qrcode text-primary mb-3" style={{ fontSize: '48px' }}></i>
+                        <h5 className="font-weight-bold text-dark">Enroll via Camera</h5>
+                        <p className="text-muted small mb-0">Tap the welcome screen 6 times on a factory-reset tablet to open the QR scanner, then scan the code to instantly enroll the device.</p>
+                      </div>
+
+                      <div className="security-benefits border-top pt-4">
+                        <h6 className="font-weight-bold text-dark mb-4 text-center" style={{ fontSize: '1rem' }}>
                           <i className="la la-shield-alt text-primary mr-2" style={{ fontSize: '20px' }}></i>
                           Security Benefits
                         </h6>
 
-                        <div className="security-benefits" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div className="security-benefits" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                           <div className="benefit-item">
-                            <div className="d-flex align-items-start" style={{ gap: '10px' }}>
-                              <i className="la la-lock text-primary mt-1" style={{ fontSize: '16px' }}></i>
+                            <div className="d-flex align-items-start" style={{ gap: '15px' }}>
+                              <div className="bg-light p-2 rounded-circle">
+                                <i className="la la-lock text-primary" style={{ fontSize: '20px' }}></i>
+                              </div>
                               <div>
-                                <h6 className="font-weight-bold text-dark mb-1" style={{ fontSize: '13px' }}>App Locking</h6>
-                                <p className="text-muted m-0" style={{ fontSize: '12px', lineHeight: '1.4' }}>
+                                <h6 className="font-weight-bold text-dark mb-1" style={{ fontSize: '14px' }}>App Locking</h6>
+                                <p className="text-muted m-0" style={{ fontSize: '13px', lineHeight: '1.4' }}>
                                   Locked to ShulePlus only. Kids cannot exit or open other apps.
                                 </p>
                               </div>
@@ -679,11 +641,13 @@ class QRModal extends React.Component {
                           </div>
 
                           <div className="benefit-item">
-                            <div className="d-flex align-items-start" style={{ gap: '10px' }}>
-                              <i className="la fa-user-shield text-primary mt-1" style={{ fontSize: '16px' }}></i>
+                            <div className="d-flex align-items-start" style={{ gap: '15px' }}>
+                              <div className="bg-light p-2 rounded-circle">
+                                <i className="la fa-user-shield text-primary" style={{ fontSize: '20px' }}></i>
+                              </div>
                               <div>
-                                <h6 className="font-weight-bold text-dark mb-1" style={{ fontSize: '13px' }}>Burglar Protection</h6>
-                                <p className="text-muted m-0" style={{ fontSize: '12px', lineHeight: '1.4' }}>
+                                <h6 className="font-weight-bold text-dark mb-1" style={{ fontSize: '14px' }}>Burglar Protection</h6>
+                                <p className="text-muted m-0" style={{ fontSize: '13px', lineHeight: '1.4' }}>
                                   Thieves cannot factory reset or bypass security via USB.
                                 </p>
                               </div>
@@ -691,11 +655,13 @@ class QRModal extends React.Component {
                           </div>
                           
                           <div className="benefit-item">
-                            <div className="d-flex align-items-start" style={{ gap: '10px' }}>
-                              <i className="la fa-users text-primary mt-1" style={{ fontSize: '16px' }}></i>
+                            <div className="d-flex align-items-start" style={{ gap: '15px' }}>
+                              <div className="bg-light p-2 rounded-circle">
+                                <i className="la fa-users text-primary" style={{ fontSize: '20px' }}></i>
+                              </div>
                               <div>
-                                <h6 className="font-weight-bold text-dark mb-1" style={{ fontSize: '13px' }}>Multi-Tablet Management</h6>
-                                <p className="text-muted m-0" style={{ fontSize: '12px', lineHeight: '1.4' }}>
+                                <h6 className="font-weight-bold text-dark mb-1" style={{ fontSize: '14px' }}>Multi-Tablet Management</h6>
+                                <p className="text-muted m-0" style={{ fontSize: '13px', lineHeight: '1.4' }}>
                                   Each device is enrolled with your school's unique token.
                                 </p>
                               </div>
@@ -703,79 +669,187 @@ class QRModal extends React.Component {
                           </div>
                         </div>
                       </div>
+                    </div>
+                  </div>
 
-                      {/* Mass Onboarding Section */}
-                      <div className="card shadow-sm border-0 mb-4 rounded-lg" style={{ background: "linear-gradient(145deg, #f0f4f8, #e2e8f0)" }}>
-                        <div className="card-header bg-transparent border-bottom-0 pt-4 pb-0 d-flex justify-content-between align-items-center">
-                          <h6 className="font-weight-bold text-dark mb-0">
-                            <i className="la la-bolt text-warning mr-2"></i> Zero-Click Mass Onboarding
+                </div>
+              )}
+
+              {activeTab === 'usb' && (
+                <div className="d-flex flex-wrap flex-md-nowrap align-items-stretch" style={{ minHeight: '600px' }}>
+                  
+                  {/* Left Sidebar: Tool Download */}
+                  <div className="p-4 bg-light border-right d-flex flex-column" style={{ flex: '0 0 340px' }}>
+                    <h6 className="font-weight-bold text-dark mb-3">
+                      <i className="la la-bolt text-warning mr-2"></i> Mass Onboarding Tool
+                    </h6>
+                    <p className="text-muted small mb-4" style={{ lineHeight: '1.5' }}>
+                      Download the MDM Support Tool to enable zero-click USB onboarding. Once running on your computer, this screen will automatically connect to it.
+                    </p>
+                    
+                    <div className="d-flex flex-column mb-4" style={{ gap: '8px' }}>
+                      <a href={toolUrls.windows || '#'} download={!!toolUrls.windows} className={`btn btn-primary btn-sm rounded-pill font-weight-bold shadow-sm ${!toolUrls.windows ? 'disabled' : ''}`}>
+                        <i className="la la-windows mr-1"></i> Download for Windows
+                      </a>
+                      <a href={toolUrls.mac || '#'} download={!!toolUrls.mac} className={`btn btn-dark btn-sm rounded-pill font-weight-bold shadow-sm ${!toolUrls.mac ? 'disabled' : ''}`}>
+                        <i className="la la-apple mr-1"></i> Download for Mac
+                      </a>
+                      <a href={toolUrls.linux || '#'} download={!!toolUrls.linux} className={`btn btn-info btn-sm rounded-pill font-weight-bold shadow-sm text-white ${!toolUrls.linux ? 'disabled' : ''}`}>
+                        <i className="la la-linux mr-1"></i> Download for Linux
+                      </a>
+                      <button className="btn btn-outline-secondary btn-sm rounded-pill font-weight-bold shadow-sm mt-2" onClick={this.fetchApkInfo} disabled={this.state.isFetchingTools}>
+                        <i className={`la la-sync mr-1 ${this.state.isFetchingTools ? 'la-spin' : ''}`}></i> Refresh Links
+                      </button>
+                    </div>
+
+                    <div className="bg-white p-3 rounded border text-left shadow-sm mb-4">
+                      <h6 className="font-weight-bold text-dark mb-2" style={{ fontSize: '13px' }}>
+                        <i className="la la-info-circle mr-1 text-primary"></i> Setup Instructions
+                      </h6>
+                      <ul className="text-muted small mb-0 pl-3" style={{ lineHeight: '1.5' }}>
+                        <li className="mb-1"><strong>Windows:</strong> Double-click the downloaded <code>.exe</code> file.</li>
+                        <li className="mb-1"><strong>Mac:</strong> Terminal: <code>xattr -d com.apple.quarantine &lt;file&gt;</code> then <code>chmod +x &lt;file&gt;</code>, and execute it.</li>
+                        <li className="mb-1"><strong>Linux:</strong> Terminal: <code>chmod +x &lt;file&gt;</code> and execute it.</li>
+                        <li><strong>To Exit:</strong> Press <code>q</code>, <code>Esc</code>, or <code>Ctrl+C</code> in the terminal to safely stop the tool.</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="alert alert-warning m-0 p-3 shadow-sm" style={{ fontSize: '12px', borderLeft: '4px solid #ffb822' }}>
+                      
+                      <ol className="mb-0 pl-3">
+                        <li>Settings &gt; About tablet</li>
+                        <li>Tap Build number 7 times</li>
+                        <li>System &gt; Developer options</li>
+                        <li>Toggle USB Debugging ON</li>
+                      </ol>
+                    </div>
+                  </div>
+
+                  {/* Right Content: Fleet & Logs */}
+                  <div className="p-4 flex-grow-1 d-flex flex-column" style={{ backgroundColor: '#ffffff' }}>
+                    {this.state.localServiceConnected ? (
+                      <>
+                        <div className="d-flex justify-content-between align-items-center mb-3">
+                          <h6 className="font-weight-bold text-success m-0 d-flex align-items-center">
+                            <i className="la la-check-circle mr-2" style={{ fontSize: '24px' }}></i>
+                            Local Service Connected
                           </h6>
                           <button 
-                            className="btn btn-sm btn-outline-secondary rounded-pill font-weight-bold shadow-sm" 
-                            onClick={this.fetchApkInfo}
-                            disabled={this.state.isFetchingTools}
+                            className="btn btn-outline-primary btn-sm rounded-pill font-weight-bold shadow-sm"
+                            onClick={this.installPlatformTools}
+                            disabled={this.state.setupLoading}
                           >
-                            <i className={`la la-sync mr-1 ${this.state.isFetchingTools ? 'la-spin' : ''}`}></i> Refresh
+                            {this.state.setupLoading ? <i className="la la-spinner la-spin mr-1"></i> : <i className="la la-tools mr-1"></i>}
+                            Setup ADB Tools
                           </button>
                         </div>
-                        <div className="card-body">
-                          <p className="text-muted small mb-3">
-                            Download the MDM Support Tool to enable zero-click USB onboarding. Once running on your computer, this screen will automatically connect to it and display live onboarding logs and USB device status right here.
-                          </p>
-                          <div className="d-flex flex-wrap mb-3 justify-content-center" style={{ gap: '8px' }}>
-                            <a href={toolUrls.windows || '#'} download={!!toolUrls.windows} className={`btn btn-primary btn-sm rounded-pill font-weight-bold shadow-sm flex-fill ${!toolUrls.windows ? 'disabled' : ''}`}>
-                              <i className="la la-windows mr-1"></i> Windows
-                            </a>
-                            <a href={toolUrls.mac || '#'} download={!!toolUrls.mac} className={`btn btn-dark btn-sm rounded-pill font-weight-bold shadow-sm flex-fill ${!toolUrls.mac ? 'disabled' : ''}`}>
-                              <i className="la la-apple mr-1"></i> Mac
-                            </a>
-                            <a href={toolUrls.linux || '#'} download={!!toolUrls.linux} className={`btn btn-info btn-sm rounded-pill font-weight-bold shadow-sm flex-fill text-white ${!toolUrls.linux ? 'disabled' : ''}`}>
-                              <i className="la la-linux mr-1"></i> Linux
-                            </a>
-                          </div>
-                          
-                          <div className="bg-white p-3 rounded border text-left shadow-sm">
+
+                        <div className="card border-0 bg-light rounded-lg mb-3 shadow-sm d-flex flex-column" style={{ flex: '1 1 50%', minHeight: '200px' }}>
+                          <div className="card-body p-3 d-flex flex-column h-100">
                             <h6 className="font-weight-bold text-dark mb-2" style={{ fontSize: '13px' }}>
-                              <i className="la la-info-circle mr-1 text-primary"></i> Setup Instructions
+                              <i className="la la-usb mr-2 text-primary"></i>
+                              Connected Fleet Devices
                             </h6>
-                            <ul className="text-muted small mb-3 pl-3" style={{ lineHeight: '1.5' }}>
-                              <li><strong>Windows:</strong> Double-click the downloaded <code>.exe</code> file to run it.</li>
-                              <li><strong>Mac:</strong> Open Terminal, run <code>xattr -d com.apple.quarantine &lt;file&gt;</code> then <code>chmod +x &lt;file&gt;</code>, and execute it.</li>
-                              <li><strong>Linux:</strong> Open Terminal, run <code>chmod +x &lt;file&gt;</code> and execute it.</li>
-                            </ul>
-                            
-                            <div className="alert alert-warning m-0 p-3" style={{ fontSize: '12px' }}>
-                              <div className="d-flex align-items-center mb-2">
-                                <i className="la la-exclamation-triangle mr-2 text-warning" style={{ fontSize: '20px' }}></i>
-                                <strong>Important: Turn on USB Debugging first!</strong>
-                              </div>
-                              <ol className="mb-0 pl-3">
-                                <li>Open <b>Settings</b> &gt; <b>About tablet</b></li>
-                                <li>Tap <b>Build number</b> 7 times rapidly to unlock developer mode</li>
-                                <li>Go back to <b>System</b> &gt; <b>Developer options</b></li>
-                                <li>Toggle <b>USB Debugging</b> ON</li>
-                              </ol>
+                            <div className="flex-grow-1" style={{ overflowY: 'auto' }}>
+                              {Object.keys(this.state.localDevices).length === 0 ? (
+                                <div className="text-muted small text-center py-4 d-flex flex-column align-items-center justify-content-center h-100">
+                                  <i className="la la-plug mb-2 text-muted" style={{ fontSize: '32px', opacity: 0.5 }}></i>
+                                  Waiting for devices... (Plug in via USB)
+                                </div>
+                              ) : (
+                                <div className="table-responsive">
+                                  <table className="table table-sm table-borderless align-middle mb-0" style={{ fontSize: '12px' }}>
+                                    <thead className="text-muted border-bottom">
+                                      <tr>
+                                        <th>Device ID</th>
+                                        <th>Battery</th>
+                                        <th>Progress</th>
+                                        <th>CPU / RAM</th>
+                                        <th className="text-right">Action</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {Object.entries(this.state.localDevices).map(([serial, state]) => {
+                                        const isBatteryLow = parseInt(state.battery) < 20;
+                                        return (
+                                          <tr key={serial} className="border-bottom">
+                                            <td className="font-weight-bold py-2">{serial}</td>
+                                            <td className={`font-weight-bold py-2 ${isBatteryLow ? 'text-danger' : 'text-success'}`}>
+                                              <i className={`la la-battery-${isBatteryLow ? 'quarter' : 'full'} mr-1`}></i>
+                                              {state.battery}%
+                                            </td>
+                                            <td className="py-2 text-primary font-weight-bold">
+                                              {state.progress}
+                                            </td>
+                                            <td className="py-2 text-muted">
+                                              {this.formatCpu(state.stats?.cpu)} / {state.stats?.memory || '-'}
+                                            </td>
+                                            <td className="py-2 text-right">
+                                              <button 
+                                                onClick={() => this.rebootDevice(serial)} 
+                                                className="btn btn-xs btn-outline-danger py-0 px-2 font-weight-bold shadow-sm" 
+                                                style={{ fontSize: '10px', borderRadius: '4px' }}
+                                              >
+                                                <i className="la la-redo mr-1"></i> Reboot
+                                              </button>
+                                            </td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </div>
-                  )}
+
+                        <div className="card border-0 bg-dark rounded-lg shadow-sm d-flex flex-column mt-2" style={{ flex: '1 1 50%', minHeight: '200px' }}>
+                          <div className="card-header bg-dark border-bottom border-secondary p-2 d-flex justify-content-between align-items-center">
+                             <h6 className="font-weight-bold text-light m-0 ml-2" style={{ fontSize: '12px', letterSpacing: '0.5px' }}>
+                               <i className="la la-terminal mr-2"></i> Session Logs
+                             </h6>
+                             <div className="d-flex align-items-center">
+                               <span className="badge badge-success badge-pill" style={{ fontSize: '9px' }}>Live</span>
+                             </div>
+                          </div>
+                          <div className="card-body p-3" style={{ overflowY: 'auto', fontFamily: 'monospace', fontSize: '11px', color: '#00ff00', backgroundColor: '#1e1e1e' }}>
+                            {localLogs.length === 0 ? (
+                              <div className="text-muted text-center pt-3">Waiting for local MDM logs...</div>
+                            ) : (
+                              localLogs.map((log, i) => (
+                                <div key={i} style={{ wordBreak: 'break-all', marginBottom: '4px' }}>
+                                  <span style={{ opacity: 0.5 }}>&gt; </span>{log}
+                                </div>
+                              ))
+                            )}
+                            <div ref={(el) => { this.logsEnd = el; }}></div>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                       <div className="d-flex flex-column align-items-center justify-content-center h-100 text-center text-muted">
+                          <i className="la la-exclamation-circle mb-3" style={{ fontSize: '48px', opacity: 0.3 }}></i>
+                          <h5>Local Service Not Connected</h5>
+                          <p className="small mb-0 mt-2">Start the MDM Support Tool on your computer.</p>
+                       </div>
+                    )}
+                  </div>
 
                 </div>
+              )}
 
-              </div>
             </div>
 
             {/* Footer */}
-            <div className="modal-footer bg-light border-0 p-3 pr-4 d-flex justify-content-end">
+            <div className="modal-footer bg-light border-top p-3 pr-4 d-flex justify-content-end">
               <button 
                 type="button" 
                 className="btn btn-secondary font-weight-bold px-4"
                 onClick={this.handleClose}
                 style={{ borderRadius: '8px' }}
               >
-                Done
+                Close
               </button>
             </div>
           </div>
