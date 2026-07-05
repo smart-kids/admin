@@ -57,6 +57,7 @@
   "scripts": {
     "dev": "cross-env REACT_APP_VERSION=$npm_package_version npx react-app-rewired start",
     "start": "npx serve -s build -l $PORT",
+    "prebuild": "node generate-build-version.js",
     "build": "cross-env REACT_APP_VERSION=$npm_package_version npx react-app-rewired build",
     "prepare-release": "curl -sL https://raw.githubusercontent.com/BransonGitomeh/misc/master/scripts/prepare_release.sh | bash -s",
     "test": "npx react-app-rewired test",
