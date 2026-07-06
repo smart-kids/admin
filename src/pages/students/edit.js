@@ -82,7 +82,7 @@ class Modal extends React.Component {
     const formData = new FormData();
     formData.append("file", file);
     
-    const UPLOAD_URL = `${BASE_URL}/api/upload`;
+    const UPLOAD_URL = `https://graph-ongyy.kinsta.app/upload`;
 
     const response = await fetch(UPLOAD_URL, {
       method: "POST",
