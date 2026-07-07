@@ -232,44 +232,48 @@ class QRModal extends React.Component {
   };
 
   renderLogLine = (log, i) => {
-    const regex = /^(?:\[?(\d{2}:\d{2}:\d{2})\]?\s+)?(?:\[([^\]]+)\]\s+)?(.*)/;
+    const regex = /^(?:\[?(\d{2}:\d{2}:\d{2})\]?\s*)?(?:\[([^\]]+)\]\s*)?(.*)/;
     const match = log.match(regex);
     if (!match) {
       return (
-        <div key={i} style={{ color: '#cccccc', marginBottom: '4px' }}>
-          <span style={{ opacity: 0.3 }}>&gt; </span>{log}
+        <div key={i} style={{ color: '#cccccc', marginBottom: '4px', fontFamily: '"Fira Code", monospace' }}>
+          <span style={{ color: '#666', marginRight: '8px', userSelect: 'none' }}>$</span>{log}
         </div>
       );
     }
 
     const timestamp = match[1];
     const serial = match[2];
-    const content = match[3];
+    const content = match[3] || "";
 
     // Determine content color
-    let contentColor = '#cccccc'; // light gray default
+    let contentColor = '#e0e0e0'; // bright terminal gray/white
     if (content.includes('❌') || content.toLowerCase().includes('failed') || content.toLowerCase().includes('error')) {
-      contentColor = '#ff8a80'; // soft red
+      contentColor = '#ff5252'; // pure error red
     } else if (content.includes('⚠️') || content.toLowerCase().includes('warning')) {
-      contentColor = '#ffe082'; // soft orange/yellow
+      contentColor = '#ffd740'; // amber warning
     } else if (content.includes('✅') || content.includes('🎉') || content.toLowerCase().includes('success') || content.toLowerCase().includes('completed')) {
-      contentColor = '#a5d6a7'; // soft green
+      contentColor = '#69f0ae'; // lime success green
+    } else if (content.includes('⬇️') || content.includes('📱') || content.includes('⚙️')) {
+      contentColor = '#b3e5fc'; // light info blue
     }
 
     return (
-      <div key={i} style={{ wordBreak: 'break-all', marginBottom: '4px', lineHeight: '1.4' }}>
-        <span style={{ opacity: 0.3 }}>&gt; </span>
-        {timestamp && (
-          <span style={{ color: '#80deea', marginRight: '6px', fontSize: '10px' }}>
-            [{timestamp}]
-          </span>
-        )}
-        {serial && (
-          <span style={{ color: '#ce93d8', marginRight: '6px', fontWeight: 'bold' }}>
-            [{serial}]
-          </span>
-        )}
-        <span style={{ color: contentColor }}>{content}</span>
+      <div key={i} style={{ wordBreak: 'break-all', marginBottom: '6px', lineHeight: '1.5', fontFamily: '"Fira Code", monospace', display: 'flex', alignItems: 'flex-start' }}>
+        <span style={{ color: '#555', marginRight: '8px', userSelect: 'none' }}>$</span>
+        <div style={{ display: 'inline-block' }}>
+          {timestamp && (
+            <span style={{ color: '#00e5ff', marginRight: '8px', fontSize: '10.5px', opacity: 0.8 }}>
+              [{timestamp}]
+            </span>
+          )}
+          {serial && (
+            <span style={{ color: '#e040fb', marginRight: '8px', fontWeight: 'bold' }}>
+              [{serial}]
+            </span>
+          )}
+          <span style={{ color: contentColor }}>{content}</span>
+        </div>
       </div>
     );
   };
