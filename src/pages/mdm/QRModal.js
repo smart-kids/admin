@@ -898,7 +898,7 @@ class QRModal extends React.Component {
                                             <td className="font-weight-bold py-2">{serial}</td>
                                             <td className={`font-weight-bold py-2 ${isBatteryLow ? 'text-danger' : 'text-success'}`}>
                                               <i className={`la la-battery-${isBatteryLow ? 'quarter' : 'full'} mr-1`}></i>
-                                              {state.battery}%
+                                              {state.battery}
                                             </td>
                                             <td className="py-2 text-primary font-weight-bold" style={{ minWidth: '180px' }}>
                                               {(() => {
@@ -924,29 +924,9 @@ class QRModal extends React.Component {
                                                 const { progress, downloadStats } = dState;
                                                 
                                                 return (
-                                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '10px' }}>
-                                                      <span className="text-primary font-weight-bold">{progress}%</span>
-                                                      {downloadStats && downloadStats.etaSeconds !== null && (
-                                                        <span className="text-info font-weight-bold">
-                                                          {downloadStats.etaSeconds}s left
-                                                        </span>
-                                                      )}
-                                                    </div>
-                                                    
-                                                    <div className="progress" style={{ height: '6px', borderRadius: '3px', backgroundColor: '#e9ecef', overflow: 'hidden', margin: '2px 0' }}>
-                                                      <div 
-                                                        className="progress-bar progress-bar-striped progress-bar-animated bg-success" 
-                                                        style={{ width: `${progress}%`, height: '100%', transition: 'width 0.4s ease' }}
-                                                      ></div>
-                                                    </div>
-                                                    
-                                                    {downloadStats ? (
-                                                      <span className="text-muted" style={{ fontSize: '9px', whiteSpace: 'nowrap' }}>
-                                                        {downloadStats.downloadedMb.toFixed(2)} / {downloadStats.totalMb ? downloadStats.totalMb.toFixed(2) : '?'} MB @ {downloadStats.speedMbs.toFixed(1)} MB/s
-                                                      </span>
-                                                    ) : (
-                                                      <span className="text-muted" style={{ fontSize: '9px' }}>
+                                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                      <span className="text-dark font-weight-bold" style={{ fontSize: '12px' }}>
                                                         {progress < 20 ? 'Initializing...' :
                                                          progress < 50 ? 'Downloading APK...' :
                                                          progress < 60 ? 'Installing APK...' :
@@ -954,7 +934,35 @@ class QRModal extends React.Component {
                                                          'Configuring...'
                                                         }
                                                       </span>
-                                                    )}
+                                                      <span className="text-primary font-weight-bold" style={{ fontSize: '12px' }}>
+                                                        {progress}%
+                                                      </span>
+                                                    </div>
+                                                    
+                                                    <div className="progress" style={{ height: '8px', borderRadius: '4px', backgroundColor: '#e9ecef', overflow: 'hidden', margin: '2px 0' }}>
+                                                      <div 
+                                                        className="progress-bar progress-bar-striped progress-bar-animated bg-success" 
+                                                        style={{ width: `${progress}%`, height: '100%', transition: 'width 0.4s ease' }}
+                                                      ></div>
+                                                    </div>
+                                                    
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', fontWeight: 'bold' }} className="text-muted">
+                                                      {downloadStats ? (
+                                                        <>
+                                                          <span>
+                                                            {downloadStats.downloadedMb.toFixed(2)} / {downloadStats.totalMb ? downloadStats.totalMb.toFixed(2) : '?'} MB
+                                                          </span>
+                                                          <span>
+                                                            {downloadStats.speedMbs.toFixed(1)} MB/s
+                                                            {downloadStats.etaSeconds !== null && ` (${downloadStats.etaSeconds}s left)`}
+                                                          </span>
+                                                        </>
+                                                      ) : (
+                                                        <span style={{ fontSize: '10px', opacity: 0.7 }}>
+                                                          MDM Service Active
+                                                        </span>
+                                                      )}
+                                                    </div>
                                                   </div>
                                                 );
                                               })()}
