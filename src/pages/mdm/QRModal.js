@@ -10,7 +10,7 @@ const MODAL_ID = "qr_onboarding_modal_" + Math.random().toString(36).substr(2, 9
 
 class QRModal extends React.Component {
   WIFI_STORAGE_KEY = 'qrmodal_wifi_config';
-  API_BASE = `${BASE_URL}/api`;
+  API_BASE = BASE_URL;
 
   state = {
     qrUrl: "",
@@ -94,6 +94,7 @@ class QRModal extends React.Component {
         if (!this.state.localServiceConnected) {
           this.setState({ localServiceConnected: true });
           this.authenticateLocalService();
+          this.connectLocalLogs();
         }
         this.setState({ localDevices: devicesMap || {} });
         this.autoOnboardDevices(Object.keys(devicesMap || {}));
@@ -115,7 +116,7 @@ class QRModal extends React.Component {
   authenticateLocalService = async () => {
     if (this.state.localServiceAuthenticated) return;
     const schoolId = localStorage.getItem("school");
-    const apiBase = `${BASE_URL}/api`;
+    const apiBase = BASE_URL;
     
     const tokenData = this.state.enrollmentToken ? { token: this.state.enrollmentToken } : await this.generateEnrollmentToken(schoolId);
     
@@ -135,6 +136,7 @@ class QRModal extends React.Component {
 
   connectLocalLogs = () => {
     if (this.eventSource) this.eventSource.close();
+    this.setState({ localLogs: ["🔌 Connected to local MDM service logs stream."] });
     this.eventSource = Data.localMdm.connectLogs(
       (event) => {
         const msg = event.data;
@@ -178,6 +180,49 @@ class QRModal extends React.Component {
       () => {
         // error handling handled by poll failure
       }
+    );
+  };
+
+  renderLogLine = (log, i) => {
+    const regex = /^(?:\[?(\d{2}:\d{2}:\d{2})\]?\s+)?(?:\[([^\]]+)\]\s+)?(.*)/;
+    const match = log.match(regex);
+    if (!match) {
+      return (
+        <div key={i} style={{ color: '#cccccc', marginBottom: '4px' }}>
+          <span style={{ opacity: 0.3 }}>&gt; </span>{log}
+        </div>
+      );
+    }
+
+    const timestamp = match[1];
+    const serial = match[2];
+    const content = match[3];
+
+    // Determine content color
+    let contentColor = '#cccccc'; // light gray default
+    if (content.includes('❌') || content.toLowerCase().includes('failed') || content.toLowerCase().includes('error')) {
+      contentColor = '#ff8a80'; // soft red
+    } else if (content.includes('⚠️') || content.toLowerCase().includes('warning')) {
+      contentColor = '#ffe082'; // soft orange/yellow
+    } else if (content.includes('✅') || content.includes('🎉') || content.toLowerCase().includes('success') || content.toLowerCase().includes('completed')) {
+      contentColor = '#a5d6a7'; // soft green
+    }
+
+    return (
+      <div key={i} style={{ wordBreak: 'break-all', marginBottom: '4px', lineHeight: '1.4' }}>
+        <span style={{ opacity: 0.3 }}>&gt; </span>
+        {timestamp && (
+          <span style={{ color: '#80deea', marginRight: '6px', fontSize: '10px' }}>
+            [{timestamp}]
+          </span>
+        )}
+        {serial && (
+          <span style={{ color: '#ce93d8', marginRight: '6px', fontWeight: 'bold' }}>
+            [{serial}]
+          </span>
+        )}
+        <span style={{ color: contentColor }}>{content}</span>
+      </div>
     );
   };
 
@@ -849,15 +894,11 @@ class QRModal extends React.Component {
                                <span className="badge badge-success badge-pill" style={{ fontSize: '9px' }}>Live</span>
                              </div>
                           </div>
-                          <div className="card-body p-3" style={{ overflowY: 'auto', fontFamily: 'monospace', fontSize: '11px', color: '#00ff00', backgroundColor: '#1e1e1e' }}>
+                          <div className="card-body p-3" style={{ overflowY: 'auto', fontFamily: 'monospace', fontSize: '11px', color: '#cccccc', backgroundColor: '#181818', border: '1px solid #333' }}>
                             {localLogs.length === 0 ? (
                               <div className="text-muted text-center pt-3">Waiting for local MDM logs...</div>
                             ) : (
-                              localLogs.map((log, i) => (
-                                <div key={i} style={{ wordBreak: 'break-all', marginBottom: '4px' }}>
-                                  <span style={{ opacity: 0.5 }}>&gt; </span>{log}
-                                </div>
-                              ))
+                              localLogs.map((log, i) => this.renderLogLine(log, i))
                             )}
                             <div ref={(el) => { this.logsEnd = el; }}></div>
                           </div>

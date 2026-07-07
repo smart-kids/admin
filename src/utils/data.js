@@ -12,6 +12,7 @@ const log = debug("shuleplus:data");
 window.__debugState = {
     requests: [],
     socketConnected: false,
+    socketStatus: 'connecting',
     pingMs: 0
 };
 const emitDebug = () => window.dispatchEvent(new Event('debug_update'));
@@ -19,7 +20,7 @@ const emitDebug = () => window.dispatchEvent(new Event('debug_update'));
 // Socket.IO configuration
 // WebSockets MUST bypass the Netlify serverless proxy because serverless functions 
 // do not support long-lived TCP connections. We connect directly to the true Kinsta backend.
-const SOCKET_URL = BASE_URL;
+const SOCKET_URL = "https://graph-ongyy.kinsta.app";
 const socket = io(SOCKET_URL, {
     withCredentials: true,
     transports: ["websocket"],
@@ -40,6 +41,7 @@ setInterval(() => {
 // Authenticate socket on connection
 socket.on("connect", () => {
     window.__debugState.socketConnected = true;
+    window.__debugState.socketStatus = 'connected';
     emitDebug();
     const token = localStorage.getItem("token");
     if (token) {
@@ -49,6 +51,28 @@ socket.on("connect", () => {
 
 socket.on("disconnect", () => {
     window.__debugState.socketConnected = false;
+    window.__debugState.socketStatus = 'disconnected';
+    emitDebug();
+});
+
+socket.on("connect_error", () => {
+    window.__debugState.socketConnected = false;
+    window.__debugState.socketStatus = 'disconnected';
+    emitDebug();
+});
+
+socket.io.on("reconnect_attempt", () => {
+    window.__debugState.socketStatus = 'connecting';
+    emitDebug();
+});
+
+socket.io.on("reconnect_error", () => {
+    window.__debugState.socketStatus = 'disconnected';
+    emitDebug();
+});
+
+socket.io.on("reconnect_failed", () => {
+    window.__debugState.socketStatus = 'disconnected';
     emitDebug();
 });
 
