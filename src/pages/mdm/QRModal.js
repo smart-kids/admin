@@ -140,37 +140,85 @@ class QRModal extends React.Component {
     this.eventSource = Data.localMdm.connectLogs(
       (event) => {
         const msg = event.data;
-        const match = msg.match(/^\[\d{2}:\d{2}:\d{2}\]\s(?:\[([^\]]+)\]\s)?(.*)/);
+        const match = msg.match(/^(?:\[?(\d{2}:\d{2}:\d{2})\]?\s+)?(?:\[([^\]]+)\]\s+)?(.*)/);
         let serial = null;
         let content = msg;
-        if (match && match[1]) {
-           serial = match[1];
-           content = match[2];
+        if (match) {
+           serial = match[2] || null;
+           content = match[3] || msg;
         }
 
+        const isDownloadProgress = content.includes("⬇️ Downloading MDM APK:");
+
         this.setState(prev => {
-          const nextState = { localLogs: [...prev.localLogs, msg] };
+          let nextLocalLogs = prev.localLogs;
+          if (!isDownloadProgress) {
+             nextLocalLogs = [...prev.localLogs, msg];
+          }
+
+          const nextState = { localLogs: nextLocalLogs };
           if (serial) {
              const dState = prev.deviceStates[serial] || { status: 'progress', progress: 0, error: '' };
              let newStatus = dState.status;
              let newProgress = dState.progress;
              let newError = dState.error;
+             let newDownloadStats = dState.downloadStats || null;
              
              if (content.includes("❌") || content.includes("⚠️ Failed to launch")) {
                 newStatus = "failed";
                 newError = content.replace(/[❌⚠️]\s*/, "");
+                newDownloadStats = null;
              } else if (content.includes("🎉 Onboarding sequence completed")) {
                 newStatus = "success";
                 newProgress = 100;
+                newDownloadStats = null;
+             } else if (content.includes("✅ APK download complete")) {
+                newProgress = 50;
+                newDownloadStats = null;
+             } else if (isDownloadProgress) {
+                newStatus = "progress";
+                const progressRegex = /⬇️ Downloading MDM APK:\s+([\d\.]+)\s+MB(?:\s+\/\s+([\d\.]+)\s+MB\s+\((\d+)%\))?\s+@\s+([\d\.]+)\s+MB\/s/;
+                const prMatch = content.match(progressRegex);
+                if (prMatch) {
+                   const downloadedMb = parseFloat(prMatch[1]);
+                   const totalMb = prMatch[2] ? parseFloat(prMatch[2]) : null;
+                   const percent = prMatch[3] ? parseInt(prMatch[3]) : null;
+                   const speedMbs = parseFloat(prMatch[4]);
+                   
+                   let etaSeconds = null;
+                   if (totalMb && downloadedMb && speedMbs > 0) {
+                      etaSeconds = Math.max(0, Math.ceil((totalMb - downloadedMb) / speedMbs));
+                   }
+                   
+                   newDownloadStats = {
+                      downloadedMb,
+                      totalMb,
+                      speedMbs,
+                      etaSeconds
+                   };
+                   
+                   if (percent !== null) {
+                      newProgress = Math.round(20 + (percent * 0.3));
+                   }
+                }
              } else if (newStatus !== "failed") {
                 newStatus = "progress";
                 if (content.includes("Fetching MDM token")) newProgress = 20;
-                else if (content.includes("Downloading MDM APK")) newProgress = 40;
+                else if (content.includes("Downloading MDM APK")) newProgress = 20;
                 else if (content.includes("Installing APK on device")) newProgress = 60;
                 else if (content.includes("Setting MDM App as Device Owner")) newProgress = 80;
                 else if (content.includes("Injecting MDM configuration")) newProgress = 90;
              }
-             nextState.deviceStates = { ...prev.deviceStates, [serial]: { status: newStatus, progress: newProgress, error: newError } };
+
+             nextState.deviceStates = { 
+                ...prev.deviceStates, 
+                [serial]: { 
+                   status: newStatus, 
+                   progress: newProgress, 
+                   error: newError,
+                   downloadStats: newDownloadStats
+                } 
+             };
           }
           return nextState;
         }, () => {
@@ -852,8 +900,64 @@ class QRModal extends React.Component {
                                               <i className={`la la-battery-${isBatteryLow ? 'quarter' : 'full'} mr-1`}></i>
                                               {state.battery}%
                                             </td>
-                                            <td className="py-2 text-primary font-weight-bold">
-                                              {state.progress}
+                                            <td className="py-2 text-primary font-weight-bold" style={{ minWidth: '180px' }}>
+                                              {(() => {
+                                                const dState = this.state.deviceStates[serial];
+                                                if (!dState) return <span className="text-muted">Not Started</span>;
+                                                
+                                                if (dState.status === 'success') {
+                                                  return (
+                                                    <span className="text-success font-weight-bold">
+                                                      <i className="la la-check-circle mr-1"></i> Completed
+                                                    </span>
+                                                  );
+                                                }
+                                                
+                                                if (dState.status === 'failed') {
+                                                  return (
+                                                    <span className="text-danger font-weight-bold" title={dState.error}>
+                                                      <i className="la la-times-circle mr-1"></i> Failed
+                                                    </span>
+                                                  );
+                                                }
+                                                
+                                                const { progress, downloadStats } = dState;
+                                                
+                                                return (
+                                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '10px' }}>
+                                                      <span className="text-primary font-weight-bold">{progress}%</span>
+                                                      {downloadStats && downloadStats.etaSeconds !== null && (
+                                                        <span className="text-info font-weight-bold">
+                                                          {downloadStats.etaSeconds}s left
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                    
+                                                    <div className="progress" style={{ height: '6px', borderRadius: '3px', backgroundColor: '#e9ecef', overflow: 'hidden', margin: '2px 0' }}>
+                                                      <div 
+                                                        className="progress-bar progress-bar-striped progress-bar-animated bg-success" 
+                                                        style={{ width: `${progress}%`, height: '100%', transition: 'width 0.4s ease' }}
+                                                      ></div>
+                                                    </div>
+                                                    
+                                                    {downloadStats ? (
+                                                      <span className="text-muted" style={{ fontSize: '9px', whiteSpace: 'nowrap' }}>
+                                                        {downloadStats.downloadedMb.toFixed(2)} / {downloadStats.totalMb ? downloadStats.totalMb.toFixed(2) : '?'} MB @ {downloadStats.speedMbs.toFixed(1)} MB/s
+                                                      </span>
+                                                    ) : (
+                                                      <span className="text-muted" style={{ fontSize: '9px' }}>
+                                                        {progress < 20 ? 'Initializing...' :
+                                                         progress < 50 ? 'Downloading APK...' :
+                                                         progress < 60 ? 'Installing APK...' :
+                                                         progress < 80 ? 'Setting device owner...' :
+                                                         'Configuring...'
+                                                        }
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                );
+                                              })()}
                                             </td>
                                             <td className="py-2 text-muted">
                                               {this.formatCpu(state.stats?.cpu)} / {state.stats?.memory || '-'}
