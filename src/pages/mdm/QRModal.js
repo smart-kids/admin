@@ -41,7 +41,8 @@ class QRModal extends React.Component {
     toolVersion: "",
     toolUploadedAt: "",
     isFetchingTools: false,
-    activeTab: 'qr' // 'qr' or 'usb'
+    activeTab: 'qr', // 'qr' or 'usb'
+    terminalDarkMode: false
   };
 
   formatCpu = (cpuStr) => {
@@ -232,12 +233,13 @@ class QRModal extends React.Component {
   };
 
   renderLogLine = (log, i) => {
+    const { terminalDarkMode } = this.state;
     const regex = /^(?:\[?(\d{2}:\d{2}:\d{2})\]?\s*)?(?:\[([^\]]+)\]\s*)?(.*)/;
     const match = log.match(regex);
     if (!match) {
       return (
-        <div key={i} style={{ color: '#cccccc', marginBottom: '4px', fontFamily: '"Fira Code", monospace' }}>
-          <span style={{ color: '#666', marginRight: '8px', userSelect: 'none' }}>$</span>{log}
+        <div key={i} style={{ color: terminalDarkMode ? '#cccccc' : '#2b2d42', marginBottom: '4px', fontFamily: '"Fira Code", monospace' }}>
+          <span style={{ color: terminalDarkMode ? '#666' : '#999', marginRight: '8px', userSelect: 'none' }}>$</span>{log}
         </div>
       );
     }
@@ -247,28 +249,28 @@ class QRModal extends React.Component {
     const content = match[3] || "";
 
     // Determine content color
-    let contentColor = '#e0e0e0'; // bright terminal gray/white
+    let contentColor = terminalDarkMode ? '#e0e0e0' : '#2b2d42'; // default text color
     if (content.includes('❌') || content.toLowerCase().includes('failed') || content.toLowerCase().includes('error')) {
-      contentColor = '#ff5252'; // pure error red
+      contentColor = terminalDarkMode ? '#ff5252' : '#c62828'; // red
     } else if (content.includes('⚠️') || content.toLowerCase().includes('warning')) {
-      contentColor = '#ffd740'; // amber warning
+      contentColor = terminalDarkMode ? '#ffd740' : '#f57f17'; // orange/amber
     } else if (content.includes('✅') || content.includes('🎉') || content.toLowerCase().includes('success') || content.toLowerCase().includes('completed')) {
-      contentColor = '#69f0ae'; // lime success green
+      contentColor = terminalDarkMode ? '#69f0ae' : '#2e7d32'; // green
     } else if (content.includes('⬇️') || content.includes('📱') || content.includes('⚙️')) {
-      contentColor = '#b3e5fc'; // light info blue
+      contentColor = terminalDarkMode ? '#b3e5fc' : '#0288d1'; // blue
     }
 
     return (
       <div key={i} style={{ wordBreak: 'break-all', marginBottom: '6px', lineHeight: '1.5', fontFamily: '"Fira Code", monospace', display: 'flex', alignItems: 'flex-start' }}>
-        <span style={{ color: '#555', marginRight: '8px', userSelect: 'none' }}>$</span>
+        <span style={{ color: terminalDarkMode ? '#555' : '#888', marginRight: '8px', userSelect: 'none' }}>$</span>
         <div style={{ display: 'inline-block' }}>
           {timestamp && (
-            <span style={{ color: '#00e5ff', marginRight: '8px', fontSize: '10.5px', opacity: 0.8 }}>
+            <span style={{ color: terminalDarkMode ? '#00e5ff' : '#0288d1', marginRight: '8px', fontSize: '10.5px', opacity: 0.8 }}>
               [{timestamp}]
             </span>
           )}
           {serial && (
-            <span style={{ color: '#e040fb', marginRight: '8px', fontWeight: 'bold' }}>
+            <span style={{ color: terminalDarkMode ? '#e040fb' : '#8e24aa', marginRight: '8px', fontWeight: 'bold' }}>
               [{serial}]
             </span>
           )}
@@ -1001,23 +1003,52 @@ class QRModal extends React.Component {
                           </div>
                         </div>
 
-                        <div className="card border-0 bg-dark rounded-lg shadow-sm d-flex flex-column mt-2" style={{ flex: '1 1 50%', minHeight: '200px' }}>
-                          <div className="card-header bg-dark border-bottom border-secondary p-2 d-flex justify-content-between align-items-center">
-                             <h6 className="font-weight-bold text-light m-0 ml-2" style={{ fontSize: '12px', letterSpacing: '0.5px' }}>
-                               <i className="la la-terminal mr-2"></i> Session Logs
-                             </h6>
-                             <div className="d-flex align-items-center">
-                               <span className="badge badge-success badge-pill" style={{ fontSize: '9px' }}>Live</span>
-                             </div>
-                          </div>
-                          <div className="card-body p-3" style={{ overflowY: 'auto', fontFamily: 'monospace', fontSize: '11px', color: '#cccccc', backgroundColor: '#181818', border: '1px solid #333' }}>
-                            {localLogs.length === 0 ? (
-                              <div className="text-muted text-center pt-3">Waiting for local MDM logs...</div>
-                            ) : (
-                              localLogs.map((log, i) => this.renderLogLine(log, i))
-                            )}
-                            <div ref={(el) => { this.logsEnd = el; }}></div>
-                          </div>
+                        <div 
+                          className={`card border-0 rounded-lg shadow-sm d-flex flex-column mt-2 ${this.state.terminalDarkMode ? 'bg-dark' : 'bg-white border'}`} 
+                          style={{ flex: '1 1 50%', minHeight: '200px', backgroundColor: this.state.terminalDarkMode ? '#1e1e1e' : '#ffffff' }}
+                        >
+                           <div className={`card-header border-bottom p-2 d-flex justify-content-between align-items-center ${this.state.terminalDarkMode ? 'bg-dark border-secondary' : 'bg-light border-light'}`}>
+                              <h6 className={`font-weight-bold m-0 ml-2 ${this.state.terminalDarkMode ? 'text-light' : 'text-dark'}`} style={{ fontSize: '12px', letterSpacing: '0.5px' }}>
+                                <i className="la la-terminal mr-2"></i> Session Logs
+                              </h6>
+                              <div className="d-flex align-items-center" style={{ gap: '8px' }}>
+                                <button 
+                                  onClick={() => this.setState(prev => ({ terminalDarkMode: !prev.terminalDarkMode }))}
+                                  className="btn btn-xs font-weight-bold px-2 py-0 d-flex align-items-center justify-content-center shadow-none"
+                                  style={{ 
+                                    fontSize: '10px', 
+                                    backgroundColor: 'transparent',
+                                    border: 'none',
+                                    color: this.state.terminalDarkMode ? '#a6c5e3' : '#555555',
+                                    cursor: 'pointer'
+                                  }}
+                                  title={this.state.terminalDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+                                >
+                                  <i className={`la la-${this.state.terminalDarkMode ? 'sun text-warning' : 'moon text-primary'} mr-1`} style={{ fontSize: '13px' }}></i>
+                                  {this.state.terminalDarkMode ? "Light" : "Dark"}
+                                </button>
+                                <span className="badge badge-success badge-pill" style={{ fontSize: '9px' }}>Live</span>
+                              </div>
+                           </div>
+                           <div 
+                             className="card-body p-3" 
+                             style={{ 
+                               overflowY: 'auto', 
+                               fontFamily: 'monospace', 
+                               fontSize: '11px', 
+                               color: this.state.terminalDarkMode ? '#cccccc' : '#2b2d42', 
+                               backgroundColor: this.state.terminalDarkMode ? '#181818' : '#f5f6f8', 
+                               border: this.state.terminalDarkMode ? '1px solid #333' : '1px solid #e2e8f0',
+                               flexGrow: 1 
+                             }}
+                           >
+                             {localLogs.length === 0 ? (
+                               <div className="text-muted text-center pt-3">Waiting for local MDM logs...</div>
+                             ) : (
+                               localLogs.map((log, i) => this.renderLogLine(log, i))
+                             )}
+                             <div ref={(el) => { this.logsEnd = el; }}></div>
+                           </div>
                         </div>
                       </>
                     ) : (
