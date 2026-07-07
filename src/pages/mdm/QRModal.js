@@ -42,7 +42,8 @@ class QRModal extends React.Component {
     toolUploadedAt: "",
     isFetchingTools: false,
     activeTab: 'qr', // 'qr' or 'usb'
-    terminalDarkMode: false
+    terminalDarkMode: false,
+    adbVersion: null
   };
 
   formatCpu = (cpuStr) => {
@@ -96,6 +97,7 @@ class QRModal extends React.Component {
           this.setState({ localServiceConnected: true });
           this.authenticateLocalService();
           this.connectLocalLogs();
+          this.fetchAdbVersion();
         }
         this.setState({ localDevices: devicesMap || {} });
         this.autoOnboardDevices(Object.keys(devicesMap || {}));
@@ -132,6 +134,20 @@ class QRModal extends React.Component {
       this.setState({ localServiceAuthenticated: true });
     } catch (e) {
       console.error("Local auth failed", e);
+    }
+  };
+
+  fetchAdbVersion = async () => {
+    try {
+      const res = await fetch("http://localhost:18205/api/adb-version");
+      if (res.ok) {
+        const data = await res.json();
+        this.setState({ adbVersion: data.version });
+      } else {
+        this.setState({ adbVersion: null });
+      }
+    } catch (e) {
+      this.setState({ adbVersion: null });
     }
   };
 
@@ -318,10 +334,11 @@ class QRModal extends React.Component {
     this.setState({ setupLoading: true });
     try {
       await Data.localMdm.setup();
+      await this.fetchAdbVersion();
     } catch (e) {
       console.error(e);
     }
-    setTimeout(() => this.setState({ setupLoading: false }), 30000);
+    this.setState({ setupLoading: false });
   };
 
   generateQR = async () => {
@@ -865,10 +882,14 @@ class QRModal extends React.Component {
                           <button 
                             className="btn btn-outline-primary btn-sm rounded-pill font-weight-bold shadow-sm"
                             onClick={this.installPlatformTools}
-                            disabled={this.state.setupLoading}
+                            disabled={this.state.setupLoading || !!this.state.adbVersion}
                           >
-                            {this.state.setupLoading ? <i className="la la-spinner la-spin mr-1"></i> : <i className="la la-tools mr-1"></i>}
-                            Setup ADB Tools
+                            {this.state.setupLoading ? (
+                              <i className="la la-spinner la-spin mr-1"></i>
+                            ) : (
+                              <i className="la la-tools mr-1"></i>
+                            )}
+                            {this.state.adbVersion ? `ADB: v${this.state.adbVersion}` : "Setup ADB Tools"}
                           </button>
                         </div>
 
