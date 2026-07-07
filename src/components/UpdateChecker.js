@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import buildMeta from '../build-meta.json';
 
-const UPDATE_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const UPDATE_CHECK_INTERVAL = 30 * 60 * 1000; // 30 minutes
 const DISMISS_DURATION = 60 * 60 * 1000; // 1 hour
 
 const UpdateChecker = () => {
   const [updateAvailable, setUpdateAvailable] = useState(false);
 
   useEffect(() => {
+    let timeoutId;
+    let intervalId;
+
     // Check for updates
     const checkForUpdate = async () => {
       try {
@@ -16,6 +19,15 @@ const UpdateChecker = () => {
         if (dismissedUntil && Date.now() < parseInt(dismissedUntil, 10)) {
           return;
         }
+
+        // Check if checked recently across any tab or page reload to prevent log flooding
+        const lastCheck = localStorage.getItem('last_update_check');
+        if (lastCheck && Date.now() - parseInt(lastCheck, 10) < UPDATE_CHECK_INTERVAL) {
+          return;
+        }
+
+        // Set last checked time immediately before fetch to rate limit other tabs
+        localStorage.setItem('last_update_check', Date.now().toString());
 
         const res = await fetch(`/meta.json?t=${Date.now()}`);
         if (!res.ok) return;
@@ -32,12 +44,15 @@ const UpdateChecker = () => {
     };
 
     // Initial check after 5 seconds to not block main thread loading
-    setTimeout(checkForUpdate, 5000);
+    timeoutId = setTimeout(checkForUpdate, 5000);
 
     // Periodic check
-    const interval = setInterval(checkForUpdate, UPDATE_CHECK_INTERVAL);
+    intervalId = setInterval(checkForUpdate, UPDATE_CHECK_INTERVAL);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(timeoutId);
+      clearInterval(intervalId);
+    };
   }, []);
 
   const handleUpdate = () => {
