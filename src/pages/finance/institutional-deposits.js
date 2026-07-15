@@ -210,8 +210,41 @@ class InstitutionalDeposits extends Component {
         });
     };
 
+    getNextTermStartDate = () => {
+        const now = new Date();
+        const month = now.getMonth(); // 0-11
+        const year = now.getFullYear();
+        if (month < 4) return `${year}-05-01`; // Term 2 starts May 1
+        if (month < 8) return `${year}-09-01`; // Term 3 starts Sept 1
+        return `${year + 1}-01-01`;            // Term 1 starts Jan 1 next year
+    };
+
     handleCreateInvoice = () => {
-        this.setState({ showCreateInvoiceModal: true });
+        const { selectedSchool, invoices } = this.state;
+        
+        let initialAmount = '';
+        let initialDescription = '';
+        
+        if (selectedSchool) {
+            const schoolInvoices = invoices.filter(inv => inv.schoolId === selectedSchool.id);
+            if (schoolInvoices.length === 0) {
+                const studentCount = selectedSchool.students?.length || selectedSchool.studentCount || 0;
+                const rate = selectedSchool.ratePerStudent || 100;
+                initialAmount = (studentCount * rate).toString();
+                initialDescription = `Subscription for ${studentCount} students`;
+            }
+        }
+
+        this.setState({ 
+            showCreateInvoiceModal: true,
+            newInvoice: {
+                amount: initialAmount,
+                description: initialDescription,
+                dueDate: this.getNextTermStartDate(),
+                billingCycle: 'Termly',
+                restrictDashboardOnOverdue: false
+            }
+        });
     };
 
     handleSaveInvoice = () => {
@@ -240,8 +273,8 @@ class InstitutionalDeposits extends Component {
                 month: 'short', 
                 day: 'numeric' 
             }),
-            schoolId: newInvoice.schoolId || 'school_001',
-            billingCycle: newInvoice.billingCycle || 'Monthly',
+            schoolId: this.state.selectedSchool?.id || 'school_001',
+            billingCycle: newInvoice.billingCycle || 'Termly',
             restrictDashboardOnOverdue: newInvoice.restrictDashboardOnOverdue || false
         };
 
@@ -963,20 +996,7 @@ class InstitutionalDeposits extends Component {
                             </div>
 
                             <div className="row">
-                                <div className="col-6">
-                                    <div className="form-group mb-0">
-                                        <label className="font-weight-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>Target Institution</label>
-                                        <input 
-                                            type="text" 
-                                            className="form-control border-0 bg-light font-weight-bold" 
-                                            placeholder="Institution ID"
-                                            value={newInvoice.schoolId}
-                                            onChange={(e) => this.setState({ newInvoice: { ...newInvoice, schoolId: e.target.value }})}
-                                            style={{ borderRadius: '0.8rem' }}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="col-6">
+                                <div className="col-12">
                                     <div className="form-group mb-0">
                                         <label className="font-weight-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>Due Date</label>
                                         <input 
@@ -1078,20 +1098,7 @@ class InstitutionalDeposits extends Component {
                             </div>
 
                             <div className="row">
-                                <div className="col-6">
-                                    <div className="form-group mb-0">
-                                        <label className="font-weight-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>Target Institution</label>
-                                        <input 
-                                            type="text" 
-                                            className="form-control border-0 bg-light font-weight-bold" 
-                                            placeholder="Institution ID"
-                                            value={editInvoice.schoolId}
-                                            onChange={(e) => this.setState({ editInvoice: { ...editInvoice, schoolId: e.target.value }})}
-                                            style={{ borderRadius: '0.8rem' }}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="col-6">
+                                <div className="col-12">
                                     <div className="form-group mb-0">
                                         <label className="font-weight-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>Due Date</label>
                                         <input 
@@ -1229,150 +1236,140 @@ class InstitutionalDeposits extends Component {
         const endIndex = startIndex + itemsPerPage;
         const currentInvoices = invoices.slice(startIndex, endIndex);
 
+        const parseAmount = str => parseInt((str || '').toString().replace(/[^0-9]/g, '')) || 0;
+        const totalOutstanding = invoices.filter(i => i.status === 'Unpaid').reduce((sum, i) => sum + parseAmount(i.amount), 0);
+        const totalPaid = invoices.filter(i => i.status === 'Paid').reduce((sum, i) => sum + parseAmount(i.amount), 0);
+        
+        // Find next due invoice
+        const unpaidInvoices = invoices.filter(i => i.status === 'Unpaid' && i.dueDate);
+        unpaidInvoices.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+        const nextDue = unpaidInvoices.length > 0 ? unpaidInvoices[0] : null;
+
         return (
             <div>
                 {/* Billing Information */}
                 {this.renderBillingInfo()}
                 
-                {/* Historical Invoices */}
-                <div className="kt-portlet">
-                    <div className="kt-portlet__head">
-                        <div className="kt-portlet__head-label">
-                            <h3 className="kt-portlet__head-title">
-                                <i className="la la-history"></i> Historical invoices
-                            </h3>
+                {/* SaaS Billing Dashboard Summary Cards */}
+                <div className="row mb-6">
+                    <div className="col-md-4">
+                        <div className="kt-portlet kt-portlet--height-fluid bg-light-danger" style={{ borderRadius: '1rem', border: '1px solid #ffe2e5' }}>
+                            <div className="kt-portlet__body p-5 d-flex flex-column justify-content-center">
+                                <span className="text-danger font-weight-boldest text-uppercase mb-2" style={{ fontSize: '0.8rem', letterSpacing: '1px' }}>Total Outstanding</span>
+                                <span className="font-weight-boldest text-dark" style={{ fontSize: '2rem' }}>KES {totalOutstanding.toLocaleString()}</span>
+                            </div>
                         </div>
-                        <div className="kt-portlet__head-toolbar">
-                            <span className="kt-font-sm text-muted">
-                                These invoices were created before May 1, 2026. New invoices are available through the manage billing link above. 
-                                Please download any old invoices you need, they won't be available in the dashboard anymore.
-                            </span>
+                    </div>
+                    <div className="col-md-4">
+                        <div className="kt-portlet kt-portlet--height-fluid bg-light-success" style={{ borderRadius: '1rem', border: '1px solid #c9f7f5' }}>
+                            <div className="kt-portlet__body p-5 d-flex flex-column justify-content-center">
+                                <span className="text-success font-weight-boldest text-uppercase mb-2" style={{ fontSize: '0.8rem', letterSpacing: '1px' }}>Total Paid</span>
+                                <span className="font-weight-boldest text-dark" style={{ fontSize: '2rem' }}>KES {totalPaid.toLocaleString()}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="col-md-4">
+                        <div className="kt-portlet kt-portlet--height-fluid bg-light-warning" style={{ borderRadius: '1rem', border: '1px solid #fff4de' }}>
+                            <div className="kt-portlet__body p-5 d-flex flex-column justify-content-center">
+                                <span className="text-warning font-weight-boldest text-uppercase mb-2" style={{ fontSize: '0.8rem', letterSpacing: '1px' }}>Next Invoice Due</span>
+                                <span className="font-weight-boldest text-dark" style={{ fontSize: '1.5rem' }}>{nextDue ? nextDue.dueDate : 'No pending invoices'}</span>
+                                {nextDue && <span className="text-muted font-weight-bold small mt-1">{nextDue.amount}</span>}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Historical Invoices */}
+                <div className="kt-portlet" style={{ borderRadius: '1.2rem', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                    <div className="kt-portlet__head border-bottom-0 pt-6 pb-2">
+                        <div className="kt-portlet__head-label">
+                            <h3 className="kt-portlet__head-title font-weight-boldest" style={{ fontSize: '1.4rem' }}>
+                                <i className="la la-file-invoice-dollar mr-2 text-primary" style={{ fontSize: '1.8rem', verticalAlign: 'middle' }}></i> Invoices
+                            </h3>
                         </div>
                     </div>
                     <div className="kt-portlet__body">
-                        <div className="table-responsive">
-                            <table className="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Number</th>
-                                        <th>Status</th>
-                                        <th>Created</th>
-                                        <th>Due Date</th>
-                                        <th>Age</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {currentInvoices.map(invoice => (
-                                        <tr key={invoice.id}>
-                                            <td>
-                                                <span className="kt-font-bold">
-                                                    {invoice.id}
+                        <div className="row">
+                            {currentInvoices.map(invoice => (
+                                <div className="col-12 mb-4" key={invoice.id}>
+                                    <div className="d-flex align-items-center justify-content-between p-5 rounded" style={{ backgroundColor: '#f8f9fa', border: '1px solid #ebedf2', transition: 'all 0.2s ease' }} onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}>
+                                        <div className="d-flex align-items-center">
+                                            <div className={`symbol symbol-50 mr-4 ${invoice.status === 'Paid' ? 'symbol-light-success' : invoice.status === 'Unpaid' ? 'symbol-light-danger' : 'symbol-light-warning'}`}>
+                                                <span className="symbol-label">
+                                                    <i className={`la ${invoice.status === 'Paid' ? 'la-check-circle' : invoice.status === 'Unpaid' ? 'la-exclamation-circle' : 'la-clock-o'}`} style={{ fontSize: '1.8rem' }}></i>
                                                 </span>
-                                            </td>
-                                            <td>
-                                                <span className={`kt-badge kt-badge--${
-                                                    invoice.status === 'Paid' ? 'success' : 
-                                                    invoice.status === 'Pending Confirmation' ? 'warning' : 
-                                                    invoice.status === 'Unpaid' ? 'danger' : 'secondary'
-                                                }`}>
+                                            </div>
+                                            <div>
+                                                <h5 className="font-weight-boldest text-dark mb-1">Invoice #{invoice.id}</h5>
+                                                <div className="text-muted font-weight-bold small">
+                                                    Created: {invoice.created} <span className="mx-2">•</span> Due: {invoice.dueDate}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="d-flex align-items-center">
+                                            <div className="text-right mr-6">
+                                                <div className="font-weight-boldest text-dark" style={{ fontSize: '1.2rem' }}>{invoice.amount}</div>
+                                                <span className={`label label-inline font-weight-bold label-light-${invoice.status === 'Paid' ? 'success' : invoice.status === 'Unpaid' ? 'danger' : 'warning'}`}>
                                                     {invoice.status}
                                                 </span>
-                                            </td>
-                                            <td>{invoice.created}</td>
-                                            <td>{invoice.dueDate}</td>
-                                            <td>
-                                                {(() => {
-                                                    const createdDate = new Date(invoice.created);
-                                                    const today = new Date();
-                                                    const diffTime = Math.abs(today - createdDate);
-                                                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                                                    return (
-                                                        <span className={`kt-font-bold ${diffDays > 30 ? 'text-danger' : diffDays > 14 ? 'text-warning' : 'text-success'}`}>
-                                                            {diffDays} days
-                                                        </span>
-                                                    );
-                                                })()}
-                                            </td>
-                                            <td>
-                                                <div className="d-flex align-items-center gap-1">
-                                                    {/* Pay button - more prominent for unpaid invoices */}
-                                                    {!this.state.isSuperAdmin && invoice.status === 'Unpaid' && (
-                                                        <button 
-                                                            className="btn btn-sm btn-success font-weight-bold"
-                                                            title="Pay Invoice"
-                                                            onClick={() => this.handlePayInvoice(invoice)}
-                                                            style={{ minWidth: '80px', fontSize: '12px', padding: '6px 12px' }}
-                                                        >
-                                                            <i className="la la-credit-card"></i> Pay
-                                                        </button>
-                                                    )}
-                                                    {this.state.isSuperAdmin && invoice.status === 'Pending Confirmation' && (
-                                                        <button 
-                                                            className="btn btn-sm btn-info font-weight-bold"
-                                                            title="Confirm Payment"
-                                                            onClick={() => this.handleConfirmBankPayment(invoice)}
-                                                            style={{ minWidth: '100px', fontSize: '12px', padding: '6px 12px' }}
-                                                        >
-                                                            <i className="la la-check"></i> Confirm
-                                                        </button>
-                                                    )}
-                                                    {/* Other actions - smaller icons */}
-                                                    <div className="btn-group">
-                                                        <button 
-                                                            className="btn btn-sm btn-clean btn-icon btn-icon-md"
-                                                            title="View Invoice"
-                                                            onClick={() => this.handleViewInvoice(invoice)}
-                                                        >
-                                                            <i className="la la-eye"></i>
-                                                        </button>
-                                                        <button 
-                                                            className="btn btn-sm btn-clean btn-icon btn-icon-md"
-                                                            title="Print Invoice"
-                                                            onClick={() => this.handlePrintInvoice(invoice)}
-                                                        >
-                                                            <i className="la la-print"></i>
-                                                        </button>
-                                                        <button 
-                                                            className="btn btn-sm btn-clean btn-icon btn-icon-md"
-                                                            title="Send via Email"
-                                                            onClick={() => this.handleEmailInvoice(invoice)}
-                                                        >
-                                                            <i className="la la-envelope"></i>
-                                                        </button>
+                                            </div>
+                                            
+                                            <div className="d-flex gap-2">
+                                                {!this.state.isSuperAdmin && invoice.status === 'Unpaid' && (
+                                                    <button className="btn btn-success font-weight-bold py-2 px-4 rounded-pill shadow-sm" onClick={() => this.handlePayInvoice(invoice)}>
+                                                        Pay Now
+                                                    </button>
+                                                )}
+                                                {this.state.isSuperAdmin && invoice.status === 'Pending Confirmation' && (
+                                                    <button className="btn btn-info font-weight-bold py-2 px-4 rounded-pill shadow-sm" onClick={() => this.handleConfirmBankPayment(invoice)}>
+                                                        Confirm
+                                                    </button>
+                                                )}
+                                                
+                                                <div className="dropdown dropdown-inline ml-2">
+                                                    <button type="button" className="btn btn-light btn-icon btn-sm rounded-circle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onClick={(e) => {
+                                                        const dropdown = e.currentTarget.nextElementSibling;
+                                                        dropdown.classList.toggle('show');
+                                                    }}>
+                                                        <i className="ki ki-bold-more-ver"></i>
+                                                    </button>
+                                                    <div className="dropdown-menu dropdown-menu-right" onClick={(e) => e.currentTarget.classList.remove('show')}>
+                                                        <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); this.handleViewInvoice(invoice); }}><i className="la la-eye text-primary mr-2"></i> View</a>
+                                                        <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); this.handlePrintInvoice(invoice); }}><i className="la la-print text-primary mr-2"></i> Print</a>
+                                                        <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); this.handleEmailInvoice(invoice); }}><i className="la la-envelope text-primary mr-2"></i> Email</a>
                                                         {this.state.isSuperAdmin && (
                                                             <>
-                                                                <button 
-                                                                    className="btn btn-sm btn-clean btn-icon btn-icon-md text-primary"
-                                                                    title="Edit Invoice"
-                                                                    onClick={() => this.handleEditInvoice(invoice)}
-                                                                >
-                                                                    <i className="la la-edit"></i>
-                                                                </button>
-                                                                <button 
-                                                                    className="btn btn-sm btn-clean btn-icon btn-icon-md text-danger"
-                                                                    title="Delete Invoice"
-                                                                    onClick={() => this.handleDeleteInvoice(invoice.id)}
-                                                                >
-                                                                    <i className="la la-trash"></i>
-                                                                </button>
+                                                                <div className="dropdown-divider"></div>
+                                                                <a className="dropdown-item text-primary" href="#" onClick={(e) => { e.preventDefault(); this.handleEditInvoice(invoice); }}><i className="la la-edit text-primary mr-2"></i> Edit</a>
+                                                                <a className="dropdown-item text-danger" href="#" onClick={(e) => { e.preventDefault(); this.handleDeleteInvoice(invoice.id); }}><i className="la la-trash text-danger mr-2"></i> Delete</a>
                                                             </>
                                                         )}
                                                     </div>
                                                 </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                         
-                        <Pagination
-                            total={totalInvoices}
-                            itemsPerPage={itemsPerPage}
-                            currentPage={currentPage}
-                            onPageChange={this.handlePageChange}
-                        />
+                        {currentInvoices.length === 0 && (
+                            <div className="text-center py-10">
+                                <i className="la la-file-invoice text-muted" style={{ fontSize: '4rem' }}></i>
+                                <h4 className="mt-4 text-dark font-weight-bold">No Invoices Found</h4>
+                                <p className="text-muted">There are no invoices available for this school yet.</p>
+                            </div>
+                        )}
+                        
+                        {currentInvoices.length > 0 && (
+                            <Pagination
+                                total={totalInvoices}
+                                itemsPerPage={itemsPerPage}
+                                currentPage={currentPage}
+                                onPageChange={this.handlePageChange}
+                            />
+                        )}
                     </div>
                 </div>
             </div>
