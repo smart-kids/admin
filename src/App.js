@@ -4,6 +4,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import UpdateChecker from "./components/UpdateChecker";
 import Footer from "./components/footer";
+import PageLoader from "./components/PageLoader/PageLoader";
 
 const home = React.lazy(() => import("./pages/home"));
 const students = React.lazy(() => import("./pages/students"));
@@ -73,7 +74,7 @@ class App extends React.Component {
     return (
       <ThemeProvider>
         <HashRouter>
-          <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', width: '100vw' }}><h2>Loading...</h2></div>}>
+          <Suspense fallback={<PageLoader />}>
           <PWAInstallPrompt />
           <UpdateChecker />
       {/* overal stuff */}
