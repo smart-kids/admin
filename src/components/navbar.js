@@ -891,10 +891,9 @@ class Navbar extends React.Component {
 
         {/* DESKTOP TOP NAVBAR (Remains Fixed) */}
         <div id="kt_header" className="kt-header kt-grid__item d-none d-lg-flex" style={{ backgroundColor: useSchoolTheme ? effectiveTopBarBgColor : GLASS_BG, backdropFilter: GLASS_BACKDROP, alignItems: 'center', justifyContent: 'space-between', height: `${topNavbarHeight}px`, zIndex: 1002, position: 'fixed', top: `${gapBetweenNavbars}px`, left: `${secondaryNavbarHorizontalMargin}px`, right: `${secondaryNavbarHorizontalMargin}px`, borderRadius: '16px', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)', padding: `0 30px`, border: '1px solid rgba(255, 255, 255, 0.4)', transition: 'all 0.3s ease' }}>
-          <div className="kt-header__brand" style={{ padding: 0 }}>
-            {!selectedSchool || Object.keys(selectedSchool).length === 0 || !selectedSchool.name ? ( <div className="kt-spinner kt-spinner--sm kt-spinner--brand" /> ) : ( <Link to="/home"> <img alt="School Logo" style={{ maxHeight: '52px', width: 'auto', borderRadius: '8px', transition: 'all 0.3s ease' }} src={selectedSchool.logo || '/assets/media/logos/ic_launcher.png'} onMouseOver={e => e.currentTarget.style.transform = 'scale(1.05)'} onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'} /> </Link> )}
+          <div className="kt-header__brand" style={{ padding: 0, display: 'flex', alignItems: 'center' }}>
+            {!selectedSchool || Object.keys(selectedSchool).length === 0 || !selectedSchool.name ? ( <div className="kt-spinner kt-spinner--sm kt-spinner--brand" /> ) : ( <Link to="/home"> <img alt="School Logo" style={{ maxHeight: '72px', width: 'auto', borderRadius: '8px', transition: 'all 0.3s ease' }} src={selectedSchool.logo || '/assets/media/logos/ic_launcher.png'} onMouseOver={e => e.currentTarget.style.transform = 'scale(1.05)'} onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'} /> </Link> )}
           </div>
-          
           
           
           <div className="kt-header__topbar">
@@ -1035,20 +1034,20 @@ class Navbar extends React.Component {
 
         {/* SECONDARY NAVBAR (Bottom Section) */}
         <div id="kt_header_secondary" className="d-none d-lg-flex" style={{ backgroundColor: GLASS_BG, backdropFilter: GLASS_BACKDROP, justifyContent: 'space-between', alignItems: 'center', height: `${secondaryNavbarEffectiveHeight}px`, position: 'relative', marginLeft: `${secondaryNavbarHorizontalMargin}px`, marginRight: `${secondaryNavbarHorizontalMargin}px`, marginBottom: `${gapBetweenNavbars}px`, borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)', padding: '0 30px', border: '1px solid var(--glass-border)', transition: 'all 0.3s ease', zIndex: 1001 }}>
-            <div className="context-control-container">
+            <div className="context-control-container" style={{ display: 'flex', alignItems: 'center', paddingLeft: 0, marginLeft: 0 }}>
                 {/* SCHOOL SELECTOR */}
-                <div className="kt-header-menu-wrapper" style={{ zIndex: 1100 }} ref={this.schoolSelectorRef}>
-                    <div id="kt_header_school_selector" className="kt-header-menu kt-header-menu-mobile">
+                <div className="kt-header-menu-wrapper" style={{ zIndex: 1100, marginLeft: 0, paddingLeft: 0 }} ref={this.schoolSelectorRef}>
+                    <div id="kt_header_school_selector" className="kt-header-menu kt-header-menu-mobile" style={{ margin: 0, padding: 0 }}>
                         <ul className="kt-menu__nav" style={{margin: 0, padding: 0}}>
-                            <li className={`kt-menu__item ${availableSchools.length > 1 ? 'kt-menu__item--submenu kt-menu__item--rel' : ''} ${this.state.showSchoolSelector ? 'kt-menu__item--hover' : ''}`} aria-haspopup="true">
-                                <a href="javascript:;" onClick={e => { e.preventDefault(); e.stopPropagation(); this.setState({ showSchoolSelector: !this.state.showSchoolSelector, showManageData: false }); }} className={`kt-menu__link school-selector-btn ${availableSchools.length > 1 ? 'kt-menu__toggle' : ''}`} style={{ textDecoration: 'none' }}>
-                                    <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', letterSpacing: '-0.5px' }}>
+                            <li className={`kt-menu__item ${availableSchools.length > 1 ? 'kt-menu__item--submenu kt-menu__item--rel' : ''} ${this.state.showSchoolSelector ? 'kt-menu__item--hover' : ''}`} aria-haspopup="true" style={{ padding: 0, margin: 0 }}>
+                                <a href="javascript:;" onClick={e => { e.preventDefault(); e.stopPropagation(); this.setState({ showSchoolSelector: !this.state.showSchoolSelector, showManageData: false }); }} className={`kt-menu__link school-selector-btn ${availableSchools.length > 1 ? 'kt-menu__toggle' : ''}`} style={{ textDecoration: 'none', padding: 0, margin: 0, display: 'flex', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', letterSpacing: '-0.5px', marginLeft: 0, paddingLeft: 0 }}>
                                         {selectedSchool?.name || 'Shule Plus'}
                                     </span>
                                     {availableSchools.length > 1 && <i className="la la-angle-down ml-3" style={{fontSize: '1.4rem', color: 'var(--text-primary)', transition: 'transform 0.3s ease', transform: this.state.showSchoolSelector ? 'rotate(180deg)' : 'none'}} />}
                                 </a>
                                 {availableSchools.length > 1 && this.state.showSchoolSelector && (
-                                    <div className="kt-menu__submenu kt-menu__submenu--classic kt-menu__submenu--left" style={{ display: 'block', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', zIndex: 1200, marginTop: '10px', width: '500px' }}>
+                                    <div className="kt-menu__submenu kt-menu__submenu--classic kt-menu__submenu--left" style={{ display: 'block', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', zIndex: 1200, marginTop: '10px', width: '500px', left: 0 }}>
                                         <ul className="kt-menu__subnav" style={{ padding: '15px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                             {availableSchools.map(schoolItem => (
                                                 <li key={schoolItem.id} className="kt-menu__item" aria-haspopup="true" style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', backgroundColor: selectedSchool?.id === schoolItem.id ? 'var(--bg-tertiary)' : 'transparent' }}>
@@ -1068,7 +1067,9 @@ class Navbar extends React.Component {
                                                                 {schoolItem.students?.length || schoolItem.studentCount || 0} Students
                                                             </div>
                                                         </div>
-                                                        {selectedSchool?.id === schoolItem.id && <i className="la la-check-circle" style={{ color: 'var(--brand-color)', fontSize: '1.1rem' }}></i>}
+                                                        {selectedSchool?.id === schoolItem.id && (
+                                                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3966ff', marginLeft: '10px' }} />
+                                                        )}
                                                     </a>
                                                 </li>
                                             ))}
