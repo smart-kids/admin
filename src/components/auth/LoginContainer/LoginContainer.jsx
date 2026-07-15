@@ -31,9 +31,7 @@ const LoginContainer = () => {
     const [sessionData, setSessionData] = useState(null);
     const [syncingMessage, setSyncingMessage] = useState('');
 
-    // Input detection patterns
-    const PHONE_REGEX = /^\+?\d{7,}$/;
-    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 
     // Load session data and school meta on mount
     useEffect(() => {
@@ -141,36 +139,15 @@ const LoginContainer = () => {
         }
     };
 
-    const detectInputType = useCallback((value) => {
-        if (PHONE_REGEX.test(value)) return 'phone';
-        if (EMAIL_REGEX.test(value)) return 'email';
-        return 'username';
-    }, [PHONE_REGEX, EMAIL_REGEX]);
-
     const handleIdentitySubmit = async (identifier) => {
         setIsLoading(true);
         setIsNetworkRequest(true);
         setError(null);
         
         try {
-            // Simulate identity verification - in real app, this would call your API
-            const inputType = detectInputType(identifier);
-            
-            // Determine preferred method based on input type and history
-            let suggestedMethod = 'otp';
-            if (inputType === 'email' || inputType === 'username') {
-                suggestedMethod = 'password';
-            }
-            
-            // Override with user preference if available
-            if (sessionData?.preferredMethod) {
-                suggestedMethod = sessionData.preferredMethod;
-            }
-            
             setUserIdentifier(identifier);
-            setPreferredMethod(suggestedMethod);
+            setPreferredMethod('otp');
             setLoginStage('authentication');
-            
         } catch (err) {
             setError(err.response?.data?.message || 'Identity verification failed');
         } finally {
@@ -192,19 +169,11 @@ const LoginContainer = () => {
             console.log('?? Starting authentication with method:', method);
             let response;
             
-            if (method === 'otp') {
-                console.log('?? Sending OTP request to:', `${API}/auth/verify/sms`);
-                response = await axios.post(`${API}/auth/verify/sms`, {
-                    user: userIdentifier,
-                    password: credentials.otp
-                });
-            } else if (method === 'password') {
-                console.log('?? Sending password request to:', `${API}/auth/login`);
-                response = await axios.post(`${API}/auth/login`, {
-                    user: userIdentifier,
-                    password: credentials.password
-                });
-            }
+            console.log('?? Sending OTP request to:', `${API}/auth/verify/sms`);
+            response = await axios.post(`${API}/auth/verify/sms`, {
+                user: userIdentifier,
+                password: credentials.otp
+            });
             
             console.log('?? Server response:', response);
             console.log('?? Response data:', response.data);

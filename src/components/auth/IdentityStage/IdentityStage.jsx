@@ -4,13 +4,11 @@ import './IdentityStage.css';
 
 const IdentityStage = ({ onSubmit, isLoading, recognizedUser, sessionData }) => {
     const [identifier, setIdentifier] = useState('');
-    const [inputType, setInputType] = useState('text');
     const [isValid, setIsValid] = useState(false);
     const inputRef = useRef(null);
 
     // Detection patterns
     const PHONE_REGEX = /^\+?\d{7,}$/;
-    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     // Auto-focus on mount
     useEffect(() => {
@@ -22,22 +20,13 @@ const IdentityStage = ({ onSubmit, isLoading, recognizedUser, sessionData }) => 
     // Detect input type and validate
     useEffect(() => {
         if (!identifier) {
-            setInputType('text');
             setIsValid(false);
             return;
         }
 
         if (PHONE_REGEX.test(identifier)) {
-            setInputType('phone');
-            setIsValid(true);
-        } else if (EMAIL_REGEX.test(identifier)) {
-            setInputType('email');
-            setIsValid(true);
-        } else if (identifier.length >= 3) {
-            setInputType('username');
             setIsValid(true);
         } else {
-            setInputType('text');
             setIsValid(false);
         }
     }, [identifier]);
@@ -49,94 +38,25 @@ const IdentityStage = ({ onSubmit, isLoading, recognizedUser, sessionData }) => 
         }
     };
 
-    const getPlaceholder = () => {
-        switch (inputType) {
-            case 'phone':
-                return '+254700000000';
-            case 'email':
-                return 'email@example.com';
-            case 'username':
-                return 'Enter username';
-            default:
-                return 'Enter phone, email, or username';
-        }
-    };
-
-    const getInputIcon = () => {
-        switch (inputType) {
-            case 'phone':
-                return '📱';
-            case 'email':
-                return '✉️';
-            case 'username':
-                return '👤';
-            default:
-                return '🔑';
-        }
-    };
-
-    const getInputLabel = () => {
-        switch (inputType) {
-            case 'phone':
-                return 'Phone Number';
-            case 'email':
-                return 'Email Address';
-            case 'username':
-                return 'Username';
-            default:
-                return 'Phone, Email, or Username';
-        }
-    };
-
-    const getHelperText = () => {
-        if (!identifier) return 'Enter your phone number, email, or username to continue';
-        
-        switch (inputType) {
-            case 'phone':
-                return 'We\'ll send a verification code to this number';
-            case 'email':
-                return 'Enter your password or request a magic link';
-            case 'username':
-                return 'Enter your password to continue';
-            default:
-                return 'Continue typing to detect your account type';
-        }
-    };
-
-    const getQuickAccessOptions = () => {
-        if (!sessionData) return [];
-        
-        const options = [];
-        if (sessionData.userEmail) {
-            options.push({
-                type: 'email',
-                value: sessionData.userEmail,
-                label: sessionData.userEmail
-            });
-        }
-        
-        return options;
-    };
-
     return (
         <div className="identity-stage">
             <form onSubmit={handleSubmit} className="identity-form">
                 <div className="form-group">
                     <label className="form-label">
-                        {getInputLabel()}
+                        Phone Number
                     </label>
                     
                     <div className="input-wrapper">
-                        <span className="input-icon">{getInputIcon()}</span>
+                        <span className="input-icon">📱</span>
                         <input
                             ref={inputRef}
-                            type={inputType === 'email' ? 'email' : 'text'}
-                            inputMode={inputType === 'phone' ? 'tel' : 'text'}
+                            type="tel"
+                            inputMode="tel"
                             value={identifier}
                             onChange={(e) => setIdentifier(e.target.value.trim())}
-                            placeholder={getPlaceholder()}
-                            className={`form-input ${inputType}`}
-                            autoComplete={inputType === 'email' ? 'email' : 'username'}
+                            placeholder="e.g. 0700000000"
+                            className="form-input phone"
+                            autoComplete="tel"
                             disabled={isLoading}
                             autoFocus
                         />
@@ -147,32 +67,9 @@ const IdentityStage = ({ onSubmit, isLoading, recognizedUser, sessionData }) => 
                     </div>
                     
                     <p className="helper-text">
-                        {getHelperText()}
+                        {!identifier ? 'Enter your phone number to continue' : 'We\'ll send a verification code to this number'}
                     </p>
                 </div>
-
-                {/* Quick Access Options */}
-                {getQuickAccessOptions().length > 0 && !identifier && (
-                    <div className="quick-access">
-                        <p className="quick-access-label">Quick access:</p>
-                        <div className="quick-access-options">
-                            {getQuickAccessOptions().map((option, index) => (
-                                <button
-                                    key={index}
-                                    type="button"
-                                    onClick={() => setIdentifier(option.value)}
-                                    className="quick-access-btn"
-                                    disabled={isLoading}
-                                >
-                                    <span className="quick-access-icon">
-                                        {option.type === 'email' ? '✉️' : '👤'}
-                                    </span>
-                                    <span className="quick-access-text">{option.label}</span>
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                )}
 
                 {/* Submit Button */}
                 <button
