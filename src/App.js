@@ -6,59 +6,59 @@ import UpdateChecker from "./components/UpdateChecker";
 import Footer from "./components/footer";
 import PageLoader from "./components/PageLoader/PageLoader";
 
-const home = React.lazy(() => import("./pages/home"));
-const students = React.lazy(() => import("./pages/students"));
-const student = React.lazy(() => import("./pages/student"));
-const parents = React.lazy(() => import("./pages/parents"));
-const classes = React.lazy(() => import("./pages/classes"));
-const teachers = React.lazy(() => import("./pages/teachers"));
-const teams = React.lazy(() => import("./pages/teams"));
-const drivers = React.lazy(() => import("./pages/drivers"));
-const buses = React.lazy(() => import("./pages/buses"));
-const routes = React.lazy(() => import("./pages/routes"));
-const schedules = React.lazy(() => import("./pages/schedules"));
-const complaints = React.lazy(() => import("./pages/complaints"));
-const trips = React.lazy(() => import("./pages/trips"));
-const trip = React.lazy(() => import("./pages/trip"));
-const learning = React.lazy(() => import("./pages/learning"));
-const invitations = React.lazy(() => import("./pages/invitations"));
-const members = React.lazy(() => import("./pages/members"));
-const schools = React.lazy(() => import("./pages/schools"));
-const library = React.lazy(() => import("./pages/library"));
-const games = React.lazy(() => import("./pages/games"));
-const mdm = React.lazy(() => import("./pages/mdm"));
-const timeTables = React.lazy(() => import("./pages/time-tables"));
-const activityLog = React.lazy(() => import("./pages/activity-log"));
+const home = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/home"));
+const students = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/students"));
+const student = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/student"));
+const parents = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/parents"));
+const classes = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/classes"));
+const teachers = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/teachers"));
+const teams = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/teams"));
+const drivers = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/drivers"));
+const buses = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/buses"));
+const routes = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/routes"));
+const schedules = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/schedules"));
+const complaints = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/complaints"));
+const trips = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/trips"));
+const trip = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/trip"));
+const learning = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/learning"));
+const invitations = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/invitations"));
+const members = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/members"));
+const schools = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/schools"));
+const library = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/library"));
+const games = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/games"));
+const mdm = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/mdm"));
+const timeTables = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/time-tables"));
+const activityLog = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/activity-log"));
 
-const userSettings = React.lazy(() => import("./pages/settings/user"));
-const schoolSettings = React.lazy(() => import("./pages/settings/school"));
+const userSettings = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/settings/user"));
+const schoolSettings = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/settings/school"));
 
-const communications = React.lazy(() => import("./pages/communications"));
+const communications = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/communications"));
 
-const login = React.lazy(() => import("./pages/auth/login-new"));
-const website = React.lazy(() => import("./pages/website"));
+const login = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/auth/login-new"));
+const website = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/website"));
 
-const recover = React.lazy(() => import("./pages/auth/recover"));
-const register = React.lazy(() => import("./pages/auth/register"));
+const recover = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/auth/recover"));
+const register = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/auth/register"));
 
-const topup = React.lazy(() => import("./pages/finance/topup"));
-const charges = React.lazy(() => import("./pages/finance/charges"));
-const chargeTypes = React.lazy(() => import("./pages/finance/chargeTypes"));
-const institutionalDeposits = React.lazy(() => import("./pages/finance/institutional-deposits"));
-const budgets = React.lazy(() => import("./pages/finance/budgets"));
-const expenses = React.lazy(() => import("./pages/finance/expenses"));
-const budgetsDashboard = React.lazy(() => import("./pages/finance/budgets/dashboard"));
-const expensesDashboard = React.lazy(() => import("./pages/finance/expenses/dashboard"));
-const admins = React.lazy(() => import("./pages/admins"));
-const feeStructures = React.lazy(() => import("./pages/fee-structures"));
+const topup = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/finance/topup"));
+const charges = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/finance/charges"));
+const chargeTypes = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/finance/chargeTypes"));
+const institutionalDeposits = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/finance/institutional-deposits"));
+const budgets = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/finance/budgets"));
+const expenses = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/finance/expenses"));
+const budgetsDashboard = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/finance/budgets/dashboard"));
+const expensesDashboard = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/finance/expenses/dashboard"));
+const admins = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/admins"));
+const feeStructures = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/fee-structures"));
 
 // Lazy load inline requires
-const QuickTopUp = React.lazy(() => import("./pages/public/QuickTopUp"));
-const Fees = React.lazy(() => import("./pages/finance/fees"));
-const Results = React.lazy(() => import("./pages/results"));
-const Terms = React.lazy(() => import("./pages/terms"));
-const AssessmentTypes = React.lazy(() => import("./pages/learning/assessmentTypes"));
-const Rubrics = React.lazy(() => import("./pages/learning/rubrics"));
+const QuickTopUp = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/public/QuickTopUp"));
+const Fees = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/finance/fees"));
+const Results = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/results"));
+const Terms = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/terms"));
+const AssessmentTypes = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/learning/assessmentTypes"));
+const Rubrics = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/learning/rubrics"));
 
 const PrivateRoute = ({ component: Component, ...rest }) => (
   <Route {...rest} render={(props) => (
