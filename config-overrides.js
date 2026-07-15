@@ -1,6 +1,11 @@
-const { override, addBabelPreset, addBabelPlugin } = require('customize-cra');
+const { override, addBabelPreset, addBabelPlugin, addWebpackPlugin } = require('customize-cra');
+const webpack = require('webpack');
 
 module.exports = override(
+  addWebpackPlugin(new webpack.IgnorePlugin({
+    resourceRegExp: /^\.\/locale$/,
+    contextRegExp: /moment$/
+  })),
   (config) => {
         
         // Find and completely replace the babel-loader rule
