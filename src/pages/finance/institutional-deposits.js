@@ -148,17 +148,31 @@ class InstitutionalDeposits extends Component {
             paymentMethod: savedPaymentMethod,
             selectedSchool: selectedSchool
         });
-        
         // Subscribe to school changes
         this.schoolsSubscription = Data.schools.subscribe(({ selectedSchool }) => {
             this.setState({ selectedSchool });
+            if (selectedSchool) {
+                this.loadInvoices(selectedSchool.id);
+            }
         });
         
-        // Simulate loading
-        setTimeout(() => {
+        if (selectedSchool) {
+            this.loadInvoices(selectedSchool.id);
+        } else {
             this.setState({ loading: false });
-        }, 1000);
+        }
     }
+
+    loadInvoices = async (schoolId) => {
+        this.setState({ loading: true });
+        try {
+            const invoices = await Data.invoices.getInvoices({ school: schoolId });
+            this.setState({ invoices, loading: false });
+        } catch (error) {
+            console.error("Failed to load invoices", error);
+            this.setState({ loading: false });
+        }
+    };
 
     componentWillUnmount() {
         if (this.schoolsSubscription) {
@@ -551,13 +565,7 @@ class InstitutionalDeposits extends Component {
                             </div>
                         </div>
                         <div className="kt-portlet__body">
-                            <div className="alert alert-info">
-                                <p className="mb-2">
-                                    We've moved your billing period to start on the 1st of each month. 
-                                    Your previous billing period was closed and invoiced, so you may have just received an invoice for it. 
-                                    Your next invoice will be issued on the 1st of next month.
-                                </p>
-                            </div>
+
                             <div className="d-flex align-items-center justify-content-between">
                                 <div>
                                     <h5 className="kt-font-bold">Billing & payment methods</h5>
