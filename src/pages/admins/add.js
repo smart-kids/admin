@@ -161,7 +161,7 @@ class Modal extends React.Component {
                       </div>
                       
                       {this.props.isSuperAdmin && (
-                        <div className="col-lg-4">
+                        <div className="col-lg-4 mt-3">
                           <label>Role:</label>
                           <select
                             className="form-control"
@@ -175,6 +175,23 @@ class Modal extends React.Component {
                             <option value="ADMIN_OPERATIONS">Operations Admin</option>
                             <option value="ADMIN_ACADEMICS">Academics Admin</option>
                           </select>
+                          {(() => {
+                            const roleDescriptions = {
+                              'ADMIN': 'Standard administrative access to school data.',
+                              'SUPER_ADMIN': 'Full system access, including ShulePlus global settings, billing, and all schools.',
+                              'CUSTOMER_SUCCESS_MANAGER': 'Access to school usage metrics, onboarding, and support tools.',
+                              'PRINCIPAL_ADMIN': 'Full administrative access strictly scoped to their assigned school(s).',
+                              'ADMIN_OPERATIONS': 'Access to transport, routing, scheduling, and logistics modules.',
+                              'ADMIN_ACADEMICS': 'Access to grades, lesson plans, exams, and teacher management.'
+                            };
+                            const currentRole = this.state.role || 'ADMIN';
+                            return (
+                              <div className="mt-2 text-muted" style={{ fontSize: '0.8rem', lineHeight: '1.2' }}>
+                                <i className="flaticon-info text-primary mr-1" style={{ fontSize: '0.8rem' }}></i>
+                                {roleDescriptions[currentRole]}
+                              </div>
+                            );
+                          })()}
                         </div>
                       )}
                       
