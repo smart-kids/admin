@@ -6,6 +6,7 @@
     padding: 25px;
     margin-bottom: 20px;
     width: 100%;
+    min-height: calc(100vh - 200px); /* Fills the rest of the viewport */
 }
 
 .skeleton-header {
