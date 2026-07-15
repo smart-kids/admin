@@ -958,17 +958,13 @@ class CurriculumManagerV5 extends React.Component {
             subtopicIdsInSubject.has(String(attempt.lessonId))
         ) || [];
 
-        // Get phone numbers from current school parents to find cross-school attempts
-        const currentSchoolParents = Data.parents.list();
-        const phoneNumbers = currentSchoolParents
-            .map(p => p.phone)
-            .filter(phone => phone && phone.trim() !== '');
+        const activeSchoolId = localStorage.getItem("school");
 
         let crossSchoolAttempts = [];
-        if (phoneNumbers.length > 0) {
+        if (activeSchoolId) {
             try {
                 // Fetch cross-school attempts using the new API
-                crossSchoolAttempts = await Data.lessonAttempts.getCrossSchoolAttemptsByPhone(phoneNumbers, subjectId);
+                crossSchoolAttempts = await Data.lessonAttempts.getCrossSchoolAttemptsBySchool(activeSchoolId, subjectId);
             } catch (error) {
                 console.error('Error fetching cross-school attempts:', error);
             }

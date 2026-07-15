@@ -1510,12 +1510,12 @@ var Data = (function () {
             createFields: ['lessonId', 'userId', 'startedAt', 'completedAt', 'status', 'finalScore', 'deviceInfo', 'school'],
             updateFields: ['id', 'lessonId', 'userId', 'startedAt', 'completedAt', 'status', 'finalScore', 'deviceInfo', 'school'],
             customMethods: (allData, subs, api) => ({
-                getCrossSchoolAttemptsByPhone: async (phoneNumbers, subjectId) => {
+                getCrossSchoolAttemptsBySchool: async (schoolId, subjectId) => {
                     try {
-                        // Query to get lesson attempts across all schools based on parent phone numbers
+                        // Query to get lesson attempts across all schools based on the active schoolId
                         const queryStr = `
-                            query GetCrossSchoolLessonAttempts($phoneNumbers: [String!]!, $subjectId: String!) {
-                                crossSchoolLessonAttempts(phoneNumbers: $phoneNumbers, subjectId: $subjectId) {
+                            query GetCrossSchoolLessonAttempts($schoolId: String!, $subjectId: String!) {
+                                crossSchoolLessonAttempts(schoolId: $schoolId, subjectId: $subjectId) {
                                     id
                                     lessonId
                                     userId
@@ -1550,7 +1550,7 @@ var Data = (function () {
                             }
                         `;
                         
-                        const response = await query(queryStr, { phoneNumbers, subjectId });
+                        const response = await query(queryStr, { schoolId, subjectId });
                         return response.crossSchoolLessonAttempts || [];
                     } catch (error) {
                         console.error('Error fetching cross-school lesson attempts:', error);
