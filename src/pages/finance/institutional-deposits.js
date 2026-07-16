@@ -1386,7 +1386,7 @@ class InstitutionalDeposits extends Component {
                                         </div>
                                         
                                         <div className="d-flex align-items-center">
-                                            <div className="text-right mr-6">
+                                            <div className="text-right mr-10">
                                                 <div className="font-weight-boldest text-dark mb-1" style={{ fontSize: '1.3rem' }}>{invoice.amount}</div>
                                                 {invoice.status === 'Paid' && (
                                                     <span className="label label-inline font-weight-boldest label-light-success py-2 px-3" style={{ fontSize: '0.85rem' }}>

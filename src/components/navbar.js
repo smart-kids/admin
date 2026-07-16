@@ -150,11 +150,11 @@ class Navbar extends React.Component {
       items.push({ path: "/activity-log", label: "Logs", icon: "la-history" });
     }
 
-    const isRestricted = this.state.selectedSchool?.dashboardsRestricted && !isSuperAdmin;
-    if (isRestricted) {
+    const isDashboardsRestricted = this.state.selectedSchool?.dashboardsRestricted;
+    if (isDashboardsRestricted) {
       return items.map(item => ({
         ...item,
-        path: "/finance/institutional-deposits",
+        path: isSuperAdmin ? item.path : "/finance/institutional-deposits",
         icon: "la-lock"
       }));
     }
@@ -474,12 +474,12 @@ class Navbar extends React.Component {
         return true;
     });
 
-    const isRestricted = selectedSchool?.dashboardsRestricted && !isSuperAdmin;
+    const isDashboardsRestricted = selectedSchool?.dashboardsRestricted;
     let finalManageDataItems = manageDataItems;
-    if (isRestricted) {
+    if (isDashboardsRestricted) {
         finalManageDataItems = manageDataItems.map(item => ({
             ...item,
-            path: "/finance/institutional-deposits",
+            path: isSuperAdmin ? item.path : "/finance/institutional-deposits",
             IconComponent: SvgLockIcon
         }));
     }
@@ -552,6 +552,13 @@ class Navbar extends React.Component {
                     <i className="la la-close" style={{ fontSize: '1.2rem' }}></i>
                 </button>
             </div>
+
+            {isDashboardsRestricted && (
+                <div style={{ backgroundColor: '#F64E60', color: 'white', padding: '10px', textAlign: 'center', fontWeight: 'bold', fontSize: '0.9rem', zIndex: 9999, position: 'relative' }}>
+                    <i className="la la-lock text-white mr-2"></i> Dashboards are currently restricted due to an unpaid invoice. {isSuperAdmin ? '(Super Admin Access)' : 'Please settle the balance to restore access.'}
+                </div>
+            )}
+
             <ul style={{ listStyle: 'none', padding: '10px 0 0 0', margin: 0 }}>
                 {/* Sync Data (Mobile) */}
                 <li style={{ marginBottom: '5px' }}>
@@ -639,7 +646,7 @@ class Navbar extends React.Component {
                     </li>
                 )}
                 {/* Main Links */}
-                {!isTeacher && <li><Link to={isRestricted ? "/finance/institutional-deposits" : "/home"} style={linkStyle} onClick={this.toggleMobileMenu}><i className={`la ${isRestricted ? 'la-lock' : 'la-dashboard'}`} style={{marginRight: '12px', fontSize: '1.2rem', color: 'var(--text-tertiary)'}}></i> Reports</Link></li>}
+                {!isTeacher && <li><Link to={isDashboardsRestricted && !isSuperAdmin ? "/finance/institutional-deposits" : "/home"} style={linkStyle} onClick={this.toggleMobileMenu}><i className={`la ${isDashboardsRestricted ? 'la-lock' : 'la-dashboard'}`} style={{marginRight: '12px', fontSize: '1.2rem', color: 'var(--text-tertiary)'}}></i> Reports</Link></li>}
                 
                 {this.getSecondaryNavItems().map((item) => {
                     // Match icons consistently for side drawer
@@ -820,12 +827,12 @@ class Navbar extends React.Component {
         return true;
     });
 
-    const isRestricted = selectedSchool?.dashboardsRestricted && !isSuperAdmin;
+    const isDashboardsRestricted = selectedSchool?.dashboardsRestricted;
     let finalManageDataItems = manageDataItems;
-    if (isRestricted) {
+    if (isDashboardsRestricted) {
         finalManageDataItems = manageDataItems.map(item => ({
             ...item,
-            path: "/finance/institutional-deposits",
+            path: isSuperAdmin ? item.path : "/finance/institutional-deposits",
             IconComponent: SvgLockIcon
         }));
     }
@@ -1159,7 +1166,7 @@ class Navbar extends React.Component {
                         {this.getSecondaryNavItems().map((item) => {
                             if (item.hideFromTeacher && isTeacher) return null;
                             if (item.hidden) return null;
-                            if (isRestricted && item.requiresSubscription) return null;
+                            if (isDashboardsRestricted && !isSuperAdmin && item.requiresSubscription) return null;
                             const isActive = this.isActiveRoute(item.path);
                             return (
                                 <li key={item.path} className={`kt-menu__item ${isActive ? 'kt-menu__item--active' : ''}`} style={{ margin: 0, padding: '0 4px' }}>
