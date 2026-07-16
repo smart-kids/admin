@@ -624,44 +624,45 @@ class InstitutionalDeposits extends Component {
         const { isSuperAdmin, billingPhone } = this.state;
         
         return (
-            <div className="row mb-6">
-                <div className="col-12">
-                    <div className="card card-custom gutter-b shadow-sm" style={{ border: '1px solid #E1F0FF', borderRadius: '12px' }}>
-                        <div className="card-body d-flex align-items-center justify-content-between flex-wrap py-6 px-8">
-                            <div className="d-flex flex-column mr-5">
-                                <div className="d-flex align-items-center mb-2">
-                                    <span className="svg-icon svg-icon-3x svg-icon-primary mr-4 bg-light-primary rounded p-3 text-center">
-                                        <i className="la la-credit-card text-primary" style={{ fontSize: '2rem' }}></i>
-                                    </span>
-                                    <div>
-                                        <h3 className="font-weight-bolder text-dark mb-1">Financial Settings</h3>
-                                        <div className="text-muted font-weight-bold font-size-lg">
-                                            Manage your payment methods, contact details, invoices, and VAT
-                                        </div>
+            <div style={{ marginBottom: '24px' }}>
+                <div style={{ border: '1px solid #E1F0FF', borderRadius: '12px', backgroundColor: '#fff', boxShadow: '0 0.125rem 0.25rem rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+                    <div style={{ padding: '24px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', marginRight: '20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                                <div style={{ backgroundColor: '#E1F0FF', borderRadius: '8px', padding: '16px', marginRight: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <i className="la la-credit-card text-primary" style={{ fontSize: '2.5rem' }}></i>
+                                </div>
+                                <div>
+                                    <h3 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#3f4254', margin: '0 0 4px 0' }}>Financial Settings</h3>
+                                    <div style={{ fontSize: '1rem', color: '#b5b5c3', fontWeight: 500 }}>
+                                        Manage your payment methods, contact details, invoices, and VAT
                                     </div>
                                 </div>
-                                {billingPhone && (
-                                    <div className="d-flex align-items-center mt-3 ml-14">
-                                        <span className="label label-light-success label-inline font-weight-bolder py-2 px-3">
-                                            <i className="la la-phone text-success mr-2"></i> {billingPhone}
-                                        </span>
-                                    </div>
-                                )}
                             </div>
                             
-                            <div className="d-flex align-items-center py-2 mt-4 mt-sm-0">
-                                {!isSuperAdmin && (
-                                    <button className="btn btn-primary font-weight-bolder py-3 px-6 shadow-sm" onClick={this.handleManageBilling}>
-                                        <i className="la la-cog mr-2"></i> Configure Setup
-                                    </button>
-                                )}
-                                {isSuperAdmin && (
-                                    <button className="btn btn-success font-weight-bolder py-3 px-6 shadow-sm" onClick={this.handleCreateInvoice}>
-                                        <i className="la la-plus mr-2"></i> Create Invoice
-                                    </button>
-                                )}
-                            </div>
+                            {billingPhone && (
+                                <div style={{ display: 'flex', alignItems: 'center', marginTop: '12px', marginLeft: '90px' }}>
+                                    <span style={{ backgroundColor: '#C9F7F5', color: '#1BC5BD', padding: '8px 12px', borderRadius: '6px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', fontSize: '0.9rem' }}>
+                                        <i className="la la-phone text-success" style={{ marginRight: '8px', fontSize: '1.2rem' }}></i> {billingPhone}
+                                    </span>
+                                </div>
+                            )}
                         </div>
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', paddingTop: '8px', marginTop: '16px' }}>
+                            {!isSuperAdmin && (
+                                <button className="btn btn-primary font-weight-bolder" style={{ padding: '12px 24px', boxShadow: '0 0.125rem 0.25rem rgba(54, 153, 255, 0.4)', borderRadius: '6px' }} onClick={this.handleManageBilling}>
+                                    <i className="la la-cog" style={{ marginRight: '8px' }}></i> Configure Setup
+                                </button>
+                            )}
+                            {isSuperAdmin && (
+                                <button className="btn btn-success font-weight-bolder" style={{ padding: '12px 24px', boxShadow: '0 0.125rem 0.25rem rgba(27, 197, 189, 0.4)', borderRadius: '6px' }} onClick={this.handleCreateInvoice}>
+                                    <i className="la la-plus" style={{ marginRight: '8px' }}></i> Create Invoice
+                                </button>
+                            )}
+                        </div>
+                        
                     </div>
                 </div>
             </div>
@@ -1370,74 +1371,69 @@ class InstitutionalDeposits extends Component {
                         <div className="row">
                             {currentInvoices.map(invoice => (
                                 <div className="col-12 mb-4" key={invoice.id}>
-                                    <div className="d-flex align-items-center justify-content-between p-5 rounded" style={{ backgroundColor: '#f8f9fa', border: '1px solid #ebedf2', transition: 'all 0.2s ease' }} onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}>
-                                        <div className="d-flex align-items-center">
-                                            <div className={`symbol symbol-50 mr-4 ${invoice.status === 'Paid' ? 'symbol-light-success' : invoice.status === 'Unpaid' ? 'symbol-light-danger' : 'symbol-light-warning'}`}>
-                                                <span className="symbol-label">
-                                                    <i className={`la ${invoice.status === 'Paid' ? 'la-check-circle' : invoice.status === 'Unpaid' ? 'la-exclamation-circle' : 'la-clock-o'}`} style={{ fontSize: '1.8rem' }}></i>
-                                                </span>
-                                            </div>
-                                            <div>
-                                                <h5 className="font-weight-boldest text-dark mb-1">Invoice #{invoice.id}</h5>
-                                                <div className="text-muted font-weight-bold small">
-                                                    Created: {invoice.created} <span className="mx-2">•</span> Due: {invoice.dueDate}
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px', borderRadius: '8px', backgroundColor: '#f8f9fa', border: '1px solid #ebedf2', transition: 'all 0.2s ease', flexWrap: 'wrap' }} onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}>
+                                            <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                <div style={{ width: '50px', height: '50px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '16px', backgroundColor: invoice.status === 'Paid' ? '#C9F7F5' : invoice.status === 'Unpaid' ? '#FFE2E5' : '#FFF4DE' }}>
+                                                    <i className={`la ${invoice.status === 'Paid' ? 'la-check-circle' : invoice.status === 'Unpaid' ? 'la-exclamation-circle' : 'la-clock-o'}`} style={{ fontSize: '1.8rem', color: invoice.status === 'Paid' ? '#1BC5BD' : invoice.status === 'Unpaid' ? '#F64E60' : '#FFA800' }}></i>
+                                                </div>
+                                                <div>
+                                                    <h5 style={{ fontWeight: 600, color: '#3f4254', margin: '0 0 4px 0' }}>Invoice #{invoice.id}</h5>
+                                                    <div style={{ color: '#b5b5c3', fontWeight: 500, fontSize: '0.9rem' }}>
+                                                        Created: {invoice.created} <span style={{ margin: '0 8px' }}>•</span> Due: {invoice.dueDate}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                        
-                                        <div className="d-flex align-items-center">
-                                            <div className="text-right mr-10">
-                                                <div className="font-weight-boldest text-dark mb-1" style={{ fontSize: '1.3rem' }}>{invoice.amount}</div>
-                                                {invoice.status === 'Paid' && (
-                                                    <span className="label label-inline font-weight-boldest label-light-success py-2 px-3" style={{ fontSize: '0.85rem' }}>
-                                                        <i className="la la-check mr-1 text-success"></i> {invoice.status}
-                                                    </span>
-                                                )}
-                                                {invoice.status === 'Unpaid' && (
-                                                    <span className="label label-inline font-weight-boldest label-danger py-2 px-3 shadow-sm" style={{ fontSize: '0.85rem', animation: 'pulse 2s infinite' }}>
-                                                        <i className="la la-exclamation-triangle mr-1 text-white"></i> {invoice.status}
-                                                    </span>
-                                                )}
-                                                {invoice.status === 'Pending Confirmation' && (
-                                                    <span className="label label-inline font-weight-boldest label-light-warning py-2 px-3" style={{ fontSize: '0.85rem' }}>
-                                                        <i className="la la-hourglass mr-1 text-warning"></i> {invoice.status}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            
-                                            <div className="d-flex align-items-center gap-3">
-                                                {invoice.status === 'Unpaid' && (
-                                                    <button className="btn btn-success font-weight-bolder py-2 px-6 rounded shadow-sm d-flex align-items-center transition-hover" 
-                                                            style={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}
-                                                            onClick={() => this.handlePayInvoice(invoice)}>
-                                                        <i className="la la-credit-card" style={{ fontSize: '1.2rem' }}></i>
-                                                        <span className="ml-2">Pay Now</span>
-                                                    </button>
-                                                )}
-                                                
-                                                {this.state.isSuperAdmin && invoice.status === 'Unpaid' && (
-                                                    <div className="d-flex align-items-center ml-3 p-2 rounded bg-light border border-secondary" title="Restrict Dashboards">
-                                                        <span className="switch switch-sm switch-danger d-flex align-items-center">
-                                                            <label className="mb-0 d-flex align-items-center cursor-pointer">
-                                                                <input 
-                                                                    type="checkbox" 
-                                                                    checked={!!this.state.selectedSchool?.dashboardsRestricted}
-                                                                    onChange={() => this.handleToggleRestriction(invoice, !!this.state.selectedSchool?.dashboardsRestricted)}
-                                                                />
-                                                                <span></span>
-                                                                <span className="font-weight-bold text-dark-50 ml-2" style={{ fontSize: '0.85rem' }}>Restrict</span>
-                                                            </label>
+                                            <div style={{ display: 'flex', alignItems: 'center', marginTop: '16px' }}>
+                                                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: '100px', marginRight: '24px' }}>
+                                                    <div style={{ fontWeight: 700, color: '#3f4254', fontSize: '1.3rem', marginBottom: '4px' }}>{invoice.amount}</div>
+                                                    {invoice.status === 'Paid' && (
+                                                        <span style={{ backgroundColor: '#1BC5BD', color: '#fff', padding: '4px 12px', borderRadius: '4px', fontSize: '0.85rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}>
+                                                            <i className="la la-check text-white" style={{ marginRight: '4px' }}></i> {invoice.status}
                                                         </span>
-                                                    </div>
-                                                )}
-
-                                                {this.state.isSuperAdmin && invoice.status === 'Pending Confirmation' && (
-                                                    <button className="btn btn-info font-weight-bold py-2 px-4 rounded-pill shadow-sm" onClick={() => this.handleConfirmBankPayment(invoice)}>
-                                                        Confirm
-                                                    </button>
-                                                )}
+                                                    )}
+                                                    {invoice.status === 'Unpaid' && (
+                                                        <span style={{ backgroundColor: '#F64E60', color: '#fff', padding: '4px 12px', borderRadius: '4px', fontSize: '0.85rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', animation: 'pulse 2s infinite' }}>
+                                                            <i className="la la-exclamation-triangle text-white" style={{ marginRight: '4px' }}></i> {invoice.status}
+                                                        </span>
+                                                    )}
+                                                    {invoice.status === 'Pending Confirmation' && (
+                                                        <span style={{ backgroundColor: '#FFA800', color: '#fff', padding: '4px 12px', borderRadius: '4px', fontSize: '0.85rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}>
+                                                            <i className="la la-hourglass text-white" style={{ marginRight: '4px' }}></i> {invoice.status}
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 
-                                                <div className="dropdown dropdown-inline ml-2">
+                                                <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                    {invoice.status === 'Unpaid' && (
+                                                        <button className="btn btn-success" style={{ fontWeight: 600, padding: '10px 20px', borderRadius: '6px', display: 'flex', alignItems: 'center', textTransform: 'uppercase', letterSpacing: '0.5px', boxShadow: '0 0.125rem 0.25rem rgba(27, 197, 189, 0.4)' }} onClick={() => this.handlePayInvoice(invoice)}>
+                                                            <i className="la la-credit-card" style={{ fontSize: '1.2rem', marginRight: '8px' }}></i>
+                                                            <span>Pay Now</span>
+                                                        </button>
+                                                    )}
+                                                    
+                                                    {this.state.isSuperAdmin && invoice.status === 'Unpaid' && (
+                                                        <div style={{ display: 'flex', alignItems: 'center', padding: '8px', borderRadius: '6px', backgroundColor: '#fff', border: '1px solid #E4E6EF', marginLeft: '16px' }} title="Restrict Dashboards">
+                                                            <span className="switch switch-sm switch-danger" style={{ display: 'flex', alignItems: 'center' }}>
+                                                                <label style={{ margin: 0, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                                                                    <input 
+                                                                        type="checkbox" 
+                                                                        checked={!!this.state.selectedSchool?.dashboardsRestricted}
+                                                                        onChange={() => this.handleToggleRestriction(invoice, !!this.state.selectedSchool?.dashboardsRestricted)}
+                                                                    />
+                                                                    <span></span>
+                                                                    <span style={{ fontWeight: 600, color: '#7E8299', fontSize: '0.85rem', marginLeft: '8px' }}>Restrict</span>
+                                                                </label>
+                                                            </span>
+                                                        </div>
+                                                    )}
+
+                                                    {this.state.isSuperAdmin && invoice.status === 'Pending Confirmation' && (
+                                                        <button className="btn btn-info font-weight-bold py-2 px-4 rounded-pill shadow-sm ml-3" onClick={() => this.handleConfirmBankPayment(invoice)}>
+                                                            Confirm
+                                                        </button>
+                                                    )}
+                                                
+                                                <div className="dropdown dropdown-inline ml-3">
                                                     <button type="button" className="btn btn-light btn-icon btn-sm rounded-circle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onClick={(e) => {
                                                         const dropdown = e.currentTarget.nextElementSibling;
                                                         dropdown.classList.toggle('show');
