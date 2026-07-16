@@ -15,7 +15,9 @@ exports.handler = async (event) => {
   const basePath = event.path.replace(/^\/api/, "");
   const queryString = event.rawQueryString ? `?${event.rawQueryString}` : "";
   const fullPath = `${basePath}${queryString}`;
-  const backendURL = `https://graph-ongyy.kinsta.app${fullPath}`;
+  const isLocal = process.env.NETLIFY_DEV === 'true' || process.env.NODE_ENV === 'development';
+  const backendBase = isLocal ? 'http://localhost:4001' : 'https://graph-ongyy.kinsta.app';
+  const backendURL = `${backendBase}${fullPath}`;
   const requestMethod = event.httpMethod.toUpperCase();
 
   console.log(`[PROXY_REQUEST] ${requestMethod} ${event.path} -> ${backendURL}`);
@@ -28,11 +30,16 @@ exports.handler = async (event) => {
       }
   }
   forwardedHeaders['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36';
-  forwardedHeaders['host'] = "graph-ongyy.kinsta.app";
+  if (!isLocal) {
+      forwardedHeaders['host'] = "graph-ongyy.kinsta.app";
+  }
   forwardedHeaders['X-Forwarded-For'] = event.requestContext?.http?.sourceIp || 'unknown';
   forwardedHeaders['X-Forwarded-Proto'] = 'https';
   
-  const body = (requestMethod === 'GET' || requestMethod === 'HEAD') ? undefined : event.body;
+  let body = (requestMethod === 'GET' || requestMethod === 'HEAD') ? undefined : event.body;
+  if (body && event.isBase64Encoded) {
+      body = Buffer.from(body, 'base64').toString('utf8');
+  }
 
   // --- Retry Loop ---
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
