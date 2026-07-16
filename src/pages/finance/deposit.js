@@ -1,4 +1,5 @@
 import React from "react";
+import ReactDOM from "react-dom";
 import ErrorMessage from "./components/error-toast"; // Adjust path as needed
 import Data from "../../utils/data";
 
@@ -6,7 +7,7 @@ const IErrorMessage = new ErrorMessage();
 const $ = window.$; 
 
 // Generate a unique ID so we don't conflict if multiple modals exist
-const modalId = `mpesa-modal-${Math.random().toString(36).substring(2, 9)}`;
+// Moved to instance property
 
 const StatusDisplay = ({ status, message }) => {
   const statusConfig = {
@@ -94,12 +95,16 @@ const StatusDisplay = ({ status, message }) => {
 };
 
 class MpesaPaymentModal extends React.Component {
-  state = {
-    status: 'IDLE', 
-    message: '',
-    transactionId: null, 
-    form: { phone: '', amount: '' },
-  };
+  constructor(props) {
+    super(props);
+    this.modalId = `mpesa-modal-${Math.random().toString(36).substring(2, 9)}`;
+    this.state = {
+      status: 'IDLE', 
+      message: '',
+      transactionId: null, 
+      form: { phone: '', amount: '' },
+    };
+  }
 
   _isMounted = false;
   pollingInterval = null;
@@ -130,20 +135,19 @@ class MpesaPaymentModal extends React.Component {
     if (prefillData.amount) this.setState(prev => ({ form: { ...prev.form, amount: prefillData.amount }}));
     if (prefillData.phone) this.setState(prev => ({ form: { ...prev.form, phone: prefillData.phone }}));
     
-    // MOVE modal to body to escape parent stacking contexts (crucial for nested modals)
-    const modalElem = $(`#${modalId}`);
-    modalElem.appendTo('body');
+    // React Portals now handle appending to body natively, so we just show the modal
+    const modalElem = $(`#${this.modalId}`);
     
     modalElem.modal({ show: true, backdrop: 'static', keyboard: false });
     
     // Fix z-index of the generated Bootstrap backdrop so it sits exactly behind this modal
     // and above any other active modals (which are usually at 1050)
     setTimeout(() => {
-        $(`#${modalId}`).css('z-index', 10001); // Even higher
+        $(`#${this.modalId}`).css('z-index', 1055); // Use 1055 to definitively override Bootstrap's 1050
         const backdrops = $('.modal-backdrop');
         if (backdrops.length > 0) {
             $(backdrops[backdrops.length - 1]).css({
-                'z-index': 10000,
+                'z-index': 1054,
                 'opacity': 0.7,
                 'background-color': '#000',
                 'position': 'fixed'
@@ -154,7 +158,7 @@ class MpesaPaymentModal extends React.Component {
 
   hide = () => {
     this.stopPolling();
-    $(`#${modalId}`).modal('hide');
+    $(`#${this.modalId}`).modal('hide');
     // Safety net: occasionally Bootstrap leaves backdrop behind if toggled rapidly
     setTimeout(() => {
         if ($('.modal.show').length === 0) {
@@ -299,9 +303,9 @@ class MpesaPaymentModal extends React.Component {
     const { status, form } = this.state;
     const isBusy = ['INITIATING', 'AWAITING_USER_ACTION', 'VERIFYING', 'SUCCESS'].includes(status);
 
-    return (
-      <div className="modal fade" id={modalId} tabIndex={-1} role="dialog" aria-hidden="true" style={{ zIndex: 9999 }}>
-        <div className="modal-dialog modal-dialog-centered" role="document" style={{ zIndex: 10000, maxWidth: '450px' }}>
+    return ReactDOM.createPortal(
+      <div className="modal fade" id={this.modalId} tabIndex={-1} role="dialog" aria-hidden="true" style={{ zIndex: 1055 }}>
+        <div className="modal-dialog modal-dialog-centered" role="document" style={{ zIndex: 1056, maxWidth: '450px' }}>
           <div className="modal-content shadow-lg border-0" style={{ borderRadius: '16px', overflow: 'hidden' }}>
             
             <div className="modal-header px-6 py-5 border-bottom-0" style={{ backgroundColor: '#43B02A', color: 'white' }}>
@@ -318,7 +322,7 @@ class MpesaPaymentModal extends React.Component {
             
             <div className="modal-body p-8 bg-white">
               <div className="text-muted font-size-sm font-weight-bold mb-6 text-center">
-                 Provide the phone number to receive the prompt and the amount to top up.
+                 Provide the phone number to receive the prompt and the amount to pay.
               </div>
 
               <div className="form-group mb-6">
@@ -349,7 +353,7 @@ class MpesaPaymentModal extends React.Component {
               
               {!isBusy && status !== 'ERROR' && (
                 <button type="button" className="btn font-weight-bolder px-8 shadow-sm" onClick={this.initiatePayment} style={{ backgroundColor: '#43B02A', color: 'white', borderRadius: '8px' }}>
-                    Top Up Now <i className="fa fa-arrow-right ml-2 font-size-sm"></i>
+                    {this.props.actionText || "Top Up Now"} <i className="fa fa-arrow-right ml-2 font-size-sm"></i>
                 </button>
               )}
               {status === 'ERROR' && (
@@ -360,7 +364,8 @@ class MpesaPaymentModal extends React.Component {
             </div>
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     );
   }
 }

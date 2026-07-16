@@ -5,6 +5,7 @@ import Footer from "../../components/footer";
 import Data from "../../utils/data";
 import ErrorToast from "../finance/components/error-toast";
 import SuccessToast from "../schools/components/success-toast";
+import MpesaPaymentModal from "./deposit";
 
 // Initialize toast instances
 const errorToast = new ErrorToast();
@@ -87,6 +88,11 @@ const Pagination = ({ total, itemsPerPage, currentPage, onPageChange }) => {
 // --- MAIN COMPONENT ---
 
 class InstitutionalDeposits extends Component {
+    constructor(props) {
+        super(props);
+        this.mpesaModalRef = React.createRef();
+    }
+
     state = {
         invoices: [],
         loading: false,
@@ -153,6 +159,7 @@ class InstitutionalDeposits extends Component {
             selectedSchool: selectedSchool
         });
         // Subscribe to school changes
+        
         this.schoolsSubscription = Data.schools.subscribe(({ selectedSchool }) => {
             this.setState({ selectedSchool });
             if (selectedSchool) {
@@ -404,38 +411,93 @@ class InstitutionalDeposits extends Component {
 
     handlePayInvoice = (invoice) => {
         const paymentMethod = this.state.paymentMethod || localStorage.getItem('paymentMethod') || 'mpesa';
-        const billingPhone = this.state.billingPhone || localStorage.getItem('billingPhone') || '';
+        let billingPhone = this.state.billingPhone || localStorage.getItem('billingPhone') || '';
         
-        if (paymentMethod === 'mpesa' && !billingPhone) {
-            errorToast.show({ message: 'Please set up your M-Pesa billing number first' });
-            this.handleManageBilling();
-            return;
-        }
-        
+        // Strip out non-numeric characters from amount
+        const rawAmount = typeof invoice.amount === 'string' 
+            ? invoice.amount.replace(/[^0-9.]/g, '') 
+            : invoice.amount;
+
         if (paymentMethod === 'bank') {
             this.setState({ selectedInvoice: invoice, showBankPaymentModal: true });
         } else {
-            this.setState({ selectedInvoice: invoice, showPaymentModal: true });
+            this.setState({ selectedInvoice: invoice });
+            if (this.mpesaModalRef.current) {
+                // For pre-filling, ensure phone is in proper format if needed, but deposit.js allows user editing
+                this.mpesaModalRef.current.show({ amount: rawAmount, phone: billingPhone });
+            }
         }
     };
 
-    handleConfirmPayment = () => {
-        const { selectedInvoice, billingPhone } = this.state;
-        
-        if (!billingPhone || billingPhone.length < 10) {
-            errorToast.show({ message: 'Please enter a valid M-Pesa phone number' });
-            return;
+    handleToggleRestriction = async (invoice, currentStatus) => {
+        const { selectedSchool } = this.state;
+        if (!selectedSchool) return;
+
+        const newStatus = !currentStatus;
+        try {
+            await Data.schools.update({ 
+                id: selectedSchool.id, 
+                dashboardsRestricted: newStatus 
+            });
+            
+            // Optimistically update local state
+            this.setState({
+                selectedSchool: {
+                    ...selectedSchool,
+                    dashboardsRestricted: newStatus
+                }
+            });
+
+            if (newStatus) {
+                errorToast.show({ 
+                    message: `Dashboards have been restricted due to Invoice #${invoice.id}.`,
+                    header: 'Dashboards Restricted'
+                });
+            } else {
+                successToast.show({ 
+                    message: `Dashboard restrictions lifted for this school.`,
+                    header: 'Access Restored'
+                });
+            }
+        } catch (error) {
+            console.error("Failed to toggle dashboard restriction", error);
+            errorToast.show({ message: 'Failed to update restriction status. Please try again.' });
         }
-
-        // Simulate M-Pesa STK Push
-        successToast.show({ 
-            message: `M-Pesa payment of ${selectedInvoice.amount} initiated to ${billingPhone}. Please check your phone for the STK push prompt.`,
-            header: 'Payment Initiated'
-        });
-
-        this.setState({ showPaymentModal: false });
     };
 
+    handleMpesaSuccess = async () => {
+        const { selectedInvoice, invoices } = this.state;
+        if (!selectedInvoice) return;
+
+        try {
+            // Persist the update via API
+            await Data.invoices.update({
+                id: selectedInvoice.id,
+                status: 'Paid',
+                paymentMethod: 'Mpesa Express',
+                confirmedBy: 'System',
+                confirmedDate: new Date().toLocaleDateString('en-GB')
+            });
+
+            // Update local state for immediate feedback
+            const updatedInvoices = invoices.map(inv => 
+                inv.id === selectedInvoice.id ? { ...inv, status: 'Paid' } : inv
+            );
+
+            this.setState({ 
+                invoices: updatedInvoices,
+                selectedInvoice: null
+            });
+
+            successToast.show({ 
+                message: `Invoice ${selectedInvoice.id} has been marked as Paid!`,
+                header: 'Payment Successful'
+            });
+        } catch (e) {
+            console.error("Failed to update invoice status:", e);
+            errorToast.show({ message: "Payment succeeded but failed to update invoice status." });
+        }
+    };
 
     handlePayWithSavedCard = (cardId) => {
         // For now, just show a success message with the card used
@@ -564,40 +626,40 @@ class InstitutionalDeposits extends Component {
         return (
             <div className="row mb-6">
                 <div className="col-12">
-                    <div className="kt-portlet kt-portlet--height-fluid">
-                        <div className="kt-portlet__head kt-portlet__head--noborder">
-                            <div className="kt-portlet__head-label">
-                                <h3 className="kt-portlet__head-title">
-                                    <i className="la la-info-circle"></i> Billing Management
-                                </h3>
+                    <div className="card card-custom gutter-b shadow-sm" style={{ border: '1px solid #E1F0FF', borderRadius: '12px' }}>
+                        <div className="card-body d-flex align-items-center justify-content-between flex-wrap py-6 px-8">
+                            <div className="d-flex flex-column mr-5">
+                                <div className="d-flex align-items-center mb-2">
+                                    <span className="svg-icon svg-icon-3x svg-icon-primary mr-4 bg-light-primary rounded p-3 text-center">
+                                        <i className="la la-credit-card text-primary" style={{ fontSize: '2rem' }}></i>
+                                    </span>
+                                    <div>
+                                        <h3 className="font-weight-bolder text-dark mb-1">Financial Settings</h3>
+                                        <div className="text-muted font-weight-bold font-size-lg">
+                                            Manage your payment methods, contact details, invoices, and VAT
+                                        </div>
+                                    </div>
+                                </div>
+                                {billingPhone && (
+                                    <div className="d-flex align-items-center mt-3 ml-14">
+                                        <span className="label label-light-success label-inline font-weight-bolder py-2 px-3">
+                                            <i className="la la-phone text-success mr-2"></i> {billingPhone}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                        <div className="kt-portlet__body">
-
-                            <div className="d-flex align-items-center justify-content-between">
-                                <div>
-                                    <h5 className="kt-font-bold">Billing & payment methods</h5>
-                                    <p className="kt-font-sm text-muted">
-                                        Manage your payment methods, billing address, invoices, and VAT details
-                                    </p>
-                                    {billingPhone && (
-                                        <p className="kt-font-sm text-success">
-                                            <i className="la la-phone"></i> Billing Phone: {billingPhone}
-                                        </p>
-                                    )}
-                                </div>
-                                <div className="d-flex gap-2">
-                                    {!isSuperAdmin && (
-                                        <button className="btn btn-label-brand btn-bold" onClick={this.handleManageBilling}>
-                                            <i className="la la-cog"></i> Manage billing
-                                        </button>
-                                    )}
-                                    {isSuperAdmin && (
-                                        <button className="btn btn-success btn-bold" onClick={this.handleCreateInvoice}>
-                                            <i className="la la-plus"></i> Create Invoice
-                                        </button>
-                                    )}
-                                </div>
+                            
+                            <div className="d-flex align-items-center py-2 mt-4 mt-sm-0">
+                                {!isSuperAdmin && (
+                                    <button className="btn btn-primary font-weight-bolder py-3 px-6 shadow-sm" onClick={this.handleManageBilling}>
+                                        <i className="la la-cog mr-2"></i> Configure Setup
+                                    </button>
+                                )}
+                                {isSuperAdmin && (
+                                    <button className="btn btn-success font-weight-bolder py-3 px-6 shadow-sm" onClick={this.handleCreateInvoice}>
+                                        <i className="la la-plus mr-2"></i> Create Invoice
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -1325,18 +1387,50 @@ class InstitutionalDeposits extends Component {
                                         
                                         <div className="d-flex align-items-center">
                                             <div className="text-right mr-6">
-                                                <div className="font-weight-boldest text-dark" style={{ fontSize: '1.2rem' }}>{invoice.amount}</div>
-                                                <span className={`label label-inline font-weight-bold label-light-${invoice.status === 'Paid' ? 'success' : invoice.status === 'Unpaid' ? 'danger' : 'warning'}`}>
-                                                    {invoice.status}
-                                                </span>
+                                                <div className="font-weight-boldest text-dark mb-1" style={{ fontSize: '1.3rem' }}>{invoice.amount}</div>
+                                                {invoice.status === 'Paid' && (
+                                                    <span className="label label-inline font-weight-boldest label-light-success py-2 px-3" style={{ fontSize: '0.85rem' }}>
+                                                        <i className="la la-check mr-1 text-success"></i> {invoice.status}
+                                                    </span>
+                                                )}
+                                                {invoice.status === 'Unpaid' && (
+                                                    <span className="label label-inline font-weight-boldest label-danger py-2 px-3 shadow-sm" style={{ fontSize: '0.85rem', animation: 'pulse 2s infinite' }}>
+                                                        <i className="la la-exclamation-triangle mr-1 text-white"></i> {invoice.status}
+                                                    </span>
+                                                )}
+                                                {invoice.status === 'Pending Confirmation' && (
+                                                    <span className="label label-inline font-weight-boldest label-light-warning py-2 px-3" style={{ fontSize: '0.85rem' }}>
+                                                        <i className="la la-hourglass mr-1 text-warning"></i> {invoice.status}
+                                                    </span>
+                                                )}
                                             </div>
                                             
-                                            <div className="d-flex gap-2">
-                                                {!this.state.isSuperAdmin && invoice.status === 'Unpaid' && (
-                                                    <button className="btn btn-success font-weight-bold py-2 px-4 rounded-pill shadow-sm" onClick={() => this.handlePayInvoice(invoice)}>
-                                                        Pay Now
+                                            <div className="d-flex align-items-center gap-3">
+                                                {invoice.status === 'Unpaid' && (
+                                                    <button className="btn btn-success font-weight-bolder py-2 px-6 rounded shadow-sm d-flex align-items-center transition-hover" 
+                                                            style={{ textTransform: 'uppercase', letterSpacing: '0.5px' }}
+                                                            onClick={() => this.handlePayInvoice(invoice)}>
+                                                        <i className="la la-credit-card" style={{ fontSize: '1.2rem' }}></i>
+                                                        <span className="ml-2">Pay Now</span>
                                                     </button>
                                                 )}
+                                                
+                                                {this.state.isSuperAdmin && invoice.status === 'Unpaid' && (
+                                                    <div className="d-flex align-items-center ml-3 p-2 rounded bg-light border border-secondary" title="Restrict Dashboards">
+                                                        <span className="switch switch-sm switch-danger d-flex align-items-center">
+                                                            <label className="mb-0 d-flex align-items-center cursor-pointer">
+                                                                <input 
+                                                                    type="checkbox" 
+                                                                    checked={!!this.state.selectedSchool?.dashboardsRestricted}
+                                                                    onChange={() => this.handleToggleRestriction(invoice, !!this.state.selectedSchool?.dashboardsRestricted)}
+                                                                />
+                                                                <span></span>
+                                                                <span className="font-weight-bold text-dark-50 ml-2" style={{ fontSize: '0.85rem' }}>Restrict</span>
+                                                            </label>
+                                                        </span>
+                                                    </div>
+                                                )}
+
                                                 {this.state.isSuperAdmin && invoice.status === 'Pending Confirmation' && (
                                                     <button className="btn btn-info font-weight-bold py-2 px-4 rounded-pill shadow-sm" onClick={() => this.handleConfirmBankPayment(invoice)}>
                                                         Confirm
@@ -1559,10 +1653,10 @@ class InstitutionalDeposits extends Component {
                             {this.renderEmailModal()}
                             {this.renderCreateInvoiceModal()}
                             {this.renderEditInvoiceModal()}
-                            {this.renderPaymentModal()}
                             {this.renderBillingModal()}
                             {this.renderBankPaymentModal()}
                             {this.renderDeleteModal()}
+                            <MpesaPaymentModal ref={this.mpesaModalRef} onPaymentSuccess={this.handleMpesaSuccess} actionText="Settle Invoice" />
                         </div>
                     </div>
                     <Footer />
