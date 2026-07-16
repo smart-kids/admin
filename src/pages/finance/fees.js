@@ -176,8 +176,13 @@ class FeesManagement extends Component {
         selectedChargeType: "",
         chargeNotes: "",
         selectedChargeTermId: "",
-        editPaymentData: null,
+        selectedChargeStudentId: "",
         editChargeData: null,
+
+        // Delete Modal State
+        showDeleteModal: false,
+        deleteItem: null,
+        deleteType: null,
         showBulkSmsModal: false,
         bulkSmsRecipients: [],
 
@@ -460,14 +465,20 @@ class FeesManagement extends Component {
     recalculateFinancials = () => {
         const { students, parents, payments, classes, terms, feeStructures, charges, selectedClass, selectedTerm, searchTerm, alphabetFilter } = this.state;
 
+        const activeStudents = (students || []).filter(s => !s.isDeleted);
+        const activeParents = (parents || []).filter(p => !p.isDeleted);
+        const activePayments = (payments || []).filter(p => !p.isDeleted);
+        const activeFeeStructures = (feeStructures || []).filter(fs => !fs.isDeleted);
+        const activeCharges = (charges || []).filter(c => !c.isDeleted);
+
         const results = calculateFinancials({
-            students,
-            parents,
-            payments,
+            students: activeStudents,
+            parents: activeParents,
+            payments: activePayments,
             classes,
             terms,
-            feeStructures,
-            charges,
+            feeStructures: activeFeeStructures,
+            charges: activeCharges,
             selectedClass,
             selectedTerm,
             searchTerm,
@@ -644,13 +655,34 @@ class FeesManagement extends Component {
         }
     };
 
-    deletePayment = async (payment) => {
-        if (!window.confirm(`Are you sure you want to delete this payment of KES ${parseFloat(payment.amount || 0).toLocaleString()}?`)) return;
+    deleteCharge = (charge) => {
+        this.setState({ showDeleteModal: true, deleteItem: charge, deleteType: 'charge' });
+    };
 
+    performDeleteCharge = async (charge) => {
+        this.setState({ processingPayment: true });
+        try {
+            await Data.charges.delete(charge);
+            if (window.toastr) window.toastr.success("Charge deleted successfully");
+            this.setState({ showDeleteModal: false, deleteItem: null, deleteType: null });
+            this.recalculateFinancials();
+        } catch (e) {
+            if (window.toastr) window.toastr.error(e.message || "Failed to delete charge");
+        } finally {
+            this.setState({ processingPayment: false });
+        }
+    };
+
+    deletePayment = (payment) => {
+        this.setState({ showDeleteModal: true, deleteItem: payment, deleteType: 'payment' });
+    };
+
+    performDeletePayment = async (payment) => {
         this.setState({ processingPayment: true });
         try {
             await Data.payments.delete(payment);
             if (window.toastr) window.toastr.success("Payment deleted successfully");
+            this.setState({ showDeleteModal: false, deleteItem: null, deleteType: null });
             this.recalculateFinancials();
         } catch (e) {
             if (window.toastr) window.toastr.error(e.message || "Failed to delete payment");
@@ -1965,6 +1997,7 @@ class FeesManagement extends Component {
                                                         <td className="text-right font-weight-bolder text-danger py-3">KSH {parseFloat(c.amount).toLocaleString()}</td>
                                                         <td className="text-right py-3">
                                                             <button className="btn btn-icon btn-xs btn-light-primary" onClick={() => this.openEditChargeModal(c, group)} title="Edit"><i className="flaticon2-pen"></i></button>
+                                                            <button className="btn btn-icon btn-xs btn-light-danger ml-1" onClick={() => this.deleteCharge(c)} title="Delete"><i className="flaticon2-trash"></i></button>
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -3388,6 +3421,34 @@ class FeesManagement extends Component {
                                 <div className="modal-footer">
                                     <button className="btn btn-secondary" onClick={() => this.setState({ showEditChargeModal: false, editChargeData: null })}>Cancel</button>
                                     <button className="btn btn-success" disabled={this.state.processingPayment} onClick={this.updateCharge}>{this.state.processingPayment ? "Saving..." : "Update Charge"}</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Delete Confirmation Modal */}
+                {this.state.showDeleteModal && this.state.deleteItem && (
+                    <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                        <div className="modal-dialog modal-dialog-centered">
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h5 className="modal-title">Delete {this.state.deleteType === 'charge' ? 'Charge' : 'Payment'}</h5>
+                                    <button type="button" className="close" onClick={() => this.setState({ showDeleteModal: false, deleteItem: null, deleteType: null })}><span>&times;</span></button>
+                                </div>
+                                <div className="modal-body">
+                                    <p>Are you sure you want to delete this {this.state.deleteType === 'charge' ? 'charge' : 'payment'} of <strong>KES {parseFloat(this.state.deleteItem.amount || 0).toLocaleString()}</strong>?</p>
+                                    <p className="text-muted small mb-0">This action cannot be undone.</p>
+                                </div>
+                                <div className="modal-footer">
+                                    <button className="btn btn-secondary" onClick={() => this.setState({ showDeleteModal: false, deleteItem: null, deleteType: null })}>Cancel</button>
+                                    <button className="btn btn-danger" disabled={this.state.processingPayment} onClick={() => {
+                                        if (this.state.deleteType === 'charge') {
+                                            this.performDeleteCharge(this.state.deleteItem);
+                                        } else {
+                                            this.performDeletePayment(this.state.deleteItem);
+                                        }
+                                    }}>{this.state.processingPayment ? "Deleting..." : "Delete"}</button>
                                 </div>
                             </div>
                         </div>
