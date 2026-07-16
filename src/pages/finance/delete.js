@@ -53,7 +53,7 @@ class Modal extends React.Component {
           <div className="modal-dialog">
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">Delete Student</h5>
+                <h5 className="modal-title">{this.props.title || "Delete Record"}</h5>
                 <button
                   type="button"
                   className="close"
@@ -64,7 +64,7 @@ class Modal extends React.Component {
                 </button>
               </div>
               <div className="modal-body">
-                <p>Are you sure you want to delete this record?</p>
+                <p>{this.props.message || "Are you sure you want to delete this record?"}</p>
               </div>
               <div className="modal-footer">
                 {!this.state.loading ? (

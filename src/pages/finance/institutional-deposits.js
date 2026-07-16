@@ -100,6 +100,10 @@ class InstitutionalDeposits extends Component {
         emailSubject: '',
         emailMessage: '',
         showPrintView: false,
+        recentTransactions: [],
+        chartData: null,
+        showDeleteModal: false,
+        deleteInvoiceId: null,
         printInvoice: null,
         schoolInfo: null,
         showCreateInvoiceModal: false,
@@ -334,17 +338,21 @@ class InstitutionalDeposits extends Component {
     };
 
     handleDeleteInvoice = (invoiceId) => {
-        if (window.confirm('Are you sure you want to delete this invoice? This action cannot be undone.')) {
-            const { invoices } = this.state;
-            this.setState({
-                invoices: invoices.filter(inv => inv.id !== invoiceId),
-                totalInvoices: this.state.totalInvoices - 1
-            });
-            successToast.show({ 
-                message: `Invoice deleted successfully!`,
-                header: 'Invoice Deleted'
-            });
-        }
+        this.setState({ showDeleteModal: true, deleteInvoiceId: invoiceId });
+    };
+
+    performDeleteInvoice = () => {
+        const { invoices, deleteInvoiceId } = this.state;
+        this.setState({
+            invoices: invoices.filter(inv => inv.id !== deleteInvoiceId),
+            totalInvoices: this.state.totalInvoices - 1,
+            showDeleteModal: false,
+            deleteInvoiceId: null
+        });
+        successToast.show({ 
+            message: `Invoice deleted successfully!`,
+            header: 'Invoice Deleted'
+        });
     };
 
     handlePayInvoice = (invoice) => {
@@ -1549,6 +1557,7 @@ class InstitutionalDeposits extends Component {
                             {this.renderPaymentModal()}
                             {this.renderBillingModal()}
                             {this.renderBankPaymentModal()}
+                            {this.renderDeleteModal()}
                         </div>
                     </div>
                     <Footer />
@@ -1556,6 +1565,30 @@ class InstitutionalDeposits extends Component {
             </div>
         );
     }
+
+    renderDeleteModal = () => {
+        if (!this.state.showDeleteModal) return null;
+
+        return (
+            <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal-dialog modal-dialog-centered">
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h5 className="modal-title">Delete Invoice</h5>
+                            <button type="button" className="close" onClick={() => this.setState({ showDeleteModal: false, deleteInvoiceId: null })}><span>&times;</span></button>
+                        </div>
+                        <div className="modal-body">
+                            <p>Are you sure you want to delete this invoice? This action cannot be undone.</p>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="btn btn-secondary" onClick={() => this.setState({ showDeleteModal: false, deleteInvoiceId: null })}>Cancel</button>
+                            <button className="btn btn-danger" onClick={this.performDeleteInvoice}>Delete</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
 }
 
 export default InstitutionalDeposits;
