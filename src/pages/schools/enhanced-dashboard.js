@@ -775,6 +775,8 @@ class EnhancedSchoolsDashboard extends Component {
               subtitle={`${entityMetrics?.averageStudentsPerSchool?.toFixed(1) || 0} per school`}
               icon="la la-users"
               color="primary"
+              isCurrency={false}
+              formatExact={true}
             />
           </div>
           <div className="col-lg-3 col-md-6">
@@ -784,6 +786,8 @@ class EnhancedSchoolsDashboard extends Component {
               subtitle={`${entityMetrics?.averageTeachersPerSchool?.toFixed(1) || 0} per school`}
               icon="la la-user"
               color="success"
+              isCurrency={false}
+              formatExact={true}
             />
           </div>
           <div className="col-lg-3 col-md-6">
@@ -793,6 +797,8 @@ class EnhancedSchoolsDashboard extends Component {
               subtitle={`${entityMetrics?.averageClassesPerSchool?.toFixed(1) || 0} per school`}
               icon="la la-school"
               color="warning"
+              isCurrency={false}
+              formatExact={true}
             />
           </div>
           <div className="col-lg-3 col-md-6">
@@ -802,6 +808,8 @@ class EnhancedSchoolsDashboard extends Component {
               subtitle="Educational resources"
               icon="la la-book"
               color="danger"
+              isCurrency={false}
+              formatExact={true}
             />
           </div>
         </div>
