@@ -1279,7 +1279,7 @@ var Data = (function () {
             customMethods: (allData, subs) => ({
                 getPage: async ({ page = 1, limit = 15, search = "" }) => {
                     const offset = (page - 1) * limit;
-                    const response = await query(`query GetStudentPage($limit: Int, $offset: Int, $id: String, $search: String) { school(id: $id) { studentsCount(search: $search) students(limit: $limit, offset: $offset, search: $search) { id names gender registration class{id, name} route{id, name} parent{id, name} balanceBroughtForward  } } }`, { limit, offset, id: localStorage.getItem("school"), search });
+                    const response = await query(`query GetStudentPage($limit: Int, $offset: Int, $id: String, $search: String) { school(id: $id) { studentsCount(search: $search) students(limit: $limit, offset: $offset, search: $search) { id names gender registration class{id, name} route{id, name} parent{id, name, phone, email, national_id} balanceBroughtForward  } } }`, { limit, offset, id: localStorage.getItem("school"), search });
                     const processedStudents = response.school?.students?.map(s => ({ ...s, parent_name: s.parent?.name, class_name: s.class?.name })) || [];
                     return { students: processedStudents, totalCount: response.school?.studentsCount || 0 };
                 },

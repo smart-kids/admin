@@ -563,16 +563,29 @@ export default function ParentDataTable() {
                                 <div style={{marginBottom: '15px'}}>
                                   <div style={{fontWeight: 'bold', color: '#6c757d', marginBottom: '8px'}}>
                                     <i className="la la-graduation-cap" style={{marginRight: '8px'}}></i>
-                                    Students ({children.students.length})
+                                    Students & Login Credentials ({children.students.length})
                                   </div>
-                                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '10px'}}>
+                                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '10px'}}>
                                     {children.students.map(student => (
-                                      <div key={student.id} style={{padding: '10px', border: '1px solid #dee2e6', borderRadius: '6px', backgroundColor: 'white'}}>
-                                        <div style={{fontWeight: 'bold', color: '#495057', marginBottom: '5px'}}>{student.names}</div>
-                                        <div style={{fontSize: '0.85rem', color: '#6c757d'}}>
-                                          <div>ID: {student.admissionNumber || student.id}</div>
-                                          <div>Class: {student.className || 'N/A'}</div>
-                                          <div>Grade: {student.gradeName || 'N/A'}</div>
+                                      <div key={student.id} style={{padding: '15px', border: '1px solid #dee2e6', borderRadius: '6px', backgroundColor: 'white'}}>
+                                        <div style={{fontWeight: 'bold', color: '#0095E8', fontSize: '1.05rem', marginBottom: '10px'}}>{student.names}</div>
+                                        
+                                        <div style={{backgroundColor: '#f8f9fa', padding: '10px', borderRadius: '4px', marginBottom: '10px', border: '1px solid #e9ecef'}}>
+                                          <div style={{fontWeight: 'bold', color: '#495057', marginBottom: '5px', fontSize: '0.85rem'}}>
+                                            <i className="la la-key" style={{marginRight: '5px'}}></i> Login Credentials
+                                          </div>
+                                          <div style={{fontSize: '0.9rem', color: '#495057'}}>
+                                            <div style={{marginBottom: '3px'}}><strong>Username (Parent Phone):</strong> {row.phone || 'N/A'}</div>
+                                            <div><strong>Password (Reg No):</strong> {student.registration || student.admissionNumber || student.id}</div>
+                                          </div>
+                                        </div>
+
+                                        <div style={{fontSize: '0.85rem', color: '#6c757d', borderTop: '1px dashed #e9ecef', paddingTop: '10px'}}>
+                                          <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '3px'}}>
+                                            <span><strong>Class:</strong> {student.className || 'N/A'}</span>
+                                            <span><strong>Grade:</strong> {student.gradeName || 'N/A'}</span>
+                                          </div>
+                                          <div><strong>System ID:</strong> {student.id}</div>
                                         </div>
                                       </div>
                                     ))}

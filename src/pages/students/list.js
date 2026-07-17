@@ -43,6 +43,9 @@ export default function StudentDataTableV8() {
   const [searchTerm, setSearchTerm] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
 
+  // Tree view state
+  const [expandedStudents, setExpandedStudents] = useState(new Set());
+
   // Pagination & Sorting state
   const [currentPage, setCurrentPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(15);
@@ -180,6 +183,17 @@ export default function StudentDataTableV8() {
       { key: 'class_name', label: 'Current Class', sortable: true },
       { key: 'parent_name', label: 'Parent', sortable: true },
   ], []);
+
+  // Toggle student expansion
+  const toggleStudentExpansion = useCallback((studentId) => {
+    const newExpanded = new Set(expandedStudents);
+    if (newExpanded.has(studentId)) {
+      newExpanded.delete(studentId);
+    } else {
+      newExpanded.add(studentId);
+    }
+    setExpandedStudents(newExpanded);
+  }, [expandedStudents]);
 
   // --- DERIVED STATE ---
   const totalPages = Math.ceil(totalStudents / rowsPerPage);
@@ -425,39 +439,103 @@ export default function StudentDataTableV8() {
               {initialLoading ? (
                 [...Array(rowsPerPage)].map((_, i) => <tr key={i}><td colSpan={headers.length + 1}><div style={{height: '2rem', backgroundColor: '#EFF2F5', borderRadius: '4px', margin: '1rem 0', animation: 'pulse 1.5s infinite ease-in-out'}}></div></td></tr>)
               ) : students.length > 0 ? (
-                students.map(row => (
-                    <tr key={row.id} className={newlyAddedIds.has(row.id) ? 'v8-new-row' : ''}>
-                      {headers.map(h => (
-                        <td key={h.key} className={h.key === 'names' ? 'td-primary' : ''}>
-                          {h.key === 'profileImage' ? (
-                            getNestedValue(row, h.key) ? (
-                              <img src={getNestedValue(row, h.key)} alt="Profile" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                students.map(row => {
+                  const isExpanded = expandedStudents.has(row.id);
+                  return (
+                    <React.Fragment key={row.id}>
+                      <tr className={newlyAddedIds.has(row.id) ? 'v8-new-row' : ''}>
+                        {headers.map(h => (
+                          <td key={h.key} className={h.key === 'names' ? 'td-primary' : ''}>
+                            {h.key === 'profileImage' ? (
+                              getNestedValue(row, h.key) ? (
+                                <img src={getNestedValue(row, h.key)} alt="Profile" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                              ) : (
+                                <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#E4E6EF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <i className="la la-user" style={{ fontSize: '20px', color: '#B5B5C3' }}></i>
+                                </div>
+                              )
                             ) : (
-                              <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#E4E6EF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <i className="la la-user" style={{ fontSize: '20px', color: '#B5B5C3' }}></i>
-                              </div>
-                            )
-                          ) : (
-                            getNestedValue(row, h.key)
-                          )}
+                              getNestedValue(row, h.key)
+                            )}
+                          </td>
+                        ))}
+                        <td className="v8-table-actions" style={{textAlign: 'right', whiteSpace: 'nowrap'}}>
+                          <button 
+                            className="v8-tooltip-container"
+                            onClick={() => toggleStudentExpansion(row.id)}
+                            style={{color: '#0095E8', marginRight: '8px', background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem'}}
+                          >
+                            <i className={`la la-${isExpanded ? 'chevron-up' : 'chevron-down'}`} style={{fontSize: '1rem'}}></i>
+                            <span className="v8-tooltip-text">{isExpanded ? 'Collapse' : 'Expand'} Details</span>
+                          </button>
+                          <button className="v8-tooltip-container" onClick={() => handleEdit(row)} style={{background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem'}}>
+                              <i className="la la-edit" style={{fontSize: '1.5rem'}}></i>
+                              <span className="v8-tooltip-text">Edit Student</span>
+                          </button>
+                          <button className="v8-tooltip-container" onClick={() => handleDelete(row)} style={{background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem'}}>
+                              <i className="la la-trash" style={{fontSize: '1.5rem'}}></i>
+                              <span className="v8-tooltip-text">Delete</span>
+                          </button>
+                          <button className="v8-tooltip-container" onClick={() => handleUpgrade(row)} style={{background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem'}}>
+                              <i className="la la-arrow-up" style={{fontSize: '1.5rem'}}></i>
+                              <span className="v8-tooltip-text">Upgrade Class</span>
+                          </button>
                         </td>
-                      ))}
-                      <td className="v8-table-actions" style={{textAlign: 'right'}}>
-                        <button className="v8-tooltip-container" onClick={() => handleEdit(row)}>
-                            <i className="la la-edit" style={{fontSize: '1.5rem'}}></i>
-                            <span className="v8-tooltip-text">Edit Student</span>
-                        </button>
-                        <button className="v8-tooltip-container" onClick={() => handleDelete(row)}>
-                            <i className="la la-trash" style={{fontSize: '1.5rem'}}></i>
-                            <span className="v8-tooltip-text">Delete</span>
-                        </button>
-                        <button className="v8-tooltip-container" onClick={() => handleUpgrade(row)}>
-                            <i className="la la-arrow-up" style={{fontSize: '1.5rem'}}></i>
-                            <span className="v8-tooltip-text">Upgrade Class</span>
-                        </button>
-                      </td>
-                    </tr>
-                ))
+                      </tr>
+                      {isExpanded && (
+                        <tr>
+                          <td colSpan={headers.length + 1} style={{padding: '0', backgroundColor: '#f8f9fa'}}>
+                            <div style={{padding: '20px', border: '1px solid #e9ecef', borderRadius: '8px', margin: '10px'}}>
+                              <div style={{display: 'flex', alignItems: 'center', marginBottom: '15px', fontWeight: 'bold', color: '#495057'}}>
+                                <i className="la la-user-tie" style={{marginRight: '8px'}}></i>
+                                Parent Details & Login Info
+                              </div>
+                              
+                              <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '15px'}}>
+                                <div style={{padding: '15px', border: '1px solid #dee2e6', borderRadius: '6px', backgroundColor: 'white'}}>
+                                  <div style={{fontWeight: 'bold', color: '#0095E8', marginBottom: '10px'}}>
+                                    <i className="la la-info-circle" style={{marginRight: '8px'}}></i>
+                                    Login Information
+                                  </div>
+                                  <div style={{fontSize: '0.9rem', color: '#495057'}}>
+                                    <div style={{marginBottom: '5px'}}><strong>Username (Parent Phone):</strong> {row.parent?.phone || 'N/A'}</div>
+                                    <div><strong>Password (Reg No):</strong> {row.registration || 'N/A'}</div>
+                                  </div>
+                                </div>
+
+                                {row.parent && (
+                                  <div style={{padding: '15px', border: '1px solid #dee2e6', borderRadius: '6px', backgroundColor: 'white'}}>
+                                    <div style={{fontWeight: 'bold', color: '#28a745', marginBottom: '10px'}}>
+                                      <i className="la la-user" style={{marginRight: '8px'}}></i>
+                                      Parent Profile
+                                    </div>
+                                    <div style={{fontSize: '0.9rem', color: '#495057'}}>
+                                      <div style={{marginBottom: '5px'}}><strong>Name:</strong> {row.parent.name || row.parent_name || 'N/A'}</div>
+                                      <div style={{marginBottom: '5px'}}><strong>Phone:</strong> {row.parent.phone || 'N/A'}</div>
+                                      <div style={{marginBottom: '5px'}}><strong>Email:</strong> {row.parent.email || 'N/A'}</div>
+                                      <div><strong>National ID:</strong> {row.parent.national_id || 'N/A'}</div>
+                                    </div>
+                                  </div>
+                                )}
+                                {!row.parent && (
+                                  <div style={{padding: '15px', border: '1px solid #dee2e6', borderRadius: '6px', backgroundColor: '#fff3cd', color: '#856404'}}>
+                                    <div style={{fontWeight: 'bold', marginBottom: '10px'}}>
+                                      <i className="la la-exclamation-triangle" style={{marginRight: '8px'}}></i>
+                                      No Parent Assigned
+                                    </div>
+                                    <div style={{fontSize: '0.9rem'}}>
+                                      This student does not have a parent assigned. Please edit the student to assign a parent so they can log in.
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })
               ) : (
                 <tr>
                     <td colSpan={headers.length + 1} style={{ padding: 0 }}>
