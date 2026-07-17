@@ -152,7 +152,7 @@ export const FilterPanel = ({
         <div className="d-flex align-items-center mb-2">
           <div className="text-muted mr-3">
             <span className="small">Total Schools:</span>
-            <span className="font-weight-bolder text-dark ml-1">{schools.length}</span>
+            <span className="font-weight-bolder text-dark ml-1">{schools?.filter(s => !s.isDeleted).length || 0}</span>
           </div>
           {selectedSchool && (
             <div className="badge badge-light badge-pill" style={{ fontSize: '0.75rem' }}>
