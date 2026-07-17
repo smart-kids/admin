@@ -4,15 +4,36 @@ import Data from "../../utils/data";
 
 const formatDate = (dateStr) => {
     if (!dateStr) return 'Unknown Date';
-    // If it's a numeric string timestamp, parse it
-    const parsed = isNaN(dateStr) ? new Date(dateStr) : new Date(Number(dateStr));
-    return isNaN(parsed.getTime()) ? 'Invalid Date' : parsed.toLocaleString(undefined, {
-        year: 'numeric', month: 'short', day: 'numeric',
-        hour: '2-digit', minute: '2-digit', second: '2-digit'
-    });
+    try {
+        let parsed;
+        if (typeof dateStr === 'number') {
+            parsed = new Date(dateStr);
+        } else if (typeof dateStr === 'string') {
+            // Check if it's purely digits
+            if (/^\d+$/.test(dateStr)) {
+                parsed = new Date(Number(dateStr));
+            } else {
+                parsed = new Date(dateStr);
+            }
+        } else {
+            // Fallback for unexpected types like objects
+            parsed = new Date(String(dateStr));
+        }
+
+        if (isNaN(parsed.getTime())) {
+            return 'Invalid Date (' + String(dateStr) + ')';
+        }
+        return parsed.toLocaleString(undefined, {
+            year: 'numeric', month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+        });
+    } catch (e) {
+        return 'Invalid Date';
+    }
 };
 
 const TimelineItem = ({ log }) => {
+    const [showPayload, setShowPayload] = useState(false);
     const actionColor = {
         CREATE: '#28a745',
         UPDATE: '#007bff',
@@ -81,18 +102,28 @@ const TimelineItem = ({ log }) => {
 
                 {log.after && (
                     <div className="mt-3">
-                        <p className="mb-2 text-muted" style={{fontSize: '0.85rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px'}}>Payload Data</p>
-                        <div style={{ 
-                            background: '#1e1e2d', 
-                            padding: '15px', 
-                            borderRadius: '8px',
-                            maxHeight: '250px', 
-                            overflowY: 'auto' 
-                        }}>
-                            <pre className="mb-0" style={{ color: '#a2a5b9', fontSize: '0.85rem', margin: 0 }}>
-                                <code>{JSON.stringify(log.after, null, 2)}</code>
-                            </pre>
-                        </div>
+                        <button 
+                            className="btn btn-sm btn-light" 
+                            onClick={() => setShowPayload(!showPayload)}
+                            style={{ fontSize: '0.8rem', fontWeight: 600, padding: '4px 10px' }}
+                        >
+                            <i className={`la ${showPayload ? 'la-eye-slash' : 'la-eye'} mr-1`}></i>
+                            {showPayload ? 'Hide Payload' : 'View Payload'}
+                        </button>
+                        
+                        {showPayload && (
+                            <div className="mt-3" style={{ 
+                                background: '#1e1e2d', 
+                                padding: '15px', 
+                                borderRadius: '8px',
+                                maxHeight: '250px', 
+                                overflowY: 'auto' 
+                            }}>
+                                <pre className="mb-0" style={{ color: '#a2a5b9', fontSize: '0.85rem', margin: 0 }}>
+                                    <code>{JSON.stringify(log.after, null, 2)}</code>
+                                </pre>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
@@ -158,7 +189,7 @@ export default function ActivityLogIndex() {
                             <p className="mt-3 text-muted">Loading activity logs...</p>
                         </div>
                     ) : (
-                        <div style={{ position: 'relative' }}>
+                        <div style={{ position: 'relative', maxWidth: '800px', margin: '0 auto' }}>
                             {/* Vertical Line */}
                             <div style={{
                                 position: 'absolute',

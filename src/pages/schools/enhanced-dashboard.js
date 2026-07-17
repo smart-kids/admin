@@ -685,6 +685,7 @@ class EnhancedSchoolsDashboard extends Component {
               subtitle="Paying 1K per term"
               icon="la la-graduation-cap"
               color="info"
+              isCurrency={false}
             />
           </div>
           <div className="col-lg-3 col-md-6">

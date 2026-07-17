@@ -133,6 +133,19 @@ class BasicTable extends React.Component {
     try {
       const validSchoolFields = ['id', 'name', 'phone', 'email', 'localStorage', 'themeColor', 'address', 'schoolSize', 'schoolType', 'schoolLevel', 'numberOfStudents', 'logo', 'inviteSmsText', 'gradeOrder', 'termOrder', 'mpesaPaybill', 'ratePerStudent'];
       const filteredSchoolData = keepOnlyKeys(school, validSchoolFields);
+      
+      if (filteredSchoolData.numberOfStudents !== undefined && filteredSchoolData.numberOfStudents !== "") {
+          filteredSchoolData.numberOfStudents = parseInt(filteredSchoolData.numberOfStudents, 10);
+      } else {
+          delete filteredSchoolData.numberOfStudents;
+      }
+      
+      if (filteredSchoolData.ratePerStudent !== undefined && filteredSchoolData.ratePerStudent !== "") {
+          filteredSchoolData.ratePerStudent = parseFloat(filteredSchoolData.ratePerStudent);
+      } else {
+          delete filteredSchoolData.ratePerStudent;
+      }
+      
       await Data.schools.update(filteredSchoolData);
       ISuccessMessage.show({ message: "School has been updated successfuly!", header: "Edit School" });
     } catch (error) {
