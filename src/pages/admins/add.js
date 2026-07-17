@@ -1,4 +1,5 @@
 import React from "react";
+import Select from "react-select";
 import ErrorMessage from "./components/error-toast";
 const IErrorMessage = new ErrorMessage();
 
@@ -16,7 +17,8 @@ class Modal extends React.Component {
     email: "",
     phone: "",
     password:"",
-    role: "ADMIN"
+    role: "ADMIN",
+    schools: []
   };
 
   show() {
@@ -55,7 +57,8 @@ class Modal extends React.Component {
             phone: "",
             email: "",
             password: "",
-            role: "ADMIN"
+            role: "ADMIN",
+            schools: []
           });
         } catch (error) {
           _this.setState({ loading: false });
@@ -98,8 +101,8 @@ class Modal extends React.Component {
                 </div>
                 <div className="modal-body">
                   <div className="kt-portlet__body">
-                    <div className="form-group row">
-                      <div className="col-lg-4">
+                    <div className="row mb-4">
+                      <div className="col-lg-6 mb-3">
                         <label>Names:</label>
                         <input
                           type="text"
@@ -114,7 +117,7 @@ class Modal extends React.Component {
                           required
                         />
                       </div>
-                      <div className="col-lg-4">
+                      <div className="col-lg-6 mb-3">
                         <label>Email:</label>
                         <input
                           type="email"
@@ -129,7 +132,9 @@ class Modal extends React.Component {
                           required
                         />
                       </div>
-                      <div className="col-lg-4">
+                    </div>
+                    <div className="row mb-4">
+                      <div className="col-lg-6 mb-3">
                         <label>Phone Number:</label>
                         <input
                           type="text"
@@ -144,7 +149,7 @@ class Modal extends React.Component {
                           required
                         />
                       </div>
-                      <div className="col-lg-4">
+                      <div className="col-lg-6 mb-3">
                         <label>Password:</label>
                         <input
                           type="text"
@@ -159,9 +164,11 @@ class Modal extends React.Component {
                           required
                         />
                       </div>
-                      
-                      {this.props.isSuperAdmin && (
-                        <div className="col-lg-4 mt-3">
+                    </div>
+
+                    {this.props.isSuperAdmin && (
+                      <div className="row mb-4">
+                        <div className="col-lg-6 mb-3">
                           <label>Role:</label>
                           <select
                             className="form-control"
@@ -193,26 +200,25 @@ class Modal extends React.Component {
                             );
                           })()}
                         </div>
-                      )}
-                      
-                     
-                     
-                      {/* <div className="col-lg-4">
-                        <label>Password:</label>
-                        <input
-                          type="password"
-                          className="form-control"
-                          id="phone"
-                          name="password"
-                          minLength="5"
-                          value={this.state.password}
-                          onChange={(e) => this.setState({
-                            password: e.target.value
-                          })}
-                          required
-                        />
-                      </div> */}
-                    </div>
+                        <div className="col-lg-6 mb-3">
+                          <label>Schools:</label>
+                          <Select
+                            isMulti
+                            name="schools"
+                            value={(this.state.schools || []).map(id => {
+                              const schoolObj = (this.props.schools || []).find(sch => sch.id === id);
+                              return { value: id, label: schoolObj ? schoolObj.name : id };
+                            })}
+                            options={(this.props.schools || []).map(school => ({ value: school.id, label: school.name }))}
+                            onChange={(selectedOptions) => {
+                              this.setState({
+                                schools: selectedOptions ? selectedOptions.map(opt => opt.value) : []
+                              });
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="modal-footer">

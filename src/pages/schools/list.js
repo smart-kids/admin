@@ -131,7 +131,7 @@ class BasicTable extends React.Component {
 
   editSchool = async (school) => {
     try {
-      const validSchoolFields = ['id', 'name', 'phone', 'email', 'localStorage', 'themeColor', 'address', 'schoolSize', 'schoolType', 'schoolLevel', 'numberOfStudents', 'logo', 'inviteSmsText', 'gradeOrder', 'termOrder'];
+      const validSchoolFields = ['id', 'name', 'phone', 'email', 'localStorage', 'themeColor', 'address', 'schoolSize', 'schoolType', 'schoolLevel', 'numberOfStudents', 'logo', 'inviteSmsText', 'gradeOrder', 'termOrder', 'mpesaPaybill', 'ratePerStudent'];
       const filteredSchoolData = keepOnlyKeys(school, validSchoolFields);
       await Data.schools.update(filteredSchoolData);
       ISuccessMessage.show({ message: "School has been updated successfuly!", header: "Edit School" });
@@ -255,6 +255,11 @@ class BasicTable extends React.Component {
                   {
                     label: "Students (Reg)",
                     key: "numberOfStudents"
+                  },
+                  {
+                    label: "SaaS Amount",
+                    key: "ratePerStudent",
+                    render: (val) => val ? `KES ${val}` : "-"
                   },
                   {
                     label: "Status",

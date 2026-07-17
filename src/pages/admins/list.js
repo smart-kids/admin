@@ -196,9 +196,30 @@ export default function AdminsDirectory() {
     } catch (e) { console.error(e); }
   };
 
+  const getSchoolName = (schoolIdOrObj) => {
+    if (!schoolIdOrObj) return '-';
+    const id = typeof schoolIdOrObj === 'object' ? schoolIdOrObj.id : schoolIdOrObj;
+    const found = schools.find(s => String(s.id) === String(id));
+    return found ? found.name : (schoolIdOrObj.name || id);
+  };
+
+  const formatRole = (role) => {
+    if (!role) return '-';
+    const r = String(role).toUpperCase();
+    const map = {
+      'ADMIN': 'Admin',
+      'SUPER_ADMIN': 'Super Admin',
+      'CUSTOMER_SUCCESS_MANAGER': 'Customer Success Manager',
+      'PRINCIPAL_ADMIN': 'Principal Admin',
+      'ADMIN_OPERATIONS': 'Operations Admin',
+      'ADMIN_ACADEMICS': 'Academics Admin'
+    };
+    return map[r] || String(role).toLowerCase().split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  };
+
   return (
     <div className="v8-datatable-container">
-      <AddModal isSuperAdmin={isSuperAdmin} save={handleCreateAdmin} />
+      <AddModal isSuperAdmin={isSuperAdmin} schools={schools} save={handleCreateAdmin} />
       <UploadModal admin={isSuperAdmin} save={data => data.forEach(a => Data.admins.create(a))} />
       {edit && <EditModal isSuperAdmin={isSuperAdmin} schools={schools} edit={edit} save={a => Data.admins.update(a)} />}
       {remove && <DeleteModal remove={remove} save={a => Data.admins.delete(a)} />}
@@ -321,7 +342,10 @@ export default function AdminsDirectory() {
                     <tr key={row.id || idx} className={newlyAddedIds.has(row.id) ? 'v8-new-row' : ''}>
                       {headers.map(h => {
                         if (h.key === 'schools') {
-                          return <td key={h.key}>{Array.isArray(row.schools) ? row.schools.map(s => s.name || s).join(', ') : '-'}</td>;
+                          return <td key={h.key}>{Array.isArray(row.schools) ? row.schools.map(s => getSchoolName(s)).join(', ') : '-'}</td>;
+                        }
+                        if (h.key === 'role') {
+                          return <td key={h.key}>{formatRole(row[h.key])}</td>;
                         }
                         return <td key={h.key} className={h.key === 'names' ? 'td-primary' : ''}>{row[h.key] || '-'}</td>;
                       })}
