@@ -256,11 +256,11 @@ class BasicTable extends React.Component {
                     label: "Students (Reg)",
                     key: "numberOfStudents"
                   },
-                  {
+                  ...(this.state.admin ? [{
                     label: "SaaS Amount",
                     key: "ratePerStudent",
                     render: (val) => val ? `KES ${val}` : "-"
-                  },
+                  }] : []),
                   {
                     label: "Status",
                     key: "isDeleted",
