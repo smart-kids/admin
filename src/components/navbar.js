@@ -132,7 +132,6 @@ class Navbar extends React.Component {
 
     // Default for Admin, Super Admin, CSM, Principal
     items = [
-      { path: "/home", label: "Reports", icon: "la-dashboard" },
       { path: "/comms", label: "Comms", icon: "la-envelope" },
       { path: "/learning", label: "Learning", icon: "la-graduation-cap" },
       { path: "/library", label: "Library", icon: "la-book" },

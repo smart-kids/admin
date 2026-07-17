@@ -1057,7 +1057,7 @@ var Data = (function () {
         });
         
         // Fetch activity logs separately since they are not school-specific
-        query(`query { activityLogs { id entity action userTitle userId createdAt } }`)
+        query(`query { activityLogs { id entity action userTitle userId before after createdAt } }`)
             .then(res => {
                 if (res && res.activityLogs) {
                     allData.activityLogs = res.activityLogs;
