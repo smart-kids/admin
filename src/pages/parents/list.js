@@ -156,61 +156,19 @@ export default function ParentDataTable() {
   }, [initialLoading]);
 
   // --- CHILDREN FETCHING ---
-  const fetchParentChildren = useCallback(async (parentId) => {
+  const fetchParentChildren = useCallback(async (parentRow) => {
+    const parentId = parentRow.id;
     if (parentChildren[parentId]) {
       return parentChildren[parentId]; // Return cached data
     }
 
     try {
-      console.log("Fetching children for parent:", parentId);
+      console.log("Processing children for parent:", parentId);
       
-      // Fetch students linked to this parent using multiple possible search patterns
-      let studentsResponse;
-      try {
-        // Try different search patterns for parent-student relationship
-        studentsResponse = await Data.students.getPage({
-          page: 1,
-          limit: 100,
-          search: parentId, // Try direct ID search first
-          sort: { key: 'name', direction: 'ascending' }
-        });
-        
-        // If no results, try alternative patterns
-        if (studentsResponse.students.length === 0) {
-          studentsResponse = await Data.students.getPage({
-            page: 1,
-            limit: 100,
-            search: `parent_id:${parentId}`, // Try parent_id pattern
-            sort: { key: 'name', direction: 'ascending' }
-          });
-        }
-        
-        // If still no results, try filtering all students
-        if (studentsResponse.students.length === 0) {
-          const allStudents = await Data.students.getPage({
-            page: 1,
-            limit: 500, // Get more students
-            search: '', // No search to get all
-            sort: { key: 'name', direction: 'ascending' }
-          });
-          
-          // Filter students by parent relationship
-          studentsResponse = {
-            students: allStudents.students.filter(student => 
-              student.parent === parentId || 
-              student.parent?.id === parentId ||
-              student.parentId === parentId ||
-              student.parent_id === parentId
-            )
-          };
-        }
-      } catch (error) {
-        console.error("Error fetching students:", error);
-        studentsResponse = { students: [] };
-      }
+      const students = parentRow.students || [];
 
       // Fetch classes these students are in
-      const classIds = [...new Set(studentsResponse.students.map(s => s.class))];
+      const classIds = [...new Set(students.map(s => s.class?.id || s.class).filter(Boolean))];
       const classesResponse = classIds.length > 0 ? await Data.classes.getPage({
         where: { id: { in: classIds } },
         limit: 100
@@ -224,7 +182,7 @@ export default function ParentDataTable() {
       }) : { grades: [] };
 
       const childrenData = {
-        students: studentsResponse.students,
+        students: students,
         classes: classesResponse.classes,
         grades: gradesResponse.grades
       };
@@ -232,13 +190,14 @@ export default function ParentDataTable() {
       setParentChildren(prev => ({ ...prev, [parentId]: childrenData }));
       return childrenData;
     } catch (error) {
-      console.error("Failed to fetch parent children:", error);
-      return { students: [], classes: [], grades: [] };
+      console.error("Failed to process parent children:", error);
+      return { students: parentRow.students || [], classes: [], grades: [] };
     }
-  }, []);
+  }, [parentChildren]);
 
   // Toggle parent expansion
-  const toggleParentExpansion = useCallback(async (parentId) => {
+  const toggleParentExpansion = useCallback(async (row) => {
+    const parentId = row.id;
     console.log("Toggling parent expansion for:", parentId);
     const newExpanded = new Set(expandedParents);
     
@@ -249,7 +208,7 @@ export default function ParentDataTable() {
       newExpanded.add(parentId);
       console.log("Expanding parent:", parentId);
       // Fetch children if not already cached
-      await fetchParentChildren(parentId);
+      await fetchParentChildren(row);
     }
     
     setExpandedParents(newExpanded);
@@ -521,7 +480,7 @@ export default function ParentDataTable() {
                         <td className="v8-table-actions" style={{textAlign: 'right'}}>
                           <button 
                             className="v8-tooltip-container"
-                            onClick={() => toggleParentExpansion(row.id)}
+                            onClick={() => toggleParentExpansion(row)}
                             style={{color: '#0095E8', marginRight: '8px', background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem'}}
                           >
                             <i className={`la la-${isExpanded ? 'chevron-up' : 'chevron-down'}`} style={{fontSize: '1rem'}}></i>
@@ -582,8 +541,8 @@ export default function ParentDataTable() {
 
                                         <div style={{fontSize: '0.85rem', color: '#6c757d', borderTop: '1px dashed #e9ecef', paddingTop: '10px'}}>
                                           <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '3px'}}>
-                                            <span><strong>Class:</strong> {student.className || 'N/A'}</span>
-                                            <span><strong>Grade:</strong> {student.gradeName || 'N/A'}</span>
+                                            <span><strong>Class:</strong> {student.class?.name || student.className || 'N/A'}</span>
+                                            <span><strong>Grade:</strong> {student.grade?.name || student.gradeName || 'N/A'}</span>
                                           </div>
                                           <div><strong>System ID:</strong> {student.id}</div>
                                         </div>
