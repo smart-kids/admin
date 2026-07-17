@@ -163,9 +163,51 @@ export default function ParentDataTable() {
     }
 
     try {
-      console.log("Processing children for parent:", parentId);
+      console.log("Fetching children for parent:", parentId);
       
-      const students = parentRow.students || [];
+      let studentsResponse;
+      try {
+        studentsResponse = await Data.students.getPage({
+          page: 1,
+          limit: 100,
+          search: parentId,
+          sort: { key: 'name', direction: 'ascending' }
+        });
+        
+        if (studentsResponse.students.length === 0) {
+          studentsResponse = await Data.students.getPage({
+            page: 1,
+            limit: 100,
+            search: `parent_id:${parentId}`,
+            sort: { key: 'name', direction: 'ascending' }
+          });
+        }
+        
+        if (studentsResponse.students.length === 0) {
+          const allStudents = await Data.students.getPage({
+            page: 1,
+            limit: 500,
+            search: '',
+            sort: { key: 'name', direction: 'ascending' }
+          });
+          
+          studentsResponse = {
+            students: allStudents.students.filter(student => 
+              student.parent === parentId || 
+              student.parent?.id === parentId ||
+              student.parentId === parentId ||
+              student.parent_id === parentId
+            )
+          };
+        }
+      } catch (error) {
+        console.error("Error fetching students:", error);
+        studentsResponse = { students: [] };
+      }
+
+      const students = studentsResponse.students && studentsResponse.students.length > 0 
+        ? studentsResponse.students 
+        : (parentRow.students || []);
 
       // Fetch classes these students are in
       const classIds = [...new Set(students.map(s => s.class?.id || s.class).filter(Boolean))];
@@ -455,7 +497,7 @@ export default function ParentDataTable() {
               ) : parents.length > 0 ? (
                 parents.map(row => {
                   const isExpanded = expandedParents.has(row.id);
-                  const children = parentChildren[row.id];
+                  const children = parentChildren[row.id] || { students: [], classes: [], grades: [] };
                   
                   return (
                     <React.Fragment key={row.id}>
