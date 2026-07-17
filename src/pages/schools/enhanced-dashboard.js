@@ -686,6 +686,7 @@ class EnhancedSchoolsDashboard extends Component {
               icon="la la-graduation-cap"
               color="info"
               isCurrency={false}
+              formatExact={true}
             />
           </div>
           <div className="col-lg-3 col-md-6">

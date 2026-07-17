@@ -2,7 +2,7 @@ import React from 'react';
 import { formatCurrency, formatNumber, formatTrend, colorForValue } from '../../../utils/formatters';
 
 // Professional Metric Card with larger icons and text
-export const ModernMetricCard = ({ title, value, subtitle, trend, icon, color, size = 'medium', isCurrency = true }) => {
+export const ModernMetricCard = ({ title, value, subtitle, trend, icon, color, size = 'medium', isCurrency = true, formatExact = false }) => {
   const trendData = typeof trend === 'number' ? formatTrend(trend) : null;
 
   const cardColors = {
@@ -52,7 +52,11 @@ export const ModernMetricCard = ({ title, value, subtitle, trend, icon, color, s
             lineHeight: '1.1',
             minHeight: '3rem'
           }}>
-            {typeof value === 'number' ? (isCurrency ? formatCurrency(value) : formatNumber(value)) : value}
+            {typeof value === 'number' 
+               ? (isCurrency 
+                  ? formatCurrency(value) 
+                  : (formatExact ? new Intl.NumberFormat('en-US').format(value) : formatNumber(value))) 
+               : value}
           </h1>
           <p className="mb-2" style={{ 
             color: '#6b7280', 
