@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { formatCurrency, formatNumber, formatRelativeTime, rankItems } from '../../../utils/formatters';
+import { formatCurrency, formatNumber, formatRelativeTime, rankItems, maskEmail, maskPhone } from '../../../utils/formatters';
 
 // V8 DataTable - Modern table design with advanced features
 export class V8DataTable extends Component {
@@ -9,7 +9,7 @@ export class V8DataTable extends Component {
     sortBy: 'studentsCount',
     sortOrder: 'desc',
     currentPage: 1,
-    itemsPerPage: 10,
+    itemsPerPage: 1000,
     showDeleted: false
   };
 
@@ -261,8 +261,27 @@ export class V8DataTable extends Component {
                     >
                       Reg. Count {this.renderSortIcon('numberOfStudents')}
                     </th>
-                    
-                    
+                    <th 
+                      className="font-weight-bold text-muted cursor-pointer"
+                      onClick={() => this.handleSort('phone')}
+                      style={{ minWidth: '120px' }}
+                    >
+                      Phone {this.renderSortIcon('phone')}
+                    </th>
+                    <th 
+                      className="font-weight-bold text-muted cursor-pointer"
+                      onClick={() => this.handleSort('email')}
+                      style={{ minWidth: '180px' }}
+                    >
+                      Email {this.renderSortIcon('email')}
+                    </th>
+                    <th 
+                      className="font-weight-bold text-muted cursor-pointer"
+                      onClick={() => this.handleSort('ratePerStudent')}
+                      style={{ minWidth: '120px' }}
+                    >
+                      SaaS Amount {this.renderSortIcon('ratePerStudent')}
+                    </th>
                     <th className="font-weight-bold text-muted" style={{ minWidth: '100px' }}>
                       Status
                     </th>
@@ -328,8 +347,19 @@ export class V8DataTable extends Component {
                           <td>
                             <span className="font-weight-bold text-dark-75">{formatNumber(school.numberOfStudents) || '-'}</span>
                           </td>
-                         
-                          
+                          <td>
+                            <div className="font-weight-bold text-dark-75" style={{ fontSize: '0.85rem' }}>{maskPhone(school.phone)}</div>
+                          </td>
+                          <td>
+                            <div className="text-muted" style={{ fontSize: '0.85rem' }}>
+                              <a href={`mailto:${school.email}`} className="text-muted text-hover-primary" title={school.email}>{maskEmail(school.email)}</a>
+                            </div>
+                          </td>
+                          <td>
+                            <span className="font-weight-bolder text-info">
+                              {school.ratePerStudent ? formatCurrency(school.ratePerStudent) : '-'}
+                            </span>
+                          </td>
                           <td>
                             <span className={`badge badge-${isDeleted ? 'secondary' : (isActive ? 'success' : 'danger')} badge-pill`}>
                               {isDeleted ? 'Deleted' : (isActive ? 'Active' : 'Inactive')}

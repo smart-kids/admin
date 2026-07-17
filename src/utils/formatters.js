@@ -253,3 +253,21 @@ export const pluralize = (count, singular, plural = null) => {
   
   return plural || singular + 's';
 };
+
+export const maskEmail = (email) => {
+  if (!email || typeof email !== 'string') return '-';
+  const parts = email.split('@');
+  if (parts.length !== 2) return email;
+  const [name, domain] = parts;
+  if (name.length <= 2) return `${name}***@${domain}`;
+  return `${name.substring(0, 3)}***@${domain}`;
+};
+
+export const maskPhone = (phone) => {
+  if (!phone || typeof phone !== 'string') return '-';
+  const cleaned = phone.replace(/\D/g, '');
+  if (cleaned.length < 6) return phone;
+  const first = phone.substring(0, 3);
+  const last = phone.substring(phone.length - 3);
+  return `${first}****${last}`;
+};
