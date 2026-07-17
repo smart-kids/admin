@@ -100,13 +100,18 @@ export default function AdminsDirectory() {
   }, [searchTimeout]);
 
   // Headers config
-  const headers = useMemo(() => [
-    { key: 'names', label: 'Admin Names', sortable: true },
-    { key: 'email', label: 'Email', sortable: true },
-    { key: 'phone', label: 'Phone', sortable: true },
-    { key: 'role', label: 'Role', sortable: true },
-    { key: 'schools', label: 'Schools', sortable: false }
-  ], []);
+  const headers = useMemo(() => {
+    const baseHeaders = [
+      { key: 'names', label: 'Admin Names', sortable: true },
+      { key: 'email', label: 'Email', sortable: true },
+      { key: 'phone', label: 'Phone', sortable: true }
+    ];
+    if (isSuperAdmin) {
+      baseHeaders.push({ key: 'role', label: 'Role', sortable: true });
+      baseHeaders.push({ key: 'schools', label: 'Schools', sortable: false });
+    }
+    return baseHeaders;
+  }, [isSuperAdmin]);
 
   // Filtering & Sorting
   const processedData = useMemo(() => {
