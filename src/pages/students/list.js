@@ -56,10 +56,28 @@ export default function StudentDataTableV8() {
   const [searchTimeout, setSearchTimeout] = useState(null);
   const newRecordTimers = useRef(new Map());
   
-  // Modal states
   const [edit, setEdit] = useState(null);
   const [remove, setRemove] = useState(null);
   const [upgrade, setUpgrade] = useState(null);
+
+  // Phone unmasking state
+  const [unmaskedPhones, setUnmaskedPhones] = useState({});
+  const [loadingPhoneId, setLoadingPhoneId] = useState(null);
+
+  const handleRevealPhone = async (parentId) => {
+      setLoadingPhoneId(parentId);
+      try {
+          const response = await Data.graph.query(`query { unmaskParentPhone(id: "${parentId}") }`);
+          if (response && response.unmaskParentPhone) {
+              setUnmaskedPhones(prev => ({ ...prev, [parentId]: response.unmaskParentPhone }));
+          }
+      } catch (error) {
+          console.error("Failed to unmask phone:", error);
+      } finally {
+          setLoadingPhoneId(null);
+      }
+  };
+
 
   
   // --- DATA FETCHING (PAGINATED STUDENTS) ---
@@ -511,7 +529,31 @@ export default function StudentDataTableV8() {
                                     </div>
                                     <div style={{fontSize: '0.9rem', color: '#495057'}}>
                                       <div style={{marginBottom: '5px'}}><strong>Name:</strong> {row.parent.name || row.parent_name || 'N/A'}</div>
-                                      <div style={{marginBottom: '5px'}}><strong>Phone:</strong> {row.parent.phone || 'N/A'}</div>
+                                      <div style={{marginBottom: '5px'}}>
+                                          <strong>Phone:</strong> 
+                                          {unmaskedPhones[row.parent?.id] ? (
+                                              <span style={{ marginLeft: '5px' }}>{unmaskedPhones[row.parent?.id]}</span>
+                                          ) : (
+                                              <span style={{ marginLeft: '5px' }}>{row.parent?.phone || 'N/A'}</span>
+                                          )}
+                                          {row.parent?.phone && !unmaskedPhones[row.parent?.id] && (
+                                              <button 
+                                                onClick={() => handleRevealPhone(row.parent?.id)}
+                                                disabled={loadingPhoneId === row.parent?.id}
+                                                style={{
+                                                    background: 'none', border: 'none', cursor: 'pointer', 
+                                                    padding: '0 0 0 8px', color: '#0095E8', opacity: 0.7
+                                                }}
+                                                title="Reveal full phone number"
+                                              >
+                                                {loadingPhoneId === row.parent?.id ? (
+                                                    <i className="la la-spinner la-spin"></i>
+                                                ) : (
+                                                    <i className="la la-eye"></i>
+                                                )}
+                                              </button>
+                                          )}
+                                      </div>
                                       <div style={{marginBottom: '5px'}}><strong>Email:</strong> {row.parent.email || 'N/A'}</div>
                                       <div><strong>National ID:</strong> {row.parent.national_id || 'N/A'}</div>
                                     </div>

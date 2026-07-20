@@ -460,41 +460,55 @@ class FeesManagement extends Component {
 
     /**
      * CORE LOGIC: Converts raw flat lists into Grouped Parents with calculated balances.
-     * Running this only when data/filters change (not every render) is key for 500+ items.
+     * Fetches from backend API. Debounced to prevent query spam during real-time updates.
      */
-    recalculateFinancials = () => {
-        const { students, parents, payments, classes, terms, feeStructures, charges, selectedClass, selectedTerm, searchTerm, alphabetFilter } = this.state;
+    recalculateFinancials = async () => {
+        // Clear any pending timeout
+        if (this.recalculateTimeout) {
+            clearTimeout(this.recalculateTimeout);
+        }
 
-        const activeStudents = (students || []).filter(s => !s.isDeleted);
-        const activeParents = (parents || []).filter(p => !p.isDeleted);
-        const activePayments = (payments || []).filter(p => !p.isDeleted);
-        const activeFeeStructures = (feeStructures || []).filter(fs => !fs.isDeleted);
-        const activeCharges = (charges || []).filter(c => !c.isDeleted);
+        // Set a new timeout to debounce the backend call by 500ms
+        this.recalculateTimeout = setTimeout(async () => {
+            const { selectedClass, selectedTerm, searchTerm, alphabetFilter, schoolInfo } = this.state;
+            const schoolId = schoolInfo?.id;
 
-        const results = calculateFinancials({
-            students: activeStudents,
-            parents: activeParents,
-            payments: activePayments,
-            classes,
-            terms,
-            feeStructures: activeFeeStructures,
-            charges: activeCharges,
-            selectedClass,
-            selectedTerm,
-            searchTerm,
-            alphabetFilter
-        });
-
-        this.setState({
-            processedParents: results.processedParents,
-            fullyProcessedParents: results.fullyProcessedParents,
-            globalFinancialMetrics: results.globalFinancialMetrics
-        }, () => {
-            // Auto-expand the first item if none is expanded and we have items
-            if (!this.state.expandedParentId && results.processedParents.length > 0) {
-                this.setState({ expandedParentId: results.processedParents[0].id });
+            if (!schoolId) {
+                console.log("No school ID available for backend finance calculation");
+                return;
             }
-        });
+
+            try {
+                const result = await Data.graph.query(`
+                    query GetFinanceData($schoolId: String!, $selectedTerm: String, $selectedClass: String, $searchTerm: String, $alphabetFilter: String) {
+                        financeDashboardData(schoolId: $schoolId, selectedTerm: $selectedTerm, selectedClass: $selectedClass, searchTerm: $searchTerm, alphabetFilter: $alphabetFilter)
+                    }
+                `, { schoolId, selectedTerm, selectedClass, searchTerm, alphabetFilter });
+
+                if (result && result.financeDashboardData) {
+                    const parsed = JSON.parse(result.financeDashboardData);
+                    this.setState({
+                        processedParents: parsed.processedParents || [],
+                        fullyProcessedParents: parsed.fullyProcessedParents || [],
+                        globalFinancialMetrics: parsed.globalFinancialMetrics || {
+                            totalExpected: 0,
+                            totalPaid: 0,
+                            totalBalance: 0,
+                            totalCollectionRate: 0,
+                            totalParents: 0,
+                            clearedParents: 0
+                        }
+                    }, () => {
+                        // Auto-expand the first item if none is expanded and we have items
+                        if (!this.state.expandedParentId && parsed.processedParents && parsed.processedParents.length > 0) {
+                            this.setState({ expandedParentId: parsed.processedParents[0].id });
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error("Failed to fetch finance dashboard data:", error);
+            }
+        }, 500);
     };
 
     // --- Helper: Get Fee Structure Breakdown (Component Level) ---

@@ -48,6 +48,25 @@ export default function ParentDataTable() {
   const [newlyAddedIds, setNewlyAddedIds] = useState(new Set());
   const newRecordTimers = useRef(new Map());
 
+  // Phone unmasking state
+  const [unmaskedPhones, setUnmaskedPhones] = useState({});
+  const [loadingPhoneId, setLoadingPhoneId] = useState(null);
+
+  const handleRevealPhone = async (parentId) => {
+      setLoadingPhoneId(parentId);
+      try {
+          const response = await Data.graph.query(`query { unmaskParentPhone(id: "${parentId}") }`);
+          if (response && response.unmaskParentPhone) {
+              setUnmaskedPhones(prev => ({ ...prev, [parentId]: response.unmaskParentPhone }));
+          }
+      } catch (error) {
+          console.error("Failed to unmask phone:", error);
+      } finally {
+          setLoadingPhoneId(null);
+      }
+  };
+
+
   // --- DATA FETCHING & SUBSCRIPTIONS ---
 
   // The core data fetching function
@@ -503,7 +522,28 @@ export default function ParentDataTable() {
                     <React.Fragment key={row.id}>
                       <tr key={row.id} className={newlyAddedIds.has(row.id) ? 'v8-new-row' : ''}>
                         {headers.map(h => ( <td key={h.key} className={h.key === 'name' ? 'td-primary' : ''}>
-                          {getNestedValue(row, h.key)}
+                          {h.key === 'phone' && unmaskedPhones[row.id] ? (
+                              <span>{unmaskedPhones[row.id]}</span>
+                          ) : (
+                              getNestedValue(row, h.key)
+                          )}
+                          {h.key === 'phone' && !unmaskedPhones[row.id] && (
+                              <button 
+                                onClick={() => handleRevealPhone(row.id)}
+                                disabled={loadingPhoneId === row.id}
+                                style={{
+                                    background: 'none', border: 'none', cursor: 'pointer', 
+                                    padding: '0 0 0 8px', color: '#0095E8', opacity: 0.7
+                                }}
+                                title="Reveal full phone number"
+                              >
+                                {loadingPhoneId === row.id ? (
+                                    <i className="la la-spinner la-spin"></i>
+                                ) : (
+                                    <i className="la la-eye"></i>
+                                )}
+                              </button>
+                          )}
                           {row._isTeacherResult && (
                             <span style={{
                               backgroundColor: '#0095E8',
