@@ -496,17 +496,16 @@ class FeesManagement extends Component {
     // --- Helper: Get Fee Structure Breakdown (Component Level) ---
     getFeeStructureBreakdown = (classId, termId = null) => {
         const { feeStructures, selectedTerm } = this.state;
-        if (!classId) return [];
-
-        const targetClassId = String(classId?.id || classId);
+        
+        const targetClassId = classId ? String(classId?.id || classId) : null;
         const targetTermId = termId || selectedTerm;
 
-        // Get all active fee structures for this class and term
-        const applicableFees = feeStructures.filter(fs =>
-            String(fs.class?.id || fs.class) === targetClassId &&
-            (!targetTermId || String(fs.term?.id || fs.term) === String(targetTermId)) &&
-            fs.isActive === true
-        );
+        // Get all active fee structures for this class (or all classes) and term
+        const applicableFees = feeStructures.filter(fs => {
+            const classMatch = !targetClassId || String(fs.class?.id || fs.class) === targetClassId;
+            const termMatch = !targetTermId || String(fs.term?.id || fs.term) === String(targetTermId);
+            return classMatch && termMatch && fs.isActive === true;
+        });
 
         // Group by fee type and sum amounts
         const feeTypeGroups = {};

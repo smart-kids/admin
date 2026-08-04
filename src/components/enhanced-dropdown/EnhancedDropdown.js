@@ -25,10 +25,15 @@ const EnhancedDropdown = ({
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const dropdownRef = useRef(null);
   const searchRef = useRef(null);
+  const hasInitialized = useRef(false);
 
   // Persistence & "All" Defaulting logic
   useEffect(() => {
     if (!options || options.length === 0) return;
+    
+    // Only apply the aggressive default logic once when the component initially mounts with data.
+    // This allows the user to explicitly select an 'All' option (which often has a value of '') later.
+    if (hasInitialized.current) return;
 
     // Only attempt to default/restore if current value is empty
     if (value === undefined || value === null || value === '') {
@@ -61,6 +66,8 @@ const EnhancedDropdown = ({
         onChange(targetValue);
       }
     }
+    
+    hasInitialized.current = true;
   }, [options, persistenceKey, value, onChange, labelKey, valueKey]);
 
   // Filter options based on search term
