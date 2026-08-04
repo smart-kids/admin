@@ -3,10 +3,7 @@ import ReportHeader from '../../../components/reports/ReportHeader';
 import ReportFooter from '../../../components/reports/ReportFooter';
 
 const maskPhone = (phone) => {
-    if (!phone) return "";
-    const cleaned = phone.replace(/\D/g, '');
-    if (cleaned.length < 9) return phone;
-    return cleaned.slice(0, 3) + "****" + cleaned.slice(-3);
+    return phone || "";
 };
 
 const StatementCard = ({ group, school, validStudentsData, totalValidExpected, totalValidPaid, totalValidBalance, feeStructures, selectedTerm, terms }) => {

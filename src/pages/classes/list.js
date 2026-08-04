@@ -42,10 +42,7 @@ const deleteModalInstance = new DeleteModal();
 
 // Helper function to mask phone numbers
 const maskPhone = (phone) => {
-  if (!phone) return '';
-  const p = phone.toString().replace(/\D/g, '');
-  if (p.length < 7) return p;
-  return `${p.slice(0, 4)}***${p.slice(-3)}`;
+  return phone || '';
 };
 
 class ClassesManagement extends Component {

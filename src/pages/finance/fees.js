@@ -25,11 +25,7 @@ const log = debug("shuleplus:fees");
 // --- HELPER COMPONENTS ---
 
 const maskPhone = (phone) => {
-    if (!phone) return "";
-    const cleaned = phone.replace(/\D/g, '');
-    if (cleaned.length < 9) return phone;
-    // Show first 3 and last 3, mask the rest
-    return cleaned.slice(0, 3) + "****" + cleaned.slice(-3);
+    return phone || "";
 };
 
 const SkeletonLoader = () => (

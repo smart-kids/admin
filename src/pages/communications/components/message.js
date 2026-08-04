@@ -90,10 +90,7 @@ const STYLES = `
 
 // --- HELPER: Mask Phone ---
 const maskPhone = (phone) => {
-  if (!phone) return '';
-  const p = phone.toString().replace(/\D/g, '');
-  if (p.length < 7) return p;
-  return `${p.slice(0, 4)}***${p.slice(-3)}`;
+  return phone || '';
 };
 
 const getInitials = (name = '') => name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
