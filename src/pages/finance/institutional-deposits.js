@@ -5,6 +5,7 @@ import Footer from "../../components/footer";
 import Data from "../../utils/data";
 import ErrorToast from "../finance/components/error-toast";
 import SuccessToast from "../schools/components/success-toast";
+import MpesaPaymentModal from "./deposit";
 
 // Initialize toast instances
 const errorToast = new ErrorToast();
@@ -87,6 +88,11 @@ const Pagination = ({ total, itemsPerPage, currentPage, onPageChange }) => {
 // --- MAIN COMPONENT ---
 
 class InstitutionalDeposits extends Component {
+    constructor(props) {
+        super(props);
+        this.mpesaModalRef = React.createRef();
+    }
+
     state = {
         invoices: [],
         loading: false,
@@ -152,17 +158,32 @@ class InstitutionalDeposits extends Component {
             paymentMethod: savedPaymentMethod,
             selectedSchool: selectedSchool
         });
-        
         // Subscribe to school changes
+        
         this.schoolsSubscription = Data.schools.subscribe(({ selectedSchool }) => {
             this.setState({ selectedSchool });
+            if (selectedSchool) {
+                this.loadInvoices(selectedSchool.id);
+            }
         });
         
-        // Simulate loading
-        setTimeout(() => {
+        if (selectedSchool) {
+            this.loadInvoices(selectedSchool.id);
+        } else {
             this.setState({ loading: false });
-        }, 1000);
+        }
     }
+
+    loadInvoices = async (schoolId) => {
+        this.setState({ loading: true });
+        try {
+            const invoices = await Data.invoices.getInvoices({ school: schoolId });
+            this.setState({ invoices, loading: false });
+        } catch (error) {
+            console.error("Failed to load invoices", error);
+            this.setState({ loading: false });
+        }
+    };
 
     componentWillUnmount() {
         if (this.schoolsSubscription) {
@@ -214,8 +235,41 @@ class InstitutionalDeposits extends Component {
         });
     };
 
+    getNextTermStartDate = () => {
+        const now = new Date();
+        const month = now.getMonth(); // 0-11
+        const year = now.getFullYear();
+        if (month < 4) return `${year}-05-01`; // Term 2 starts May 1
+        if (month < 8) return `${year}-09-01`; // Term 3 starts Sept 1
+        return `${year + 1}-01-01`;            // Term 1 starts Jan 1 next year
+    };
+
     handleCreateInvoice = () => {
-        this.setState({ showCreateInvoiceModal: true });
+        const { selectedSchool, invoices } = this.state;
+        
+        let initialAmount = '';
+        let initialDescription = '';
+        
+        if (selectedSchool) {
+            const schoolInvoices = invoices.filter(inv => inv.schoolId === selectedSchool.id);
+            if (schoolInvoices.length === 0) {
+                const studentCount = selectedSchool.students?.length || selectedSchool.studentCount || 0;
+                const rate = selectedSchool.ratePerStudent || 100;
+                initialAmount = (studentCount * rate).toString();
+                initialDescription = `Subscription for ${studentCount} students`;
+            }
+        }
+
+        this.setState({ 
+            showCreateInvoiceModal: true,
+            newInvoice: {
+                amount: initialAmount,
+                description: initialDescription,
+                dueDate: this.getNextTermStartDate(),
+                billingCycle: 'Termly',
+                restrictDashboardOnOverdue: false
+            }
+        });
     };
 
     handleSaveInvoice = () => {
@@ -244,8 +298,8 @@ class InstitutionalDeposits extends Component {
                 month: 'short', 
                 day: 'numeric' 
             }),
-            schoolId: newInvoice.schoolId || 'school_001',
-            billingCycle: newInvoice.billingCycle || 'Monthly',
+            schoolId: this.state.selectedSchool?.id || 'school_001',
+            billingCycle: newInvoice.billingCycle || 'Termly',
             restrictDashboardOnOverdue: newInvoice.restrictDashboardOnOverdue || false
         };
 
@@ -357,38 +411,93 @@ class InstitutionalDeposits extends Component {
 
     handlePayInvoice = (invoice) => {
         const paymentMethod = this.state.paymentMethod || localStorage.getItem('paymentMethod') || 'mpesa';
-        const billingPhone = this.state.billingPhone || localStorage.getItem('billingPhone') || '';
+        let billingPhone = this.state.billingPhone || localStorage.getItem('billingPhone') || '';
         
-        if (paymentMethod === 'mpesa' && !billingPhone) {
-            errorToast.show({ message: 'Please set up your M-Pesa billing number first' });
-            this.handleManageBilling();
-            return;
-        }
-        
+        // Strip out non-numeric characters from amount
+        const rawAmount = typeof invoice.amount === 'string' 
+            ? invoice.amount.replace(/[^0-9.]/g, '') 
+            : invoice.amount;
+
         if (paymentMethod === 'bank') {
             this.setState({ selectedInvoice: invoice, showBankPaymentModal: true });
         } else {
-            this.setState({ selectedInvoice: invoice, showPaymentModal: true });
+            this.setState({ selectedInvoice: invoice });
+            if (this.mpesaModalRef.current) {
+                // For pre-filling, ensure phone is in proper format if needed, but deposit.js allows user editing
+                this.mpesaModalRef.current.show({ amount: rawAmount, phone: billingPhone });
+            }
         }
     };
 
-    handleConfirmPayment = () => {
-        const { selectedInvoice, billingPhone } = this.state;
-        
-        if (!billingPhone || billingPhone.length < 10) {
-            errorToast.show({ message: 'Please enter a valid M-Pesa phone number' });
-            return;
+    handleToggleRestriction = async (invoice, currentStatus) => {
+        const { selectedSchool } = this.state;
+        if (!selectedSchool) return;
+
+        const newStatus = !currentStatus;
+        try {
+            await Data.schools.update({ 
+                id: selectedSchool.id, 
+                dashboardsRestricted: newStatus 
+            });
+            
+            // Optimistically update local state
+            this.setState({
+                selectedSchool: {
+                    ...selectedSchool,
+                    dashboardsRestricted: newStatus
+                }
+            });
+
+            if (newStatus) {
+                errorToast.show({ 
+                    message: `Dashboards have been restricted due to Invoice #${invoice.id}.`,
+                    header: 'Dashboards Restricted'
+                });
+            } else {
+                successToast.show({ 
+                    message: `Dashboard restrictions lifted for this school.`,
+                    header: 'Access Restored'
+                });
+            }
+        } catch (error) {
+            console.error("Failed to toggle dashboard restriction", error);
+            errorToast.show({ message: 'Failed to update restriction status. Please try again.' });
         }
-
-        // Simulate M-Pesa STK Push
-        successToast.show({ 
-            message: `M-Pesa payment of ${selectedInvoice.amount} initiated to ${billingPhone}. Please check your phone for the STK push prompt.`,
-            header: 'Payment Initiated'
-        });
-
-        this.setState({ showPaymentModal: false });
     };
 
+    handleMpesaSuccess = async () => {
+        const { selectedInvoice, invoices } = this.state;
+        if (!selectedInvoice) return;
+
+        try {
+            // Persist the update via API
+            await Data.invoices.update({
+                id: selectedInvoice.id,
+                status: 'Paid',
+                paymentMethod: 'Mpesa Express',
+                confirmedBy: 'System',
+                confirmedDate: new Date().toLocaleDateString('en-GB')
+            });
+
+            // Update local state for immediate feedback
+            const updatedInvoices = invoices.map(inv => 
+                inv.id === selectedInvoice.id ? { ...inv, status: 'Paid' } : inv
+            );
+
+            this.setState({ 
+                invoices: updatedInvoices,
+                selectedInvoice: null
+            });
+
+            successToast.show({ 
+                message: `Invoice ${selectedInvoice.id} has been marked as Paid!`,
+                header: 'Payment Successful'
+            });
+        } catch (e) {
+            console.error("Failed to update invoice status:", e);
+            errorToast.show({ message: "Payment succeeded but failed to update invoice status." });
+        }
+    };
 
     handlePayWithSavedCard = (cardId) => {
         // For now, just show a success message with the card used
@@ -515,50 +624,45 @@ class InstitutionalDeposits extends Component {
         const { isSuperAdmin, billingPhone } = this.state;
         
         return (
-            <div className="row mb-6">
-                <div className="col-12">
-                    <div className="kt-portlet kt-portlet--height-fluid">
-                        <div className="kt-portlet__head kt-portlet__head--noborder">
-                            <div className="kt-portlet__head-label">
-                                <h3 className="kt-portlet__head-title">
-                                    <i className="la la-info-circle"></i> Billing Management
-                                </h3>
-                            </div>
-                        </div>
-                        <div className="kt-portlet__body">
-                            <div className="alert alert-info">
-                                <p className="mb-2">
-                                    We've moved your billing period to start on the 1st of each month. 
-                                    Your previous billing period was closed and invoiced, so you may have just received an invoice for it. 
-                                    Your next invoice will be issued on the 1st of next month.
-                                </p>
-                            </div>
-                            <div className="d-flex align-items-center justify-content-between">
+            <div style={{ marginBottom: '24px' }}>
+                <div style={{ border: '1px solid #E1F0FF', borderRadius: '12px', backgroundColor: '#fff', boxShadow: '0 0.125rem 0.25rem rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+                    <div style={{ padding: '24px 32px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', marginRight: '20px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '8px' }}>
+                                <div style={{ backgroundColor: '#E1F0FF', borderRadius: '8px', padding: '16px', marginRight: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <i className="la la-credit-card text-primary" style={{ fontSize: '2.5rem' }}></i>
+                                </div>
                                 <div>
-                                    <h5 className="kt-font-bold">Billing & payment methods</h5>
-                                    <p className="kt-font-sm text-muted">
-                                        Manage your payment methods, billing address, invoices, and VAT details
-                                    </p>
-                                    {billingPhone && (
-                                        <p className="kt-font-sm text-success">
-                                            <i className="la la-phone"></i> Billing Phone: {billingPhone}
-                                        </p>
-                                    )}
-                                </div>
-                                <div className="d-flex gap-2">
-                                    {!isSuperAdmin && (
-                                        <button className="btn btn-label-brand btn-bold" onClick={this.handleManageBilling}>
-                                            <i className="la la-cog"></i> Manage billing
-                                        </button>
-                                    )}
-                                    {isSuperAdmin && (
-                                        <button className="btn btn-success btn-bold" onClick={this.handleCreateInvoice}>
-                                            <i className="la la-plus"></i> Create Invoice
-                                        </button>
-                                    )}
+                                    <h3 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#3f4254', margin: '0 0 4px 0' }}>Financial Settings</h3>
+                                    <div style={{ fontSize: '1rem', color: '#b5b5c3', fontWeight: 500 }}>
+                                        Manage your payment methods, contact details, invoices, and VAT
+                                    </div>
                                 </div>
                             </div>
+                            
+                            {billingPhone && (
+                                <div style={{ display: 'flex', alignItems: 'center', marginTop: '12px', marginLeft: '90px' }}>
+                                    <span style={{ backgroundColor: '#C9F7F5', color: '#1BC5BD', padding: '8px 12px', borderRadius: '6px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', fontSize: '0.9rem' }}>
+                                        <i className="la la-phone text-success" style={{ marginRight: '8px', fontSize: '1.2rem' }}></i> {billingPhone}
+                                    </span>
+                                </div>
+                            )}
                         </div>
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', paddingTop: '8px', marginTop: '16px' }}>
+                            {!isSuperAdmin && (
+                                <button className="btn btn-primary font-weight-bolder" style={{ padding: '12px 24px', boxShadow: '0 0.125rem 0.25rem rgba(54, 153, 255, 0.4)', borderRadius: '6px' }} onClick={this.handleManageBilling}>
+                                    <i className="la la-cog" style={{ marginRight: '8px' }}></i> Configure Setup
+                                </button>
+                            )}
+                            {isSuperAdmin && (
+                                <button className="btn btn-success font-weight-bolder" style={{ padding: '12px 24px', boxShadow: '0 0.125rem 0.25rem rgba(27, 197, 189, 0.4)', borderRadius: '6px' }} onClick={this.handleCreateInvoice}>
+                                    <i className="la la-plus" style={{ marginRight: '8px' }}></i> Create Invoice
+                                </button>
+                            )}
+                        </div>
+                        
                     </div>
                 </div>
             </div>
@@ -971,20 +1075,7 @@ class InstitutionalDeposits extends Component {
                             </div>
 
                             <div className="row">
-                                <div className="col-6">
-                                    <div className="form-group mb-0">
-                                        <label className="font-weight-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>Target Institution</label>
-                                        <input 
-                                            type="text" 
-                                            className="form-control border-0 bg-light font-weight-bold" 
-                                            placeholder="Institution ID"
-                                            value={newInvoice.schoolId}
-                                            onChange={(e) => this.setState({ newInvoice: { ...newInvoice, schoolId: e.target.value }})}
-                                            style={{ borderRadius: '0.8rem' }}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="col-6">
+                                <div className="col-12">
                                     <div className="form-group mb-0">
                                         <label className="font-weight-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>Due Date</label>
                                         <input 
@@ -1086,20 +1177,7 @@ class InstitutionalDeposits extends Component {
                             </div>
 
                             <div className="row">
-                                <div className="col-6">
-                                    <div className="form-group mb-0">
-                                        <label className="font-weight-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>Target Institution</label>
-                                        <input 
-                                            type="text" 
-                                            className="form-control border-0 bg-light font-weight-bold" 
-                                            placeholder="Institution ID"
-                                            value={editInvoice.schoolId}
-                                            onChange={(e) => this.setState({ editInvoice: { ...editInvoice, schoolId: e.target.value }})}
-                                            style={{ borderRadius: '0.8rem' }}
-                                        />
-                                    </div>
-                                </div>
-                                <div className="col-6">
+                                <div className="col-12">
                                     <div className="form-group mb-0">
                                         <label className="font-weight-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>Due Date</label>
                                         <input 
@@ -1237,150 +1315,167 @@ class InstitutionalDeposits extends Component {
         const endIndex = startIndex + itemsPerPage;
         const currentInvoices = invoices.slice(startIndex, endIndex);
 
+        const parseAmount = str => parseInt((str || '').toString().replace(/[^0-9]/g, '')) || 0;
+        const totalOutstanding = invoices.filter(i => i.status === 'Unpaid').reduce((sum, i) => sum + parseAmount(i.amount), 0);
+        const totalPaid = invoices.filter(i => i.status === 'Paid').reduce((sum, i) => sum + parseAmount(i.amount), 0);
+        
+        // Find next due invoice
+        const unpaidInvoices = invoices.filter(i => i.status === 'Unpaid' && i.dueDate);
+        unpaidInvoices.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+        const nextDue = unpaidInvoices.length > 0 ? unpaidInvoices[0] : null;
+
         return (
             <div>
                 {/* Billing Information */}
                 {this.renderBillingInfo()}
                 
-                {/* Historical Invoices */}
-                <div className="kt-portlet">
-                    <div className="kt-portlet__head">
-                        <div className="kt-portlet__head-label">
-                            <h3 className="kt-portlet__head-title">
-                                <i className="la la-history"></i> Historical invoices
-                            </h3>
+                {/* SaaS Billing Dashboard Summary Cards */}
+                <div className="row mb-6">
+                    <div className="col-md-4">
+                        <div className="kt-portlet kt-portlet--height-fluid bg-light-danger" style={{ borderRadius: '1rem', border: '1px solid #ffe2e5' }}>
+                            <div className="kt-portlet__body p-5 d-flex flex-column justify-content-center">
+                                <span className="text-danger font-weight-boldest text-uppercase mb-2" style={{ fontSize: '0.8rem', letterSpacing: '1px' }}>Total Outstanding</span>
+                                <span className="font-weight-boldest text-dark" style={{ fontSize: '2rem' }}>KES {totalOutstanding.toLocaleString()}</span>
+                            </div>
                         </div>
-                        <div className="kt-portlet__head-toolbar">
-                            <span className="kt-font-sm text-muted">
-                                These invoices were created before May 1, 2026. New invoices are available through the manage billing link above. 
-                                Please download any old invoices you need, they won't be available in the dashboard anymore.
-                            </span>
+                    </div>
+                    <div className="col-md-4">
+                        <div className="kt-portlet kt-portlet--height-fluid bg-light-success" style={{ borderRadius: '1rem', border: '1px solid #c9f7f5' }}>
+                            <div className="kt-portlet__body p-5 d-flex flex-column justify-content-center">
+                                <span className="text-success font-weight-boldest text-uppercase mb-2" style={{ fontSize: '0.8rem', letterSpacing: '1px' }}>Total Paid</span>
+                                <span className="font-weight-boldest text-dark" style={{ fontSize: '2rem' }}>KES {totalPaid.toLocaleString()}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="col-md-4">
+                        <div className="kt-portlet kt-portlet--height-fluid bg-light-warning" style={{ borderRadius: '1rem', border: '1px solid #fff4de' }}>
+                            <div className="kt-portlet__body p-5 d-flex flex-column justify-content-center">
+                                <span className="text-warning font-weight-boldest text-uppercase mb-2" style={{ fontSize: '0.8rem', letterSpacing: '1px' }}>Next Invoice Due</span>
+                                <span className="font-weight-boldest text-dark" style={{ fontSize: '1.5rem' }}>{nextDue ? nextDue.dueDate : 'No pending invoices'}</span>
+                                {nextDue && <span className="text-muted font-weight-bold small mt-1">{nextDue.amount}</span>}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Historical Invoices */}
+                <div className="kt-portlet" style={{ borderRadius: '1.2rem', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+                    <div className="kt-portlet__head border-bottom-0 pt-6 pb-2">
+                        <div className="kt-portlet__head-label">
+                            <h3 className="kt-portlet__head-title font-weight-boldest" style={{ fontSize: '1.4rem' }}>
+                                <i className="la la-file-invoice-dollar mr-2 text-primary" style={{ fontSize: '1.8rem', verticalAlign: 'middle' }}></i> Invoices
+                            </h3>
                         </div>
                     </div>
                     <div className="kt-portlet__body">
-                        <div className="table-responsive">
-                            <table className="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Number</th>
-                                        <th>Status</th>
-                                        <th>Created</th>
-                                        <th>Due Date</th>
-                                        <th>Age</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {currentInvoices.map(invoice => (
-                                        <tr key={invoice.id}>
-                                            <td>
-                                                <span className="kt-font-bold">
-                                                    {invoice.id}
-                                                </span>
-                                            </td>
-                                            <td>
-                                                <span className={`kt-badge kt-badge--${
-                                                    invoice.status === 'Paid' ? 'success' : 
-                                                    invoice.status === 'Pending Confirmation' ? 'warning' : 
-                                                    invoice.status === 'Unpaid' ? 'danger' : 'secondary'
-                                                }`}>
-                                                    {invoice.status}
-                                                </span>
-                                            </td>
-                                            <td>{invoice.created}</td>
-                                            <td>{invoice.dueDate}</td>
-                                            <td>
-                                                {(() => {
-                                                    const createdDate = new Date(invoice.created);
-                                                    const today = new Date();
-                                                    const diffTime = Math.abs(today - createdDate);
-                                                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                                                    return (
-                                                        <span className={`kt-font-bold ${diffDays > 30 ? 'text-danger' : diffDays > 14 ? 'text-warning' : 'text-success'}`}>
-                                                            {diffDays} days
+                        <div className="row">
+                            {currentInvoices.map(invoice => (
+                                <div className="col-12 mb-4" key={invoice.id}>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px', borderRadius: '8px', backgroundColor: '#f8f9fa', border: '1px solid #ebedf2', transition: 'all 0.2s ease', flexWrap: 'wrap' }} onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'} onMouseOut={e => e.currentTarget.style.transform = 'translateY(0)'}>
+                                            <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                <div style={{ width: '50px', height: '50px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '16px', backgroundColor: invoice.status === 'Paid' ? '#C9F7F5' : invoice.status === 'Unpaid' ? '#FFE2E5' : '#FFF4DE' }}>
+                                                    <i className={`la ${invoice.status === 'Paid' ? 'la-check-circle' : invoice.status === 'Unpaid' ? 'la-exclamation-circle' : 'la-clock-o'}`} style={{ fontSize: '1.8rem', color: invoice.status === 'Paid' ? '#1BC5BD' : invoice.status === 'Unpaid' ? '#F64E60' : '#FFA800' }}></i>
+                                                </div>
+                                                <div>
+                                                    <h5 style={{ fontWeight: 600, color: '#3f4254', margin: '0 0 4px 0' }}>Invoice #{invoice.id}</h5>
+                                                    <div style={{ color: '#b5b5c3', fontWeight: 500, fontSize: '0.9rem' }}>
+                                                        Created: {invoice.created} <span style={{ margin: '0 8px' }}>•</span> Due: {invoice.dueDate}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', marginTop: '16px' }}>
+                                                <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: '100px', marginRight: '24px' }}>
+                                                    <div style={{ fontWeight: 700, color: '#3f4254', fontSize: '1.3rem', marginBottom: '4px' }}>{invoice.amount}</div>
+                                                    {invoice.status === 'Paid' && (
+                                                        <span style={{ backgroundColor: '#1BC5BD', color: '#fff', padding: '4px 12px', borderRadius: '4px', fontSize: '0.85rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}>
+                                                            <i className="la la-check text-white" style={{ marginRight: '4px' }}></i> {invoice.status}
                                                         </span>
-                                                    );
-                                                })()}
-                                            </td>
-                                            <td>
-                                                <div className="d-flex align-items-center gap-1">
-                                                    {/* Pay button - more prominent for unpaid invoices */}
-                                                    {!this.state.isSuperAdmin && invoice.status === 'Unpaid' && (
-                                                        <button 
-                                                            className="btn btn-sm btn-success font-weight-bold"
-                                                            title="Pay Invoice"
-                                                            onClick={() => this.handlePayInvoice(invoice)}
-                                                            style={{ minWidth: '80px', fontSize: '12px', padding: '6px 12px' }}
-                                                        >
-                                                            <i className="la la-credit-card"></i> Pay
+                                                    )}
+                                                    {invoice.status === 'Unpaid' && (
+                                                        <span style={{ backgroundColor: '#F64E60', color: '#fff', padding: '4px 12px', borderRadius: '4px', fontSize: '0.85rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center', animation: 'pulse 2s infinite' }}>
+                                                            <i className="la la-exclamation-triangle text-white" style={{ marginRight: '4px' }}></i> {invoice.status}
+                                                        </span>
+                                                    )}
+                                                    {invoice.status === 'Pending Confirmation' && (
+                                                        <span style={{ backgroundColor: '#FFA800', color: '#fff', padding: '4px 12px', borderRadius: '4px', fontSize: '0.85rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}>
+                                                            <i className="la la-hourglass text-white" style={{ marginRight: '4px' }}></i> {invoice.status}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                
+                                                <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                    {invoice.status === 'Unpaid' && (
+                                                        <button className="btn btn-success" style={{ fontWeight: 600, padding: '10px 20px', borderRadius: '6px', display: 'flex', alignItems: 'center', textTransform: 'uppercase', letterSpacing: '0.5px', boxShadow: '0 0.125rem 0.25rem rgba(27, 197, 189, 0.4)' }} onClick={() => this.handlePayInvoice(invoice)}>
+                                                            <i className="la la-credit-card" style={{ fontSize: '1.2rem', marginRight: '8px' }}></i>
+                                                            <span>Pay Now</span>
                                                         </button>
                                                     )}
+                                                    
+                                                    {this.state.isSuperAdmin && invoice.status === 'Unpaid' && (
+                                                        <div style={{ display: 'flex', alignItems: 'center', padding: '8px', borderRadius: '6px', backgroundColor: '#fff', border: '1px solid #E4E6EF', marginLeft: '16px' }} title="Restrict Dashboards">
+                                                            <span className="switch switch-sm switch-danger" style={{ display: 'flex', alignItems: 'center' }}>
+                                                                <label style={{ margin: 0, display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                                                                    <input 
+                                                                        type="checkbox" 
+                                                                        checked={!!this.state.selectedSchool?.dashboardsRestricted}
+                                                                        onChange={() => this.handleToggleRestriction(invoice, !!this.state.selectedSchool?.dashboardsRestricted)}
+                                                                    />
+                                                                    <span></span>
+                                                                    <span style={{ fontWeight: 600, color: '#7E8299', fontSize: '0.85rem', marginLeft: '8px' }}>Restrict</span>
+                                                                </label>
+                                                            </span>
+                                                        </div>
+                                                    )}
+
                                                     {this.state.isSuperAdmin && invoice.status === 'Pending Confirmation' && (
-                                                        <button 
-                                                            className="btn btn-sm btn-info font-weight-bold"
-                                                            title="Confirm Payment"
-                                                            onClick={() => this.handleConfirmBankPayment(invoice)}
-                                                            style={{ minWidth: '100px', fontSize: '12px', padding: '6px 12px' }}
-                                                        >
-                                                            <i className="la la-check"></i> Confirm
+                                                        <button className="btn btn-info font-weight-bold py-2 px-4 rounded-pill shadow-sm ml-3" onClick={() => this.handleConfirmBankPayment(invoice)}>
+                                                            Confirm
                                                         </button>
                                                     )}
-                                                    {/* Other actions - smaller icons */}
-                                                    <div className="btn-group">
-                                                        <button 
-                                                            className="btn btn-sm btn-clean btn-icon btn-icon-md"
-                                                            title="View Invoice"
-                                                            onClick={() => this.handleViewInvoice(invoice)}
-                                                        >
-                                                            <i className="la la-eye"></i>
-                                                        </button>
-                                                        <button 
-                                                            className="btn btn-sm btn-clean btn-icon btn-icon-md"
-                                                            title="Print Invoice"
-                                                            onClick={() => this.handlePrintInvoice(invoice)}
-                                                        >
-                                                            <i className="la la-print"></i>
-                                                        </button>
-                                                        <button 
-                                                            className="btn btn-sm btn-clean btn-icon btn-icon-md"
-                                                            title="Send via Email"
-                                                            onClick={() => this.handleEmailInvoice(invoice)}
-                                                        >
-                                                            <i className="la la-envelope"></i>
-                                                        </button>
+                                                
+                                                <div className="dropdown dropdown-inline ml-3">
+                                                    <button type="button" className="btn btn-light btn-icon btn-sm rounded-circle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onClick={(e) => {
+                                                        const dropdown = e.currentTarget.nextElementSibling;
+                                                        dropdown.classList.toggle('show');
+                                                    }}>
+                                                        <i className="ki ki-bold-more-ver"></i>
+                                                    </button>
+                                                    <div className="dropdown-menu dropdown-menu-right" onClick={(e) => e.currentTarget.classList.remove('show')}>
+                                                        <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); this.handleViewInvoice(invoice); }}><i className="la la-eye text-primary mr-2"></i> View</a>
+                                                        <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); this.handlePrintInvoice(invoice); }}><i className="la la-print text-primary mr-2"></i> Print</a>
+                                                        <a className="dropdown-item" href="#" onClick={(e) => { e.preventDefault(); this.handleEmailInvoice(invoice); }}><i className="la la-envelope text-primary mr-2"></i> Email</a>
                                                         {this.state.isSuperAdmin && (
                                                             <>
-                                                                <button 
-                                                                    className="btn btn-sm btn-clean btn-icon btn-icon-md text-primary"
-                                                                    title="Edit Invoice"
-                                                                    onClick={() => this.handleEditInvoice(invoice)}
-                                                                >
-                                                                    <i className="la la-edit"></i>
-                                                                </button>
-                                                                <button 
-                                                                    className="btn btn-sm btn-clean btn-icon btn-icon-md text-danger"
-                                                                    title="Delete Invoice"
-                                                                    onClick={() => this.handleDeleteInvoice(invoice.id)}
-                                                                >
-                                                                    <i className="la la-trash"></i>
-                                                                </button>
+                                                                <div className="dropdown-divider"></div>
+                                                                <a className="dropdown-item text-primary" href="#" onClick={(e) => { e.preventDefault(); this.handleEditInvoice(invoice); }}><i className="la la-edit text-primary mr-2"></i> Edit</a>
+                                                                <a className="dropdown-item text-danger" href="#" onClick={(e) => { e.preventDefault(); this.handleDeleteInvoice(invoice.id); }}><i className="la la-trash text-danger mr-2"></i> Delete</a>
                                                             </>
                                                         )}
                                                     </div>
                                                 </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                         
-                        <Pagination
-                            total={totalInvoices}
-                            itemsPerPage={itemsPerPage}
-                            currentPage={currentPage}
-                            onPageChange={this.handlePageChange}
-                        />
+                        {currentInvoices.length === 0 && (
+                            <div className="text-center py-10">
+                                <i className="la la-file-invoice text-muted" style={{ fontSize: '4rem' }}></i>
+                                <h4 className="mt-4 text-dark font-weight-bold">No Invoices Found</h4>
+                                <p className="text-muted">There are no invoices available for this school yet.</p>
+                            </div>
+                        )}
+                        
+                        {currentInvoices.length > 0 && (
+                            <Pagination
+                                total={totalInvoices}
+                                itemsPerPage={itemsPerPage}
+                                currentPage={currentPage}
+                                onPageChange={this.handlePageChange}
+                            />
+                        )}
                     </div>
                 </div>
             </div>
@@ -1554,10 +1649,10 @@ class InstitutionalDeposits extends Component {
                             {this.renderEmailModal()}
                             {this.renderCreateInvoiceModal()}
                             {this.renderEditInvoiceModal()}
-                            {this.renderPaymentModal()}
                             {this.renderBillingModal()}
                             {this.renderBankPaymentModal()}
                             {this.renderDeleteModal()}
+                            <MpesaPaymentModal ref={this.mpesaModalRef} onPaymentSuccess={this.handleMpesaSuccess} actionText="Settle Invoice" />
                         </div>
                     </div>
                     <Footer />

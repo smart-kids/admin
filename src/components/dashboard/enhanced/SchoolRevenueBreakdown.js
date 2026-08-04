@@ -53,7 +53,8 @@ export const SchoolRevenueBreakdown = ({ schoolRevenueBreakdown, loading }) => {
               <thead>
                 <tr className="bg-light">
                   <th className="font-weight-bold text-muted" style={{ fontSize: '0.875rem' }}>School</th>
-                  <th className="font-weight-bold text-muted text-center" style={{ fontSize: '0.875rem' }}>Students</th>
+                  <th className="font-weight-bold text-muted text-center" style={{ fontSize: '0.875rem' }}>Students (Agreed / System)</th>
+                  <th className="font-weight-bold text-muted text-center" style={{ fontSize: '0.875rem' }}>SaaS Amount</th>
                   <th className="font-weight-bold text-muted text-right" style={{ fontSize: '0.875rem' }}>Term Revenue</th>
                   <th className="font-weight-bold text-muted text-right" style={{ fontSize: '0.875rem' }}>Monthly Revenue</th>
                   <th className="font-weight-bold text-muted text-right" style={{ fontSize: '0.875rem' }}>Annual Revenue</th>
@@ -81,8 +82,17 @@ export const SchoolRevenueBreakdown = ({ schoolRevenueBreakdown, loading }) => {
                     </td>
                     <td className="text-center">
                       <span className="font-weight-bold" style={{ fontSize: '1rem' }}>
-                        {formatNumber(school.studentCount)}
+                        {formatNumber(school.agreedStudentCount || school.studentCount)}
                       </span>
+                      {school.agreedStudentCount !== school.systemStudentCount && (
+                        <div className="text-muted small">Sys: {formatNumber(school.systemStudentCount)}</div>
+                      )}
+                    </td>
+                    <td className="text-center">
+                      <span className="font-weight-bold text-dark" style={{ fontSize: '0.9rem' }}>
+                        {formatCurrency(school.agreedRate)}
+                      </span>
+                      <div className="text-muted small">per student</div>
                     </td>
                     <td className="text-right">
                       <span className="font-weight-bolder text-success" style={{ fontSize: '1rem' }}>

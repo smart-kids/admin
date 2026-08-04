@@ -30,6 +30,7 @@ const SvgLibraryIcon = ({ style }) => ( <svg style={style} xmlns="http://www.w3.
 const SvgResultsIcon = ({ style }) => ( <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"> <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path> <path d="M22 12A10 10 0 0 0 12 2v10z"></path> </svg> );
 const SvgTimeTablesIcon = ({ style }) => ( <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"> <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect> <line x1="16" y1="2" x2="16" y2="6"></line> <line x1="8" y1="2" x2="8" y2="6"></line> <line x1="3" y1="10" x2="21" y2="10"></line> </svg> );
 const SvgFinanceIcon = ({ style }) => ( <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"> <line x1="12" y1="1" x2="12" y2="23"></line> <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path> </svg> );
+const SvgLockIcon = ({ style }) => ( <svg style={style} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> );
 
 
 const DEFAULT_TOP_NAV_BG_COLOR = 'var(--bg-secondary)';
@@ -131,7 +132,6 @@ class Navbar extends React.Component {
 
     // Default for Admin, Super Admin, CSM, Principal
     items = [
-      { path: "/home", label: "Reports", icon: "la-dashboard" },
       { path: "/comms", label: "Comms", icon: "la-envelope" },
       { path: "/learning", label: "Learning", icon: "la-graduation-cap" },
       { path: "/library", label: "Library", icon: "la-book" },
@@ -147,6 +147,15 @@ class Navbar extends React.Component {
     
     if (isSuperAdmin || isPrincipal) {
       items.push({ path: "/activity-log", label: "Logs", icon: "la-history" });
+    }
+
+    const isDashboardsRestricted = this.state.selectedSchool?.dashboardsRestricted;
+    if (isDashboardsRestricted) {
+      return items.map(item => ({
+        ...item,
+        path: isSuperAdmin ? item.path : "/finance/institutional-deposits",
+        icon: "la-lock"
+      }));
     }
 
     return items;
@@ -463,6 +472,17 @@ class Navbar extends React.Component {
         
         return true;
     });
+
+    const isDashboardsRestricted = selectedSchool?.dashboardsRestricted;
+    let finalManageDataItems = manageDataItems;
+    if (isDashboardsRestricted) {
+        finalManageDataItems = manageDataItems.map(item => ({
+            ...item,
+            path: isSuperAdmin ? item.path : "/finance/institutional-deposits",
+            IconComponent: SvgLockIcon
+        }));
+    }
+
     const financeItems = [
       { path: "/finance/topup", label: "Mpesa Top Up" },
       { path: "/finance/charges", label: "SMS Usage History" },
@@ -531,6 +551,13 @@ class Navbar extends React.Component {
                     <i className="la la-close" style={{ fontSize: '1.2rem' }}></i>
                 </button>
             </div>
+
+            {isDashboardsRestricted && (
+                <div style={{ backgroundColor: '#F64E60', color: 'white', padding: '10px', textAlign: 'center', fontWeight: 'bold', fontSize: '0.9rem', zIndex: 9999, position: 'relative' }}>
+                    <i className="la la-lock text-white mr-2"></i> Dashboards are currently restricted due to an unpaid invoice. {isSuperAdmin ? '(Super Admin Access)' : 'Please settle the balance to restore access.'}
+                </div>
+            )}
+
             <ul style={{ listStyle: 'none', padding: '10px 0 0 0', margin: 0 }}>
                 {/* Sync Data (Mobile) */}
                 <li style={{ marginBottom: '5px' }}>
@@ -618,7 +645,7 @@ class Navbar extends React.Component {
                     </li>
                 )}
                 {/* Main Links */}
-                {!isTeacher && <li><Link to="/home" style={linkStyle} onClick={this.toggleMobileMenu}><i className="la la-dashboard" style={{marginRight: '12px', fontSize: '1.2rem', color: 'var(--text-tertiary)'}}></i> Reports</Link></li>}
+                {!isTeacher && <li><Link to={isDashboardsRestricted && !isSuperAdmin ? "/finance/institutional-deposits" : "/home"} style={linkStyle} onClick={this.toggleMobileMenu}><i className={`la ${isDashboardsRestricted ? 'la-lock' : 'la-dashboard'}`} style={{marginRight: '12px', fontSize: '1.2rem', color: 'var(--text-tertiary)'}}></i> Reports</Link></li>}
                 
                 {this.getSecondaryNavItems().map((item) => {
                     // Match icons consistently for side drawer
@@ -643,7 +670,7 @@ class Navbar extends React.Component {
                         </button>
                         <div style={{ maxHeight: openMobileSubmenu === 'manage' ? '400px' : '0', overflowY: 'auto', transition: 'all 0.4s ease-in-out', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', margin: '0 10px', boxShadow: 'inset 0 2px 10px rgba(0,0,0,0.05)' }}>
                             <ul style={{listStyle: 'none', padding: '5px 0', margin: 0 }}>
-                                {manageDataItems.map(item => (
+                                {finalManageDataItems.map(item => (
                                     <li key={item.path}>
                                         <Link to={item.path} style={{ ...subLinkStyle, display: 'flex', alignItems: 'center' }} onClick={this.toggleMobileMenu}>
                                             {item.IconComponent && <item.IconComponent style={{ width: '18px', height: '18px', marginRight: '12px', opacity: 0.7 }} />}
@@ -798,6 +825,16 @@ class Navbar extends React.Component {
         
         return true;
     });
+
+    const isDashboardsRestricted = selectedSchool?.dashboardsRestricted;
+    let finalManageDataItems = manageDataItems;
+    if (isDashboardsRestricted) {
+        finalManageDataItems = manageDataItems.map(item => ({
+            ...item,
+            path: isSuperAdmin ? item.path : "/finance/institutional-deposits",
+            IconComponent: SvgLockIcon
+        }));
+    }
     const financeItems = [
       { path: "/finance/topup", label: "Top Up SMS: " + `${selectedSchool?.financial?.balanceFormated || "0 SMS's"}`
       }, { path: "/finance/charges", label: "SMS Usage History" },
@@ -891,10 +928,9 @@ class Navbar extends React.Component {
 
         {/* DESKTOP TOP NAVBAR (Remains Fixed) */}
         <div id="kt_header" className="kt-header kt-grid__item d-none d-lg-flex" style={{ backgroundColor: useSchoolTheme ? effectiveTopBarBgColor : GLASS_BG, backdropFilter: GLASS_BACKDROP, alignItems: 'center', justifyContent: 'space-between', height: `${topNavbarHeight}px`, zIndex: 1002, position: 'fixed', top: `${gapBetweenNavbars}px`, left: `${secondaryNavbarHorizontalMargin}px`, right: `${secondaryNavbarHorizontalMargin}px`, borderRadius: '16px', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.08)', padding: `0 30px`, border: '1px solid rgba(255, 255, 255, 0.4)', transition: 'all 0.3s ease' }}>
-          <div className="kt-header__brand" style={{ padding: 0 }}>
+          <div className="kt-header__brand" style={{ padding: 0, display: 'flex', alignItems: 'center' }}>
             {!selectedSchool || Object.keys(selectedSchool).length === 0 || !selectedSchool.name ? ( <div className="kt-spinner kt-spinner--sm kt-spinner--brand" /> ) : ( <Link to="/home"> <img alt="School Logo" style={{ maxHeight: '52px', width: 'auto', borderRadius: '8px', transition: 'all 0.3s ease' }} src={selectedSchool.logo || '/assets/media/logos/ic_launcher.png'} onMouseOver={e => e.currentTarget.style.transform = 'scale(1.05)'} onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'} /> </Link> )}
           </div>
-          
           
           
           <div className="kt-header__topbar">
@@ -1035,20 +1071,20 @@ class Navbar extends React.Component {
 
         {/* SECONDARY NAVBAR (Bottom Section) */}
         <div id="kt_header_secondary" className="d-none d-lg-flex" style={{ backgroundColor: GLASS_BG, backdropFilter: GLASS_BACKDROP, justifyContent: 'space-between', alignItems: 'center', height: `${secondaryNavbarEffectiveHeight}px`, position: 'relative', marginLeft: `${secondaryNavbarHorizontalMargin}px`, marginRight: `${secondaryNavbarHorizontalMargin}px`, marginBottom: `${gapBetweenNavbars}px`, borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)', padding: '0 30px', border: '1px solid var(--glass-border)', transition: 'all 0.3s ease', zIndex: 1001 }}>
-            <div className="context-control-container">
+            <div className="context-control-container" style={{ display: 'flex', alignItems: 'center', paddingLeft: 0, marginLeft: 0 }}>
                 {/* SCHOOL SELECTOR */}
-                <div className="kt-header-menu-wrapper" style={{ zIndex: 1100 }} ref={this.schoolSelectorRef}>
-                    <div id="kt_header_school_selector" className="kt-header-menu kt-header-menu-mobile">
+                <div className="kt-header-menu-wrapper" style={{ zIndex: 1100, marginLeft: 0, paddingLeft: 0 }} ref={this.schoolSelectorRef}>
+                    <div id="kt_header_school_selector" className="kt-header-menu kt-header-menu-mobile" style={{ margin: 0, padding: 0 }}>
                         <ul className="kt-menu__nav" style={{margin: 0, padding: 0}}>
-                            <li className={`kt-menu__item ${availableSchools.length > 1 ? 'kt-menu__item--submenu kt-menu__item--rel' : ''} ${this.state.showSchoolSelector ? 'kt-menu__item--hover' : ''}`} aria-haspopup="true">
-                                <a href="javascript:;" onClick={e => { e.preventDefault(); e.stopPropagation(); this.setState({ showSchoolSelector: !this.state.showSchoolSelector, showManageData: false }); }} className={`kt-menu__link school-selector-btn ${availableSchools.length > 1 ? 'kt-menu__toggle' : ''}`} style={{ textDecoration: 'none' }}>
-                                    <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', letterSpacing: '-0.5px' }}>
+                            <li className={`kt-menu__item ${availableSchools.length > 1 ? 'kt-menu__item--submenu kt-menu__item--rel' : ''} ${this.state.showSchoolSelector ? 'kt-menu__item--hover' : ''}`} aria-haspopup="true" style={{ padding: 0, margin: 0 }}>
+                                <a href="javascript:;" onClick={e => { e.preventDefault(); e.stopPropagation(); this.setState({ showSchoolSelector: !this.state.showSchoolSelector, showManageData: false }); }} className={`kt-menu__link school-selector-btn ${availableSchools.length > 1 ? 'kt-menu__toggle' : ''}`} style={{ textDecoration: 'none', padding: 0, margin: 0, display: 'flex', alignItems: 'center' }}>
+                                    <span style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--text-primary)', whiteSpace: 'nowrap', letterSpacing: '-0.5px', marginLeft: 0, paddingLeft: 0 }}>
                                         {selectedSchool?.name || 'Shule Plus'}
                                     </span>
                                     {availableSchools.length > 1 && <i className="la la-angle-down ml-3" style={{fontSize: '1.4rem', color: 'var(--text-primary)', transition: 'transform 0.3s ease', transform: this.state.showSchoolSelector ? 'rotate(180deg)' : 'none'}} />}
                                 </a>
                                 {availableSchools.length > 1 && this.state.showSchoolSelector && (
-                                    <div className="kt-menu__submenu kt-menu__submenu--classic kt-menu__submenu--left" style={{ display: 'block', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', zIndex: 1200, marginTop: '10px', width: '500px' }}>
+                                    <div className="kt-menu__submenu kt-menu__submenu--classic kt-menu__submenu--left" style={{ display: 'block', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', zIndex: 1200, marginTop: '10px', width: '500px', left: 0 }}>
                                         <ul className="kt-menu__subnav" style={{ padding: '15px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                             {availableSchools.map(schoolItem => (
                                                 <li key={schoolItem.id} className="kt-menu__item" aria-haspopup="true" style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden', backgroundColor: selectedSchool?.id === schoolItem.id ? 'var(--bg-tertiary)' : 'transparent' }}>
@@ -1068,7 +1104,9 @@ class Navbar extends React.Component {
                                                                 {schoolItem.students?.length || schoolItem.studentCount || 0} Students
                                                             </div>
                                                         </div>
-                                                        {selectedSchool?.id === schoolItem.id && <i className="la la-check-circle" style={{ color: 'var(--brand-color)', fontSize: '1.1rem' }}></i>}
+                                                        {selectedSchool?.id === schoolItem.id && (
+                                                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#3966ff', marginLeft: '10px' }} />
+                                                        )}
                                                     </a>
                                                 </li>
                                             ))}
@@ -1096,11 +1134,11 @@ class Navbar extends React.Component {
                                         <div className="kt-menu__submenu kt-menu__submenu--classic kt-menu__submenu--left" style={{ display: 'block', borderRadius: '12px', boxShadow: '0 10px 40px rgba(0,0,0,0.2)', border: '1px solid var(--glass-border)', zIndex: 1200, marginTop: '10px', width: '500px' }}>
                                             <div style={{ padding: '10px 15px', borderBottom: '1px solid var(--border-primary)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                 <span style={{ fontWeight: 800, color: 'var(--text-primary)', fontSize: '0.85rem', letterSpacing: '-0.2px' }}>Manage Data</span>
-                                                <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 700, opacity: 0.8 }}>{manageDataItems.length} MODULES</span>
+                                                <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', fontWeight: 700, opacity: 0.8 }}>{finalManageDataItems.length} MODULES</span>
                                             </div>
                                             <ul className="kt-menu__subnav" style={{ padding: '10px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-                                                {manageDataItems.map(item => (
-                                                    <li key={item.path} className="kt-menu__item" aria-haspopup="true">
+                                                {finalManageDataItems.map((item, idx) => (
+                                                    <li key={`${item.path}-${idx}`} className="kt-menu__item" aria-haspopup="true">
                                                         <Link to={item.path} onClick={() => this.setState({ showManageData: false })} className="kt-menu__link" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 5px', borderRadius: '10px', transition: 'all 0.2s ease', textAlign: 'center', width: '100%' }}>
                                                             <div style={{ width: '42px', height: '42px', borderRadius: '10px', backgroundColor: `${selectedSchool?.theme_color || '#3966ff'}12`, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.2s ease', marginBottom: '6px' }} className="manage-data-icon-wrapper">
                                                                 <item.IconComponent style={{ width: '24px', height: '24px', color: selectedSchool?.theme_color || 'var(--brand-color)' }} />
@@ -1127,6 +1165,7 @@ class Navbar extends React.Component {
                         {this.getSecondaryNavItems().map((item) => {
                             if (item.hideFromTeacher && isTeacher) return null;
                             if (item.hidden) return null;
+                            if (isDashboardsRestricted && !isSuperAdmin && item.requiresSubscription) return null;
                             const isActive = this.isActiveRoute(item.path);
                             return (
                                 <li key={item.path} className={`kt-menu__item ${isActive ? 'kt-menu__item--active' : ''}`} style={{ margin: 0, padding: '0 4px' }}>

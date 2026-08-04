@@ -1,4 +1,5 @@
 import React from "react";
+import Select from "react-select";
 import ErrorMessage from "./components/error-toast";
 const IErrorMessage = new ErrorMessage();
 
@@ -66,7 +67,10 @@ class Modal extends React.Component {
     if (props.edit)
       if (props.edit.id !== state.edit.id) {
         return {
-          edit: props.edit
+          edit: {
+            ...props.edit,
+            schools: (props.edit.schools || []).map(s => s.id || s)
+          }
         };
       }
     return null;
@@ -101,8 +105,8 @@ class Modal extends React.Component {
                 </div>
                 <div className="modal-body">
                   <div className="kt-portlet__body">
-                    <div className="form-group row">
-                      <div className="col-lg-4">
+                    <div className="row mb-4">
+                      <div className="col-lg-6 mb-3">
                         <label>Names:</label>
                         <input
                           type="text"
@@ -119,13 +123,13 @@ class Modal extends React.Component {
                           required
                         />
                       </div>
-                      <div className="col-lg-4">
+                      <div className="col-lg-6 mb-3">
                         <label>Email:</label>
                         <input
                           type="email"
                           className="form-control"
-                          id="fullname"
-                          name="fullname"
+                          id="email"
+                          name="email"
                           minLength="2"
                           value={this.state.edit.email}
                           onChange={(e) => this.setState({
@@ -136,7 +140,9 @@ class Modal extends React.Component {
                           required
                         />
                       </div>
-                      <div className="col-lg-4">
+                    </div>
+                    <div className="row mb-4">
+                      <div className="col-lg-6 mb-3">
                         <label>Phone Number:</label>
                         <input
                           type="text"
@@ -153,7 +159,7 @@ class Modal extends React.Component {
                           required
                         />
                       </div>
-                      <div className="col-lg-4">
+                      <div className="col-lg-6 mb-3">
                         <label>Password:</label>
                         <input
                           type="text"
@@ -169,9 +175,11 @@ class Modal extends React.Component {
                           })}
                         />
                       </div>
+                    </div>
 
-                      {this.props.isSuperAdmin && (
-                        <div className="col-lg-4 mt-3">
+                    {this.props.isSuperAdmin && (
+                      <div className="row mb-4">
+                        <div className="col-lg-6 mb-3">
                           <label>Role:</label>
                           <select
                             className="form-control"
@@ -189,52 +197,46 @@ class Modal extends React.Component {
                             <option value="ADMIN_OPERATIONS">Operations Admin</option>
                             <option value="ADMIN_ACADEMICS">Academics Admin</option>
                           </select>
+                          {(() => {
+                            const roleDescriptions = {
+                              'ADMIN': 'Standard administrative access to school data.',
+                              'SUPER_ADMIN': 'Full system access, including ShulePlus global settings, billing, and all schools.',
+                              'CUSTOMER_SUCCESS_MANAGER': 'Access to school usage metrics, onboarding, and support tools.',
+                              'PRINCIPAL_ADMIN': 'Full administrative access strictly scoped to their assigned school(s).',
+                              'ADMIN_OPERATIONS': 'Access to transport, routing, scheduling, and logistics modules.',
+                              'ADMIN_ACADEMICS': 'Access to grades, lesson plans, exams, and teacher management.'
+                            };
+                            const currentRole = this.state.edit.role || 'ADMIN';
+                            return (
+                              <div className="mt-2 text-muted" style={{ fontSize: '0.8rem', lineHeight: '1.2' }}>
+                                <i className="flaticon-info text-primary mr-1" style={{ fontSize: '0.8rem' }}></i>
+                                {roleDescriptions[currentRole]}
+                              </div>
+                            );
+                          })()}
                         </div>
-                      )}
-                      
-                      {this.props.isSuperAdmin && (
-                        <div className="col-lg-4 mt-3">
-                          <label>Schools (Ctrl/Cmd+Click to select multiple):</label>
-                          <select
-                            multiple
-                            className="form-control"
-                            style={{ minHeight: '120px' }}
-                            value={(this.state.edit.schools || []).map(s => s.id || s)}
-                            onChange={(e) => {
-                              const selected = Array.from(e.target.selectedOptions, option => option.value);
+                        <div className="col-lg-6 mb-3">
+                          <label>Schools:</label>
+                          <Select
+                            isMulti
+                            name="schools"
+                            value={(this.state.edit.schools || []).map(s => {
+                              const id = s.id || s;
+                              const schoolObj = (this.props.schools || []).find(sch => sch.id === id);
+                              return { value: id, label: schoolObj ? schoolObj.name : id };
+                            })}
+                            options={(this.props.schools || []).map(school => ({ value: school.id, label: school.name }))}
+                            onChange={(selectedOptions) => {
                               this.setState({
                                 edit: Object.assign(this.state.edit, {
-                                  schools: selected
+                                  schools: selectedOptions ? selectedOptions.map(opt => opt.value) : []
                                 })
                               });
                             }}
-                          >
-                            {(this.props.schools || []).map(school => (
-                              <option key={school.id} value={school.id}>{school.name}</option>
-                            ))}
-                          </select>
+                          />
                         </div>
-                      )}
-                      
-                      
-                      {/* <div className="col-lg-4">
-                        <label>Password:</label>
-                        <input
-                          type="password"
-                          className="form-control"
-                          id="password"
-                          name="password"
-                          minLength="5"
-                          value={this.state.edit.password}
-                          onChange={(e) => this.setState({
-                            edit: Object.assign(this.state.edit, {
-                              password: e.target.value
-                            })
-                          })}
-                          required
-                        />
-                      </div> */}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="modal-footer">

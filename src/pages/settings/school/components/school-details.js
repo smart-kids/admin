@@ -146,14 +146,26 @@ export default class SchoolDetails extends React.Component {
   }
 
   async saveSchoolDetails(data) {
-    console.log("Triggering save for school details. Data received:", data);
-    const { id, name, phone, email, address, schoolSize, inviteSmsText, logo, themeColor } = data;
+    const { id, name, phone, email, address, schoolSize, schoolType, schoolLevel, numberOfStudents, inviteSmsText, logo, themeColor, mpesaPaybill, ratePerStudent } = data;
 
     if (id) {
       try {
         const schoolDataPayload = {
-          id, name, phone, email, address, schoolSize, inviteSmsText, logo, themeColor
+          id, name, phone, email, address, schoolSize, schoolType, schoolLevel, numberOfStudents, inviteSmsText, logo, themeColor, mpesaPaybill, ratePerStudent
         };
+        
+        if (schoolDataPayload.numberOfStudents !== undefined && schoolDataPayload.numberOfStudents !== "") {
+          schoolDataPayload.numberOfStudents = parseInt(schoolDataPayload.numberOfStudents, 10);
+        } else {
+          delete schoolDataPayload.numberOfStudents;
+        }
+        
+        if (schoolDataPayload.ratePerStudent !== undefined && schoolDataPayload.ratePerStudent !== "") {
+          schoolDataPayload.ratePerStudent = parseFloat(schoolDataPayload.ratePerStudent);
+        } else {
+          delete schoolDataPayload.ratePerStudent;
+        }
+
         console.log("Updating school with payload:", schoolDataPayload);
         await Data.schools.update(schoolDataPayload);
         console.log(`School with ID ${id} updated successfully.`);

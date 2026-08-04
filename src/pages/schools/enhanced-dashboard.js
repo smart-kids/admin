@@ -451,6 +451,9 @@ class EnhancedSchoolsDashboard extends Component {
   calculateRevenueProjections = (data, timeRange = 'monthly') => {
     const { schools, students, feeStructures, payments } = data;
     
+    // Filter out deleted schools
+    const activeSchools = schools.filter(s => !s.isDeleted);
+    
     // Business Model: Students pay 1,000 KES per term (3 terms per year, 1 term = 3 months)
     const TERM_FEE = 1000; // 1K per term
     const TERMS_PER_YEAR = 3;
@@ -459,7 +462,7 @@ class EnhancedSchoolsDashboard extends Component {
     const MONTHLY_FEE_PER_STUDENT = TERM_FEE / MONTHS_PER_TERM; // Monthly equivalent during term
     
     // Calculate total students from nested school structure (more accurate)
-    const totalStudentsFromSchools = schools.reduce((sum, school) => {
+    const totalStudentsFromSchools = activeSchools.reduce((sum, school) => {
       const schoolStudents = (school.students && Array.isArray(school.students)) ? school.students.length : 
                               (school.studentCount || 0);
       return sum + schoolStudents;
@@ -473,19 +476,31 @@ class EnhancedSchoolsDashboard extends Component {
     const businessMonthlyRevenue = totalStudents * MONTHLY_FEE_PER_STUDENT;
     
     // Calculate revenue breakdown per school
-    const schoolRevenueBreakdown = schools.map(school => {
+    const schoolRevenueBreakdown = activeSchools.map(school => {
       // Use the same approach as navbar - students are nested under schools in the tree structure
-      const schoolStudents = (school.students && Array.isArray(school.students)) ? school.students.length : 
+      const systemStudents = (school.students && Array.isArray(school.students)) ? school.students.length : 
                               (school.studentCount || 0);
+                              
+      const agreedStudents = (school.numberOfStudents !== undefined && school.numberOfStudents !== null) 
+                              ? school.numberOfStudents : systemStudents;
+                              
+      const agreedRate = (school.ratePerStudent !== undefined && school.ratePerStudent !== null)
+                          ? school.ratePerStudent : TERM_FEE;
+                          
+      const annualAgreedRate = agreedRate * TERMS_PER_YEAR;
+      const monthlyAgreedRate = agreedRate / MONTHS_PER_TERM;
       
       return {
         schoolId: school.id,
         schoolName: school.name,
-        studentCount: schoolStudents,
-        annualRevenue: schoolStudents * ANNUAL_FEE_PER_STUDENT,
-        monthlyRevenue: schoolStudents * MONTHLY_FEE_PER_STUDENT, // Monthly during term
-        termRevenue: schoolStudents * TERM_FEE,
-        revenuePerStudent: ANNUAL_FEE_PER_STUDENT
+        studentCount: systemStudents, // For backwards compatibility
+        systemStudentCount: systemStudents,
+        agreedStudentCount: agreedStudents,
+        agreedRate: agreedRate,
+        annualRevenue: agreedStudents * annualAgreedRate,
+        monthlyRevenue: agreedStudents * monthlyAgreedRate, // Monthly during term
+        termRevenue: agreedStudents * agreedRate,
+        revenuePerStudent: annualAgreedRate
       };
     }).sort((a, b) => b.annualRevenue - a.annualRevenue);
     
@@ -545,8 +560,8 @@ class EnhancedSchoolsDashboard extends Component {
       averageTermFee,
       // Summary Stats
       topPerformingSchools: schoolRevenueBreakdown.slice(0, 5),
-      averageRevenuePerSchool: schools.length > 0 ? businessAnnualRevenue / schools.length : 0,
-      averageStudentsPerSchool: schools.length > 0 ? totalStudents / schools.length : 0
+      averageRevenuePerSchool: activeSchools.length > 0 ? businessAnnualRevenue / activeSchools.length : 0,
+      averageStudentsPerSchool: activeSchools.length > 0 ? totalStudents / activeSchools.length : 0
     };
   };
 
@@ -610,9 +625,21 @@ class EnhancedSchoolsDashboard extends Component {
 
   saveSchoolEdit = async (schoolData) => {
     try {
-      const validFields = ['id', 'name', 'phone', 'email', 'address', 'schoolSize', 'inviteSmsText', 'logo', 'themeColor'];
+      const validFields = ['id', 'name', 'phone', 'email', 'address', 'schoolSize', 'inviteSmsText', 'logo', 'themeColor', 'numberOfStudents', 'ratePerStudent', 'mpesaPaybill'];
       const filteredData = {};
       validFields.forEach(f => { if (schoolData[f] !== undefined) filteredData[f] = schoolData[f]; });
+      
+      if (filteredData.numberOfStudents !== undefined && filteredData.numberOfStudents !== "") {
+          filteredData.numberOfStudents = parseInt(filteredData.numberOfStudents, 10);
+      } else {
+          delete filteredData.numberOfStudents;
+      }
+      
+      if (filteredData.ratePerStudent !== undefined && filteredData.ratePerStudent !== "") {
+          filteredData.ratePerStudent = parseFloat(filteredData.ratePerStudent);
+      } else {
+          delete filteredData.ratePerStudent;
+      }
       
       await Data.schools.update(filteredData);
       // Data subscription will handle the update
@@ -685,6 +712,8 @@ class EnhancedSchoolsDashboard extends Component {
               subtitle="Paying 1K per term"
               icon="la la-graduation-cap"
               color="info"
+              isCurrency={false}
+              formatExact={true}
             />
           </div>
           <div className="col-lg-3 col-md-6">
@@ -773,6 +802,8 @@ class EnhancedSchoolsDashboard extends Component {
               subtitle={`${entityMetrics?.averageStudentsPerSchool?.toFixed(1) || 0} per school`}
               icon="la la-users"
               color="primary"
+              isCurrency={false}
+              formatExact={true}
             />
           </div>
           <div className="col-lg-3 col-md-6">
@@ -782,6 +813,8 @@ class EnhancedSchoolsDashboard extends Component {
               subtitle={`${entityMetrics?.averageTeachersPerSchool?.toFixed(1) || 0} per school`}
               icon="la la-user"
               color="success"
+              isCurrency={false}
+              formatExact={true}
             />
           </div>
           <div className="col-lg-3 col-md-6">
@@ -791,6 +824,8 @@ class EnhancedSchoolsDashboard extends Component {
               subtitle={`${entityMetrics?.averageClassesPerSchool?.toFixed(1) || 0} per school`}
               icon="la la-school"
               color="warning"
+              isCurrency={false}
+              formatExact={true}
             />
           </div>
           <div className="col-lg-3 col-md-6">
@@ -800,6 +835,8 @@ class EnhancedSchoolsDashboard extends Component {
               subtitle="Educational resources"
               icon="la la-book"
               color="danger"
+              isCurrency={false}
+              formatExact={true}
             />
           </div>
         </div>

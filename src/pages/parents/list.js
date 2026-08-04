@@ -48,6 +48,25 @@ export default function ParentDataTable() {
   const [newlyAddedIds, setNewlyAddedIds] = useState(new Set());
   const newRecordTimers = useRef(new Map());
 
+  // Phone unmasking state
+  const [unmaskedPhones, setUnmaskedPhones] = useState({});
+  const [loadingPhoneId, setLoadingPhoneId] = useState(null);
+
+  const handleRevealPhone = async (parentId) => {
+      setLoadingPhoneId(parentId);
+      try {
+          const response = await Data.graph.query(`query { unmaskParentPhone(id: "${parentId}") }`);
+          if (response && response.unmaskParentPhone) {
+              setUnmaskedPhones(prev => ({ ...prev, [parentId]: response.unmaskParentPhone }));
+          }
+      } catch (error) {
+          console.error("Failed to unmask phone:", error);
+      } finally {
+          setLoadingPhoneId(null);
+      }
+  };
+
+
   // --- DATA FETCHING & SUBSCRIPTIONS ---
 
   // The core data fetching function
@@ -156,7 +175,8 @@ export default function ParentDataTable() {
   }, [initialLoading]);
 
   // --- CHILDREN FETCHING ---
-  const fetchParentChildren = useCallback(async (parentId) => {
+  const fetchParentChildren = useCallback(async (parentRow) => {
+    const parentId = parentRow.id;
     if (parentChildren[parentId]) {
       return parentChildren[parentId]; // Return cached data
     }
@@ -164,37 +184,32 @@ export default function ParentDataTable() {
     try {
       console.log("Fetching children for parent:", parentId);
       
-      // Fetch students linked to this parent using multiple possible search patterns
       let studentsResponse;
       try {
-        // Try different search patterns for parent-student relationship
         studentsResponse = await Data.students.getPage({
           page: 1,
           limit: 100,
-          search: parentId, // Try direct ID search first
+          search: parentId,
           sort: { key: 'name', direction: 'ascending' }
         });
         
-        // If no results, try alternative patterns
         if (studentsResponse.students.length === 0) {
           studentsResponse = await Data.students.getPage({
             page: 1,
             limit: 100,
-            search: `parent_id:${parentId}`, // Try parent_id pattern
+            search: `parent_id:${parentId}`,
             sort: { key: 'name', direction: 'ascending' }
           });
         }
         
-        // If still no results, try filtering all students
         if (studentsResponse.students.length === 0) {
           const allStudents = await Data.students.getPage({
             page: 1,
-            limit: 500, // Get more students
-            search: '', // No search to get all
+            limit: 500,
+            search: '',
             sort: { key: 'name', direction: 'ascending' }
           });
           
-          // Filter students by parent relationship
           studentsResponse = {
             students: allStudents.students.filter(student => 
               student.parent === parentId || 
@@ -209,8 +224,12 @@ export default function ParentDataTable() {
         studentsResponse = { students: [] };
       }
 
+      const students = studentsResponse.students && studentsResponse.students.length > 0 
+        ? studentsResponse.students 
+        : (parentRow.students || []);
+
       // Fetch classes these students are in
-      const classIds = [...new Set(studentsResponse.students.map(s => s.class))];
+      const classIds = [...new Set(students.map(s => s.class?.id || s.class).filter(Boolean))];
       const classesResponse = classIds.length > 0 ? await Data.classes.getPage({
         where: { id: { in: classIds } },
         limit: 100
@@ -224,7 +243,7 @@ export default function ParentDataTable() {
       }) : { grades: [] };
 
       const childrenData = {
-        students: studentsResponse.students,
+        students: students,
         classes: classesResponse.classes,
         grades: gradesResponse.grades
       };
@@ -232,13 +251,14 @@ export default function ParentDataTable() {
       setParentChildren(prev => ({ ...prev, [parentId]: childrenData }));
       return childrenData;
     } catch (error) {
-      console.error("Failed to fetch parent children:", error);
-      return { students: [], classes: [], grades: [] };
+      console.error("Failed to process parent children:", error);
+      return { students: parentRow.students || [], classes: [], grades: [] };
     }
-  }, []);
+  }, [parentChildren]);
 
   // Toggle parent expansion
-  const toggleParentExpansion = useCallback(async (parentId) => {
+  const toggleParentExpansion = useCallback(async (row) => {
+    const parentId = row.id;
     console.log("Toggling parent expansion for:", parentId);
     const newExpanded = new Set(expandedParents);
     
@@ -249,7 +269,7 @@ export default function ParentDataTable() {
       newExpanded.add(parentId);
       console.log("Expanding parent:", parentId);
       // Fetch children if not already cached
-      await fetchParentChildren(parentId);
+      await fetchParentChildren(row);
     }
     
     setExpandedParents(newExpanded);
@@ -496,13 +516,34 @@ export default function ParentDataTable() {
               ) : parents.length > 0 ? (
                 parents.map(row => {
                   const isExpanded = expandedParents.has(row.id);
-                  const children = parentChildren[row.id];
+                  const children = parentChildren[row.id] || { students: [], classes: [], grades: [] };
                   
                   return (
                     <React.Fragment key={row.id}>
                       <tr key={row.id} className={newlyAddedIds.has(row.id) ? 'v8-new-row' : ''}>
                         {headers.map(h => ( <td key={h.key} className={h.key === 'name' ? 'td-primary' : ''}>
-                          {getNestedValue(row, h.key)}
+                          {h.key === 'phone' && unmaskedPhones[row.id] ? (
+                              <span>{unmaskedPhones[row.id]}</span>
+                          ) : (
+                              getNestedValue(row, h.key)
+                          )}
+                          {h.key === 'phone' && !unmaskedPhones[row.id] && (
+                              <button 
+                                onClick={() => handleRevealPhone(row.id)}
+                                disabled={loadingPhoneId === row.id}
+                                style={{
+                                    background: 'none', border: 'none', cursor: 'pointer', 
+                                    padding: '0 0 0 8px', color: '#0095E8', opacity: 0.7
+                                }}
+                                title="Reveal full phone number"
+                              >
+                                {loadingPhoneId === row.id ? (
+                                    <i className="la la-spinner la-spin"></i>
+                                ) : (
+                                    <i className="la la-eye"></i>
+                                )}
+                              </button>
+                          )}
                           {row._isTeacherResult && (
                             <span style={{
                               backgroundColor: '#0095E8',
@@ -521,7 +562,7 @@ export default function ParentDataTable() {
                         <td className="v8-table-actions" style={{textAlign: 'right'}}>
                           <button 
                             className="v8-tooltip-container"
-                            onClick={() => toggleParentExpansion(row.id)}
+                            onClick={() => toggleParentExpansion(row)}
                             style={{color: '#0095E8', marginRight: '8px', background: 'none', border: 'none', cursor: 'pointer', padding: '0.5rem'}}
                           >
                             <i className={`la la-${isExpanded ? 'chevron-up' : 'chevron-down'}`} style={{fontSize: '1rem'}}></i>
@@ -563,16 +604,29 @@ export default function ParentDataTable() {
                                 <div style={{marginBottom: '15px'}}>
                                   <div style={{fontWeight: 'bold', color: '#6c757d', marginBottom: '8px'}}>
                                     <i className="la la-graduation-cap" style={{marginRight: '8px'}}></i>
-                                    Students ({children.students.length})
+                                    Students & Login Credentials ({children.students.length})
                                   </div>
-                                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '10px'}}>
+                                  <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '10px'}}>
                                     {children.students.map(student => (
-                                      <div key={student.id} style={{padding: '10px', border: '1px solid #dee2e6', borderRadius: '6px', backgroundColor: 'white'}}>
-                                        <div style={{fontWeight: 'bold', color: '#495057', marginBottom: '5px'}}>{student.names}</div>
-                                        <div style={{fontSize: '0.85rem', color: '#6c757d'}}>
-                                          <div>ID: {student.admissionNumber || student.id}</div>
-                                          <div>Class: {student.className || 'N/A'}</div>
-                                          <div>Grade: {student.gradeName || 'N/A'}</div>
+                                      <div key={student.id} style={{padding: '15px', border: '1px solid #dee2e6', borderRadius: '6px', backgroundColor: 'white'}}>
+                                        <div style={{fontWeight: 'bold', color: '#0095E8', fontSize: '1.05rem', marginBottom: '10px'}}>{student.names}</div>
+                                        
+                                        <div style={{backgroundColor: '#f8f9fa', padding: '10px', borderRadius: '4px', marginBottom: '10px', border: '1px solid #e9ecef'}}>
+                                          <div style={{fontWeight: 'bold', color: '#495057', marginBottom: '5px', fontSize: '0.85rem'}}>
+                                            <i className="la la-key" style={{marginRight: '5px'}}></i> Login Credentials
+                                          </div>
+                                          <div style={{fontSize: '0.9rem', color: '#495057'}}>
+                                            <div style={{marginBottom: '3px'}}><strong>Username (Parent Phone):</strong> {row.phone || 'N/A'}</div>
+                                            <div><strong>Password (Reg No):</strong> {student.registration || student.admissionNumber || student.id}</div>
+                                          </div>
+                                        </div>
+
+                                        <div style={{fontSize: '0.85rem', color: '#6c757d', borderTop: '1px dashed #e9ecef', paddingTop: '10px'}}>
+                                          <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: '3px'}}>
+                                            <span><strong>Class:</strong> {student.class?.name || student.className || 'N/A'}</span>
+                                            <span><strong>Grade:</strong> {student.grade?.name || student.gradeName || 'N/A'}</span>
+                                          </div>
+                                          <div><strong>System ID:</strong> {student.id}</div>
                                         </div>
                                       </div>
                                     ))}

@@ -459,7 +459,7 @@ var Data = (function () {
 
     const init = () => {
         const FRAGMENT_USER_DATA = `fragment UserData on user { names email phone }`;
-        const FRAGMENT_SCHOOL_DETAILS = `fragment schoolDetails on school { id name phone email address logo themeColor studentsCount parentsCount schoolSize schoolType schoolLevel numberOfStudents gradeOrder isDeleted inviteSmsText mpesaPaybill }`;
+        const FRAGMENT_SCHOOL_DETAILS = `fragment schoolDetails on school { id name phone email address logo themeColor studentsCount parentsCount schoolSize schoolType schoolLevel numberOfStudents gradeOrder isDeleted inviteSmsText mpesaPaybill ratePerStudent }`;
         const FRAGMENT_GRADES_DATA = `fragment GradesData on school {
             grades { 
                 id name subjectsOrder 
@@ -606,8 +606,8 @@ var Data = (function () {
             } 
         }`;
 
-        const FRAGMENT_TEAMS_DATA = `fragment TeamsData on school { teams { id name members { id name phone email gender } } }`;
-        const FRAGMENT_INVITATIONS_DATA = `fragment InvitationsData on school { invitations { id message user email phone } }`;
+        const FRAGMENT_TEAMS_DATA = `fragment TeamsData on school { teams { id name members { id name phone: maskedPhone email: maskedEmail gender } } }`;
+        const FRAGMENT_INVITATIONS_DATA = `fragment InvitationsData on school { invitations { id message user email: maskedEmail phone: maskedPhone } }`;
         const FRAGMENT_FINANCIAL_DATA = `fragment FinancialData on school { 
             financial { balance, balanceFormated } 
             charges(limit: 5000) { amount reason time id parent { id name } chargeType { id name } term { id name } } 
@@ -638,10 +638,11 @@ var Data = (function () {
         const FRAGMENT_FEE_STRUCTURES_DATA = `fragment FeeStructuresData on school { feeStructures { id feeType amount description isRequired isActive class { id name } term { id name startDate endDate } } }`;
         const FRAGMENT_STUDENTS_DATA = `fragment StudentsData on school { students(limit: 1000, offset: 0) { id names gender registration class { id, name, teacher { id, name } } route { id, name } parent { id, national_id, name } parent2 { id, national_id, name } balanceBroughtForward yearOfEntry profileImage } }`; 
         const FRAGMENT_BUSES_DATA = `fragment BusesData on school { buses { id plate make size driver { id, names } } }`;
-        const FRAGMENT_DRIVERS_DATA = `fragment DriversData on school { drivers { id names phone license_expiry licence_number home } }`;
-        const FRAGMENT_ADMINS_DATA = `fragment AdminsData on school { admins { id names email phone } }`;
-        const FRAGMENT_PARENTS_DATA = `fragment ParentsData on school { parents(limit: 1000) { id national_id name gender email phone students { id, names, gender, route { id, name }, balanceBroughtForward } } }`;        const FRAGMENT_TEACHERS_DATA = `fragment TeachersData on school { teachers(limit: 1000) { id national_id tsc_number name gender phone email classes { id, name } } }`;
-        const FRAGMENT_CLASSES_DATA = `fragment ClassesData on school { classes(limit: 1000) { id name feeAmount grade { id name subjects { id } } students { id, names, gender, registration, parent { id, name, phone }, parent2 { id, name }, route { id, name }, feeStatus { balance, balanceFormated }, balanceBroughtForward } teacher { id, name } } }`;
+        const FRAGMENT_DRIVERS_DATA = `fragment DriversData on school { drivers { id names phone: maskedPhone license_expiry licence_number: maskedLicenceNumber home } }`;
+        const FRAGMENT_ADMINS_DATA = `fragment AdminsData on school { admins { id names email: maskedEmail phone: maskedPhone role schools { id } } }`;
+        const FRAGMENT_PARENTS_DATA = `fragment ParentsData on school { parents(limit: 1000) { id national_id: maskedNationalId name gender email: maskedEmail phone: maskedPhone students { id, names, gender, route { id, name }, balanceBroughtForward } } }`;
+        const FRAGMENT_TEACHERS_DATA = `fragment TeachersData on school { teachers(limit: 1000) { id national_id: maskedNationalId tsc_number: maskedTscNumber name gender phone: maskedPhone email: maskedEmail classes { id, name } } }`;
+        const FRAGMENT_CLASSES_DATA = `fragment ClassesData on school { classes(limit: 1000) { id name feeAmount grade { id name subjects { id } } students { id, names, gender, registration, parent { id, name, phone: maskedPhone }, parent2 { id, name }, route { id, name }, feeStatus { balance, balanceFormated }, balanceBroughtForward } teacher { id, name } } }`;
         const FRAGMENT_ROUTES_DATA = `fragment RoutesData on school { routes(limit: 1000) { id name description path { lat lng } } }`;
         const FRAGMENT_SCHEDULES_DATA = `fragment SchedulesData on school { schedules(limit: 1000) { id message time type end_time name days route { id, name } bus { id, make } } }`;
         const FRAGMENT_TRIPS_DATA = `fragment TripsData on school { trips(limit: 1000) { id startedAt isCancelled completedAt schedule { name id time end_time, route { id, name, students { id } } } bus { id, make, plate } driver { id, names } locReports { id time loc { lat lng } } events { time, type, student { id, names } } } }`;
@@ -1057,7 +1058,7 @@ var Data = (function () {
         });
         
         // Fetch activity logs separately since they are not school-specific
-        query(`query { activityLogs { id entity action userTitle userId createdAt } }`)
+        query(`query { activityLogs { id entity action userTitle userId before after createdAt } }`)
             .then(res => {
                 if (res && res.activityLogs) {
                     allData.activityLogs = res.activityLogs;
@@ -1279,7 +1280,7 @@ var Data = (function () {
             customMethods: (allData, subs) => ({
                 getPage: async ({ page = 1, limit = 15, search = "" }) => {
                     const offset = (page - 1) * limit;
-                    const response = await query(`query GetStudentPage($limit: Int, $offset: Int, $id: String, $search: String) { school(id: $id) { studentsCount(search: $search) students(limit: $limit, offset: $offset, search: $search) { id names gender registration class{id, name} route{id, name} parent{id, name} balanceBroughtForward  } } }`, { limit, offset, id: localStorage.getItem("school"), search });
+                    const response = await query(`query GetStudentPage($limit: Int, $offset: Int, $id: String, $search: String) { school(id: $id) { studentsCount(search: $search) students(limit: $limit, offset: $offset, search: $search) { id names gender registration class{id, name} route{id, name} parent{id, name, phone, email, national_id} balanceBroughtForward  } } }`, { limit, offset, id: localStorage.getItem("school"), search });
                     const processedStudents = response.school?.students?.map(s => ({ ...s, parent_name: s.parent?.name, class_name: s.class?.name })) || [];
                     return { students: processedStudents, totalCount: response.school?.studentsCount || 0 };
                 },
@@ -1324,7 +1325,7 @@ var Data = (function () {
             customMethods: (allData, subs) => ({
                 getPage: async ({ page = 1, limit = 15, search = "" }) => {
                     const offset = (page - 1) * limit;
-                    const response = await query(`query GetParentPage($limit: Int, $offset: Int, $id: String, $search: String) { school(id: $id) { parentsCount(search: $search) parents(limit: $limit, offset: $offset, search: $search) { id national_id name gender email phone students { names gender route { name } } } } }`, { limit, offset, id: localStorage.getItem("school"), search });
+                    const response = await query(`query GetParentPage($limit: Int, $offset: Int, $id: String, $search: String) { school(id: $id) { parentsCount(search: $search) parents(limit: $limit, offset: $offset, search: $search) { id national_id name gender email phone students { id names gender registration class { id name } route { name } } } } }`, { limit, offset, id: localStorage.getItem("school"), search });
                     return { parents: response.school?.parents || [], totalCount: response.school?.parentsCount || 0 };
                 },
                 invite: (data) => new Promise(async (resolve) => {
@@ -1368,7 +1369,7 @@ var Data = (function () {
         },
         { name: "smsEvents", singularName: "smsEvent", createFields: [], updateFields: [] },
         { name: "drivers", singularName: "driver", createFields: ['names', 'phone', 'username', 'email', 'license_expiry', 'licence_number', 'home', 'school', 'experience', 'bus'], updateFields: ['names', 'phone', 'username', 'email', 'license_expiry', 'licence_number', 'home', 'experience', 'bus'], customMethods: (allData, subs, api) => ({ invite: (data) => new Promise(async (resolve) => { const response = await mutate(`mutation ($data: Iinvite!) { drivers { invite(driver: $data) { id phone message } } }`, { data }); const invitation = response.drivers.invite; allData.invitations.push(invitation); if (Array.isArray(subs.invitations)) subs.invitations.forEach(cb => cb({ invitations: [...allData.invitations] })); resolve(invitation); }), transfer: (data) => new Promise(async (resolve) => { await mutate(`mutation ($data: Itransfer!) { drivers { transfer(driver: $data) { id } } }`, { data }); init(); resolve(); }) }) },
-        { name: "admins", singularName: "admin", createFields: ['names', 'phone', 'school', 'email', 'password', 'role'], updateFields: ['names', 'phone', 'email', 'password', 'role'], customMethods: (allData, subs) => ({ invite: (data) => new Promise(async (resolve) => { const response = await mutate(`mutation ($data: Iinvite!) { admins { invite(admin: $data) { id phone message } } }`, { data }); const invitation = response.admins.invite; allData.invitations.push(invitation); if (Array.isArray(subs.invitations)) subs.invitations.forEach(cb => cb({ invitations: [...allData.invitations] })); resolve(invitation); }) }) },
+        { name: "admins", singularName: "admin", createFields: ['names', 'phone', 'school', 'email', 'password', 'role', 'schools'], updateFields: ['names', 'phone', 'email', 'password', 'role', 'schools'], customMethods: (allData, subs) => ({ invite: (data) => new Promise(async (resolve) => { const response = await mutate(`mutation ($data: Iinvite!) { admins { invite(admin: $data) { id phone message } } }`, { data }); const invitation = response.admins.invite; allData.invitations.push(invitation); if (Array.isArray(subs.invitations)) subs.invitations.forEach(cb => cb({ invitations: [...allData.invitations] })); resolve(invitation); }) }) },
         { name: "buses", singularName: "bus", createFields: ['make', 'plate', 'size', 'school', 'driver'], updateFields: ['make', 'plate', 'size', 'driver'] },
         { name: "routes", singularName: "route", createFields: ['name', 'description', 'school', 'students', 'path'], updateFields: ['name', 'description', 'students', 'path'] },
         { name: "schedules", singularName: "schedule", createFields: ['name', 'message', 'time', 'end_time', 'school', 'route', 'type', 'days', 'bus', 'driver', 'actions'], updateFields: ['name', 'message', 'time', 'end_time', 'type', 'days', 'route', 'bus', 'driver', 'actions'] },
@@ -1819,7 +1820,7 @@ var Data = (function () {
                         const queryStr = `
                             query GetInvoices($school: String, $status: String) {
                                 invoices(school: $school, status: $status) {
-                                    id amount description status dueDate createdDate paymentMethod paymentIdentifier confirmedBy confirmedDate createdAt updatedAt
+                                    id amount description status dueDate createdDate paymentMethod paymentIdentifier confirmedBy confirmedDate
                                     school { id name }
                                 }
                             }
