@@ -88,12 +88,7 @@ const STYLES = `
   }
 `;
 
-// --- HELPER: Mask Phone ---
-const maskPhone = (phone) => {
-  return phone || '';
-};
-
-const getInitials = (name = '') => name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+// --- HELPER: Initials ---const getInitials = (name = '') => name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
 
 // --- COMPONENT: Pre-Flight Check Modal ---
 const PreFlightModal = ({ isOpen, onClose, onConfirm, recipientCount, messageLength, currentBalance }) => {
@@ -356,7 +351,7 @@ const AudienceSelector = ({
                             <div className="contact-avatar">{getInitials(item.name)}</div>
                             <div className="flex-grow-1" style={{minWidth: 0}}>
                                 <div className="text-dark-75 font-weight-bold font-size-sm text-truncate">{item.name}</div>
-                                <div className="text-muted font-size-xs">{maskPhone(item.phone)}</div>
+                                <div className="text-muted font-size-xs">{item.phone || ''}</div>
                             </div>
                             {isSelected && <i className="la la-check-circle text-success icon-lg"></i>}
                         </div>
@@ -467,7 +462,7 @@ const Workspace = ({
                                             {previewMessages.map((msg) => (
                                                 <div key={msg.id} className="msg-container">
                                                     <div className="msg-label">
-                                                        {msg.name} ({maskPhone(msg.phone)})
+                                                        {msg.name} ({msg.phone || ''})
                                                     </div>
                                                     <div className="msg-bubble">
                                                         {msg.text}
@@ -873,7 +868,7 @@ export default function MessageComposer() {
                                             {previewMessages.map((msg) => (
                                                 <div key={msg.id} className="msg-container" style={{ marginBottom: '12px' }}>
                                                     <div className="msg-label" style={{ fontSize: '0.6rem', color: '#7e8299' }}>
-                                                        {msg.name} ({maskPhone(msg.phone)})
+                                                        {msg.name} ({msg.phone || ''})
                                                     </div>
                                                     <div className="msg-bubble" style={{ fontSize: '0.8rem', padding: '8px 12px', borderRadius: '12px 12px 4px 12px' }}>
                                                         {msg.text}
