@@ -88,7 +88,8 @@ const STYLES = `
   }
 `;
 
-// --- HELPER: Initials ---const getInitials = (name = '') => name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+// --- HELPER: Initials ---
+const getInitials = (name = '') => name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
 
 // --- COMPONENT: Pre-Flight Check Modal ---
 const PreFlightModal = ({ isOpen, onClose, onConfirm, recipientCount, messageLength, currentBalance }) => {
