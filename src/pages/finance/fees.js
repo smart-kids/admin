@@ -1,5 +1,6 @@
 import React, { Component } from 'react';
 import Data from '../../utils/data';
+import { query } from '../../utils/requests';
 import { StatCard, DistributionChart, TrendBarChart, AreaChart, RankingList } from '../../components/analytics/DashboardWidgets';
 import { ModernKPICard } from '../../components/charts/ModernKPICard';
 import FinanceInsightsDashboard from '../insights/FinanceInsightsDashboard';
@@ -458,53 +459,61 @@ class FeesManagement extends Component {
      * CORE LOGIC: Converts raw flat lists into Grouped Parents with calculated balances.
      * Fetches from backend API. Debounced to prevent query spam during real-time updates.
      */
-    recalculateFinancials = async () => {
-        // Clear any pending timeout
-        if (this.recalculateTimeout) {
-            clearTimeout(this.recalculateTimeout);
-        }
-
-        // Set a new timeout to debounce the backend call by 500ms
-        this.recalculateTimeout = setTimeout(async () => {
-            const { selectedClass, selectedTerm, searchTerm, alphabetFilter, schoolInfo } = this.state;
-            const schoolId = schoolInfo?.id;
-
-            if (!schoolId) {
-                console.log("No school ID available for backend finance calculation");
-                return;
+    recalculateFinancials = () => {
+        return new Promise((resolve) => {
+            // Clear any pending timeout
+            if (this.recalculateTimeout) {
+                clearTimeout(this.recalculateTimeout);
             }
 
-            try {
-                const result = await Data.graph.query(`
-                    query GetFinanceData($schoolId: String!, $selectedTerm: String, $selectedClass: String, $searchTerm: String, $alphabetFilter: String) {
-                        financeDashboardData(schoolId: $schoolId, selectedTerm: $selectedTerm, selectedClass: $selectedClass, searchTerm: $searchTerm, alphabetFilter: $alphabetFilter)
-                    }
-                `, { schoolId, selectedTerm, selectedClass, searchTerm, alphabetFilter });
+            // Set a new timeout to debounce the backend call by 500ms
+            this.recalculateTimeout = setTimeout(async () => {
+                const { selectedClass, selectedTerm, searchTerm, alphabetFilter, schoolInfo } = this.state;
+                const schoolId = schoolInfo?.id;
 
-                if (result && result.financeDashboardData) {
-                    const parsed = JSON.parse(result.financeDashboardData);
-                    this.setState({
-                        processedParents: parsed.processedParents || [],
-                        fullyProcessedParents: parsed.fullyProcessedParents || [],
-                        globalFinancialMetrics: parsed.globalFinancialMetrics || {
-                            totalExpected: 0,
-                            totalPaid: 0,
-                            totalBalance: 0,
-                            totalCollectionRate: 0,
-                            totalParents: 0,
-                            clearedParents: 0
-                        }
-                    }, () => {
-                        // Auto-expand the first item if none is expanded and we have items
-                        if (!this.state.expandedParentId && parsed.processedParents && parsed.processedParents.length > 0) {
-                            this.setState({ expandedParentId: parsed.processedParents[0].id });
-                        }
-                    });
+                if (!schoolId) {
+                    console.log("No school ID available for backend finance calculation");
+                    return resolve();
                 }
-            } catch (error) {
-                console.error("Failed to fetch finance dashboard data:", error);
-            }
-        }, 500);
+
+                try {
+                    const result = await query(`
+                        query GetFinanceData($schoolId: String!, $selectedTerm: String, $selectedClass: String, $searchTerm: String, $alphabetFilter: String) {
+                            financeDashboardData(schoolId: $schoolId, selectedTerm: $selectedTerm, selectedClass: $selectedClass, searchTerm: $searchTerm, alphabetFilter: $alphabetFilter)
+                        }
+                    `, { schoolId, selectedTerm, selectedClass, searchTerm, alphabetFilter });
+
+                    if (result && result.financeDashboardData) {
+                        const parsed = JSON.parse(result.financeDashboardData);
+                        this.setState({
+                            processedParents: parsed.processedParents || [],
+                            fullyProcessedParents: parsed.fullyProcessedParents || [],
+                            globalFinancialMetrics: parsed.globalFinancialMetrics || {
+                                totalExpected: 0,
+                                totalPaid: 0,
+                                totalBalance: 0,
+                                studentCount: 0,
+                                collectionRate: 0,
+                                totalParents: 0,
+                                clearedParents: 0
+                            }
+                        }, () => {
+                            // Auto-expand the first item if none is expanded and we have items
+                            if (!this.state.expandedParentId && parsed.processedParents && parsed.processedParents.length > 0) {
+                                this.setState({ expandedParentId: parsed.processedParents[0].id }, resolve);
+                            } else {
+                                resolve();
+                            }
+                        });
+                    } else {
+                        resolve();
+                    }
+                } catch (error) {
+                    console.error("Failed to fetch finance dashboard data:", error);
+                    resolve();
+                }
+            }, 500);
+        });
     };
 
     // --- Helper: Get Fee Structure Breakdown (Component Level) ---
@@ -1669,40 +1678,23 @@ class FeesManagement extends Component {
             expandedParentId: String(parentId),
             currentPage: 1 
         }, () => {
-            // 2. Perform a fresh calculation with cleared filters to find the accurate index
-            const { students, parents, payments, classes, terms, feeStructures, charges, selectedClass, selectedTerm } = this.state;
-            const results = calculateFinancials({
-                students, parents, payments, classes, terms, feeStructures, charges,
-                selectedClass, selectedTerm,
-                searchTerm: '',
-                alphabetFilter: ''
+            // 2. Best approach: call recalculateFinancials (which now returns a Promise), then after it resolves, find index.
+            this.recalculateFinancials().then(() => {
+                const newIndex = (this.state.fullyProcessedParents || []).findIndex(p => String(p.id) === String(parentId));
+                if (newIndex !== -1) {
+                    const newPage = Math.floor(newIndex / this.state.itemsPerPage) + 1;
+                    this.setState({ currentPage: newPage }, () => {
+                        setTimeout(() => {
+                            const el = document.getElementById(`parent-row-${parentId}`);
+                            if (el) {
+                                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                el.style.backgroundColor = '#fff3cd';
+                                setTimeout(() => { el.style.backgroundColor = ''; }, 1500);
+                            }
+                        }, 500);
+                    });
+                }
             });
-
-            const index = results.processedParents.findIndex(p => String(p.id) === String(parentId));
-            if (index !== -1) {
-                const page = Math.floor(index / this.state.itemsPerPage) + 1;
-                
-                // 3. Update state with processed data and the correct page
-                this.setState({ 
-                    processedParents: results.processedParents,
-                    fullyProcessedParents: results.fullyProcessedParents,
-                    globalFinancialMetrics: results.globalFinancialMetrics,
-                    currentPage: page 
-                }, () => {
-                    // 4. Scroll to the row after a delay to allow the table to render
-                    setTimeout(() => {
-                        const el = document.getElementById(`parent-row-${parentId}`);
-                        if (el) {
-                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            // Highlight the row temporarily
-                            el.style.backgroundColor = '#fff3cd';
-                            setTimeout(() => {
-                                el.style.backgroundColor = ''; 
-                            }, 1500);
-                        }
-                    }, 500);
-                });
-            }
         });
     };
 
