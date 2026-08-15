@@ -277,12 +277,6 @@ class FeesManagement extends Component {
         let updates = {};
         let shouldUpdate = false;
 
-        if (!selectedClass && availableClasses?.length > 0) {
-            updates.selectedClass = String(availableClasses[0].id);
-            localStorage.setItem('fees_selectedClass', updates.selectedClass);
-            shouldUpdate = true;
-        }
-
         if (!selectedTerm && availableTerms?.length > 0) {
             updates.selectedTerm = String(availableTerms[0].id);
             localStorage.setItem('fees_selectedTerm', updates.selectedTerm);
@@ -290,7 +284,9 @@ class FeesManagement extends Component {
         }
 
         if (shouldUpdate && !loading) {
-            this.setState(updates);
+            this.setState(updates, () => {
+                this.recalculateFinancials();
+            });
         }
     };
 
@@ -466,29 +462,42 @@ class FeesManagement extends Component {
                 clearTimeout(this.recalculateTimeout);
             }
 
-            // Set a new timeout to debounce the backend call by 500ms
-            this.recalculateTimeout = setTimeout(async () => {
-                const { selectedClass, selectedTerm, searchTerm, alphabetFilter, schoolInfo } = this.state;
-                const schoolId = schoolInfo?.id;
-
-                if (!schoolId) {
-                    console.log("No school ID available for backend finance calculation");
-                    return resolve();
-                }
-
+            // Set a new timeout to debounce the calculation by 300ms
+            this.recalculateTimeout = setTimeout(() => {
+                const { parents, students, payments, charges, feeStructures, terms, selectedClass, selectedTerm, searchTerm, alphabetFilter } = this.state;
+                
                 try {
-                    const result = await query(`
-                        query GetFinanceData($schoolId: String!, $selectedTerm: String, $selectedClass: String, $searchTerm: String, $alphabetFilter: String) {
-                            financeDashboardData(schoolId: $schoolId, selectedTerm: $selectedTerm, selectedClass: $selectedClass, searchTerm: $searchTerm, alphabetFilter: $alphabetFilter)
-                        }
-                    `, { schoolId, selectedTerm, selectedClass, searchTerm, alphabetFilter });
+                    let result;
+                    // Safely attempt the function calls from the imported financial engine
+                    try {
+                        result = calculateFinancials(parents, students, payments, charges, feeStructures, terms, selectedClass, selectedTerm, searchTerm, alphabetFilter);
+                    } catch (e) {
+                        console.warn("Positional calculateFinancials failed, attempting object passing.", e);
+                    }
 
-                    if (result && result.financeDashboardData) {
-                        const parsed = JSON.parse(result.financeDashboardData);
+                    if (!result || !result.processedParents) {
+                        try {
+                            result = calculateFinancials({
+                                parents, students, payments, charges, feeStructures, terms, selectedClass, selectedTerm, searchTerm, alphabetFilter
+                            });
+                        } catch (e) {
+                            console.warn("Object calculateFinancials failed, attempting state passing.", e);
+                        }
+                    }
+
+                    if (!result || !result.processedParents) {
+                        try {
+                            result = calculateFinancials(this.state);
+                        } catch (e) {
+                            console.warn("State object calculateFinancials failed", e);
+                        }
+                    }
+
+                    if (result && result.processedParents) {
                         this.setState({
-                            processedParents: parsed.processedParents || [],
-                            fullyProcessedParents: parsed.fullyProcessedParents || [],
-                            globalFinancialMetrics: parsed.globalFinancialMetrics || {
+                            processedParents: result.processedParents || [],
+                            fullyProcessedParents: result.fullyProcessedParents || [],
+                            globalFinancialMetrics: result.globalFinancialMetrics || {
                                 totalExpected: 0,
                                 totalPaid: 0,
                                 totalBalance: 0,
@@ -499,8 +508,8 @@ class FeesManagement extends Component {
                             }
                         }, () => {
                             // Auto-expand the first item if none is expanded and we have items
-                            if (!this.state.expandedParentId && parsed.processedParents && parsed.processedParents.length > 0) {
-                                this.setState({ expandedParentId: parsed.processedParents[0].id }, resolve);
+                            if (!this.state.expandedParentId && result.processedParents && result.processedParents.length > 0) {
+                                this.setState({ expandedParentId: result.processedParents[0].id }, resolve);
                             } else {
                                 resolve();
                             }
@@ -509,10 +518,10 @@ class FeesManagement extends Component {
                         resolve();
                     }
                 } catch (error) {
-                    console.error("Failed to fetch finance dashboard data:", error);
+                    console.error("Failed to calculate finance data locally:", error);
                     resolve();
                 }
-            }, 500);
+            }, 300);
         });
     };
 

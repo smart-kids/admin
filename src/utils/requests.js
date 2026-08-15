@@ -1,8 +1,13 @@
 import axios from "axios";
 let API;
 // API endpoint logic remains the same.
-if (window.location.href.includes('localhost')) {
-    API = `http://localhost:4001`;
+const isLocal = window.location.href.includes('localhost') || 
+                window.location.href.includes('127.0.0.1') || 
+                window.location.hostname.startsWith('192.168.') ||
+                window.location.hostname.startsWith('10.');
+
+if (isLocal) {
+    API = `http://${window.location.hostname}:4001`;
 } else {
     API = `https://cloud.shuleplus.co.ke/api`;
 }
