@@ -1127,54 +1127,125 @@ class FeesManagement extends Component {
     };
 
     renderAdvancedInsights = () => {
-        const { payments, charges, students, classes, feeStructures, selectedClass, selectedTerm, processedParents, terms } = this.state;
+        const { payments, charges, students, classes, feeStructures, selectedClass, selectedTerm, processedParents, fullyProcessedParents, terms } = this.state;
 
-        // Use pre-calculated global metrics from engine
-        const globalMetrics = this.state.globalFinancialMetrics || {
-            totalPaid: 0,
-            totalExpected: 0,
-            totalBalance: 0,
-            studentCount: 0,
-            collectionRate: 0
-        };
+        // 1. Compute Global Metrics from processedParents (which respects selectedClass, selectedTerm, searchTerm filters)
+        let totalCollected = 0;
+        let totalExpected = 0;
+        let totalArrears = 0;
+        let healthyAccounts = 0;
+        let overdueAccounts = 0;
 
-        const totalCollected = globalMetrics.totalPaid;
-        const totalExpected = globalMetrics.totalExpected;
-        const totalArrears = globalMetrics.totalBalance;
-        const collectionRate = Math.round(globalMetrics.collectionRate);
+        (processedParents || []).forEach(p => {
+            totalExpected += (p.totalExpected || 0);
+            totalCollected += (p.totalPaid || 0);
+            totalArrears += (p.totalBalance || 0);
+            
+            if (p.totalBalance > 0) {
+                overdueAccounts++;
+            } else {
+                healthyAccounts++;
+            }
+        });
 
-        // Advanced metrics - use isSuccessfulPayment from engine for consistency
-        const validPayments = (payments || []).filter(isSuccessfulPayment);
-        const averagePaymentAmount = validPayments.length > 0 ? totalCollected / validPayments.length : 0;
-        const paymentFrequency = validPayments.length;
+        const collectionRate = totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 0;
 
-        // Class performance analysis - use aggregateByClass from engine for perfect parity
-        const classPerformance = aggregateByClass(this.state.fullyProcessedParents || [], classes || []);
+        // 2. Filter valid payments to match the current selected term and class
+        const isSuccess = (p) => p.status === 'COMPLETED' || p.type === 'fees_manual' || p.metadata?.manual === true;
         
-        // Aging Analysis and Health
-        const filteredProcessedParents = this.state.processedParents || [];
-        const overdueAccounts = (this.state.fullyProcessedParents || []).filter(p => p.totalBalance > 0).length;
-        const healthyAccounts = (this.state.fullyProcessedParents || []).filter(p => p.totalBalance <= 0).length;
+        const filteredValidPayments = (payments || []).filter(p => {
+            if (!isSuccess(p)) return false;
+            
+            // Term filter
+            if (selectedTerm && p.assignedTermId && String(p.assignedTermId) !== String(selectedTerm)) {
+                return false;
+            }
+            
+            // Class filter
+            if (selectedClass) {
+                const studentId = String(p.student?.id || p.student || p.studentId || p.metadata?.studentId);
+                const student = (students || []).find(s => String(s.id) === studentId);
+                if (!student || String(student.class?.id || student.class) !== String(selectedClass)) {
+                    return false;
+                }
+            }
+            
+            return true;
+        });
 
-        // Payment methods breakdown
+        const paymentFrequency = filteredValidPayments.length;
+
+        // 3. Class performance analysis using fullyProcessedParents (unfiltered by class)
+        const classPerformance = (classes || []).map(cls => {
+            const clsId = String(cls.id);
+            let cStudents = 0;
+            let cExpected = 0;
+            let cPaid = 0;
+            let cBalance = 0;
+
+            (fullyProcessedParents || []).forEach(group => {
+                (group.students || []).forEach(student => {
+                    const studentClassId = String(student.class?.id || student.class);
+                    if (studentClassId === clsId) {
+                        cStudents++;
+                        const baseFees = student.finances?.expected || 0;
+                        const paid = student.finances?.paid || 0;
+                        
+                        // Apportion parent-level charges/bbf to the first student
+                        const isFirstStudent = group.students[0] && String(group.students[0].id || group.students[0]) === String(student.id || student);
+                        const studentCharges = isFirstStudent ? (group.totalCharges || 0) : 0;
+                        const studentBBF = isFirstStudent ? (group.balanceBroughtForward || 0) : 0;
+                        
+                        const sExpected = baseFees + studentCharges + studentBBF;
+                        const sBalance = sExpected - paid;
+
+                        cExpected += sExpected;
+                        cPaid += paid;
+                        cBalance += sBalance;
+                    }
+                });
+            });
+
+            const cColRate = cExpected > 0 ? (cPaid / cExpected) * 100 : 0;
+            let cPerf = 'Poor';
+            if (cColRate >= 80) cPerf = 'Excellent';
+            else if (cColRate >= 60) cPerf = 'Good';
+            else if (cColRate >= 40) cPerf = 'Fair';
+
+            return {
+                id: cls.id,
+                className: cls.name,
+                studentCount: cStudents,
+                totalExpected: cExpected,
+                totalCollected: cPaid,
+                balance: cBalance,
+                collectionRate: cColRate,
+                performance: cPerf
+            };
+        }).sort((a, b) => b.totalExpected - a.totalExpected);
+
+        // 4. Payment methods breakdown
         const methods = {};
-        validPayments.forEach(p => {
+        let methodsTotal = 0;
+        filteredValidPayments.forEach(p => {
             const m = p.method || p.paymentType || p.type || 'M-Pesa';
-            methods[m] = (methods[m] || 0) + (parseFloat(p.amount || p.ammount) || 0);
+            const val = parseFloat(p.amount || p.ammount) || 0;
+            methods[m] = (methods[m] || 0) + val;
+            methodsTotal += val;
         });
         const methodData = Object.keys(methods).map(m => ({
             name: m,
             value: methods[m],
-            percentage: totalCollected > 0 ? (methods[m] / totalCollected) * 100 : 0
+            percentage: methodsTotal > 0 ? (methods[m] / methodsTotal) * 100 : 0
         }));
 
-        // Monthly trend (last 6 months)
+        // 5. Monthly trend (last 6 months)
         const monthlyTrend = [];
         for (let i = 5; i >= 0; i--) {
             const d = new Date();
             d.setMonth(d.getMonth() - i);
             const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-            const monthPayments = validPayments.filter(p => {
+            const monthPayments = filteredValidPayments.filter(p => {
                 const pDate = new Date(p.time || p.createdAt);
                 const pMonthKey = `${pDate.getFullYear()}-${String(pDate.getMonth() + 1).padStart(2, '0')}`;
                 return pMonthKey === monthKey;
@@ -1187,7 +1258,7 @@ class FeesManagement extends Component {
             });
         }
 
-        // Aging analysis with real data
+        // 6. Aging analysis with real data
         const agingBuckets = {
             'Current': { amount: 0, count: 0 },
             '1-30 Days': { amount: 0, count: 0 },
@@ -1197,7 +1268,7 @@ class FeesManagement extends Component {
         };
 
         const now = new Date();
-        filteredProcessedParents.forEach(parent => {
+        (processedParents || []).forEach(parent => {
             if (parent.totalBalance > 0) {
                 // Calculate days overdue based on last payment date or term start date
                 const lastPayment = parent.history && parent.history.length > 0 ? 
@@ -1208,7 +1279,7 @@ class FeesManagement extends Component {
                     daysOverdue = Math.floor((now - lastPayment) / (1000 * 60 * 60 * 24));
                 } else {
                     // If no payments, use term start date or default to 90 days
-                    const currentTerm = terms.find(t => t.id === selectedTerm);
+                    const currentTerm = (terms || []).find(t => String(t.id) === String(selectedTerm));
                     if (currentTerm && currentTerm.startDate) {
                         daysOverdue = Math.floor((now - new Date(currentTerm.startDate)) / (1000 * 60 * 60 * 24));
                     } else {
@@ -1237,11 +1308,11 @@ class FeesManagement extends Component {
                             {console.log('Advanced Insights Debug:', { 
                                 selectedTerm, 
                                 terms, 
-                                termName: selectedTerm ? terms?.find(t => t.id === selectedTerm)?.name : null
+                                termName: selectedTerm ? terms?.find(t => String(t.id) === String(selectedTerm))?.name : null
                             })}
                             {selectedTerm && (
                                 <span className="ml-3 badge badge-info badge-pill">
-                                    {terms?.find(t => t.id === selectedTerm)?.name || 'Selected Term'}
+                                    {terms?.find(t => String(t.id) === String(selectedTerm))?.name || 'Selected Term'}
                                 </span>
                             )}
                         </h2>
@@ -1361,6 +1432,7 @@ class FeesManagement extends Component {
                                 </h3>
                             </div>
                             <div className="card-body">
+                                {methodData.length === 0 && <div className="text-center text-muted py-5">No payments found.</div>}
                                 {methodData.map((method, index) => (
                                     <div key={index} className="d-flex align-items-center justify-content-between mb-4">
                                         <div className="d-flex align-items-center">
@@ -1413,13 +1485,7 @@ class FeesManagement extends Component {
                                         </thead>
                                         <tbody>
                                             {classPerformance.map((cls, index) => {
-                                                    const isSelectedClass = selectedClass && String(cls.id) === selectedClass;
-                                                    console.log('Class Performance Debug:', { 
-                                                        className: cls.className, 
-                                                        classId: cls.id, 
-                                                        selectedClass, 
-                                                        isSelectedClass 
-                                                    });
+                                                    const isSelectedClass = selectedClass && String(cls.id) === String(selectedClass);
                                                     return (
                                                 <tr key={index} className={isSelectedClass ? 'bg-light-primary' : ''} style={{ backgroundColor: isSelectedClass ? '#e8f5fe' : 'transparent' }}>
                                                     <td className={`font-weight-bold ${isSelectedClass ? 'text-primary' : ''}`} style={{ color: isSelectedClass ? '#0056b3' : 'inherit', fontWeight: isSelectedClass ? 'bold' : 'inherit' }}>
