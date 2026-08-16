@@ -124,8 +124,8 @@ class FeesManagement extends Component {
         feeStructures: [],
 
         // Filters & Search - with localStorage persistence like results management
-        selectedClass: "",
-        selectedTerm: "",
+        selectedClass: localStorage.getItem('fees_selectedClass') || "",
+        selectedTerm: localStorage.getItem('fees_selectedTerm') !== null ? localStorage.getItem('fees_selectedTerm') : "",
         searchTerm: "",
         alphabetFilter: localStorage.getItem('fees_alphabetFilter') || "",
 
@@ -272,15 +272,16 @@ class FeesManagement extends Component {
 
     // Auto-select defaults like results management
     autoSelectDefaults = () => {
-        const { selectedClass, selectedTerm, loading } = this.state;
-        const { availableClasses, availableTerms } = this.getAvailableData();
+        const { loading } = this.state;
         let updates = {};
         let shouldUpdate = false;
 
-        if (!selectedTerm && availableTerms?.length > 0) {
-            updates.selectedTerm = String(availableTerms[0].id);
-            localStorage.setItem('fees_selectedTerm', updates.selectedTerm);
-            shouldUpdate = true;
+        // Removed the forced selection of availableTerms[0].id which zeroed out the revenue metrics.
+        // We now default to "" (All Terms) if the user hasn't explicitly set a preference.
+        if (localStorage.getItem('fees_selectedTerm') === null) {
+            updates.selectedTerm = "";
+            localStorage.setItem('fees_selectedTerm', "");
+            // No need to trigger an update because state is already initialized to ""
         }
 
         if (shouldUpdate && !loading) {
@@ -468,24 +469,26 @@ class FeesManagement extends Component {
                 
                 try {
                     let result;
-                    // Safely attempt the function calls from the imported financial engine
+                    const stateObj = { parents, students, payments, charges, feeStructures, terms, selectedClass, selectedTerm, searchTerm, alphabetFilter };
+
+                    // 1. Try Object passing first (Most robust, standard for modern financial engine)
                     try {
-                        result = calculateFinancials(parents, students, payments, charges, feeStructures, terms, selectedClass, selectedTerm, searchTerm, alphabetFilter);
+                        result = calculateFinancials(stateObj);
                     } catch (e) {
-                        console.warn("Positional calculateFinancials failed, attempting object passing.", e);
+                        console.warn("Object calculateFinancials failed, attempting positional passing.", e);
                     }
 
-                    if (!result || !result.processedParents) {
+                    // 2. Fallback to Positional passing IF object passing silently returned empty/invalid result while we KNOW we have data
+                    if (!result || !result.processedParents || (result.processedParents.length === 0 && parents && parents.length > 0)) {
                         try {
-                            result = calculateFinancials({
-                                parents, students, payments, charges, feeStructures, terms, selectedClass, selectedTerm, searchTerm, alphabetFilter
-                            });
+                            result = calculateFinancials(parents, students, payments, charges, feeStructures, terms, selectedClass, selectedTerm, searchTerm, alphabetFilter);
                         } catch (e) {
-                            console.warn("Object calculateFinancials failed, attempting state passing.", e);
+                            console.warn("Positional calculateFinancials failed.", e);
                         }
                     }
 
-                    if (!result || !result.processedParents) {
+                    // 3. Final Fallback to passing the entire raw state object
+                    if (!result || !result.processedParents || (result.processedParents.length === 0 && parents && parents.length > 0)) {
                         try {
                             result = calculateFinancials(this.state);
                         } catch (e) {

@@ -7,7 +7,8 @@ const isLocal = window.location.href.includes('localhost') ||
                 window.location.hostname.startsWith('10.');
 
 if (isLocal) {
-    API = `http://${window.location.hostname}:4001`;
+   // API = `http://${window.location.hostname}:4001`;
+    API = `https://cloud.shuleplus.co.ke/api`;
 } else {
     API = `https://cloud.shuleplus.co.ke/api`;
 }
