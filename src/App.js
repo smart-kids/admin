@@ -6,59 +6,90 @@ import UpdateChecker from "./components/UpdateChecker";
 import Footer from "./components/footer";
 import PageLoader from "./components/PageLoader/PageLoader";
 
-const home = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/home"));
-const students = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/students"));
-const student = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/student"));
-const parents = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/parents"));
-const classes = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/classes"));
-const teachers = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/teachers"));
-const teams = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/teams"));
-const drivers = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/drivers"));
-const buses = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/buses"));
-const routes = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/routes"));
-const schedules = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/schedules"));
-const complaints = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/complaints"));
-const trips = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/trips"));
-const trip = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/trip"));
-const learning = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/learning"));
-const invitations = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/invitations"));
-const members = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/members"));
-const schools = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/schools"));
-const library = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/library"));
-const games = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/games"));
-const mdm = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/mdm"));
-const timeTables = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/time-tables"));
-const activityLog = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/activity-log"));
 
-const userSettings = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/settings/user"));
-const schoolSettings = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/settings/school"));
+/**
+ * A wrapper around React.lazy that forces the browser to reload the page
+ * if a ChunkLoadError occurs (usually meaning a new version was deployed).
+ */
+export const lazyWithRetry = (componentImport) =>
+  React.lazy(async () => {
+    const pageHasAlreadyBeenForceRefreshed = JSON.parse(
+      window.sessionStorage.getItem('page-has-been-force-refreshed') || 'false'
+    );
 
-const communications = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/communications"));
+    try {
+      const component = await componentImport();
+      window.sessionStorage.setItem('page-has-been-force-refreshed', 'false');
+      return component;
+    } catch (error) {
+      if (!pageHasAlreadyBeenForceRefreshed) {
+        // Assume the error is a ChunkLoadError. 
+        // Set flag to true so we don't end up in an infinite reload loop if the server is actually down.
+        window.sessionStorage.setItem('page-has-been-force-refreshed', 'true');
+        
+        // Refresh the page to get the latest index.html and chunk hashes
+        window.location.reload();
+        return;
+      }
+      
+      // If we already refreshed and it STILL failed, throw the actual error (maybe network is down)
+      throw error;
+    }
+  });
 
-const login = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/auth/login-new"));
-const website = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/website"));
+const home = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/home"));
+const students = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/students"));
+const student = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/student"));
+const parents = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/parents"));
+const classes = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/classes"));
+const teachers = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/teachers"));
+const teams = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/teams"));
+const drivers = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/drivers"));
+const buses = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/buses"));
+const routes = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/routes"));
+const schedules = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/schedules"));
+const complaints = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/complaints"));
+const trips = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/trips"));
+const trip = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/trip"));
+const learning = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/learning"));
+const invitations = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/invitations"));
+const members = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/members"));
+const schools = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/schools"));
+const library = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/library"));
+const games = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/games"));
+const mdm = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/mdm"));
+const timeTables = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/time-tables"));
+const activityLog = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/activity-log"));
 
-const recover = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/auth/recover"));
-const register = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/auth/register"));
+const userSettings = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/settings/user"));
+const schoolSettings = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/settings/school"));
 
-const topup = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/finance/topup"));
-const charges = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/finance/charges"));
-const chargeTypes = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/finance/chargeTypes"));
-const institutionalDeposits = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/finance/institutional-deposits"));
-const budgets = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/finance/budgets"));
-const expenses = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/finance/expenses"));
-const budgetsDashboard = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/finance/budgets/dashboard"));
-const expensesDashboard = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/finance/expenses/dashboard"));
-const admins = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/admins"));
-const feeStructures = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/fee-structures"));
+const communications = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/communications"));
+
+const login = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/auth/login-new"));
+const website = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/website"));
+
+const recover = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/auth/recover"));
+const register = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/auth/register"));
+
+const topup = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/finance/topup"));
+const charges = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/finance/charges"));
+const chargeTypes = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/finance/chargeTypes"));
+const institutionalDeposits = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/finance/institutional-deposits"));
+const budgets = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/finance/budgets"));
+const expenses = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/finance/expenses"));
+const budgetsDashboard = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/finance/budgets/dashboard"));
+const expensesDashboard = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/finance/expenses/dashboard"));
+const admins = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/admins"));
+const feeStructures = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/fee-structures"));
 
 // Lazy load inline requires
-const QuickTopUp = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/public/QuickTopUp"));
-const Fees = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/finance/fees"));
-const Results = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/results"));
-const Terms = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/terms"));
-const AssessmentTypes = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/learning/assessmentTypes"));
-const Rubrics = React.lazy(() => import(/* webpackPrefetch: true */ "./pages/learning/rubrics"));
+const QuickTopUp = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/public/QuickTopUp"));
+const Fees = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/finance/fees"));
+const Results = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/results"));
+const Terms = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/terms"));
+const AssessmentTypes = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/learning/assessmentTypes"));
+const Rubrics = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/learning/rubrics"));
 
 const PrivateRoute = ({ component: Component, ...rest }) => (
   <Route {...rest} render={(props) => (
