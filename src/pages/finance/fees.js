@@ -529,33 +529,47 @@ class FeesManagement extends Component {
     };
 
     // --- Helper: Get Fee Structure Breakdown (Component Level) ---
-    getFeeStructureBreakdown = (classId, termId = null) => {
+    getFeeStructureBreakdown = (group, classId = null, termId = null) => {
         const { feeStructures, selectedTerm } = this.state;
         
         const targetClassId = classId ? String(classId?.id || classId) : null;
         const targetTermId = termId || selectedTerm;
 
-        // Get all active fee structures for this class (or all classes) and term
-        const applicableFees = feeStructures.filter(fs => {
-            const classMatch = !targetClassId || String(fs.class?.id || fs.class) === targetClassId;
-            const termMatch = !targetTermId || String(fs.term?.id || fs.term) === String(targetTermId);
-            return classMatch && termMatch && fs.isActive === true;
-        });
-
-        // Group by fee type and sum amounts
         const feeTypeGroups = {};
-        applicableFees.forEach(fs => {
-            const feeType = fs.feeType || 'Other';
-            if (!feeTypeGroups[feeType]) {
-                feeTypeGroups[feeType] = {
-                    feeType,
-                    totalAmount: 0,
-                    count: 0,
-                    description: fs.description || ''
-                };
-            }
-            feeTypeGroups[feeType].totalAmount += parseFloat(fs.amount) || 0;
-            feeTypeGroups[feeType].count += 1;
+
+        if (!group || !group.students) return [];
+
+        // Calculate fees based on the actual students in this parent's family
+        group.students.forEach(student => {
+            const studentClassId = String(student.class?.id || student.class);
+            
+            // If a class is filtered globally, only include students in that class
+            if (targetClassId && studentClassId !== targetClassId) return;
+
+            // Get all active fee structures for this student's class and term
+            const applicableFees = feeStructures.filter(fs => {
+                const classMatch = String(fs.class?.id || fs.class) === studentClassId;
+                const termMatch = !targetTermId || String(fs.term?.id || fs.term) === String(targetTermId);
+                return classMatch && termMatch && fs.isActive === true;
+            });
+
+            // Group by fee type and sum amounts
+            applicableFees.forEach(fs => {
+                const feeType = fs.feeType || 'Other';
+                // Use a combination of type and description to avoid merging distinct fees with the same generic type
+                const key = `${feeType}-${fs.description || ''}`;
+                
+                if (!feeTypeGroups[key]) {
+                    feeTypeGroups[key] = {
+                        feeType,
+                        totalAmount: 0,
+                        count: 0,
+                        description: fs.description || ''
+                    };
+                }
+                feeTypeGroups[key].totalAmount += parseFloat(fs.amount) || 0;
+                feeTypeGroups[key].count += 1;
+            });
         });
 
         return Object.values(feeTypeGroups).sort((a, b) => b.totalAmount - a.totalAmount);
@@ -1140,14 +1154,42 @@ class FeesManagement extends Component {
         let overdueAccounts = 0;
 
         (processedParents || []).forEach(p => {
-            totalExpected += (p.totalExpected || 0);
-            totalCollected += (p.totalPaid || 0);
-            totalArrears += (p.totalBalance || 0);
-            
-            if (p.totalBalance > 0) {
-                overdueAccounts++;
+            if (selectedClass) {
+                let parentExpected = 0;
+                let parentPaid = 0;
+                let parentBalance = 0;
+                let hasStudentInClass = false;
+                
+                p.students.forEach(student => {
+                    if (String(student.class?.id || student.class) === String(selectedClass)) {
+                        parentExpected += (student.finances?.totalExpected || student.finances?.expected || 0);
+                        parentPaid += (student.finances?.paid || 0);
+                        parentBalance += (student.finances?.balance || 0);
+                        hasStudentInClass = true;
+                    }
+                });
+                
+                if (hasStudentInClass) {
+                    totalExpected += parentExpected;
+                    totalCollected += parentPaid;
+                    totalArrears += parentBalance;
+                    
+                    if (parentBalance > 0) {
+                        overdueAccounts++;
+                    } else {
+                        healthyAccounts++;
+                    }
+                }
             } else {
-                healthyAccounts++;
+                totalExpected += (p.totalExpected || 0);
+                totalCollected += (p.totalPaid || 0);
+                totalArrears += (p.totalBalance || 0);
+                
+                if (p.totalBalance > 0) {
+                    overdueAccounts++;
+                } else {
+                    healthyAccounts++;
+                }
             }
         });
 
@@ -1179,53 +1221,8 @@ class FeesManagement extends Component {
         const paymentFrequency = filteredValidPayments.length;
 
         // 3. Class performance analysis using fullyProcessedParents (unfiltered by class)
-        const classPerformance = (classes || []).map(cls => {
-            const clsId = String(cls.id);
-            let cStudents = 0;
-            let cExpected = 0;
-            let cPaid = 0;
-            let cBalance = 0;
+        const classPerformance = aggregateByClass(fullyProcessedParents, classes).sort((a, b) => b.totalExpected - a.totalExpected);
 
-            (fullyProcessedParents || []).forEach(group => {
-                (group.students || []).forEach(student => {
-                    const studentClassId = String(student.class?.id || student.class);
-                    if (studentClassId === clsId) {
-                        cStudents++;
-                        const baseFees = student.finances?.expected || 0;
-                        const paid = student.finances?.paid || 0;
-                        
-                        // Apportion parent-level charges/bbf to the first student
-                        const isFirstStudent = group.students[0] && String(group.students[0].id || group.students[0]) === String(student.id || student);
-                        const studentCharges = isFirstStudent ? (group.totalCharges || 0) : 0;
-                        const studentBBF = isFirstStudent ? (group.balanceBroughtForward || 0) : 0;
-                        
-                        const sExpected = baseFees + studentCharges + studentBBF;
-                        const sBalance = sExpected - paid;
-
-                        cExpected += sExpected;
-                        cPaid += paid;
-                        cBalance += sBalance;
-                    }
-                });
-            });
-
-            const cColRate = cExpected > 0 ? (cPaid / cExpected) * 100 : 0;
-            let cPerf = 'Poor';
-            if (cColRate >= 80) cPerf = 'Excellent';
-            else if (cColRate >= 60) cPerf = 'Good';
-            else if (cColRate >= 40) cPerf = 'Fair';
-
-            return {
-                id: cls.id,
-                className: cls.name,
-                studentCount: cStudents,
-                totalExpected: cExpected,
-                totalCollected: cPaid,
-                balance: cBalance,
-                collectionRate: cColRate,
-                performance: cPerf
-            };
-        }).sort((a, b) => b.totalExpected - a.totalExpected);
 
         // 4. Payment methods breakdown
         const methods = {};
@@ -1989,7 +1986,7 @@ class FeesManagement extends Component {
                             </div>
                             <div style={{ maxHeight: '250px', overflowY: 'auto' }} className="border rounded p-3 bg-white">
                                 {(() => {
-                                    const breakdown = this.getFeeStructureBreakdown(selectedClass, selectedTerm);
+                                    const breakdown = this.getFeeStructureBreakdown(group, selectedClass, selectedTerm);
                                     return breakdown.length === 0 ? (
                                         <div className="text-muted font-size-sm">
                                             No fee structures configured for this class/term.
