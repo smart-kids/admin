@@ -1335,7 +1335,7 @@ class FeesManagement extends Component {
                     <div className="col-xl-3 col-lg-6 mb-4 mb-xl-0">
                         <ModernKPICard
                             title="Total Collections"
-                            value={typeof totalCollected === 'number' ? `KES ${totalCollected.toLocaleString()}` : totalCollected}
+                            value={typeof totalCollected === 'number' ? `KES ${Math.round(totalCollected).toLocaleString()}` : totalCollected}
                             subtext="Processed payments"
                             icon="fas fa-coins"
                             color="#3699ff"
@@ -1348,7 +1348,7 @@ class FeesManagement extends Component {
                     <div className="col-xl-3 col-lg-6 mb-4 mb-xl-0">
                         <ModernKPICard
                             title="Outstanding Balance"
-                            value={typeof totalArrears === 'number' ? `KES ${totalArrears.toLocaleString()}` : totalArrears}
+                            value={typeof totalArrears === 'number' ? `KES ${Math.round(totalArrears).toLocaleString()}` : totalArrears}
                             subtext="Unpaid arrears"
                             icon="fas fa-exclamation-triangle"
                             color="#e74c3c"
@@ -1495,10 +1495,10 @@ class FeesManagement extends Component {
                                                         )}
                                                     </td>
                                                     <td className="text-right">{cls.studentCount}</td>
-                                                    <td className="text-right">KES {cls.totalExpected.toLocaleString()}</td>
-                                                    <td className="text-right text-success font-weight-bolder">KES {cls.totalCollected?.toLocaleString()}</td>
+                                                    <td className="text-right">KES {Math.round(cls.totalExpected || 0).toLocaleString()}</td>
+                                                    <td className="text-right text-success font-weight-bolder">KES {Math.round(cls.totalCollected || 0).toLocaleString()}</td>
                                                     <td className={`text-right font-weight-bolder ${cls.balance > 0 ? 'text-danger' : 'text-success'}`}>
-                                                        KES {cls.balance.toLocaleString()}
+                                                        KES {Math.round(cls.balance || 0).toLocaleString()}
                                                     </td>
                                                     <td className="text-right">
                                                         <span className={`font-weight-bolder ${
