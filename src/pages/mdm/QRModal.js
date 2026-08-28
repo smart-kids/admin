@@ -308,6 +308,19 @@ class QRModal extends React.Component {
     }
   };
 
+  unlockDevice = async (serial) => {
+    if (!window.confirm(`🔓 Unlock "${serial}"?\n\nThis will:\n• Force-stop the MDM kiosk app\n• Remove Device Owner (all MDM restrictions)\n• Reboot the tablet to normal Android\n\nThis cannot be undone remotely.`)) return;
+    try {
+      await fetch("http://localhost:18205/api/unlock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serial })
+      });
+    } catch (e) {
+      console.error("Failed to unlock", serial);
+    }
+  };
+
   retryOnboard = async (serial) => {
     try {
       await Data.localMdm.onboard(serial);
@@ -1007,10 +1020,18 @@ class QRModal extends React.Component {
                                               </button>
                                               <button 
                                                 onClick={() => this.rebootDevice(serial)} 
-                                                className="btn btn-xs btn-outline-danger py-0 px-2 font-weight-bold shadow-sm" 
+                                                className="btn btn-xs btn-outline-danger py-0 px-2 font-weight-bold shadow-sm mr-1" 
                                                 style={{ fontSize: '10px', borderRadius: '4px' }}
                                               >
                                                 <i className="la la-redo mr-1"></i> Reboot
+                                              </button>
+                                              <button 
+                                                onClick={() => this.unlockDevice(serial)} 
+                                                className="btn btn-xs btn-outline-success py-0 px-2 font-weight-bold shadow-sm" 
+                                                style={{ fontSize: '10px', borderRadius: '4px' }}
+                                                title="Remove MDM Device Owner & reboot to normal Android"
+                                              >
+                                                <i className="la la-unlock mr-1"></i> Unlock
                                               </button>
                                             </td>
                                           </tr>

@@ -192,6 +192,15 @@ class MDMList extends React.Component {
           >
               <i className="la la-unlink"></i>
           </button>
+
+          <button 
+              className="book-action-btn mdm-action-btn"
+              style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)', color: '#fff', border: 'none' }}
+              onClick={() => this.sendCommand(device, 'UNLOCK')}
+              title="Unlock Device (Remove MDM Restrictions)"
+          >
+              <i className="la la-unlock"></i>
+          </button>
         </div>
       </div>
     );
