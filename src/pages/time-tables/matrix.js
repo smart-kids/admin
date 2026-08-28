@@ -7,8 +7,11 @@ import EnhancedDropdown from '../../components/enhanced-dropdown/EnhancedDropdow
 import Data from "../../utils/data";
 
 const TimeTableMatrix = () => {
+  const LS_TERM_KEY = 'timetables_matrix_term_id';
+  const LS_CLASS_KEY = 'timetables_matrix_class_id';
+
   const [selectedClass, setSelectedClass] = useState(null);
-  const [selectedTerm, setSelectedTerm] = useState(null);
+  const [selectedTerm, setSelectedTerm] = useState(() => localStorage.getItem(LS_TERM_KEY) || null);
   const [classes, setClasses] = useState([]);
   const [terms, setTerms] = useState([]);
   const [grades, setGrades] = useState([]);
@@ -18,7 +21,8 @@ const TimeTableMatrix = () => {
   const [timeTableData, setTimeTableData] = useState({});
   const [config, setConfig] = useState({
     lessonLength: 45,
-    teaBreakLength: 15,
+    teaBreakLength: 15,          // default/fallback for all breaks
+    teaBreakLengths: {},         // per-break overrides: { [lessonNumber]: minutes }
     lunchBreakLength: 30,
     lessonsPerTeaBreak: 2,
     lessonsPerLunchBreak: 4,
@@ -111,12 +115,20 @@ const TimeTableMatrix = () => {
         time: timeString,
         isBreak,
         breakType,
-        duration: isBreak ? breakDuration : config.lessonLength,
+        duration: isBreak
+          ? (breakType === 'tea'
+              ? (config.teaBreakLengths?.[lessonCount] ?? config.teaBreakLength ?? 15)
+              : breakDuration)
+          : config.lessonLength,
         lessonNumber: isBreak ? null : lessonCount + 1
       });
       
       // Move to next time slot
-      currentTime += isBreak ? breakDuration : config.lessonLength;
+      currentTime += isBreak
+        ? (breakType === 'tea'
+            ? (config.teaBreakLengths?.[lessonCount] ?? config.teaBreakLength ?? 15)
+            : breakDuration)
+        : config.lessonLength;
       if (!isBreak) lessonCount++;
       
       // Stop if we've reached the end time
@@ -152,14 +164,6 @@ const TimeTableMatrix = () => {
       setSchoolInfo(selectedSchool);
     });
 
-    // Check for defaults as data arrives
-    const checkAutoSelect = setInterval(() => {
-      if (classes.length > 0 && terms.length > 0) {
-        // No longer using autoSelectDefaults, let EnhancedDropdown handle it
-        clearInterval(checkAutoSelect);
-      }
-    }, 500);
-
     // Cleanup
     return () => {
       if (unsubClasses) unsubClasses();
@@ -169,9 +173,48 @@ const TimeTableMatrix = () => {
       if (unsubTeachers) unsubTeachers();
       if (unsubStudents) unsubStudents();
       if (unsubSchools) unsubSchools();
-      clearInterval(checkAutoSelect);
     };
-  }, [classes, terms]);
+  }, []);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-select first term when terms load (respecting saved preference)
+  useEffect(() => {
+    if (!terms.length) return;
+    if (selectedTerm) {
+      // Validate saved term still exists; if not, fall back to first
+      const stillValid = terms.find(t => String(t.id) === String(selectedTerm));
+      if (!stillValid) {
+        const first = terms[0];
+        setSelectedTerm(String(first.id));
+        localStorage.setItem(LS_TERM_KEY, String(first.id));
+      }
+      return;
+    }
+    // No saved selection — default to first term
+    const saved = localStorage.getItem(LS_TERM_KEY);
+    const match = saved && terms.find(t => String(t.id) === saved);
+    const target = match || terms[0];
+    setSelectedTerm(String(target.id));
+    localStorage.setItem(LS_TERM_KEY, String(target.id));
+  }, [terms]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-select first class when classes load (respecting saved preference)
+  useEffect(() => {
+    if (!classes.length) return;
+    const { availableClasses } = getAvailableData();
+    if (!availableClasses.length) return;
+
+    // If a class is already selected and still valid, keep it
+    if (selectedClass) {
+      const stillValid = availableClasses.find(c => String(c.id) === String(selectedClass.id));
+      if (stillValid) return;
+    }
+
+    const saved = localStorage.getItem(LS_CLASS_KEY);
+    const match = saved && availableClasses.find(c => String(c.id) === saved);
+    const target = match || availableClasses[0];
+    setSelectedClass(target);
+    localStorage.setItem(LS_CLASS_KEY, String(target.id));
+  }, [classes]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Save viewMode to localStorage when it changes
   useEffect(() => {
@@ -264,11 +307,21 @@ const TimeTableMatrix = () => {
     const { availableClasses } = getAvailableData();
     const classData = availableClasses.find(c => String(c.id) === String(classId));
     setSelectedClass(classData || null);
-  }, [getAvailableData]);
+    if (classData) {
+      localStorage.setItem(LS_CLASS_KEY, String(classData.id));
+    } else {
+      localStorage.removeItem(LS_CLASS_KEY);
+    }
+  }, [getAvailableData]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle term selection
   const handleTermChange = useCallback((termId) => {
-    setSelectedTerm(termId);
+    setSelectedTerm(termId || null);
+    if (termId) {
+      localStorage.setItem(LS_TERM_KEY, String(termId));
+    } else {
+      localStorage.removeItem(LS_TERM_KEY);
+    }
   }, []);
 
   // Handle slot click

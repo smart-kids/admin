@@ -199,28 +199,63 @@ const TimeTableConfig = ({ config, onConfigChange, onClose }) => {
               </small>
             </div>
 
-            <div className="form-group mb-4">
-              <label className="font-weight-bold text-dark font-size-sm">
-                Tea Break Length (minutes)
-              </label>
-              <div className="input-group">
-                <input
-                  type="number"
-                  className="form-control form-control-solid"
-                  value={localConfig.teaBreakLength || 15}
-                  onChange={(e) => handleInputChange('teaBreakLength', parseInt(e.target.value) || 15)}
-                  min="5"
-                  max="60"
-                  step="5"
-                />
-                <div className="input-group-append">
-                  <span className="input-group-text">min</span>
+            {/* Per-break duration inputs - rendered dynamically based on teaBreakAfterLessons */}
+            {(localConfig.teaBreakAfterLessons || []).length > 0 && (
+              <div className="form-group mb-4">
+                <label className="font-weight-bold text-dark font-size-sm d-block mb-2">
+                  Tea Break Durations (minutes)
+                </label>
+                <div className="d-flex flex-column" style={{ gap: '8px' }}>
+                  {(localConfig.teaBreakAfterLessons || []).map(lessonNum => {
+                    const lengths = localConfig.teaBreakLengths || {};
+                    const defaultLen = localConfig.teaBreakLength || 15;
+                    const val = lengths[lessonNum] !== undefined ? lengths[lessonNum] : defaultLen;
+                    return (
+                      <div key={lessonNum} className="d-flex align-items-center" style={{ gap: '10px' }}>
+                        <span className="text-muted font-size-sm" style={{ minWidth: '130px' }}>
+                          After lesson <strong>{lessonNum}</strong>:
+                        </span>
+                        <div className="input-group" style={{ maxWidth: '160px' }}>
+                          <input
+                            type="number"
+                            className="form-control form-control-solid form-control-sm"
+                            value={val}
+                            onChange={(e) => {
+                              const newLen = parseInt(e.target.value) || 15;
+                              const newLengths = { ...(localConfig.teaBreakLengths || {}), [lessonNum]: newLen };
+                              // Also keep teaBreakLength in sync as the most common value (for backwards compat)
+                              const allVals = Object.values(newLengths);
+                              const allSame = allVals.every(v => v === allVals[0]);
+                              const newConfig = {
+                                ...localConfig,
+                                teaBreakLengths: newLengths,
+                                teaBreakLength: allSame ? allVals[0] : (localConfig.teaBreakLength || 15)
+                              };
+                              setLocalConfig(newConfig);
+                              const changes = Object.keys(newConfig).some(key => {
+                                if (Array.isArray(newConfig[key])) return JSON.stringify(newConfig[key]) !== JSON.stringify(config[key]);
+                                if (typeof newConfig[key] === 'object') return JSON.stringify(newConfig[key]) !== JSON.stringify(config[key]);
+                                return newConfig[key] !== config[key];
+                              });
+                              setHasChanges(changes);
+                            }}
+                            min="5"
+                            max="60"
+                            step="5"
+                          />
+                          <div className="input-group-append">
+                            <span className="input-group-text">min</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
+                <small className="text-muted font-size-xs mt-2 d-block">
+                  Set a custom duration for each tea break independently
+                </small>
               </div>
-              <small className="text-muted font-size-xs">
-                Duration of tea break (5-60 minutes)
-              </small>
-            </div>
+            )}
 
             {/* Lunch Break Settings */}
             <h5 className="font-weight-boldest text-dark mb-3 mt-6">Lunch Break Settings</h5>
@@ -324,6 +359,14 @@ const TimeTableConfig = ({ config, onConfigChange, onClose }) => {
                 </div>
                 <div className="font-size-sm text-dark mb-3">
                   <strong>Tea Breaks:</strong> After lessons {(localConfig.teaBreakAfterLessons || []).join(', ')}
+                  {(localConfig.teaBreakAfterLessons || []).length > 0 && (
+                    <span className="ml-2 text-muted">
+                      ({(localConfig.teaBreakAfterLessons || []).map(n => {
+                        const len = (localConfig.teaBreakLengths || {})[n] || localConfig.teaBreakLength || 15;
+                        return `L${n}: ${len}min`;
+                      }).join(', ')})
+                    </span>
+                  )}
                 </div>
                 <div className="font-size-sm text-dark mb-3">
                   <strong>Lunch Break:</strong> After lesson {localConfig.lunchBreakAfterLessons || 4}
@@ -407,7 +450,7 @@ const calculateLessonsPerDay = (config) => {
       }
     }
     
-    currentTime += isBreak ? (breakType === 'tea' ? config.teaBreakLength : config.lunchBreakLength) : config.lessonLength;
+    currentTime += isBreak ? (breakType === 'tea' ? (config.teaBreakLengths?.[lessonCount] ?? config.teaBreakLength ?? 15) : config.lunchBreakLength) : config.lessonLength;
     if (!isBreak) lessonCount++;
     
     if (currentTime >= endTime) break;
