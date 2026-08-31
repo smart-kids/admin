@@ -46,7 +46,9 @@ class QRModal extends React.Component {
     adbVersion: null,
     serverDownloadStatus: null,
     serverDownloadProgress: 0,
-    serverDownloadStats: null
+    serverDownloadStats: null,
+    serverApkVersion: null,
+    tokenTestStatus: null
   };
 
   formatCpu = (cpuStr) => {
@@ -101,6 +103,7 @@ class QRModal extends React.Component {
           this.authenticateLocalService();
           this.connectLocalLogs();
           this.fetchAdbVersion();
+          this.fetchApkStatus();
         }
         this.setState({ localDevices: devicesMap || {} });
         this.autoOnboardDevices(Object.keys(devicesMap || {}));
@@ -154,6 +157,33 @@ class QRModal extends React.Component {
     }
   };
 
+  fetchApkStatus = async () => {
+    try {
+      const status = await Data.localMdm.getApkStatus();
+      if (status && status.exists) {
+        this.setState({ serverApkVersion: status.version });
+      } else {
+        this.setState({ serverApkVersion: null });
+      }
+    } catch (e) {
+      this.setState({ serverApkVersion: null });
+    }
+  };
+
+  testEnrollmentToken = async () => {
+    this.setState({ tokenTestStatus: 'loading' });
+    try {
+      await Data.localMdm.testToken();
+      // The log connection will display the result, but we set it back to ready so button enables again.
+      // We can reset to null after a delay or let the user click it again.
+      setTimeout(() => this.setState({ tokenTestStatus: null }), 3000);
+    } catch (e) {
+      console.error(e);
+      this.setState({ tokenTestStatus: 'failed' });
+      setTimeout(() => this.setState({ tokenTestStatus: null }), 3000);
+    }
+  };
+
   connectLocalLogs = () => {
     if (this.eventSource) this.eventSource.close();
     this.setState({ localLogs: ["🔌 Connected to local MDM service logs stream."] });
@@ -190,6 +220,7 @@ class QRModal extends React.Component {
                 newStatus = "success";
                 newProgress = 100;
                 newDownloadStats = null;
+                this.fetchApkStatus(); // Update the APK version in the UI
              } else if (isDownloadProgress) {
                 newStatus = "progress";
                 const progressRegex = /⬇️ Downloading MDM APK:\s+([\d\.]+)\s+MB(?:\s+\/\s+([\d\.]+)\s+MB\s+\((\d+)%\))?\s+@\s+([\d\.]+)\s+MB\/s/;
@@ -964,7 +995,19 @@ class QRModal extends React.Component {
                               ) : (
                                 <i className="la la-download mr-1"></i>
                               )}
-                              Download internal APK
+                              {this.state.serverApkVersion ? `Downloaded (v${this.state.serverApkVersion})` : "Download internal APK"}
+                            </button>
+                            <button 
+                              className="btn btn-outline-secondary btn-sm rounded-pill font-weight-bold shadow-sm"
+                              onClick={this.testEnrollmentToken}
+                              disabled={this.state.tokenTestStatus === 'loading'}
+                            >
+                              {this.state.tokenTestStatus === 'loading' ? (
+                                <i className="la la-spinner la-spin mr-1"></i>
+                              ) : (
+                                <i className="la la-key mr-1"></i>
+                              )}
+                              Test Token
                             </button>
                             <button 
                               className="btn btn-outline-primary btn-sm rounded-pill font-weight-bold shadow-sm"

@@ -2332,6 +2332,16 @@ var Data = (function () {
                 if (!res.ok) throw new Error("Download APK failed");
                 return true;
             },
+            getApkStatus: async () => {
+                const res = await fetch("http://localhost:18205/api/apk-status");
+                if (!res.ok) throw new Error("Failed to get APK status");
+                return await res.json();
+            },
+            testToken: async () => {
+                const res = await fetch("http://localhost:18205/api/test-token", { method: "POST" });
+                if (!res.ok) throw new Error("Token test failed");
+                return true;
+            },
             connectLogs: (onMessage, onError) => {
                 const eventSource = new EventSource("http://localhost:18205/api/logs");
                 eventSource.onmessage = onMessage;
