@@ -2327,6 +2327,11 @@ var Data = (function () {
                 if (!res.ok) throw new Error("Setup failed");
                 return true;
             },
+            downloadApk: async () => {
+                const res = await fetch("http://localhost:18205/api/download-apk", { method: "POST" });
+                if (!res.ok) throw new Error("Download APK failed");
+                return true;
+            },
             connectLogs: (onMessage, onError) => {
                 const eventSource = new EventSource("http://localhost:18205/api/logs");
                 eventSource.onmessage = onMessage;

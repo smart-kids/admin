@@ -43,7 +43,10 @@ class QRModal extends React.Component {
     isFetchingTools: false,
     activeTab: 'qr', // 'qr' or 'usb'
     terminalDarkMode: false,
-    adbVersion: null
+    adbVersion: null,
+    serverDownloadStatus: null,
+    serverDownloadProgress: 0,
+    serverDownloadStats: null
   };
 
   formatCpu = (cpuStr) => {
@@ -174,6 +177,54 @@ class QRModal extends React.Component {
           }
 
           const nextState = { localLogs: nextLocalLogs };
+          
+          if (serial === 'Server') {
+             let newStatus = prev.serverDownloadStatus;
+             let newProgress = prev.serverDownloadProgress;
+             let newDownloadStats = prev.serverDownloadStats;
+             
+             if (content.includes("❌")) {
+                newStatus = "failed";
+                newDownloadStats = null;
+             } else if (content.includes("✅ APK download complete")) {
+                newStatus = "success";
+                newProgress = 100;
+                newDownloadStats = null;
+             } else if (isDownloadProgress) {
+                newStatus = "progress";
+                const progressRegex = /⬇️ Downloading MDM APK:\s+([\d\.]+)\s+MB(?:\s+\/\s+([\d\.]+)\s+MB\s+\((\d+)%\))?\s+@\s+([\d\.]+)\s+MB\/s/;
+                const prMatch = content.match(progressRegex);
+                if (prMatch) {
+                   const downloadedMb = parseFloat(prMatch[1]);
+                   const totalMb = prMatch[2] ? parseFloat(prMatch[2]) : null;
+                   const percent = prMatch[3] ? parseInt(prMatch[3]) : null;
+                   const speedMbs = parseFloat(prMatch[4]);
+                   
+                   let etaSeconds = null;
+                   if (totalMb && downloadedMb && speedMbs > 0) {
+                      etaSeconds = Math.max(0, Math.ceil((totalMb - downloadedMb) / speedMbs));
+                   }
+                   
+                   newDownloadStats = {
+                      downloadedMb,
+                      totalMb,
+                      speedMbs,
+                      etaSeconds
+                   };
+                   
+                   if (percent !== null) {
+                      newProgress = percent;
+                   }
+                }
+             }
+             
+             nextState.serverDownloadStatus = newStatus;
+             nextState.serverDownloadProgress = newProgress;
+             nextState.serverDownloadStats = newDownloadStats;
+             
+             return nextState;
+          }
+
           if (serial) {
              const dState = prev.deviceStates[serial] || { status: 'progress', progress: 0, error: '' };
              let newStatus = dState.status;
@@ -352,6 +403,16 @@ class QRModal extends React.Component {
       console.error(e);
     }
     this.setState({ setupLoading: false });
+  };
+
+  downloadInternalApk = async () => {
+    try {
+      this.setState({ serverDownloadStatus: 'progress', serverDownloadProgress: 0, serverDownloadStats: null });
+      await Data.localMdm.downloadApk();
+    } catch (e) {
+      console.error(e);
+      this.setState({ serverDownloadStatus: 'failed' });
+    }
   };
 
   generateQR = async () => {
@@ -892,19 +953,60 @@ class QRModal extends React.Component {
                             <i className="la la-check-circle mr-2" style={{ fontSize: '24px' }}></i>
                             Local Service Connected
                           </h6>
-                          <button 
-                            className="btn btn-outline-primary btn-sm rounded-pill font-weight-bold shadow-sm"
-                            onClick={this.installPlatformTools}
-                            disabled={this.state.setupLoading || !!this.state.adbVersion}
-                          >
-                            {this.state.setupLoading ? (
-                              <i className="la la-spinner la-spin mr-1"></i>
-                            ) : (
-                              <i className="la la-tools mr-1"></i>
-                            )}
-                            {this.state.adbVersion ? `ADB: v${this.state.adbVersion}` : "Setup ADB Tools"}
-                          </button>
+                          <div className="d-flex align-items-center" style={{ gap: '8px' }}>
+                            <button 
+                              className="btn btn-outline-info btn-sm rounded-pill font-weight-bold shadow-sm"
+                              onClick={this.downloadInternalApk}
+                              disabled={this.state.serverDownloadStatus === 'progress' || this.state.setupLoading}
+                            >
+                              {this.state.serverDownloadStatus === 'progress' ? (
+                                <i className="la la-spinner la-spin mr-1"></i>
+                              ) : (
+                                <i className="la la-download mr-1"></i>
+                              )}
+                              Download internal APK
+                            </button>
+                            <button 
+                              className="btn btn-outline-primary btn-sm rounded-pill font-weight-bold shadow-sm"
+                              onClick={this.installPlatformTools}
+                              disabled={this.state.setupLoading || !!this.state.adbVersion}
+                            >
+                              {this.state.setupLoading ? (
+                                <i className="la la-spinner la-spin mr-1"></i>
+                              ) : (
+                                <i className="la la-tools mr-1"></i>
+                              )}
+                              {this.state.adbVersion ? `ADB: v${this.state.adbVersion}` : "Setup ADB Tools"}
+                            </button>
+                          </div>
                         </div>
+
+                        {this.state.serverDownloadStatus && (
+                          <div className="alert alert-secondary p-2 mb-3 shadow-sm" style={{ borderRadius: '8px' }}>
+                            <div className="d-flex justify-content-between align-items-center mb-1">
+                              <span className="font-weight-bold text-dark" style={{ fontSize: '12px' }}>
+                                Server APK Download
+                              </span>
+                              <span className={`font-weight-bold ${this.state.serverDownloadStatus === 'failed' ? 'text-danger' : 'text-primary'}`} style={{ fontSize: '12px' }}>
+                                {this.state.serverDownloadStatus === 'success' ? 'Complete' :
+                                 this.state.serverDownloadStatus === 'failed' ? 'Failed' :
+                                 `${this.state.serverDownloadProgress}%`}
+                              </span>
+                            </div>
+                            <div className="progress" style={{ height: '6px', borderRadius: '3px', backgroundColor: '#e9ecef', overflow: 'hidden' }}>
+                              <div 
+                                className={`progress-bar progress-bar-striped progress-bar-animated ${this.state.serverDownloadStatus === 'success' ? 'bg-success' : this.state.serverDownloadStatus === 'failed' ? 'bg-danger' : 'bg-info'}`}
+                                style={{ width: `${this.state.serverDownloadStatus === 'success' ? 100 : this.state.serverDownloadProgress}%`, height: '100%', transition: 'width 0.4s ease' }}
+                              ></div>
+                            </div>
+                            {this.state.serverDownloadStats && (
+                              <div className="d-flex justify-content-between mt-1 text-muted font-weight-bold" style={{ fontSize: '11px' }}>
+                                <span>{this.state.serverDownloadStats.downloadedMb.toFixed(2)} / {this.state.serverDownloadStats.totalMb ? this.state.serverDownloadStats.totalMb.toFixed(2) : '?'} MB</span>
+                                <span>{this.state.serverDownloadStats.speedMbs.toFixed(1)} MB/s {this.state.serverDownloadStats.etaSeconds !== null && `(${this.state.serverDownloadStats.etaSeconds}s left)`}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
 
                         <div className="card border-0 bg-light rounded-lg mb-3 shadow-sm d-flex flex-column" style={{ flex: '1 1 50%', minHeight: '200px' }}>
                           <div className="card-body p-3 d-flex flex-column h-100">
