@@ -256,12 +256,13 @@ class QRModal extends React.Component {
              return nextState;
           }
 
-          if (serial) {
+             if (serial) {
              const dState = prev.deviceStates[serial] || { status: 'progress', progress: 0, error: '' };
              let newStatus = dState.status;
              let newProgress = dState.progress;
              let newError = dState.error;
              let newDownloadStats = dState.downloadStats || null;
+             let newStatusText = dState.statusText || null;
              
              if (content.includes("❌") || content.includes("⚠️ Failed to launch")) {
                 newStatus = "failed";
@@ -271,6 +272,7 @@ class QRModal extends React.Component {
                 newStatus = "success";
                 newProgress = 100;
                 newDownloadStats = null;
+                newStatusText = null;
              } else if (content.includes("✅ APK download complete")) {
                 newProgress = 50;
                 newDownloadStats = null;
@@ -302,11 +304,32 @@ class QRModal extends React.Component {
                 }
              } else if (newStatus !== "failed") {
                 newStatus = "progress";
-                if (content.includes("Fetching MDM token")) newProgress = 20;
-                else if (content.includes("Downloading MDM APK")) newProgress = 20;
-                else if (content.includes("Installing APK on device")) newProgress = 60;
-                else if (content.includes("Setting MDM App as Device Owner")) newProgress = 80;
-                else if (content.includes("Injecting MDM configuration")) newProgress = 90;
+                if (content.includes("Fetching MDM token") || content.includes("Downloading MDM APK")) {
+                   newProgress = 20;
+                   newStatusText = null;
+                }
+                else if (content.includes("Installing APK on device")) {
+                   newProgress = 60;
+                   const match = content.match(/\(([\d\.]+\s*(?:B|KB|MB|GB))\)/);
+                   if (match) newStatusText = `Installing APK (${match[1]})...`;
+                   else newStatusText = `Installing APK...`;
+                }
+                else if (content.includes("Installing APK... (Elapsed:")) {
+                   newProgress = 60;
+                   const match = content.match(/Elapsed:\s*(\d+)s/);
+                   if (match) {
+                      const prefix = newStatusText && newStatusText.includes(")") ? newStatusText.split("...")[0] : "Installing APK";
+                      newStatusText = `${prefix}... (${match[1]}s elapsed)`;
+                   }
+                }
+                else if (content.includes("Setting MDM App as Device Owner")) {
+                   newProgress = 80;
+                   newStatusText = null;
+                }
+                else if (content.includes("Injecting MDM configuration")) {
+                   newProgress = 90;
+                   newStatusText = null;
+                }
              }
 
              nextState.deviceStates = { 
@@ -315,7 +338,8 @@ class QRModal extends React.Component {
                    status: newStatus, 
                    progress: newProgress, 
                    error: newError,
-                   downloadStats: newDownloadStats
+                   downloadStats: newDownloadStats,
+                   statusText: newStatusText
                 } 
              };
           }
@@ -434,6 +458,16 @@ class QRModal extends React.Component {
       console.error(e);
     }
     this.setState({ setupLoading: false });
+  };
+
+  restartAdb = async () => {
+    this.setState({ adbRestarting: true });
+    try {
+      await fetch("http://localhost:18205/api/adb-restart", { method: "POST" });
+    } catch (e) {
+      console.error("Failed to restart ADB", e);
+    }
+    setTimeout(() => this.setState({ adbRestarting: false }), 1500);
   };
 
   downloadInternalApk = async () => {
@@ -1010,6 +1044,14 @@ class QRModal extends React.Component {
                               Test Token
                             </button>
                             <button 
+                              className="btn btn-outline-warning btn-sm rounded-pill font-weight-bold shadow-sm"
+                              onClick={this.restartAdb}
+                              disabled={this.state.adbRestarting}
+                            >
+                              <i className={`la la-sync ${this.state.adbRestarting ? 'la-spin' : ''} mr-1`}></i>
+                              Restart ADB
+                            </button>
+                            <button 
                               className="btn btn-outline-primary btn-sm rounded-pill font-weight-bold shadow-sm"
                               onClick={this.installPlatformTools}
                               disabled={this.state.setupLoading || !!this.state.adbVersion}
@@ -1106,18 +1148,19 @@ class QRModal extends React.Component {
                                                   );
                                                 }
                                                 
-                                                const { progress, downloadStats } = dState;
+                                                const { progress, downloadStats, statusText } = dState;
                                                 
                                                 return (
                                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                                       <span className="text-dark font-weight-bold" style={{ fontSize: '12px' }}>
-                                                        {progress < 20 ? 'Initializing...' :
-                                                         progress < 50 ? 'Downloading APK...' :
-                                                         progress < 60 ? 'Installing APK...' :
-                                                         progress < 80 ? 'Setting device owner...' :
-                                                         'Configuring...'
-                                                        }
+                                                        {statusText || (
+                                                          progress < 20 ? 'Initializing...' :
+                                                          progress < 50 ? 'Downloading APK...' :
+                                                          progress < 60 ? 'Installing APK...' :
+                                                          progress < 80 ? 'Setting device owner...' :
+                                                          'Configuring...'
+                                                        )}
                                                       </span>
                                                       <span className="text-primary font-weight-bold" style={{ fontSize: '12px' }}>
                                                         {progress}%
