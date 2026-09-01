@@ -470,6 +470,17 @@ class QRModal extends React.Component {
     setTimeout(() => this.setState({ adbRestarting: false }), 1500);
   };
 
+  clearCache = async () => {
+    this.setState({ cacheClearing: true });
+    try {
+      await fetch("http://localhost:18205/api/clear-cache", { method: "POST" });
+      this.setState({ serverApkVersion: null });
+    } catch (e) {
+      console.error("Failed to clear cache", e);
+    }
+    setTimeout(() => this.setState({ cacheClearing: false }), 1500);
+  };
+
   downloadInternalApk = async () => {
     try {
       this.setState({ serverDownloadStatus: 'progress', serverDownloadProgress: 0, serverDownloadStats: null });
@@ -1042,6 +1053,14 @@ class QRModal extends React.Component {
                                 <i className="la la-key mr-1"></i>
                               )}
                               Test Token
+                            </button>
+                            <button 
+                              className="btn btn-outline-danger btn-sm rounded-pill font-weight-bold shadow-sm"
+                              onClick={this.clearCache}
+                              disabled={this.state.cacheClearing}
+                            >
+                              <i className={`la la-trash ${this.state.cacheClearing ? 'la-spin' : ''} mr-1`}></i>
+                              Clear Cache
                             </button>
                             <button 
                               className="btn btn-outline-warning btn-sm rounded-pill font-weight-bold shadow-sm"
