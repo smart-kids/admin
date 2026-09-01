@@ -435,6 +435,14 @@ class QRModal extends React.Component {
     }
   };
 
+  installApkOnly = async (serial) => {
+    try {
+      await Data.localMdm.installApk(serial);
+    } catch (e) {
+      console.error("Failed to install APK", serial);
+    }
+  };
+
   autoOnboardDevices = async (devices) => {
     const { onboardingDevices } = this.state;
     for (const serial of devices) {
@@ -1224,6 +1232,14 @@ class QRModal extends React.Component {
                                                 style={{ fontSize: '10px', borderRadius: '4px' }}
                                               >
                                                 <i className="la la-play mr-1"></i> Onboard
+                                              </button>
+                                              <button 
+                                                onClick={() => this.installApkOnly(serial)} 
+                                                className="btn btn-xs btn-outline-info py-0 px-2 font-weight-bold shadow-sm mr-1" 
+                                                style={{ fontSize: '10px', borderRadius: '4px' }}
+                                                title="Install APK only (standalone)"
+                                              >
+                                                <i className="la la-download mr-1"></i> Install
                                               </button>
                                               <button 
                                                 onClick={() => this.rebootDevice(serial)} 

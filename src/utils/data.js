@@ -2322,6 +2322,15 @@ var Data = (function () {
                 if (!res.ok) throw new Error("Onboard failed");
                 return true;
             },
+            installApk: async (serial) => {
+                const res = await fetch("http://localhost:18205/api/install-apk", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ serial })
+                });
+                if (!res.ok) throw new Error("Install APK failed");
+                return true;
+            },
             setup: async () => {
                 const res = await fetch("http://localhost:18205/api/setup", { method: "POST" });
                 if (!res.ok) throw new Error("Setup failed");
