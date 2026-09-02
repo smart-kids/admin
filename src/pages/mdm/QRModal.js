@@ -591,6 +591,12 @@ class QRModal extends React.Component {
       const newState = {};
       if (data.downloadUrl) newState.downloadUrl = data.downloadUrl;
       if (data.checksum) newState.signatureChecksum = data.checksum;
+      // Validate that downloadUrl appears to be a valid APK URL
+      if (newState.downloadUrl && !newState.downloadUrl.toLowerCase().endsWith('.apk')) {
+        console.warn('Download URL does not end with .apk, may cause install failure:', newState.downloadUrl);
+        // Optionally set error state to inform user
+        this.setState({ error: 'Invalid APK download URL. Please ensure the server provides a correct .apk file.' });
+      }
       if (Object.keys(newState).length > 0) {
         this.setState(newState);
       }
@@ -1168,10 +1174,16 @@ class QRModal extends React.Component {
                                                 }
                                                 
                                                 if (dState.status === 'failed') {
+                                                  const isAccountError = dState.error && dState.error.toLowerCase().includes('accounts');
                                                   return (
-                                                    <span className="text-danger font-weight-bold" title={dState.error}>
-                                                      <i className="la la-times-circle mr-1"></i> Failed
-                                                    </span>
+                                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                      <span className="text-danger font-weight-bold" title={dState.error}>
+                                                        <i className="la la-times-circle mr-1"></i> Failed
+                                                      </span>
+                                                      <span className="text-danger mt-1" style={{ fontSize: '10px', lineHeight: '1.2', whiteSpace: 'normal', maxWidth: '200px' }}>
+                                                        {isAccountError ? 'Requires Factory Reset (Accounts already exist on device)' : dState.error}
+                                                      </span>
+                                                    </div>
                                                   );
                                                 }
                                                 
