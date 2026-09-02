@@ -48,7 +48,8 @@ class QRModal extends React.Component {
     serverDownloadProgress: 0,
     serverDownloadStats: null,
     serverApkVersion: null,
-    tokenTestStatus: null
+    tokenTestStatus: null,
+    deviceOwnerUserId: ""
   };
 
   formatCpu = (cpuStr) => {
@@ -476,6 +477,61 @@ class QRModal extends React.Component {
       console.error("Failed to restart ADB", e);
     }
     setTimeout(() => this.setState({ adbRestarting: false }), 1500);
+  };
+
+  setDeviceOwnerOnly = async (serial) => {
+    try {
+      await fetch("http://localhost:18205/api/set-owner", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          serial, 
+          user_id: this.state.deviceOwnerUserId || null 
+        })
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  clearAccounts = async (serial) => {
+    try {
+      await fetch("http://localhost:18205/api/clear-accounts", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ serial })
+      });
+    } catch (e) { console.error(e); }
+  };
+
+  injectToken = async (serial) => {
+    try {
+      await fetch("http://localhost:18205/api/inject-token", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ serial })
+      });
+    } catch (e) { console.error(e); }
+  };
+
+  clearAppData = async (serial) => {
+    try {
+      await fetch("http://localhost:18205/api/clear-app-data", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ serial })
+      });
+    } catch (e) { console.error(e); }
+  };
+
+  uninstallApp = async (serial) => {
+    try {
+      await fetch("http://localhost:18205/api/uninstall-app", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ serial })
+      });
+    } catch (e) { console.error(e); }
+  };
+
+  grantPermissions = async (serial) => {
+    try {
+      await fetch("http://localhost:18205/api/grant-permissions", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ serial })
+      });
+    } catch (e) { console.error(e); }
   };
 
   clearCache = async () => {
@@ -1097,6 +1153,19 @@ class QRModal extends React.Component {
                               {this.state.adbVersion ? `ADB: v${this.state.adbVersion}` : "Setup ADB Tools"}
                             </button>
                           </div>
+
+                          <div className="mb-3">
+                            <label className="form-label font-weight-bold" style={{ fontSize: '12px' }}>Target User ID (Optional)</label>
+                            <input
+                              type="text"
+                              className="form-control form-control-sm"
+                              placeholder="e.g. 0 (Leave blank for default)"
+                              value={this.state.deviceOwnerUserId}
+                              onChange={(e) => this.setState({ deviceOwnerUserId: e.target.value })}
+                              style={{ fontSize: '12px' }}
+                            />
+                            <small className="text-muted" style={{ fontSize: '10px' }}>Only required for some devices where setting device owner fails</small>
+                          </div>
                         </div>
 
                         {this.state.serverDownloadStatus && (
@@ -1254,6 +1323,14 @@ class QRModal extends React.Component {
                                                 <i className="la la-download mr-1"></i> Install
                                               </button>
                                               <button 
+                                                onClick={() => this.setDeviceOwnerOnly(serial)} 
+                                                className="btn btn-xs btn-outline-warning py-0 px-2 font-weight-bold shadow-sm mr-1" 
+                                                style={{ fontSize: '10px', borderRadius: '4px' }}
+                                                title="Set Device Owner only"
+                                              >
+                                                <i className="la la-shield-alt mr-1"></i> Set Owner
+                                              </button>
+                                              <button 
                                                 onClick={() => this.rebootDevice(serial)} 
                                                 className="btn btn-xs btn-outline-danger py-0 px-2 font-weight-bold shadow-sm mr-1" 
                                                 style={{ fontSize: '10px', borderRadius: '4px' }}
@@ -1268,6 +1345,19 @@ class QRModal extends React.Component {
                                               >
                                                 <i className="la la-unlock mr-1"></i> Unlock
                                               </button>
+                                              <div className="btn-group ml-1">
+                                                <button type="button" className="btn btn-xs btn-outline-secondary py-0 px-2 font-weight-bold shadow-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style={{ fontSize: '10px', borderRadius: '4px' }} title="Advanced Tools">
+                                                  <i className="la la-cog mr-1"></i> Adv.
+                                                </button>
+                                                <div className="dropdown-menu dropdown-menu-right shadow" style={{ fontSize: '12px' }}>
+                                                  <button className="dropdown-item" onClick={() => this.injectToken(serial)}><i className="la la-key mr-2"></i> Inject Token</button>
+                                                  <button className="dropdown-item" onClick={() => this.grantPermissions(serial)}><i className="la la-unlock-alt mr-2"></i> Grant Permissions</button>
+                                                  <div className="dropdown-divider"></div>
+                                                  <button className="dropdown-item text-warning" onClick={() => this.clearAppData(serial)}><i className="la la-eraser mr-2"></i> Clear App Data</button>
+                                                  <button className="dropdown-item text-warning" onClick={() => this.clearAccounts(serial)}><i className="la la-user-times mr-2"></i> Clear Accounts (Workaround)</button>
+                                                  <button className="dropdown-item text-danger" onClick={() => this.uninstallApp(serial)}><i className="la la-trash mr-2"></i> Uninstall App</button>
+                                                </div>
+                                              </div>
                                             </td>
                                           </tr>
                                         );
