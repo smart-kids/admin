@@ -1852,7 +1852,7 @@ var Data = (function () {
             name: "devices",
             singularName: "device",
             createFields: ['macAddress', 'status', 'assignedStudent', 'osVersion', 'batteryLevel', 'school'],
-            updateFields: ['macAddress', 'status', 'assignedStudent', 'lastSeen', 'osVersion', 'batteryLevel']
+            updateFields: ['macAddress', 'status', 'assignedStudent', 'lastSeen', 'osVersion', 'batteryLevel', 'school']
         },
         {
             name: "device_commands",

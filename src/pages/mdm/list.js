@@ -20,6 +20,12 @@ class MDMList extends React.Component {
       body: "",
       targetDevice: "GLOBAL",
     },
+    showEditModal: false,
+    editingDevice: null,
+    editFormData: {
+      assignedStudent: "",
+      school: "",
+    },
   };
 
   componentDidMount() {
@@ -135,6 +141,50 @@ class MDMList extends React.Component {
     }));
   };
 
+  openEditModal = (device) => {
+    this.setState({
+      showEditModal: true,
+      editingDevice: device,
+      editFormData: {
+        assignedStudent: device.assignedStudent || "",
+        school: device.school || "",
+      }
+    });
+  };
+
+  closeEditModal = () => {
+    this.setState({ showEditModal: false, editingDevice: null });
+  };
+
+  handleEditFormChange = (field, value) => {
+    this.setState(prevState => ({
+      editFormData: {
+        ...prevState.editFormData,
+        [field]: value
+      }
+    }));
+  };
+
+  saveDeviceEdit = (e) => {
+    e.preventDefault();
+    const { editingDevice, editFormData } = this.state;
+    if (!editingDevice) return;
+
+    Data.devices.update({
+      id: editingDevice.id,
+      assignedStudent: editFormData.assignedStudent,
+      school: editFormData.school
+    })
+    .then(() => {
+      window.toastr.success("Device updated successfully!");
+      this.closeEditModal();
+    })
+    .catch(err => {
+      console.error(err);
+      window.toastr.error("Failed to update device");
+    });
+  };
+
   renderDeviceRow = (device) => {
     const batteryLevel = device.batteryLevel || 0;
     const isLowBattery = batteryLevel < 20;
@@ -154,7 +204,19 @@ class MDMList extends React.Component {
             <h5 className="device-mac" title={device.macAddress}>{device.macAddress}</h5>
             <div className="device-assignee">
                 <i className="la la-user"></i> {device.assignedStudent || 'Unassigned'}
+                <button 
+                  className="btn btn-sm btn-outline-primary" 
+                  style={{ marginLeft: '10px', padding: '2px 8px', fontSize: '12px' }}
+                  onClick={() => this.openEditModal(device)}
+                >
+                  <i className="la la-pencil"></i> Assign
+                </button>
             </div>
+            {device.school && (
+                <div className="device-school" style={{ marginTop: '5px', color: '#666', fontSize: '13px' }}>
+                    <i className="la la-building"></i> School ID: {device.school}
+                </div>
+            )}
         </div>
 
         <div className="device-metrics-premium">
@@ -216,7 +278,9 @@ class MDMList extends React.Component {
       activeTab, 
       deviceCommands, 
       newNotification, 
-      sending 
+      sending,
+      showEditModal,
+      editFormData
     } = this.state;
     
     const filters = ["All", "ONLINE", "OFFLINE"];
@@ -489,6 +553,50 @@ class MDMList extends React.Component {
 
         {showQRModal && (
           <QRModal onClose={this.closeQRModal} />
+        )}
+
+        {showEditModal && (
+          <div className="qr-modal-overlay">
+            <div className="qr-modal-content" style={{ maxWidth: '500px', width: '90%', padding: '30px' }}>
+              <div className="qr-modal-header" style={{ borderBottom: '1px solid #eee', paddingBottom: '15px', marginBottom: '20px' }}>
+                <h3 style={{ margin: 0 }}>Edit Device Details</h3>
+                <button className="btn-qr-close" onClick={this.closeEditModal}>
+                  <i className="la la-times" />
+                </button>
+              </div>
+              <form onSubmit={this.saveDeviceEdit}>
+                <div className="form-group" style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>Assigned Student (Name or ID)</label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    value={editFormData.assignedStudent} 
+                    onChange={(e) => this.handleEditFormChange('assignedStudent', e.target.value)} 
+                    placeholder="e.g. John Doe or STU-123"
+                  />
+                </div>
+                
+                <div className="form-group" style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', fontWeight: 'bold', marginBottom: '8px' }}>School ID (For unassigned/orphaned devices)</label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    style={{ width: '100%', padding: '10px', borderRadius: '4px', border: '1px solid #ccc' }}
+                    value={editFormData.school} 
+                    onChange={(e) => this.handleEditFormChange('school', e.target.value)} 
+                    placeholder="e.g. 683eb0b3269670f07ed0901c"
+                  />
+                  <small style={{ color: '#888', display: 'block', marginTop: '5px' }}>Leave blank to keep current school. Usually this doesn't need to be changed manually.</small>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '30px' }}>
+                  <button type="button" className="btn btn-secondary" onClick={this.closeEditModal} style={{ padding: '8px 20px', borderRadius: '4px', border: 'none', background: '#e0e0e0', cursor: 'pointer' }}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" style={{ padding: '8px 20px', borderRadius: '4px', border: 'none', background: '#5A67D8', color: 'white', cursor: 'pointer' }}>Save Changes</button>
+                </div>
+              </form>
+            </div>
+          </div>
         )}
       </div>
     );
