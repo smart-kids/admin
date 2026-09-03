@@ -41,7 +41,7 @@ class QRModal extends React.Component {
     toolVersion: "",
     toolUploadedAt: "",
     isFetchingTools: false,
-    activeTab: 'qr', // 'qr' or 'usb'
+    activeTab: 'usb', // 'qr' or 'usb'
     terminalDarkMode: false,
     adbVersion: null,
     serverDownloadStatus: null,
@@ -1079,8 +1079,18 @@ class QRModal extends React.Component {
                       </ul>
                     </div>
                     
+                    <div className="alert alert-danger m-0 p-3 shadow-sm mb-3" style={{ fontSize: '12px', borderLeft: '4px solid #fd397a' }}>
+                      <h6 className="font-weight-bold mb-2"><i className="la la-exclamation-triangle mr-1"></i> CRITICAL: Setup Order</h6>
+                      <ol className="mb-0 pl-3">
+                        <li className="mb-1"><strong>Format</strong> the tablet (Factory Reset).</li>
+                        <li className="mb-1"><strong>SKIP</strong> adding any Google Accounts during the initial setup wizard. Go straight to the home screen.</li>
+                        <li className="mb-1">Enable USB Debugging and <strong>run this USB Tool</strong> to set Device Owner.</li>
+                        <li><strong>ONLY AFTER</strong> success, go to Settings and add the Google email account.</li>
+                      </ol>
+                    </div>
+
                     <div className="alert alert-warning m-0 p-3 shadow-sm" style={{ fontSize: '12px', borderLeft: '4px solid #ffb822' }}>
-                      
+                      <h6 className="font-weight-bold mb-2"><i className="la la-code mr-1"></i> Enable USB Debugging</h6>
                       <ol className="mb-0 pl-3">
                         <li>Settings &gt; About tablet</li>
                         <li>Tap Build number 7 times</li>
