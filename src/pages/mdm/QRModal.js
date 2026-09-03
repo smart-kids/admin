@@ -1201,14 +1201,14 @@ class QRModal extends React.Component {
                               <i className="la la-usb mr-2 text-primary"></i>
                               Connected Fleet Devices
                             </h6>
-                            <div className="flex-grow-1" style={{ overflowY: 'auto' }}>
+                            <div className="flex-grow-1" style={{ overflow: 'visible' }}>
                               {Object.keys(this.state.localDevices).length === 0 ? (
                                 <div className="text-muted small text-center py-4 d-flex flex-column align-items-center justify-content-center h-100">
                                   <i className="la la-plug mb-2 text-muted" style={{ fontSize: '32px', opacity: 0.5 }}></i>
                                   Waiting for devices... (Plug in via USB)
                                 </div>
                               ) : (
-                                <div className="table-responsive">
+                                <div className="table-responsive" style={{ overflow: 'visible' }}>
                                   <table className="table table-sm table-borderless align-middle mb-0" style={{ fontSize: '12px' }}>
                                     <thead className="text-muted border-bottom">
                                       <tr>
@@ -1345,7 +1345,7 @@ class QRModal extends React.Component {
                                               >
                                                 <i className="la la-unlock mr-1"></i> Unlock
                                               </button>
-                                              <div className="btn-group ml-1">
+                                              <div className="btn-group dropleft ml-1">
                                                 <button type="button" className="btn btn-xs btn-outline-secondary py-0 px-2 font-weight-bold shadow-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style={{ fontSize: '10px', borderRadius: '4px' }} title="Advanced Tools">
                                                   <i className="la la-cog mr-1"></i> Adv.
                                                 </button>
