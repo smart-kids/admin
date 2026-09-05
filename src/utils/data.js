@@ -2380,6 +2380,21 @@ var Data = (function () {
                 if (!res.ok) throw new Error("Failed to publish MDM version");
                 return await res.json();
             },
+            overrideMdmVersion: async (apiBase, uploadSecret, targetVersion) => {
+                const res = await fetch(`${apiBase}/mdm/override`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-upload-secret": uploadSecret || ""
+                    },
+                    body: JSON.stringify({ targetVersion })
+                });
+                if (!res.ok) {
+                    const err = await res.json().catch(() => ({}));
+                    throw new Error(err.error || "Failed to override MDM version");
+                }
+                return await res.json();
+            },
             getToolInfo: async () => {
                 const res = await fetch(`https://graph-ongyy.kinsta.app/uploads/tool-info.json?t=${Date.now()}`, { cache: "no-store" });
                 if (!res.ok) throw new Error("Failed to fetch tool info");

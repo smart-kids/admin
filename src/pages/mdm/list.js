@@ -33,6 +33,9 @@ class MDMList extends React.Component {
     publishing: false,
     publishSecret: "",
     updateVersion: "",
+    // Emergency rollback
+    overrideVersion: "",
+    overriding: false,
   };
 
   componentDidMount() {
@@ -125,6 +128,31 @@ class MDMList extends React.Component {
       window.toastr.error('Failed to publish: ' + e.message);
     } finally {
       this.setState({ publishing: false });
+    }
+  };
+
+  overrideMdmVersion = async () => {
+    const API_BASE = 'https://graph-ongyy.kinsta.app';
+    const { publishSecret, overrideVersion } = this.state;
+    if (!overrideVersion.trim()) {
+      window.toastr.warning('Enter the target version to override (e.g. 204.524.632).');
+      return;
+    }
+    if (!publishSecret.trim()) {
+      window.toastr.warning('Enter the upload secret to authorize this override.');
+      return;
+    }
+    if (!window.confirm(`⚠️ WARNING: This will immediately tell ALL MDM tablets that v${overrideVersion} is the latest version. Tablets already on a higher version will think they\'re up-to-date. Are you sure?`)) return;
+    this.setState({ overriding: true });
+    try {
+      await Data.mdm.overrideMdmVersion(API_BASE, publishSecret, overrideVersion);
+      window.toastr.success(`✅ Live MDM version overridden to v${overrideVersion}. Stuck tablets should clear within their next poll cycle.`);
+      this.setState({ overrideVersion: '' });
+      await this.fetchVersionStatus();
+    } catch (e) {
+      window.toastr.error('Override failed: ' + e.message);
+    } finally {
+      this.setState({ overriding: false });
     }
   };
 
@@ -331,6 +359,8 @@ class MDMList extends React.Component {
       pendingApkInfo,
       loadingVersions,
       publishing,
+      overrideVersion,
+      overriding,
     } = this.state;
     
     const filters = ["All", "ONLINE", "OFFLINE"];
@@ -656,6 +686,58 @@ class MDMList extends React.Component {
                 ) : (
                   <div style={{ color: '#9ca3af', fontSize: '13px' }}>{loadingVersions ? 'Loading...' : 'No staged version. Run yarn release to stage a build.'}</div>
                 )}
+              </div>
+            </div>
+
+            {/* Emergency Rollback Panel */}
+            <div className="mdm-panel-section" style={{ background: 'linear-gradient(135deg, #fef2f2, #fee2e2)', border: '1px solid #fca5a5', borderRadius: '12px', padding: '20px', marginBottom: '24px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                <i className="la la-exclamation-triangle" style={{ color: '#dc2626', fontSize: '18px' }}></i>
+                <strong style={{ fontSize: '14px', color: '#991b1b' }}>Emergency Rollback / Override</strong>
+                {liveApkInfo?.overrideNote && (
+                  <span style={{ marginLeft: 'auto', fontSize: '11px', color: '#b91c1c', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: '4px', padding: '2px 8px' }}>
+                    ⚠️ Currently overridden
+                  </span>
+                )}
+              </div>
+              <p style={{ fontSize: '12px', color: '#7f1d1d', marginBottom: '14px', lineHeight: '1.6' }}>
+                Use this to instantly set the <strong>live MDM version</strong> to any version number — without uploading a new APK.
+                This is useful when a tablet is stuck trying to update: set the live version back to what the tablet is running, and it will
+                see itself as up-to-date and cancel the stuck update automatically.
+              </p>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                <div style={{ flex: '1', minWidth: '160px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '600', color: '#991b1b', display: 'block', marginBottom: '6px' }}>Target Version</label>
+                  <input
+                    type="text"
+                    className="premium-form-input"
+                    placeholder={liveApkInfo ? `current: ${liveApkInfo.version}` : 'e.g. 204.524.632'}
+                    value={overrideVersion}
+                    onChange={(e) => this.setState({ overrideVersion: e.target.value })}
+                    style={{ border: '1px solid #fca5a5', borderRadius: '8px', background: '#fff5f5' }}
+                  />
+                </div>
+                <div style={{ flex: '1', minWidth: '200px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '600', color: '#991b1b', display: 'block', marginBottom: '6px' }}>Upload Secret</label>
+                  <input
+                    type="password"
+                    className="premium-form-input"
+                    placeholder="x-upload-secret"
+                    value={this.state.publishSecret}
+                    onChange={(e) => this.setState({ publishSecret: e.target.value })}
+                    style={{ border: '1px solid #fca5a5', borderRadius: '8px', background: '#fff5f5' }}
+                  />
+                </div>
+                <button
+                  className="premium-send-btn"
+                  style={{ background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 20px', whiteSpace: 'nowrap', opacity: overriding ? 0.7 : 1 }}
+                  disabled={overriding}
+                  onClick={this.overrideMdmVersion}
+                >
+                  {overriding
+                    ? <><i className="la la-spinner la-spin"></i> Overriding...</>
+                    : <><i className="la la-exclamation-triangle"></i> Force Override</>}
+                </button>
               </div>
             </div>
 
