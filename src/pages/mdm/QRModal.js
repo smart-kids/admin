@@ -22,6 +22,7 @@ class QRModal extends React.Component {
     downloadUrl: "",
     signatureChecksum: "FB:14:AD:27:3C:DC:F3:33:CF:94:F9:01:9F:F1:63:70:1B:84:D2:23:1D:0B:0E:CF:4A:C2:BC:B7:66:C7:AB:76",
     enrollmentToken: "",
+    apkVersion: "",
     showAdvancedConfig: false,
     enrolledDevices: [],
     initialDeviceIds: new Set(),
@@ -50,6 +51,18 @@ class QRModal extends React.Component {
     serverApkVersion: null,
     tokenTestStatus: null,
     deviceOwnerUserId: ""
+  };
+
+  handleApkVersionChange = (newVersion) => {
+    this.setState(prev => {
+       const newUrl = prev.downloadUrl ? prev.downloadUrl.replace(/shuleplus-[\d\.]+\.apk/, `shuleplus-${newVersion}.apk`) : "";
+       return { apkVersion: newVersion, downloadUrl: newUrl };
+    }, () => {
+       this.generateQR();
+       if (this.state.localServiceConnected) {
+           this.authenticateLocalService();
+       }
+    });
   };
 
   formatCpu = (cpuStr) => {
@@ -124,7 +137,6 @@ class QRModal extends React.Component {
   };
 
   authenticateLocalService = async () => {
-    if (this.state.localServiceAuthenticated) return;
     const schoolId = localStorage.getItem("school");
     const apiBase = BASE_URL;
     
@@ -136,7 +148,8 @@ class QRModal extends React.Component {
         school_id: schoolId,
         wifi_ssid: this.state.wifiSsid,
         wifi_password: this.state.wifiPassword,
-        api_base: apiBase
+        api_base: apiBase,
+        apk_version: this.state.apkVersion || ""
       });
       this.setState({ localServiceAuthenticated: true });
     } catch (e) {
@@ -645,7 +658,13 @@ class QRModal extends React.Component {
     try {
       const data = await Data.mdm.getApkInfo(this.API_BASE);
       const newState = {};
-      if (data.downloadUrl) newState.downloadUrl = data.downloadUrl;
+      if (data.downloadUrl) {
+        newState.downloadUrl = data.downloadUrl;
+        const vMatch = data.downloadUrl.match(/shuleplus-([\d\.]+)\.apk/);
+        if (vMatch) {
+            newState.apkVersion = vMatch[1];
+        }
+      }
       if (data.checksum) newState.signatureChecksum = data.checksum;
       // Validate that downloadUrl appears to be a valid APK URL
       if (newState.downloadUrl && !newState.downloadUrl.toLowerCase().endsWith('.apk')) {
@@ -752,7 +771,7 @@ class QRModal extends React.Component {
   };
 
   render() {
-    const { qrUrl, error, wifiSsid, wifiPassword, wifiSecurityType, wifiHidden, downloadUrl, signatureChecksum, enrollmentToken, showAdvancedConfig, enrolledDevices, toolUrls, toolVersion, toolUploadedAt, activeTab, localLogs } = this.state;
+    const { qrUrl, error, wifiSsid, wifiPassword, wifiSecurityType, wifiHidden, downloadUrl, signatureChecksum, enrollmentToken, apkVersion, showAdvancedConfig, enrolledDevices, toolUrls, toolVersion, toolUploadedAt, activeTab, localLogs } = this.state;
     const os = this.getOS();
 
     return (
@@ -835,6 +854,20 @@ class QRModal extends React.Component {
                       </ul>
                     </div>
 
+                    {/* App Version Selection */}
+                    <div className="mt-3 w-100 px-3 text-left">
+                       <label className="small font-weight-bold text-dark mb-1" style={{ fontSize: '11px' }}>App Version</label>
+                       <input 
+                         type="text" 
+                         className="form-control form-control-sm" 
+                         value={apkVersion || ""} 
+                         onChange={(e) => this.handleApkVersionChange(e.target.value)}
+                         placeholder="e.g. 204.524.632"
+                         style={{ borderRadius: '6px' }}
+                       />
+                       <small className="text-muted" style={{ fontSize: '10px' }}>Change this to install an older version.</small>
+                    </div>
+
                     {/* Collapsible Advanced Config */}
                     <div className="mt-4 w-100">
                       <button
@@ -859,7 +892,11 @@ class QRModal extends React.Component {
                               className="form-control form-control-sm"
                               placeholder="https://your-server.com/api/uploads/app.apk"
                               value={downloadUrl}
-                              onChange={(e) => this.setState({ downloadUrl: e.target.value }, this.generateQR)}
+                              onChange={(e) => {
+                                const newUrl = e.target.value;
+                                const vMatch = newUrl.match(/shuleplus-([\d\.]+)\.apk/);
+                                this.setState({ downloadUrl: newUrl, apkVersion: vMatch ? vMatch[1] : this.state.apkVersion }, this.generateQR);
+                              }}
                               style={{ borderRadius: '6px' }}
                             />
                           </div>
@@ -1082,20 +1119,20 @@ class QRModal extends React.Component {
                     <div className="alert alert-danger m-0 p-3 shadow-sm mb-3" style={{ fontSize: '12px', borderLeft: '4px solid #fd397a' }}>
                       <h6 className="font-weight-bold mb-2"><i className="la la-exclamation-triangle mr-1"></i> CRITICAL: Setup Order</h6>
                       <ol className="mb-0 pl-3">
-                        <li className="mb-1"><strong>Format</strong> the tablet (Factory Reset).</li>
-                        <li className="mb-1"><strong>SKIP</strong> adding any Google Accounts during the initial setup wizard. Go straight to the home screen.</li>
-                        <li className="mb-1">Enable USB Debugging and <strong>run this USB Tool</strong> to set Device Owner.</li>
-                        <li><strong>ONLY AFTER</strong> success, go to Settings and add the Google email account.</li>
+                        <li className="mb-2"><strong className="d-block text-dark">Format</strong> the tablet (Factory Reset).</li>
+                        <li className="mb-2"><strong className="d-block text-dark">SKIP</strong> adding any Google Accounts during the initial setup wizard. Go straight to the home screen.</li>
+                        <li className="mb-2"><strong className="d-block text-dark">Set Device Owner</strong> Enable USB Debugging and run this USB Tool to set Device Owner.</li>
+                        <li className="mb-0"><strong className="d-block text-dark">ONLY AFTER</strong> success, go to Settings and add the Google email account.</li>
                       </ol>
                     </div>
 
                     <div className="alert alert-warning m-0 p-3 shadow-sm" style={{ fontSize: '12px', borderLeft: '4px solid #ffb822' }}>
                       <h6 className="font-weight-bold mb-2"><i className="la la-code mr-1"></i> Enable USB Debugging</h6>
                       <ol className="mb-0 pl-3">
-                        <li>Settings &gt; About tablet</li>
-                        <li>Tap Build number 7 times</li>
-                        <li>System &gt; Developer options</li>
-                        <li>Toggle USB Debugging ON</li>
+                        <li className="mb-2"><strong className="d-block text-dark">Settings</strong> Go to Settings &gt; About tablet</li>
+                        <li className="mb-2"><strong className="d-block text-dark">Build Number</strong> Tap Build number 7 times</li>
+                        <li className="mb-2"><strong className="d-block text-dark">Developer Options</strong> Go to System &gt; Developer options</li>
+                        <li className="mb-0"><strong className="d-block text-dark">USB Debugging</strong> Toggle USB Debugging ON</li>
                       </ol>
                     </div>
                   </div>

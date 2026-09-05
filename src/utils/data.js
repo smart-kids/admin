@@ -2364,6 +2364,22 @@ var Data = (function () {
                 if (!res.ok) throw new Error("Failed to fetch APK info");
                 return await res.json();
             },
+            getPendingApkInfo: async (apiBase) => {
+                const res = await fetch(`${apiBase}/apk-info-pending?t=${Date.now()}`, { cache: "no-store" });
+                if (!res.ok) throw new Error("No pending version staged");
+                return await res.json();
+            },
+            publishMdmVersion: async (apiBase, uploadSecret) => {
+                const res = await fetch(`${apiBase}/mdm/publish`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "x-upload-secret": uploadSecret || ""
+                    }
+                });
+                if (!res.ok) throw new Error("Failed to publish MDM version");
+                return await res.json();
+            },
             getToolInfo: async () => {
                 const res = await fetch(`https://graph-ongyy.kinsta.app/uploads/tool-info.json?t=${Date.now()}`, { cache: "no-store" });
                 if (!res.ok) throw new Error("Failed to fetch tool info");

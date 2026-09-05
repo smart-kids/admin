@@ -12,7 +12,7 @@ class MDMList extends React.Component {
     activeFilter: "All",
     loading: true,
     showQRModal: false,
-    activeTab: "devices", // 'devices' or 'notifications'
+    activeTab: "devices", // 'devices' | 'notifications' | 'deploy'
     deviceCommands: [],
     sending: false,
     newNotification: {
@@ -26,6 +26,13 @@ class MDMList extends React.Component {
       assignedStudent: "",
       school: "",
     },
+    // Deploy tab state
+    liveApkInfo: null,
+    pendingApkInfo: null,
+    loadingVersions: false,
+    publishing: false,
+    publishSecret: "",
+    updateVersion: "",
   };
 
   componentDidMount() {
@@ -39,6 +46,7 @@ class MDMList extends React.Component {
       });
       this.setState({ deviceCommands: sorted });
     });
+    this.fetchVersionStatus();
   }
 
   componentWillUnmount() {
@@ -80,6 +88,44 @@ class MDMList extends React.Component {
 
   closeQRModal = () => {
     this.setState({ showQRModal: false });
+  };
+
+  fetchVersionStatus = async () => {
+    this.setState({ loadingVersions: true });
+    const API_BASE = 'https://graph-ongyy.kinsta.app';
+    try {
+      const [liveRes, pendingRes] = await Promise.allSettled([
+        Data.mdm.getApkInfo(API_BASE),
+        Data.mdm.getPendingApkInfo(API_BASE),
+      ]);
+      this.setState({
+        liveApkInfo: liveRes.status === 'fulfilled' ? liveRes.value : null,
+        pendingApkInfo: pendingRes.status === 'fulfilled' ? pendingRes.value : null,
+        loadingVersions: false,
+      });
+    } catch (e) {
+      this.setState({ loadingVersions: false });
+    }
+  };
+
+  publishMdmVersion = async () => {
+    const API_BASE = 'https://graph-ongyy.kinsta.app';
+    const { publishSecret } = this.state;
+    if (!publishSecret.trim()) {
+      window.toastr.warning('Enter the upload secret to authorize publishing.');
+      return;
+    }
+    if (!window.confirm('This will notify all MDM tablets to update immediately. Are you sure?')) return;
+    this.setState({ publishing: true });
+    try {
+      await Data.mdm.publishMdmVersion(API_BASE, publishSecret);
+      window.toastr.success('MDM version published! Tablets will begin updating shortly.');
+      await this.fetchVersionStatus();
+    } catch (e) {
+      window.toastr.error('Failed to publish: ' + e.message);
+    } finally {
+      this.setState({ publishing: false });
+    }
   };
 
   sendCommand = (device, commandType) => {
@@ -280,7 +326,11 @@ class MDMList extends React.Component {
       newNotification, 
       sending,
       showEditModal,
-      editFormData
+      editFormData,
+      liveApkInfo,
+      pendingApkInfo,
+      loadingVersions,
+      publishing,
     } = this.state;
     
     const filters = ["All", "ONLINE", "OFFLINE"];
@@ -320,6 +370,12 @@ class MDMList extends React.Component {
             onClick={() => this.setState({ activeTab: 'notifications' })}
           >
             <i className="la la-bullhorn"></i> Push & Kiosk Actions
+          </button>
+          <button 
+            className={`mdm-tab-btn ${activeTab === 'deploy' ? 'active' : ''}`}
+            onClick={() => { this.setState({ activeTab: 'deploy' }); this.fetchVersionStatus(); }}
+          >
+            <i className="la la-rocket"></i> Production Deploy
           </button>
         </div>
 
@@ -549,6 +605,185 @@ class MDMList extends React.Component {
             </div>
           </div>
           </>
+        )}
+
+        {activeTab === 'deploy' && (
+          <div>
+            {/* Version Status Cards */}
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
+              {/* Live Version Card */}
+              <div className="mdm-panel-section" style={{ flex: '1', minWidth: '260px', background: liveApkInfo ? 'linear-gradient(135deg, #f0fdf4, #dcfce7)' : '#f9fafb', border: '1px solid', borderColor: liveApkInfo ? '#86efac' : '#e5e7eb', borderRadius: '12px', padding: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: liveApkInfo ? '#16a34a' : '#d1d5db', display: 'inline-block', boxShadow: liveApkInfo ? '0 0 0 3px #bbf7d0' : 'none' }}></span>
+                  <strong style={{ fontSize: '13px', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Live MDM Version</strong>
+                  <button onClick={this.fetchVersionStatus} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '14px' }} title="Refresh">
+                    <i className={`la la-sync ${loadingVersions ? 'la-spin' : ''}`}></i>
+                  </button>
+                </div>
+                {liveApkInfo ? (
+                  <>
+                    <div style={{ fontSize: '28px', fontWeight: '800', color: '#15803d', letterSpacing: '-0.5px' }}>v{liveApkInfo.version}</div>
+                    <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '6px' }}>
+                      <i className="la la-clock-o"></i> Published {liveApkInfo.publishedAt ? new Date(liveApkInfo.publishedAt).toLocaleString() : new Date(liveApkInfo.uploadedAt).toLocaleString()}
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#9ca3af', marginTop: '4px', wordBreak: 'break-all' }}>
+                      <i className="la la-link"></i> {liveApkInfo.downloadUrl}
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ color: '#9ca3af', fontSize: '13px' }}>{loadingVersions ? 'Loading...' : 'No live version found.'}</div>
+                )}
+              </div>
+
+              {/* Pending Version Card */}
+              <div className="mdm-panel-section" style={{ flex: '1', minWidth: '260px', background: pendingApkInfo ? 'linear-gradient(135deg, #fffbeb, #fef3c7)' : '#f9fafb', border: '1px solid', borderColor: pendingApkInfo ? '#fcd34d' : '#e5e7eb', borderRadius: '12px', padding: '20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                  <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: pendingApkInfo ? '#f59e0b' : '#d1d5db', display: 'inline-block', boxShadow: pendingApkInfo ? '0 0 0 3px #fde68a' : 'none' }}></span>
+                  <strong style={{ fontSize: '13px', color: '#374151', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Staged (Pending) Version</strong>
+                </div>
+                {pendingApkInfo ? (
+                  <>
+                    <div style={{ fontSize: '28px', fontWeight: '800', color: '#d97706', letterSpacing: '-0.5px' }}>v{pendingApkInfo.version}</div>
+                    <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '6px' }}>
+                      <i className="la la-upload"></i> Uploaded {new Date(pendingApkInfo.uploadedAt).toLocaleString()}
+                    </div>
+                    <div style={{ fontSize: '12px', color: pendingApkInfo.version === liveApkInfo?.version ? '#16a34a' : '#d97706', marginTop: '6px', fontWeight: '600' }}>
+                      {pendingApkInfo.version === liveApkInfo?.version
+                        ? <><i className="la la-check-circle"></i> In sync with live</>  
+                        : <><i className="la la-exclamation-triangle"></i> Awaiting MDM publish</>}
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ color: '#9ca3af', fontSize: '13px' }}>{loadingVersions ? 'Loading...' : 'No staged version. Run yarn release to stage a build.'}</div>
+                )}
+              </div>
+            </div>
+
+            {/* Publish Control */}
+            {pendingApkInfo && pendingApkInfo.version !== liveApkInfo?.version && (
+              <div className="mdm-panel-section" style={{ background: 'linear-gradient(135deg, #1e293b, #0f172a)', borderRadius: '12px', padding: '24px', marginBottom: '24px', color: '#fff' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
+                  <div style={{ flex: '1', minWidth: '240px' }}>
+                    <h4 style={{ margin: '0 0 6px 0', fontSize: '16px', color: '#f1f5f9' }}>
+                      <i className="la la-rocket" style={{ color: '#f59e0b', marginRight: '8px' }}></i>
+                      Publish v{pendingApkInfo.version} to MDM Devices
+                    </h4>
+                    <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8', lineHeight: '1.5' }}>
+                      Once you have confirmed v{pendingApkInfo.version} is live on the Play Store, click Publish to notify all MDM tablets to silently update in the background.
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minWidth: '260px' }}>
+                    <input
+                      type="password"
+                      className="premium-form-input"
+                      style={{ background: '#1e293b', border: '1px solid #334155', color: '#f1f5f9', borderRadius: '8px', padding: '8px 12px', fontSize: '13px' }}
+                      placeholder="Upload secret (x-upload-secret)"
+                      value={this.state.publishSecret}
+                      onChange={(e) => this.setState({ publishSecret: e.target.value })}
+                    />
+                    <button
+                      className="premium-send-btn"
+                      style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#000', fontWeight: '700', border: 'none', borderRadius: '8px', padding: '10px 20px', cursor: publishing ? 'not-allowed' : 'pointer', opacity: publishing ? 0.7 : 1 }}
+                      disabled={publishing}
+                      onClick={this.publishMdmVersion}
+                    >
+                      {publishing
+                        ? <><i className="la la-spinner la-spin"></i> Publishing...</>
+                        : <><i className="la la-rocket"></i> Publish MDM Update</>}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Production Release Instructions */}
+            <div className="mdm-panel-section" style={{ borderRadius: '12px', border: '1px solid #e5e7eb', padding: '24px', marginBottom: '24px' }}>
+              <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', color: '#1e293b' }}>
+                <i className="la la-list-ol" style={{ color: '#6366f1', marginRight: '8px' }}></i>
+                Production Release Checklist
+              </h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {[
+                  { step: 1, icon: 'la-code-branch', color: '#6366f1', title: 'Bump version & commit', desc: 'Run yarn prepare-release to auto-increment the version number and commit the changelog.' },
+                  { step: 2, icon: 'la-play-circle', color: '#8b5cf6', title: 'yarn release', desc: 'Builds the signed AAB + APK, uploads the APK to S3 (staged, not live to MDM), and submits the AAB to the Play Store internal track.' },
+                  { step: 3, icon: 'la-google-play', color: '#06b6d4', title: 'Promote on Play Console', desc: 'Go to Google Play Console → Production → Promote release. Wait for review to complete (~hours).' },
+                  { step: 4, icon: 'la-check-double', color: '#16a34a', title: 'Verify Play Store is live', desc: 'Confirm the new version appears on the Play Store listing before touching MDM devices.' },
+                  { step: 5, icon: 'la-rocket', color: '#f59e0b', title: 'Publish to MDM', desc: 'Come back here → enter upload secret → click "Publish MDM Update". All enrolled tablets will silently self-update within minutes.' },
+                ].map(({ step, icon, color, title, desc }) => (
+                  <div key={step} style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
+                    <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <i className={`la ${icon}`} style={{ color: '#fff', fontSize: '14px' }}></i>
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: '600', fontSize: '13px', color: '#1e293b' }}><span style={{ color, marginRight: '6px' }}>Step {step}:</span>{title}</div>
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px', lineHeight: '1.5' }}>{desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Manual Update Command */}
+            <div className="mdm-panel-section mdm-composer-card" style={{ marginBottom: '24px' }}>
+              <h4 style={{ margin: '0 0 12px 0', fontSize: '15px', color: '#1e293b' }}>
+                <i className="la la-cloud-upload" style={{ color: '#3b82f6', marginRight: '8px' }}></i>
+                Manual Update Command (Play Store)
+              </h4>
+              <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '16px' }}>Sends a realtime command to tablets to open the Play Store to a specific version. Useful for non-MDM or manually-enrolled devices.</p>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                <div className="premium-form-group" style={{ flex: '1', minWidth: '200px', marginBottom: 0 }}>
+                  <label className="premium-form-label">Target Device / Channel</label>
+                  <select 
+                    className="premium-form-select"
+                    value={this.state.newNotification?.targetDevice || 'GLOBAL'}
+                    onChange={(e) => this.handleFormChange('targetDevice', e.target.value)}
+                  >
+                    <option value="GLOBAL">Broadcast to All Connected Devices</option>
+                    {this.state.devices && this.state.devices.map(d => (
+                      <option key={d.id} value={d.macAddress}>
+                        {d.assignedStudent || "Unassigned"} ({d.macAddress})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="premium-form-group" style={{ flex: '1', minWidth: '160px', marginBottom: 0 }}>
+                  <label className="premium-form-label">Target Version</label>
+                  <input 
+                    type="text"
+                    className="premium-form-input"
+                    placeholder={liveApkInfo?.version || 'e.g. 204.524.633'}
+                    value={this.state.updateVersion || ''}
+                    onChange={(e) => this.setState({ updateVersion: e.target.value })}
+                  />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                  <button 
+                    className="premium-send-btn"
+                    style={{ backgroundColor: '#3b82f6', whiteSpace: 'nowrap' }}
+                    disabled={this.state.sending}
+                    onClick={() => {
+                      this.setState({ sending: true });
+                      const target = this.state.newNotification?.targetDevice || 'GLOBAL';
+                      Data.device_commands.create({
+                        device: target,
+                        command: 'UPDATE_APP',
+                        status: 'PENDING',
+                        payload: JSON.stringify({ targetVersion: this.state.updateVersion || liveApkInfo?.version || '' }),
+                      }).then(() => {
+                        window.toastr.success('Update command dispatched!');
+                        this.setState({ sending: false, updateVersion: '' });
+                      }).catch(err => {
+                        window.toastr.error('Failed to dispatch command');
+                        this.setState({ sending: false });
+                      });
+                    }}
+                  >
+                    {this.state.sending ? <><i className="la la-spinner la-spin"></i> Sending...</> : <><i className="la la-cloud-upload"></i> Send Update Command</>}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
         {showQRModal && (
