@@ -100,6 +100,7 @@ class InstitutionalDeposits extends Component {
         itemsPerPage: 10,
         totalInvoices: 13,
         showInvoiceModal: false,
+        showReceiptModal: false,
         selectedInvoice: null,
         showEmailModal: false,
         emailRecipient: '',
@@ -197,6 +198,10 @@ class InstitutionalDeposits extends Component {
 
     handleViewInvoice = (invoice) => {
         this.setState({ selectedInvoice: invoice, showInvoiceModal: true });
+    };
+
+    handleViewReceipt = (invoice) => {
+        this.setState({ selectedInvoice: invoice, showReceiptModal: true });
     };
 
     togglePrintView = () => {
@@ -762,6 +767,106 @@ class InstitutionalDeposits extends Component {
                                 }}
                             >
                                 <i className="la la-envelope"></i> Send Email
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    renderReceiptModal = () => {
+        const { selectedInvoice, showReceiptModal, selectedSchool } = this.state;
+        
+        if (!showReceiptModal || !selectedInvoice) return null;
+
+        return (
+            <div className="modal fade show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                <div className="modal-dialog modal-lg">
+                    <div className="modal-content">
+                        <div className="modal-header">
+                            <h4 className="modal-title">
+                                <i className="la la-receipt"></i> Official Receipt
+                            </h4>
+                            <button 
+                                type="button" 
+                                className="close" 
+                                onClick={() => this.setState({ showReceiptModal: false })}
+                            >
+                                <span>&times;</span>
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="invoice-preview" style={{ padding: '20px', border: '1px solid #eee', borderRadius: '8px' }}>
+                                <div className="text-center mb-4">
+                                    {selectedSchool?.logo && (
+                                        <img src={selectedSchool.logo} alt="School Logo" style={{ maxHeight: '80px', marginBottom: '15px' }} />
+                                    )}
+                                    <h3 style={{ textTransform: 'uppercase', letterSpacing: '1px' }}>{selectedSchool?.name || 'SHULE PLUS'}</h3>
+                                    <h5 className="text-muted mt-2" style={{ letterSpacing: '2px' }}>OFFICIAL RECEIPT</h5>
+                                    <p className="text-muted mb-0">Receipt No: RCPT-{selectedInvoice.id.substring(0, 8)}</p>
+                                </div>
+                                
+                                <div className="row mb-5 mt-5">
+                                    <div className="col-md-6">
+                                        <h6 className="text-uppercase text-muted" style={{ fontSize: '0.8rem', fontWeight: 700 }}>Received From</h6>
+                                        <p className="font-weight-bold mb-1" style={{ fontSize: '1.1rem' }}>Smart Kids School</p>
+                                        <p className="text-muted mb-0">Subscription Payment</p>
+                                    </div>
+                                    <div className="col-md-6 text-right">
+                                        <h6 className="text-uppercase text-muted" style={{ fontSize: '0.8rem', fontWeight: 700 }}>Payment Details</h6>
+                                        <p className="mb-1"><strong>Date:</strong> {selectedInvoice.paymentDate ? new Date(selectedInvoice.paymentDate).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')}</p>
+                                        <p className="mb-1"><strong>Method:</strong> {selectedInvoice.paymentMethod || 'M-Pesa Express'}</p>
+                                        <p className="mb-0"><strong>Ref:</strong> {selectedInvoice.paymentIdentifier || `TRX${Math.floor(Math.random()*1000000)}`}</p>
+                                    </div>
+                                </div>
+                                
+                                <div className="table-responsive mb-4">
+                                    <table className="table table-bordered">
+                                        <thead className="bg-light">
+                                            <tr>
+                                                <th>Description</th>
+                                                <th className="text-right">Amount Applied</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>
+                                                    Settlement for Invoice #{selectedInvoice.id}<br/>
+                                                    <small className="text-muted">{selectedInvoice.description}</small>
+                                                </td>
+                                                <td className="text-right align-middle">{selectedInvoice.amount}</td>
+                                            </tr>
+                                        </tbody>
+                                        <tfoot>
+                                            <tr>
+                                                <td className="text-right border-0 pt-4"><strong>Total Amount Received:</strong></td>
+                                                <td className="text-right border-0 pt-4"><h4 className="text-success mb-0">{selectedInvoice.amount}</h4></td>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                                
+                                <div className="text-center text-muted mt-5 pt-4 border-top">
+                                    <p className="mb-1">Thank you for your payment!</p>
+                                    <p className="small">This is a system generated receipt and does not require a signature.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button 
+                                type="button" 
+                                className="btn btn-secondary" 
+                                onClick={() => this.setState({ showReceiptModal: false })}
+                            >
+                                Close
+                            </button>
+                            <button 
+                                type="button" 
+                                className="btn btn-primary"
+                                onClick={() => window.print()}
+                            >
+                                <i className="la la-print"></i> Print Receipt
                             </button>
                         </div>
                     </div>
@@ -1404,6 +1509,16 @@ class InstitutionalDeposits extends Component {
                                                 </div>
                                                 
                                                 <div style={{ display: 'flex', alignItems: 'center' }}>
+                                                    <button className="btn btn-light-primary mr-2" style={{ fontWeight: 600, padding: '10px 20px', borderRadius: '6px', display: 'flex', alignItems: 'center', textTransform: 'uppercase', letterSpacing: '0.5px' }} onClick={() => this.handleViewInvoice(invoice)}>
+                                                        <i className="la la-file-invoice" style={{ fontSize: '1.2rem', marginRight: '8px' }}></i>
+                                                        <span>Invoice</span>
+                                                    </button>
+                                                    
+                                                    <button className="btn btn-light-info mr-2" style={{ fontWeight: 600, padding: '10px 20px', borderRadius: '6px', display: 'flex', alignItems: 'center', textTransform: 'uppercase', letterSpacing: '0.5px' }} onClick={() => this.handleViewReceipt(invoice)}>
+                                                        <i className="la la-receipt" style={{ fontSize: '1.2rem', marginRight: '8px' }}></i>
+                                                        <span>Receipt</span>
+                                                    </button>
+                                                    
                                                     {invoice.status === 'Unpaid' && (
                                                         <button className="btn btn-success" style={{ fontWeight: 600, padding: '10px 20px', borderRadius: '6px', display: 'flex', alignItems: 'center', textTransform: 'uppercase', letterSpacing: '0.5px', boxShadow: '0 0.125rem 0.25rem rgba(27, 197, 189, 0.4)' }} onClick={() => this.handlePayInvoice(invoice)}>
                                                             <i className="la la-credit-card" style={{ fontSize: '1.2rem', marginRight: '8px' }}></i>
@@ -1468,18 +1583,20 @@ class InstitutionalDeposits extends Component {
                             </div>
                         )}
                         
-                        {currentInvoices.length > 0 && (
-                            <Pagination
-                                total={totalInvoices}
-                                itemsPerPage={itemsPerPage}
-                                currentPage={currentPage}
-                                onPageChange={this.handlePageChange}
-                            />
-                        )}
+                {currentInvoices.length > 0 && (
+                                    <Pagination
+                                        total={totalInvoices}
+                                        itemsPerPage={itemsPerPage}
+                                        currentPage={currentPage}
+                                        onPageChange={this.handlePageChange}
+                                    />
+                                )}
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
-        );
+                    {this.renderInvoiceModal()}
+                    {this.renderReceiptModal()}
+                    {this.renderPaymentModal()}
     };
 
     renderPrintView = () => {
