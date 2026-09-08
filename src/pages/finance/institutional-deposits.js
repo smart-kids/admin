@@ -776,26 +776,53 @@ class InstitutionalDeposits extends Component {
                                                                 const numValue = typeof newAmountRaw === 'string' ? parseFloat(newAmountRaw.replace(/[^0-9.]/g, '')) : newAmountRaw;
                                                                 const originalAmountRaw = typeof selectedInvoice.amount === 'string' ? parseFloat(selectedInvoice.amount.replace(/[^0-9.]/g, '')) : selectedInvoice.amount;
                                                                 
-                                                                const UPDATE_INVOICE_MUTATION = `
-                                                                    mutation UpdateInvoice($invoice: Uinvoice!) {
-                                                                        invoices {
-                                                                            update(invoice: $invoice) {
-                                                                                id amount
+                                                                const isAutoInvoice = selectedInvoice.id.startsWith('AUTO-');
+                                                                let realInvoiceId = selectedInvoice.id;
+                                                                
+                                                                if (isAutoInvoice) {
+                                                                    const CREATE_INVOICE_MUTATION = `
+                                                                        mutation CreateInvoice($invoice: Iinvoice!) {
+                                                                            invoices {
+                                                                                create(invoice: $invoice) {
+                                                                                    id amount description status dueDate createdDate
+                                                                                }
                                                                             }
                                                                         }
+                                                                    `;
+                                                                    const res = await mutate(CREATE_INVOICE_MUTATION, {
+                                                                        invoice: {
+                                                                            school: this.state.selectedSchool.id,
+                                                                            amount: numValue,
+                                                                            description: selectedInvoice.description || 'Subscription',
+                                                                            status: selectedInvoice.status || 'Unpaid',
+                                                                            dueDate: selectedInvoice.dueDate || new Date().toISOString()
+                                                                        }
+                                                                    });
+                                                                    if (res && res.invoices && res.invoices.create) {
+                                                                        realInvoiceId = res.invoices.create.id;
                                                                     }
-                                                                `;
-                                                                
-                                                                await mutate(UPDATE_INVOICE_MUTATION, {
-                                                                    invoice: {
-                                                                        id: selectedInvoice.id,
-                                                                        amount: numValue
-                                                                    }
-                                                                });
+                                                                } else {
+                                                                    const UPDATE_INVOICE_MUTATION = `
+                                                                        mutation UpdateInvoice($invoice: Uinvoice!) {
+                                                                            invoices {
+                                                                                update(invoice: $invoice) {
+                                                                                    id amount
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    `;
+                                                                    
+                                                                    await mutate(UPDATE_INVOICE_MUTATION, {
+                                                                        invoice: {
+                                                                            id: selectedInvoice.id,
+                                                                            amount: numValue
+                                                                        }
+                                                                    });
+                                                                }
 
                                                                 const updatedInvoices = this.state.invoices.map(inv => {
                                                                     if (inv.id === selectedInvoice.id) {
-                                                                        return { ...inv, amount: numValue };
+                                                                        return { ...inv, id: realInvoiceId, amount: numValue };
                                                                     }
                                                                     return inv;
                                                                 });
@@ -828,9 +855,9 @@ class InstitutionalDeposits extends Component {
                                                                     }
                                                                 }
 
-                                                                this.setState({
+                                                                this.setState({ 
                                                                     invoices: updatedInvoices,
-                                                                    selectedInvoice: { ...selectedInvoice, amount: numValue }
+                                                                    selectedInvoice: { ...selectedInvoice, id: realInvoiceId, amount: numValue }
                                                                 });
                                                                 
                                                                 if (window.$ && window.$.toast) {
