@@ -3,6 +3,7 @@ import Navbar from "../../components/navbar";
 import Subheader from "../../components/subheader";
 import Footer from "../../components/footer";
 import Data from "../../utils/data";
+import { mutate } from "../../utils/requests";
 import ErrorToast from "../finance/components/error-toast";
 import SuccessToast from "../schools/components/success-toast";
 import MpesaPaymentModal from "./deposit";
@@ -712,7 +713,9 @@ class InstitutionalDeposits extends Component {
                                     </div>
                                     <div className="col-md-6 text-right">
                                         <h6>Amount Due</h6>
-                                        <h2 className="text-success">{selectedInvoice.amount}</h2>
+                                        <h2 className="text-success">
+                                            KES {parseFloat(String(selectedInvoice.amount).replace(/[^0-9.]/g, '')).toLocaleString('en-US')}
+                                        </h2>
                                         <span className="badge badge-success">{selectedInvoice.status}</span>
                                     </div>
                                 </div>
@@ -725,7 +728,7 @@ class InstitutionalDeposits extends Component {
                                                 <strong>Amount Payable</strong>
                                                 <span className="d-block text-muted small">Edit the amount you wish to pay now.</span>
                                             </div>
-                                            <div className="input-group input-group-solid" style={{ maxWidth: '200px' }}>
+                                            <div className="input-group input-group-solid" style={{ maxWidth: '280px' }}>
                                                 <div className="input-group-prepend"><span className="input-group-text">KES</span></div>
                                                 <input 
                                                     type="number" 
@@ -737,6 +740,58 @@ class InstitutionalDeposits extends Component {
                                                         })
                                                     }}
                                                 />
+                                                <div className="input-group-append">
+                                                    <button 
+                                                        className="btn btn-primary font-weight-bold" 
+                                                        type="button"
+                                                        onClick={async () => {
+                                                            try {
+                                                                const newAmount = selectedInvoice.customPayAmount || selectedInvoice.amount;
+                                                                const numValue = typeof newAmount === 'string' ? parseFloat(newAmount.replace(/[^0-9.]/g, '')) : newAmount;
+                                                                
+                                                                const UPDATE_INVOICE_MUTATION = `
+                                                                    mutation UpdateInvoice($invoice: Uinvoice!) {
+                                                                        invoices {
+                                                                            update(invoice: $invoice) {
+                                                                                id amount
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                `;
+                                                                
+                                                                await mutate(UPDATE_INVOICE_MUTATION, {
+                                                                    invoice: {
+                                                                        id: selectedInvoice.id,
+                                                                        amount: String(numValue)
+                                                                    }
+                                                                });
+
+                                                                const updatedInvoices = this.state.invoices.map(inv => {
+                                                                    if (inv.id === selectedInvoice.id) {
+                                                                        return { ...inv, amount: numValue };
+                                                                    }
+                                                                    return inv;
+                                                                });
+                                                                this.setState({
+                                                                    invoices: updatedInvoices,
+                                                                    selectedInvoice: { ...selectedInvoice, amount: numValue }
+                                                                });
+                                                                if (window.$ && window.$.toast) {
+                                                                    window.$.toast({ heading: 'Success', text: 'Amount Payable saved successfully', icon: 'success', position: 'top-right' });
+                                                                } else if (typeof successToast !== 'undefined') {
+                                                                    successToast.show({ message: 'Amount Payable saved successfully', header: 'Success' });
+                                                                }
+                                                            } catch (err) {
+                                                                console.error("Failed to update invoice amount", err);
+                                                                if (typeof errorToast !== 'undefined') {
+                                                                    errorToast.show({ message: 'Failed to update amount on backend' });
+                                                                }
+                                                            }
+                                                        }}
+                                                    >
+                                                        Save
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -753,11 +808,11 @@ class InstitutionalDeposits extends Component {
                                         <tbody>
                                             <tr>
                                                 <td>{selectedInvoice.description || 'ShulePlus Services'}</td>
-                                                <td className="text-right">{selectedInvoice.amount}</td>
+                                                <td className="text-right">KES {parseFloat(String(selectedInvoice.amount).replace(/[^0-9.]/g, '')).toLocaleString('en-US')}</td>
                                             </tr>
                                             <tr>
                                                 <td><strong>Total</strong></td>
-                                                <td className="text-right"><strong>{selectedInvoice.amount}</strong></td>
+                                                <td className="text-right"><strong>KES {parseFloat(String(selectedInvoice.amount).replace(/[^0-9.]/g, '')).toLocaleString('en-US')}</strong></td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -888,13 +943,13 @@ class InstitutionalDeposits extends Component {
                                                     Settlement for Invoice #{selectedInvoice.id}<br/>
                                                     <small className="text-muted">{selectedInvoice.description}</small>
                                                 </td>
-                                                <td className="text-right align-middle">{selectedInvoice.amount}</td>
+                                                <td className="text-right align-middle">KES {parseFloat(String(selectedInvoice.amount).replace(/[^0-9.]/g, '')).toLocaleString('en-US')}</td>
                                             </tr>
                                         </tbody>
                                         <tfoot>
                                             <tr>
                                                 <td className="text-right border-0 pt-4"><strong>Total Amount Received:</strong></td>
-                                                <td className="text-right border-0 pt-4"><h4 className="text-success mb-0">{selectedInvoice.amount}</h4></td>
+                                                <td className="text-right border-0 pt-4"><h4 className="text-success mb-0">KES {parseFloat(String(selectedInvoice.amount).replace(/[^0-9.]/g, '')).toLocaleString('en-US')}</h4></td>
                                             </tr>
                                         </tfoot>
                                     </table>
@@ -1510,7 +1565,7 @@ class InstitutionalDeposits extends Component {
                             <div className="kt-portlet__body p-5 d-flex flex-column justify-content-center">
                                 <span className="text-warning font-weight-boldest text-uppercase mb-2" style={{ fontSize: '0.8rem', letterSpacing: '1px' }}>Next Invoice Due</span>
                                 <span className="font-weight-boldest text-dark" style={{ fontSize: '1.5rem' }}>{nextDue ? nextDue.dueDate : 'No pending invoices'}</span>
-                                {nextDue && <span className="text-muted font-weight-bold small mt-1">{nextDue.amount}</span>}
+                                {nextDue && <span className="text-muted font-weight-bold small mt-1">KES {parseFloat(String(nextDue.amount).replace(/[^0-9.]/g, '')).toLocaleString('en-US')}</span>}
                             </div>
                         </div>
                     </div>
@@ -1543,7 +1598,7 @@ class InstitutionalDeposits extends Component {
                                             </div>
                                             <div style={{ display: 'flex', alignItems: 'center', marginTop: '16px' }}>
                                                 <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', minWidth: '100px', marginRight: '24px' }}>
-                                                    <div style={{ fontWeight: 700, color: '#3f4254', fontSize: '1.3rem', marginBottom: '4px' }}>{invoice.amount}</div>
+                                                    <div style={{ fontWeight: 700, color: '#3f4254', fontSize: '1.3rem', marginBottom: '4px' }}>KES {parseFloat(String(invoice.amount).replace(/[^0-9.]/g, '')).toLocaleString('en-US')}</div>
                                                     {invoice.status === 'Paid' && (
                                                         <span style={{ backgroundColor: '#1BC5BD', color: '#fff', padding: '4px 12px', borderRadius: '4px', fontSize: '0.85rem', fontWeight: 600, display: 'inline-flex', alignItems: 'center' }}>
                                                             <i className="la la-check text-white" style={{ marginRight: '4px' }}></i> {invoice.status}
@@ -1561,21 +1616,18 @@ class InstitutionalDeposits extends Component {
                                                     )}
                                                 </div>
                                                 
-                                                <div style={{ display: 'flex', alignItems: 'center' }}>
-                                                    <button className="btn btn-light-primary mr-2" style={{ fontWeight: 600, padding: '10px 20px', borderRadius: '6px', display: 'flex', alignItems: 'center', textTransform: 'uppercase', letterSpacing: '0.5px' }} onClick={() => this.handleViewInvoice(invoice)}>
-                                                        <i className="la la-file-invoice" style={{ fontSize: '1.2rem', marginRight: '8px' }}></i>
-                                                        <span>Invoice</span>
+                                                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                                                    <button className="btn btn-sm btn-light-primary font-weight-bolder text-uppercase px-4 py-2 shadow-sm" onClick={() => this.handleViewInvoice(invoice)}>
+                                                        <i className="la la-file-invoice mr-2"></i> Invoice
                                                     </button>
                                                     
-                                                    <button className="btn btn-light-info mr-2" style={{ fontWeight: 600, padding: '10px 20px', borderRadius: '6px', display: 'flex', alignItems: 'center', textTransform: 'uppercase', letterSpacing: '0.5px' }} onClick={() => this.handleViewReceipt(invoice)}>
-                                                        <i className="la la-receipt" style={{ fontSize: '1.2rem', marginRight: '8px' }}></i>
-                                                        <span>Receipt</span>
+                                                    <button className="btn btn-sm btn-light-info font-weight-bolder text-uppercase px-4 py-2 shadow-sm" onClick={() => this.handleViewReceipt(invoice)}>
+                                                        <i className="la la-receipt mr-2"></i> Receipt
                                                     </button>
                                                     
                                                     {invoice.status === 'Unpaid' && (
-                                                        <button className="btn btn-success" style={{ fontWeight: 600, padding: '10px 20px', borderRadius: '6px', display: 'flex', alignItems: 'center', textTransform: 'uppercase', letterSpacing: '0.5px', boxShadow: '0 0.125rem 0.25rem rgba(27, 197, 189, 0.4)' }} onClick={() => this.handlePayInvoice(invoice)}>
-                                                            <i className="la la-credit-card" style={{ fontSize: '1.2rem', marginRight: '8px' }}></i>
-                                                            <span>Pay Now</span>
+                                                        <button className="btn btn-sm btn-success font-weight-bolder text-uppercase px-4 py-2 shadow-sm" onClick={() => this.handlePayInvoice(invoice)}>
+                                                            <i className="la la-credit-card mr-2"></i> Pay Now
                                                         </button>
                                                     )}
                                                     
