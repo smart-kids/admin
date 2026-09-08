@@ -166,8 +166,20 @@ const _executeRequestWithRetries = async (queryString, variables, isMutation = f
 
 const startDebugRequest = (queryString, type = 'Loading') => {
     if (!window.__debugState) return null;
-    const opMatch = queryString.match(/(?:query|mutation)\s+(\w+)/);
-    const actionName = opMatch ? `${type} ${opMatch[1]}` : `${type} Data...`;
+    let target = 'Data';
+    
+    const namedOpMatch = queryString.match(/(?:query|mutation)\s+([A-Za-z0-9_]+)/);
+    if (namedOpMatch && namedOpMatch[1]) {
+        target = namedOpMatch[1].replace(/^(Get|GetAll|Create|Update|Delete)/, '');
+    } else {
+        const fieldMatch = queryString.match(/\{\s*([A-Za-z0-9_]+)/);
+        if (fieldMatch && fieldMatch[1]) {
+            target = fieldMatch[1];
+        }
+    }
+    
+    target = target.charAt(0).toUpperCase() + target.slice(1);
+    const actionName = `${type} ${target}`;
     const reqId = Date.now() + Math.random();
     
     if (!window.__debugState.requests) window.__debugState.requests = [];

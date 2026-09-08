@@ -47,7 +47,7 @@ const GLASS_BG = 'var(--glass-bg)';
 
 class Navbar extends React.Component {
   state = {
-    selectedSchool: {},
+    selectedSchool: JSON.parse(localStorage.getItem("schoolData") || "{}"),
     availableSchools: Data.schools.list(),
     userRole: "",
     fetchingSchools: Data.schools.list().length === 0,

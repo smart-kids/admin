@@ -58,6 +58,15 @@ const NetworkDebugOverlay = () => {
         );
     }
 
+    const requestCounts = activeRequests.reduce((acc, req) => {
+        acc[req.action] = (acc[req.action] || 0) + 1;
+        return acc;
+    }, {});
+    
+    const summary = Object.entries(requestCounts)
+        .map(([action, count]) => count > 1 ? `${count}x ${action}` : action)
+        .join(', ');
+
     return (
         <div style={{
             color: '#aaa',
@@ -78,8 +87,9 @@ const NetworkDebugOverlay = () => {
             {activeRequests.length > 0 && (
                 <>
                     <span style={{opacity: 0.5}}>|</span>
-                    <span style={{ color: '#00ccff', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {activeRequests.map(r => r.action).join(', ')}
+                    <span style={{ color: '#00ccff', overflow: 'hidden', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <i className="fa fa-spinner fa-spin" style={{ fontSize: '10px' }}></i>
+                        {summary}
                     </span>
                 </>
             )}
