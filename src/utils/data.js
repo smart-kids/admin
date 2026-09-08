@@ -1837,7 +1837,7 @@ var Data = (function () {
                         const queryStr = `
                             query GetInvoices($school: String, $status: String) {
                                 invoices(school: $school, status: $status) {
-                                    id amount description status dueDate createdDate paymentMethod paymentIdentifier confirmedBy confirmedDate
+                                    id amount description status dueDate createdDate paymentMethod paymentIdentifier confirmedBy confirmedDate metadata
                                     school { id name }
                                 }
                             }

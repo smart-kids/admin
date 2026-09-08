@@ -544,7 +544,135 @@ class InstitutionalDeposits extends Component {
         this.setState({ showBankPaymentModal: false });
     };
 
-    handleBankPaymentSubmit = () => {
+    processInvoicePayment = async (invoice, paymentDetails, newStatus = 'Paid') => {
+        try {
+            const { paymentMethod, paymentIdentifier, confirmedBy } = paymentDetails;
+            
+            const originalAmountRaw = typeof invoice.amount === 'string' ? parseFloat(invoice.amount.replace(/[^0-9.]/g, '')) : invoice.amount;
+            const paidAmountRaw = invoice.customPayAmount ? parseFloat(String(invoice.customPayAmount).replace(/[^0-9.]/g, '')) : originalAmountRaw;
+            
+            const isPartial = paidAmountRaw < originalAmountRaw;
+            const balance = originalAmountRaw - paidAmountRaw;
+            const isAutoInvoice = invoice.id.startsWith('AUTO-');
+            
+            let resultInvoiceData = null;
+            
+            const metadataObj = { originalAmount: originalAmountRaw, balance: isPartial ? balance : 0, isPartial };
+
+            // For Pending Confirmation, we don't split yet. We just update the invoice so admin can see it.
+            // Wait, if it's partial and pending, we probably should split it now, or just record customPayAmount in metadata.
+            // Let's split it right now so the balance invoice is immediately visible to user as Unpaid!
+            
+            if (isAutoInvoice) {
+                const CREATE_INVOICE_MUTATION = `
+                    mutation CreateInvoice($invoice: Iinvoice!) {
+                        invoices {
+                            create(invoice: $invoice) {
+                                id amount description status dueDate createdDate metadata paymentMethod paymentIdentifier
+                            }
+                        }
+                    }
+                `;
+                const res = await mutate(CREATE_INVOICE_MUTATION, {
+                    invoice: {
+                        school: this.state.selectedSchool.id,
+                        amount: paidAmountRaw,
+                        description: invoice.description || 'Subscription',
+                        status: newStatus,
+                        dueDate: invoice.dueDate || new Date().toISOString(),
+                        metadata: metadataObj
+                    }
+                });
+                if (res?.invoices?.create) {
+                    resultInvoiceData = { ...res.invoices.create, paymentMethod, paymentIdentifier, confirmedBy, confirmedDate: newStatus === 'Paid' ? new Date().toISOString() : null };
+                }
+            } else {
+                const UPDATE_INVOICE_MUTATION = `
+                    mutation UpdateInvoice($invoice: Uinvoice!) {
+                        invoices {
+                            update(invoice: $invoice) {
+                                id amount description status metadata paymentMethod paymentIdentifier confirmedBy confirmedDate
+                            }
+                        }
+                    }
+                `;
+                const res = await mutate(UPDATE_INVOICE_MUTATION, {
+                    invoice: {
+                        id: invoice.id,
+                        amount: paidAmountRaw,
+                        status: newStatus,
+                        paymentMethod,
+                        paymentIdentifier,
+                        confirmedBy,
+                        confirmedDate: newStatus === 'Paid' ? new Date().toISOString() : null,
+                        metadata: metadataObj
+                    }
+                });
+                if (res?.invoices?.update) {
+                    resultInvoiceData = res.invoices.update;
+                } else {
+                    resultInvoiceData = { ...invoice, amount: paidAmountRaw, status: newStatus, paymentMethod, paymentIdentifier, confirmedBy, metadata: metadataObj };
+                }
+            }
+
+            let balanceInvoiceData = null;
+            if (isPartial) {
+                const CREATE_INVOICE_MUTATION = `
+                    mutation CreateInvoice($invoice: Iinvoice!) {
+                        invoices {
+                            create(invoice: $invoice) {
+                                id amount description status dueDate createdDate metadata
+                            }
+                        }
+                    }
+                `;
+                const res = await mutate(CREATE_INVOICE_MUTATION, {
+                    invoice: {
+                        school: this.state.selectedSchool.id,
+                        amount: balance,
+                        description: `Balance for ${invoice.description || 'Subscription'}`,
+                        status: 'Unpaid',
+                        dueDate: invoice.dueDate || new Date().toISOString()
+                    }
+                });
+                if (res?.invoices?.create) {
+                    balanceInvoiceData = res.invoices.create;
+                }
+            }
+
+            // Update UI
+            const updatedInvoices = this.state.invoices.filter(inv => inv.id !== invoice.id);
+            if (resultInvoiceData) updatedInvoices.unshift(resultInvoiceData);
+            if (balanceInvoiceData) updatedInvoices.unshift(balanceInvoiceData);
+
+            this.setState({ invoices: updatedInvoices });
+            return resultInvoiceData;
+
+        } catch (err) {
+            console.error("Payment processing failed", err);
+            throw err;
+        }
+    };
+
+    handleConfirmPayment = async () => {
+        const { selectedInvoice } = this.state;
+        if (!selectedInvoice) return;
+
+        try {
+            const paidInvoice = await this.processInvoicePayment(selectedInvoice, {
+                paymentMethod: 'M-Pesa Express',
+                paymentIdentifier: `MPESA-${Math.random().toString(36).substring(7).toUpperCase()}`,
+                confirmedBy: 'System (M-Pesa)'
+            }, 'Paid');
+
+            this.setState({ showPaymentModal: false, selectedInvoice: paidInvoice, showReceiptModal: true });
+            successToast.show({ message: 'M-Pesa payment processed successfully!' });
+        } catch (err) {
+            errorToast.show({ message: 'Failed to process payment' });
+        }
+    };
+
+    handleBankPaymentSubmit = async () => {
         const { bankPaymentIdentifier, selectedInvoice } = this.state;
         
         if (!bankPaymentIdentifier || !bankPaymentIdentifier.trim()) {
@@ -552,55 +680,64 @@ class InstitutionalDeposits extends Component {
             return;
         }
         
-        // Update invoice with bank payment pending status
-        const updatedInvoices = this.state.invoices.map(inv => {
-            if (inv.id === selectedInvoice.id) {
-                return { 
-                    ...inv, 
-                    status: 'Pending Confirmation',
-                    paymentMethod: 'bank',
-                    paymentIdentifier: bankPaymentIdentifier.trim(),
-                    paymentDate: new Date().toISOString()
-                };
-            }
-            return inv;
-        });
+        try {
+            await this.processInvoicePayment(selectedInvoice, {
+                paymentMethod: 'Bank Transfer',
+                paymentIdentifier: bankPaymentIdentifier.trim()
+            }, 'Pending Confirmation');
 
-        this.setState({ 
-            invoices: updatedInvoices,
-            showBankPaymentModal: false,
-            selectedInvoice: null,
-            bankPaymentIdentifier: ''
-        });
+            this.setState({ 
+                showBankPaymentModal: false,
+                selectedInvoice: null,
+                bankPaymentIdentifier: ''
+            });
 
-        successToast.show({ 
-            message: `Bank payment reference ${bankPaymentIdentifier} submitted. Awaiting admin confirmation.`,
-            header: 'Payment Submitted'
-        });
+            successToast.show({ 
+                message: `Bank payment reference ${bankPaymentIdentifier} submitted. Awaiting admin confirmation.`,
+                header: 'Payment Submitted'
+            });
+        } catch (err) {
+            errorToast.show({ message: 'Failed to submit bank payment' });
+        }
     };
 
-    handleConfirmBankPayment = (invoice) => {
-        // Update invoice status to Paid
-        const updatedInvoices = this.state.invoices.map(inv => {
-            if (inv.id === invoice.id) {
-                return { 
-                    ...inv, 
+    handleConfirmBankPayment = async (invoice) => {
+        try {
+            // Already split, just update status to Paid
+            const UPDATE_INVOICE_MUTATION = `
+                mutation UpdateInvoice($invoice: Uinvoice!) {
+                    invoices {
+                        update(invoice: $invoice) {
+                            id amount description status metadata
+                        }
+                    }
+                }
+            `;
+            await mutate(UPDATE_INVOICE_MUTATION, {
+                invoice: {
+                    id: invoice.id,
                     status: 'Paid',
                     confirmedBy: this.state.currentUser?.name || 'Super Admin',
                     confirmedDate: new Date().toISOString()
-                };
-            }
-            return inv;
-        });
+                }
+            });
 
-        this.setState({ 
-            invoices: updatedInvoices
-        });
+            const updatedInvoices = this.state.invoices.map(inv => {
+                if (inv.id === invoice.id) {
+                    return { ...inv, status: 'Paid', confirmedBy: this.state.currentUser?.name || 'Super Admin' };
+                }
+                return inv;
+            });
 
-        successToast.show({ 
-            message: `Payment for invoice ${invoice.id} confirmed successfully!`,
-            header: 'Payment Confirmed'
-        });
+            this.setState({ invoices: updatedInvoices });
+
+            successToast.show({ 
+                message: `Payment for invoice ${invoice.id} confirmed successfully!`,
+                header: 'Payment Confirmed'
+            });
+        } catch (err) {
+            errorToast.show({ message: 'Failed to confirm bank payment' });
+        }
     };
 
     handleCardPayment = () => {
@@ -947,10 +1084,24 @@ class InstitutionalDeposits extends Component {
                                             </tr>
                                         </tbody>
                                         <tfoot>
+                                            {selectedInvoice.metadata && selectedInvoice.metadata.isPartial && (
+                                                <>
+                                                    <tr>
+                                                        <td className="text-right border-0 pt-4 text-muted"><strong>Original Invoice Amount:</strong></td>
+                                                        <td className="text-right border-0 pt-4"><h6 className="text-muted mb-0">KES {parseFloat(String(selectedInvoice.metadata.originalAmount)).toLocaleString('en-US')}</h6></td>
+                                                    </tr>
+                                                </>
+                                            )}
                                             <tr>
-                                                <td className="text-right border-0 pt-4"><strong>Total Amount Received:</strong></td>
-                                                <td className="text-right border-0 pt-4"><h4 className="text-success mb-0">KES {parseFloat(String(selectedInvoice.amount).replace(/[^0-9.]/g, '')).toLocaleString('en-US')}</h4></td>
+                                                <td className="text-right border-0 pt-2"><strong>Total Amount Received:</strong></td>
+                                                <td className="text-right border-0 pt-2"><h4 className="text-success mb-0">KES {parseFloat(String(selectedInvoice.amount).replace(/[^0-9.]/g, '')).toLocaleString('en-US')}</h4></td>
                                             </tr>
+                                            {selectedInvoice.metadata && selectedInvoice.metadata.isPartial && (
+                                                <tr>
+                                                    <td className="text-right border-0 pt-2"><strong>Remaining Balance Due:</strong></td>
+                                                    <td className="text-right border-0 pt-2"><h5 className="text-danger mb-0">KES {parseFloat(String(selectedInvoice.metadata.balance)).toLocaleString('en-US')}</h5></td>
+                                                </tr>
+                                            )}
                                         </tfoot>
                                     </table>
                                 </div>
