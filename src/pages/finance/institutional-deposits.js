@@ -675,7 +675,7 @@ class InstitutionalDeposits extends Component {
     };
 
     renderInvoiceModal = () => {
-        const { selectedInvoice, showInvoiceModal } = this.state;
+        const { selectedInvoice, showInvoiceModal, selectedSchool } = this.state;
         
         if (!showInvoiceModal || !selectedInvoice) return null;
 
@@ -698,16 +698,17 @@ class InstitutionalDeposits extends Component {
                         <div className="modal-body">
                             <div className="invoice-preview">
                                 <div className="text-center mb-4">
-                                    <h3>SHULE PLUS</h3>
+                                    <img src={'/assets/media/logos/ic_launcher.png'} alt="ShulePlus Logo" style={{ maxHeight: '80px', marginBottom: '15px' }} />
+                                    <h3 style={{ textTransform: 'uppercase', letterSpacing: '1px' }}>SHULE PLUS</h3>
                                     <p className="text-muted">Invoice # {selectedInvoice.id}</p>
                                 </div>
                                 
                                 <div className="row mb-4">
                                     <div className="col-md-6">
-                                        <h6>Invoice Details</h6>
-                                        <p><strong>Invoice Number:</strong> {selectedInvoice.id}</p>
-                                        <p><strong>Date Created:</strong> {selectedInvoice.created}</p>
-                                        <p><strong>Due Date:</strong> {selectedInvoice.created}</p>
+                                        <h6 className="text-uppercase text-muted" style={{ fontSize: '0.8rem', fontWeight: 700 }}>Billed To</h6>
+                                        <p className="font-weight-bold mb-1" style={{ fontSize: '1.1rem' }}>{selectedSchool?.name || "School Name"}</p>
+                                        <p className="text-muted mb-0">Invoice Date: {selectedInvoice.created}</p>
+                                        <p className="text-muted mb-0">Due Date: {selectedInvoice.created}</p>
                                     </div>
                                     <div className="col-md-6 text-right">
                                         <h6>Amount Due</h6>
@@ -715,6 +716,31 @@ class InstitutionalDeposits extends Component {
                                         <span className="badge badge-success">{selectedInvoice.status}</span>
                                     </div>
                                 </div>
+                                
+                                {selectedInvoice.status === 'Unpaid' && (
+                                    <div className="alert alert-custom alert-light-primary fade show mb-4" role="alert" style={{ borderRadius: '8px' }}>
+                                        <div className="alert-icon"><i className="flaticon-coins"></i></div>
+                                        <div className="alert-text d-flex align-items-center justify-content-between w-100">
+                                            <div>
+                                                <strong>Amount Payable</strong>
+                                                <span className="d-block text-muted small">Edit the amount you wish to pay now.</span>
+                                            </div>
+                                            <div className="input-group input-group-solid" style={{ maxWidth: '200px' }}>
+                                                <div className="input-group-prepend"><span className="input-group-text">KES</span></div>
+                                                <input 
+                                                    type="number" 
+                                                    className="form-control font-weight-bold" 
+                                                    defaultValue={typeof selectedInvoice.amount === 'string' ? selectedInvoice.amount.replace(/[^0-9.]/g, '') : selectedInvoice.amount}
+                                                    onChange={(e) => {
+                                                        this.setState({
+                                                            selectedInvoice: { ...selectedInvoice, customPayAmount: e.target.value }
+                                                        })
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                                 
                                 <div className="table-responsive mb-4">
                                     <table className="table">
@@ -726,7 +752,7 @@ class InstitutionalDeposits extends Component {
                                         </thead>
                                         <tbody>
                                             <tr>
-                                                <td>Monthly Subscription - Smart Kids School</td>
+                                                <td>{selectedInvoice.description || 'ShulePlus Services'}</td>
                                                 <td className="text-right">{selectedInvoice.amount}</td>
                                             </tr>
                                             <tr>
@@ -751,6 +777,21 @@ class InstitutionalDeposits extends Component {
                             >
                                 Close
                             </button>
+                            {selectedInvoice.status === 'Unpaid' && (
+                                <button 
+                                    type="button" 
+                                    className="btn btn-success"
+                                    onClick={() => {
+                                        this.setState({ showInvoiceModal: false });
+                                        // Pass the custom amount if edited, else default
+                                        const payAmount = selectedInvoice.customPayAmount || (typeof selectedInvoice.amount === 'string' ? selectedInvoice.amount.replace(/[^0-9.]/g, '') : selectedInvoice.amount);
+                                        const invToPay = { ...selectedInvoice, amount: payAmount };
+                                        this.handlePayInvoice(invToPay);
+                                    }}
+                                >
+                                    <i className="la la-credit-card"></i> Pay Now
+                                </button>
+                            )}
                             <button 
                                 type="button" 
                                 className="btn btn-primary"
@@ -760,13 +801,13 @@ class InstitutionalDeposits extends Component {
                             </button>
                             <button 
                                 type="button" 
-                                className="btn btn-success"
+                                className="btn btn-info"
                                 onClick={() => {
                                     this.setState({ showInvoiceModal: false });
                                     this.handleEmailInvoice(selectedInvoice);
                                 }}
                             >
-                                <i className="la la-envelope"></i> Send Email
+                                <i className="la la-envelope"></i> Email
                             </button>
                         </div>
                     </div>
@@ -797,20 +838,32 @@ class InstitutionalDeposits extends Component {
                             </button>
                         </div>
                         <div className="modal-body">
-                            <div className="invoice-preview" style={{ padding: '20px', border: '1px solid #eee', borderRadius: '8px' }}>
-                                <div className="text-center mb-4">
-                                    {selectedSchool?.logo && (
-                                        <img src={selectedSchool.logo} alt="School Logo" style={{ maxHeight: '80px', marginBottom: '15px' }} />
-                                    )}
-                                    <h3 style={{ textTransform: 'uppercase', letterSpacing: '1px' }}>{selectedSchool?.name || 'SHULE PLUS'}</h3>
+                            <div className="invoice-preview" style={{ padding: '20px', border: '1px solid #eee', borderRadius: '8px', position: 'relative', overflow: 'hidden' }}>
+                                <div style={{
+                                    position: 'absolute',
+                                    top: '45%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%) rotate(-30deg)',
+                                    fontSize: '8rem',
+                                    fontWeight: '900',
+                                    color: 'rgba(27, 197, 189, 0.1)',
+                                    pointerEvents: 'none',
+                                    letterSpacing: '15px',
+                                    zIndex: 0
+                                }}>
+                                    PAID
+                                </div>
+                                <div className="text-center mb-4 position-relative" style={{ zIndex: 1 }}>
+                                    <img src={'/assets/media/logos/ic_launcher.png'} alt="ShulePlus Logo" style={{ maxHeight: '80px', marginBottom: '15px' }} />
+                                    <h3 style={{ textTransform: 'uppercase', letterSpacing: '1px' }}>SHULE PLUS</h3>
                                     <h5 className="text-muted mt-2" style={{ letterSpacing: '2px' }}>OFFICIAL RECEIPT</h5>
                                     <p className="text-muted mb-0">Receipt No: RCPT-{selectedInvoice.id.substring(0, 8)}</p>
                                 </div>
                                 
-                                <div className="row mb-5 mt-5">
+                                <div className="row mb-5 mt-5 position-relative" style={{ zIndex: 1 }}>
                                     <div className="col-md-6">
                                         <h6 className="text-uppercase text-muted" style={{ fontSize: '0.8rem', fontWeight: 700 }}>Received From</h6>
-                                        <p className="font-weight-bold mb-1" style={{ fontSize: '1.1rem' }}>Smart Kids School</p>
+                                        <p className="font-weight-bold mb-1" style={{ fontSize: '1.1rem' }}>{selectedSchool?.name || "Client"}</p>
                                         <p className="text-muted mb-0">Subscription Payment</p>
                                     </div>
                                     <div className="col-md-6 text-right">
