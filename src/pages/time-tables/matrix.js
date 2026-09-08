@@ -10,7 +10,10 @@ const TimeTableMatrix = () => {
   const LS_TERM_KEY = 'timetables_matrix_term_id';
   const LS_CLASS_KEY = 'timetables_matrix_class_id';
 
-  const [selectedClass, setSelectedClass] = useState(null);
+  const [selectedClass, setSelectedClass] = useState(() => {
+    const saved = localStorage.getItem(LS_CLASS_KEY);
+    return saved ? { id: saved } : null;
+  });
   const [selectedTerm, setSelectedTerm] = useState(() => localStorage.getItem(LS_TERM_KEY) || null);
   const [classes, setClasses] = useState([]);
   const [terms, setTerms] = useState([]);
@@ -203,15 +206,18 @@ const TimeTableMatrix = () => {
     const { availableClasses } = getAvailableData();
     if (!availableClasses.length) return;
 
-    // If a class is already selected and still valid, keep it
-    if (selectedClass) {
-      const stillValid = availableClasses.find(c => String(c.id) === String(selectedClass.id));
-      if (stillValid) return;
+    const saved = localStorage.getItem(LS_CLASS_KEY);
+    const currentId = selectedClass?.id || saved;
+    const stillValid = currentId && availableClasses.find(c => String(c.id) === String(currentId));
+
+    if (stillValid) {
+      if (!selectedClass || !selectedClass.name || String(selectedClass.id) !== String(stillValid.id)) {
+        setSelectedClass(stillValid);
+      }
+      return;
     }
 
-    const saved = localStorage.getItem(LS_CLASS_KEY);
-    const match = saved && availableClasses.find(c => String(c.id) === saved);
-    const target = match || availableClasses[0];
+    const target = availableClasses[0];
     setSelectedClass(target);
     localStorage.setItem(LS_CLASS_KEY, String(target.id));
   }, [classes]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -534,7 +540,6 @@ const TimeTableMatrix = () => {
                   className="w-100"
                   searchable={true}
                   showCount={true}
-                  persistenceKey="timetables_matrix_term"
                 />
               </div>
 
@@ -551,7 +556,6 @@ const TimeTableMatrix = () => {
                   showCount={true}
                   countKey="students"
                   countLabel="students"
-                  persistenceKey="timetables_matrix_class"
                 />
               </div>
             </div>
