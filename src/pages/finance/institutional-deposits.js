@@ -1583,20 +1583,21 @@ class InstitutionalDeposits extends Component {
                             </div>
                         )}
                         
-                {currentInvoices.length > 0 && (
-                                    <Pagination
-                                        total={totalInvoices}
-                                        itemsPerPage={itemsPerPage}
-                                        currentPage={currentPage}
-                                        onPageChange={this.handlePageChange}
-                                    />
-                                )}
-                            </div>
-                        </div>
+                        {currentInvoices.length > 0 && (
+                            <Pagination
+                                total={totalInvoices}
+                                itemsPerPage={itemsPerPage}
+                                currentPage={currentPage}
+                                onPageChange={this.handlePageChange}
+                            />
+                        )}
                     </div>
-                    {this.renderInvoiceModal()}
-                    {this.renderReceiptModal()}
-                    {this.renderPaymentModal()}
+                </div>
+                {this.renderInvoiceModal()}
+                {this.renderReceiptModal()}
+                {this.renderPaymentModal()}
+            </div>
+        );
     };
 
     renderPrintView = () => {
