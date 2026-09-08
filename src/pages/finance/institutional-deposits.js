@@ -226,11 +226,37 @@ class InstitutionalDeposits extends Component {
         });
     };
 
-    handleSendEmail = () => {
-        const { selectedInvoice, emailRecipient, emailSubject, emailMessage } = this.state;
+    handleSendEmail = async () => {
+        const { selectedInvoice, emailRecipient } = this.state;
         
-        // Simulate sending email
-        alert(`Invoice ${selectedInvoice.id} has been sent to ${emailRecipient}`);
+        try {
+            const isReceipt = selectedInvoice.status === 'Paid';
+            const SEND_EMAIL_MUTATION = isReceipt ? `
+                mutation SendReceiptEmail($invoiceId: ID!, $toEmail: String!) {
+                    sendReceiptEmail(invoiceId: $invoiceId, toEmail: $toEmail)
+                }
+            ` : `
+                mutation SendInvoiceEmail($invoiceId: ID!, $toEmail: String!) {
+                    sendInvoiceEmail(invoiceId: $invoiceId, toEmail: $toEmail)
+                }
+            `;
+            
+            await mutate(SEND_EMAIL_MUTATION, {
+                invoiceId: selectedInvoice.id,
+                toEmail: emailRecipient
+            });
+
+            if (window.$ && window.$.toast) {
+                window.$.toast({ heading: 'Success', text: `${isReceipt ? 'Receipt' : 'Invoice'} sent to ${emailRecipient}`, icon: 'success', position: 'top-right' });
+            } else if (typeof successToast !== 'undefined') {
+                successToast.show({ message: `${isReceipt ? 'Receipt' : 'Invoice'} sent to ${emailRecipient}`, header: 'Success' });
+            }
+        } catch (error) {
+            console.error("Failed to send email", error);
+            if (typeof errorToast !== 'undefined') {
+                errorToast.show({ message: 'Failed to send email.' });
+            }
+        }
         
         this.setState({ 
             showEmailModal: false, 
@@ -746,8 +772,9 @@ class InstitutionalDeposits extends Component {
                                                         type="button"
                                                         onClick={async () => {
                                                             try {
-                                                                const newAmount = selectedInvoice.customPayAmount || selectedInvoice.amount;
-                                                                const numValue = typeof newAmount === 'string' ? parseFloat(newAmount.replace(/[^0-9.]/g, '')) : newAmount;
+                                                                const newAmountRaw = selectedInvoice.customPayAmount || selectedInvoice.amount;
+                                                                const numValue = typeof newAmountRaw === 'string' ? parseFloat(newAmountRaw.replace(/[^0-9.]/g, '')) : newAmountRaw;
+                                                                const originalAmountRaw = typeof selectedInvoice.amount === 'string' ? parseFloat(selectedInvoice.amount.replace(/[^0-9.]/g, '')) : selectedInvoice.amount;
                                                                 
                                                                 const UPDATE_INVOICE_MUTATION = `
                                                                     mutation UpdateInvoice($invoice: Uinvoice!) {
@@ -762,7 +789,7 @@ class InstitutionalDeposits extends Component {
                                                                 await mutate(UPDATE_INVOICE_MUTATION, {
                                                                     invoice: {
                                                                         id: selectedInvoice.id,
-                                                                        amount: String(numValue)
+                                                                        amount: numValue
                                                                     }
                                                                 });
 
@@ -772,14 +799,44 @@ class InstitutionalDeposits extends Component {
                                                                     }
                                                                     return inv;
                                                                 });
+
+                                                                let addedInvoice = null;
+                                                                if (numValue < originalAmountRaw) {
+                                                                    const balance = originalAmountRaw - numValue;
+                                                                    const CREATE_INVOICE_MUTATION = `
+                                                                        mutation CreateInvoice($invoice: Iinvoice!) {
+                                                                            invoices {
+                                                                                create(invoice: $invoice) {
+                                                                                    id amount description status dueDate createdDate
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    `;
+                                                                    
+                                                                    const res = await mutate(CREATE_INVOICE_MUTATION, {
+                                                                        invoice: {
+                                                                            school: this.state.selectedSchool.id,
+                                                                            amount: balance,
+                                                                            description: `Balance for Invoice #${selectedInvoice.id} (${selectedInvoice.description || 'ShulePlus Services'})`,
+                                                                            dueDate: selectedInvoice.dueDate,
+                                                                            status: 'Unpaid'
+                                                                        }
+                                                                    });
+                                                                    if (res && res.invoices && res.invoices.create) {
+                                                                        addedInvoice = res.invoices.create;
+                                                                        updatedInvoices.unshift(addedInvoice);
+                                                                    }
+                                                                }
+
                                                                 this.setState({
                                                                     invoices: updatedInvoices,
                                                                     selectedInvoice: { ...selectedInvoice, amount: numValue }
                                                                 });
+                                                                
                                                                 if (window.$ && window.$.toast) {
-                                                                    window.$.toast({ heading: 'Success', text: 'Amount Payable saved successfully', icon: 'success', position: 'top-right' });
+                                                                    window.$.toast({ heading: 'Success', text: 'Amount Payable saved successfully' + (addedInvoice ? '. Balance invoice created.' : ''), icon: 'success', position: 'top-right' });
                                                                 } else if (typeof successToast !== 'undefined') {
-                                                                    successToast.show({ message: 'Amount Payable saved successfully', header: 'Success' });
+                                                                    successToast.show({ message: 'Amount Payable saved successfully' + (addedInvoice ? '. Balance invoice created.' : ''), header: 'Success' });
                                                                 }
                                                             } catch (err) {
                                                                 console.error("Failed to update invoice amount", err);
@@ -901,12 +958,12 @@ class InstitutionalDeposits extends Component {
                                     transform: 'translate(-50%, -50%) rotate(-30deg)',
                                     fontSize: '8rem',
                                     fontWeight: '900',
-                                    color: 'rgba(27, 197, 189, 0.1)',
+                                    color: selectedInvoice.status === 'Paid' ? 'rgba(27, 197, 189, 0.1)' : 'rgba(246, 78, 96, 0.1)',
                                     pointerEvents: 'none',
                                     letterSpacing: '15px',
                                     zIndex: 0
                                 }}>
-                                    PAID
+                                    {selectedInvoice.status === 'Paid' ? 'PAID' : 'UNPAID'}
                                 </div>
                                 <div className="text-center mb-4 position-relative" style={{ zIndex: 1 }}>
                                     <img src={'/res/mipmap-xxxhdpi/ic_launcher_round.png'} alt="ShulePlus Logo" style={{ maxHeight: '80px', marginBottom: '15px' }} />
