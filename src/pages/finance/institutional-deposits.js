@@ -698,7 +698,7 @@ class InstitutionalDeposits extends Component {
                         <div className="modal-body">
                             <div className="invoice-preview">
                                 <div className="text-center mb-4">
-                                    <img src={'/assets/media/logos/ic_launcher.png'} alt="ShulePlus Logo" style={{ maxHeight: '80px', marginBottom: '15px' }} />
+                                    <img src={'/res/mipmap-xxxhdpi/ic_launcher_round.png'} alt="ShulePlus Logo" style={{ maxHeight: '80px', marginBottom: '15px' }} />
                                     <h3 style={{ textTransform: 'uppercase', letterSpacing: '1px' }}>SHULE PLUS</h3>
                                     <p className="text-muted">Invoice # {selectedInvoice.id}</p>
                                 </div>
@@ -854,7 +854,7 @@ class InstitutionalDeposits extends Component {
                                     PAID
                                 </div>
                                 <div className="text-center mb-4 position-relative" style={{ zIndex: 1 }}>
-                                    <img src={'/assets/media/logos/ic_launcher.png'} alt="ShulePlus Logo" style={{ maxHeight: '80px', marginBottom: '15px' }} />
+                                    <img src={'/res/mipmap-xxxhdpi/ic_launcher_round.png'} alt="ShulePlus Logo" style={{ maxHeight: '80px', marginBottom: '15px' }} />
                                     <h3 style={{ textTransform: 'uppercase', letterSpacing: '1px' }}>SHULE PLUS</h3>
                                     <h5 className="text-muted mt-2" style={{ letterSpacing: '2px' }}>OFFICIAL RECEIPT</h5>
                                     <p className="text-muted mb-0">Receipt No: RCPT-{selectedInvoice.id.substring(0, 8)}</p>
