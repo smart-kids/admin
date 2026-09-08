@@ -1044,8 +1044,25 @@ var Data = (function () {
 
         notifyLoading(true);
         const promises = queries.map(({ query: qStr, variables = {} }) => {
+            const isSchoolAndUser = qStr.includes('GetschoolsAndUser');
+            if (isSchoolAndUser) {
+                const cached = localStorage.getItem('cache_GetschoolsAndUser');
+                if (cached) {
+                    try { 
+                        mergeAndNotify(JSON.parse(cached)); 
+                    } catch(e) {
+                        console.error('Failed to parse cached GetschoolsAndUser', e);
+                    }
+                }
+            }
+
             return query(qStr, variables)
-                .then((response) => mergeAndNotify(response))
+                .then((response) => {
+                    if (isSchoolAndUser) {
+                        localStorage.setItem('cache_GetschoolsAndUser', JSON.stringify(response));
+                    }
+                    mergeAndNotify(response);
+                })
                 .catch(err => {
                     if (err?.response?.status !== 401) {
                         console.error("GraphQL Query Failed:", err);
