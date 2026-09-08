@@ -58,14 +58,21 @@ const NetworkDebugOverlay = () => {
         );
     }
 
-    const requestCounts = activeRequests.reduce((acc, req) => {
-        acc[req.action] = (acc[req.action] || 0) + 1;
-        return acc;
-    }, {});
+    const byType = {};
+    activeRequests.forEach(req => {
+        const parts = req.action.split(' ');
+        const type = parts[0] || 'Loading';
+        const target = parts.slice(1).join(' ') || 'Data';
+        if (!byType[type]) byType[type] = {};
+        byType[type][target] = (byType[type][target] || 0) + 1;
+    });
+
+    const summaryParts = Object.entries(byType).map(([type, targetsMap]) => {
+        const targetStrings = Object.entries(targetsMap).map(([tgt, count]) => count > 1 ? `${count}x ${tgt}` : tgt);
+        return `${type} ${targetStrings.join(', ')}`;
+    });
     
-    const summary = Object.entries(requestCounts)
-        .map(([action, count]) => count > 1 ? `${count}x ${action}` : action)
-        .join(', ');
+    const summary = summaryParts.join(' | ');
 
     return (
         <div style={{
