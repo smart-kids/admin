@@ -774,102 +774,18 @@ class InstitutionalDeposits extends Component {
                                                             try {
                                                                 const newAmountRaw = selectedInvoice.customPayAmount || selectedInvoice.amount;
                                                                 const numValue = typeof newAmountRaw === 'string' ? parseFloat(newAmountRaw.replace(/[^0-9.]/g, '')) : newAmountRaw;
-                                                                const originalAmountRaw = typeof selectedInvoice.amount === 'string' ? parseFloat(selectedInvoice.amount.replace(/[^0-9.]/g, '')) : selectedInvoice.amount;
-                                                                
-                                                                const isAutoInvoice = selectedInvoice.id.startsWith('AUTO-');
-                                                                let realInvoiceId = selectedInvoice.id;
-                                                                
-                                                                if (isAutoInvoice) {
-                                                                    const CREATE_INVOICE_MUTATION = `
-                                                                        mutation CreateInvoice($invoice: Iinvoice!) {
-                                                                            invoices {
-                                                                                create(invoice: $invoice) {
-                                                                                    id amount description status dueDate createdDate
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                    `;
-                                                                    const res = await mutate(CREATE_INVOICE_MUTATION, {
-                                                                        invoice: {
-                                                                            school: this.state.selectedSchool.id,
-                                                                            amount: numValue,
-                                                                            description: selectedInvoice.description || 'Subscription',
-                                                                            status: selectedInvoice.status || 'Unpaid',
-                                                                            dueDate: selectedInvoice.dueDate || new Date().toISOString()
-                                                                        }
-                                                                    });
-                                                                    if (res && res.invoices && res.invoices.create) {
-                                                                        realInvoiceId = res.invoices.create.id;
-                                                                    }
-                                                                } else {
-                                                                    const UPDATE_INVOICE_MUTATION = `
-                                                                        mutation UpdateInvoice($invoice: Uinvoice!) {
-                                                                            invoices {
-                                                                                update(invoice: $invoice) {
-                                                                                    id amount
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                    `;
-                                                                    
-                                                                    await mutate(UPDATE_INVOICE_MUTATION, {
-                                                                        invoice: {
-                                                                            id: selectedInvoice.id,
-                                                                            amount: numValue
-                                                                        }
-                                                                    });
-                                                                }
 
-                                                                const updatedInvoices = this.state.invoices.map(inv => {
-                                                                    if (inv.id === selectedInvoice.id) {
-                                                                        return { ...inv, id: realInvoiceId, amount: numValue };
-                                                                    }
-                                                                    return inv;
+                                                                this.setState({
+                                                                    selectedInvoice: { ...selectedInvoice, customPayAmount: numValue }
                                                                 });
 
-                                                                let addedInvoice = null;
-                                                                if (numValue < originalAmountRaw) {
-                                                                    const balance = originalAmountRaw - numValue;
-                                                                    const CREATE_INVOICE_MUTATION = `
-                                                                        mutation CreateInvoice($invoice: Iinvoice!) {
-                                                                            invoices {
-                                                                                create(invoice: $invoice) {
-                                                                                    id amount description status dueDate createdDate
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                    `;
-                                                                    
-                                                                    const res = await mutate(CREATE_INVOICE_MUTATION, {
-                                                                        invoice: {
-                                                                            school: this.state.selectedSchool.id,
-                                                                            amount: balance,
-                                                                            description: `Balance for Invoice #${selectedInvoice.id} (${selectedInvoice.description || 'ShulePlus Services'})`,
-                                                                            dueDate: selectedInvoice.dueDate,
-                                                                            status: 'Unpaid'
-                                                                        }
-                                                                    });
-                                                                    if (res && res.invoices && res.invoices.create) {
-                                                                        addedInvoice = res.invoices.create;
-                                                                        updatedInvoices.unshift(addedInvoice);
-                                                                    }
-                                                                }
-
-                                                                this.setState({ 
-                                                                    invoices: updatedInvoices,
-                                                                    selectedInvoice: { ...selectedInvoice, id: realInvoiceId, amount: numValue }
-                                                                });
-                                                                
                                                                 if (window.$ && window.$.toast) {
-                                                                    window.$.toast({ heading: 'Success', text: 'Amount Payable saved successfully' + (addedInvoice ? '. Balance invoice created.' : ''), icon: 'success', position: 'top-right' });
+                                                                    window.$.toast({ heading: 'Success', text: 'Amount to pay set locally. Click Pay Now when ready.', icon: 'success', position: 'top-right' });
                                                                 } else if (typeof successToast !== 'undefined') {
-                                                                    successToast.show({ message: 'Amount Payable saved successfully' + (addedInvoice ? '. Balance invoice created.' : ''), header: 'Success' });
+                                                                    successToast.show({ message: 'Amount to pay set locally. Click Pay Now when ready.', header: 'Success' });
                                                                 }
                                                             } catch (err) {
-                                                                console.error("Failed to update invoice amount", err);
-                                                                if (typeof errorToast !== 'undefined') {
-                                                                    errorToast.show({ message: 'Failed to update amount on backend' });
-                                                                }
+                                                                console.error("Failed to set amount", err);
                                                             }
                                                         }}
                                                     >
