@@ -297,6 +297,7 @@ class InstitutionalDeposits extends Component {
             newInvoice: {
                 amount: initialAmount,
                 description: initialDescription,
+                type: 'Subscription',
                 dueDate: this.getNextTermStartDate(),
                 billingCycle: 'Termly',
                 restrictDashboardOnOverdue: false
@@ -1122,6 +1123,16 @@ class InstitutionalDeposits extends Component {
                             </button>
                             <button 
                                 type="button" 
+                                className="btn btn-info"
+                                onClick={() => {
+                                    this.setState({ showReceiptModal: false });
+                                    this.handleViewInvoice(selectedInvoice);
+                                }}
+                            >
+                                <i className="la la-eye"></i> View Invoice
+                            </button>
+                            <button 
+                                type="button" 
                                 className="btn btn-primary"
                                 onClick={() => window.print()}
                             >
@@ -1409,6 +1420,32 @@ class InstitutionalDeposits extends Component {
                             </button>
                         </div>
                         <div className="modal-body pt-8">
+                            <div className="form-group mb-6">
+                                <label className="font-weight-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>Invoice Type</label>
+                                <select 
+                                    className="form-control border-0 bg-light font-weight-bold" 
+                                    value={newInvoice.type || 'Subscription'}
+                                    onChange={(e) => {
+                                        const type = e.target.value;
+                                        let updates = { type };
+                                        if (type === 'Setup Fee') {
+                                            updates.amount = '30000';
+                                            updates.description = 'System Setup Fee';
+                                        } else if (type === 'Subscription') {
+                                            const studentCount = this.state.selectedSchool?.students?.length || this.state.selectedSchool?.studentCount || 0;
+                                            const rate = this.state.selectedSchool?.ratePerStudent || 100;
+                                            updates.amount = (studentCount * rate).toString();
+                                            updates.description = `Subscription for ${studentCount} students`;
+                                        }
+                                        this.setState({ newInvoice: { ...newInvoice, ...updates } });
+                                    }}
+                                    style={{ borderRadius: '0.8rem' }}
+                                >
+                                    <option value="Subscription">Subscription</option>
+                                    <option value="Setup Fee">Setup Fee</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
                             <div className="form-group mb-6">
                                 <label className="font-weight-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>Amount (KES)</label>
                                 <div className="input-group input-group-solid input-group-lg">
