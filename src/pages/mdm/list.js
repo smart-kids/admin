@@ -31,7 +31,6 @@ class MDMList extends React.Component {
     pendingApkInfo: null,
     loadingVersions: false,
     publishing: false,
-    publishSecret: "",
     updateVersion: "",
     // Emergency rollback
     overrideVersion: "",
@@ -113,15 +112,10 @@ class MDMList extends React.Component {
 
   publishMdmVersion = async () => {
     const API_BASE = 'https://graph-ongyy.kinsta.app';
-    const { publishSecret } = this.state;
-    if (!publishSecret.trim()) {
-      window.toastr.warning('Enter the upload secret to authorize publishing.');
-      return;
-    }
-    if (!window.confirm('This will notify all MDM tablets to update immediately. Are you sure?')) return;
+    if (!window.confirm('This will publish the update. Are you sure?')) return;
     this.setState({ publishing: true });
     try {
-      await Data.mdm.publishMdmVersion(API_BASE, publishSecret);
+      await Data.mdm.publishMdmVersion(API_BASE);
       window.toastr.success('MDM version published! Tablets will begin updating shortly.');
       await this.fetchVersionStatus();
     } catch (e) {
@@ -133,19 +127,15 @@ class MDMList extends React.Component {
 
   overrideMdmVersion = async () => {
     const API_BASE = 'https://graph-ongyy.kinsta.app';
-    const { publishSecret, overrideVersion } = this.state;
+    const { overrideVersion } = this.state;
     if (!overrideVersion.trim()) {
       window.toastr.warning('Enter the target version to override (e.g. 204.524.632).');
-      return;
-    }
-    if (!publishSecret.trim()) {
-      window.toastr.warning('Enter the upload secret to authorize this override.');
       return;
     }
     if (!window.confirm(`⚠️ WARNING: This will immediately tell ALL MDM tablets that v${overrideVersion} is the latest version. Tablets already on a higher version will think they\'re up-to-date. Are you sure?`)) return;
     this.setState({ overriding: true });
     try {
-      await Data.mdm.overrideMdmVersion(API_BASE, publishSecret, overrideVersion);
+      await Data.mdm.overrideMdmVersion(API_BASE, overrideVersion);
       window.toastr.success(`✅ Live MDM version overridden to v${overrideVersion}. Stuck tablets should clear within their next poll cycle.`);
       this.setState({ overrideVersion: '' });
       await this.fetchVersionStatus();
@@ -717,17 +707,6 @@ class MDMList extends React.Component {
                     style={{ border: '1px solid #fca5a5', borderRadius: '8px', background: '#fff5f5' }}
                   />
                 </div>
-                <div style={{ flex: '1', minWidth: '200px' }}>
-                  <label style={{ fontSize: '12px', fontWeight: '600', color: '#991b1b', display: 'block', marginBottom: '6px' }}>Upload Secret</label>
-                  <input
-                    type="password"
-                    className="premium-form-input"
-                    placeholder="x-upload-secret"
-                    value={this.state.publishSecret}
-                    onChange={(e) => this.setState({ publishSecret: e.target.value })}
-                    style={{ border: '1px solid #fca5a5', borderRadius: '8px', background: '#fff5f5' }}
-                  />
-                </div>
                 <button
                   className="premium-send-btn"
                   style={{ background: 'linear-gradient(135deg, #dc2626, #b91c1c)', color: '#fff', border: 'none', borderRadius: '8px', padding: '10px 20px', whiteSpace: 'nowrap', opacity: overriding ? 0.7 : 1 }}
@@ -751,18 +730,10 @@ class MDMList extends React.Component {
                       Publish v{pendingApkInfo.version} to MDM Devices
                     </h4>
                     <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8', lineHeight: '1.5' }}>
-                      Once you have confirmed v{pendingApkInfo.version} is live on the Play Store, click Publish to notify all MDM tablets to silently update in the background.
+                      Once you have confirmed v{pendingApkInfo.version} is live on the Play Store, click Publish to silently update the MDM tablets in the background.
                     </p>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', minWidth: '260px' }}>
-                    <input
-                      type="password"
-                      className="premium-form-input"
-                      style={{ background: '#1e293b', border: '1px solid #334155', color: '#f1f5f9', borderRadius: '8px', padding: '8px 12px', fontSize: '13px' }}
-                      placeholder="Upload secret (x-upload-secret)"
-                      value={this.state.publishSecret}
-                      onChange={(e) => this.setState({ publishSecret: e.target.value })}
-                    />
                     <button
                       className="premium-send-btn"
                       style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#000', fontWeight: '700', border: 'none', borderRadius: '8px', padding: '10px 20px', cursor: publishing ? 'not-allowed' : 'pointer', opacity: publishing ? 0.7 : 1 }}
@@ -790,7 +761,7 @@ class MDMList extends React.Component {
                   { step: 2, icon: 'la-play-circle', color: '#8b5cf6', title: 'yarn release', desc: 'Builds the signed AAB + APK, uploads the APK to S3 (staged, not live to MDM), and submits the AAB to the Play Store internal track.' },
                   { step: 3, icon: 'la-google-play', color: '#06b6d4', title: 'Promote on Play Console', desc: 'Go to Google Play Console → Production → Promote release. Wait for review to complete (~hours).' },
                   { step: 4, icon: 'la-check-double', color: '#16a34a', title: 'Verify Play Store is live', desc: 'Confirm the new version appears on the Play Store listing before touching MDM devices.' },
-                  { step: 5, icon: 'la-rocket', color: '#f59e0b', title: 'Publish to MDM', desc: 'Come back here → enter upload secret → click "Publish MDM Update". All enrolled tablets will silently self-update within minutes.' },
+                  { step: 5, icon: 'la-rocket', color: '#f59e0b', title: 'Publish to MDM', desc: 'Come back here → click "Publish MDM Update". All enrolled tablets will silently self-update within minutes.' },
                 ].map(({ step, icon, color, title, desc }) => (
                   <div key={step} style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
                     <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

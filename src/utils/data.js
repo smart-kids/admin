@@ -2386,23 +2386,21 @@ var Data = (function () {
                 if (!res.ok) throw new Error("No pending version staged");
                 return await res.json();
             },
-            publishMdmVersion: async (apiBase, uploadSecret) => {
+            publishMdmVersion: async (apiBase) => {
                 const res = await fetch(`${apiBase}/mdm/publish`, {
                     method: "POST",
                     headers: {
-                        "Content-Type": "application/json",
-                        "x-upload-secret": uploadSecret || ""
+                        "Content-Type": "application/json"
                     }
                 });
                 if (!res.ok) throw new Error("Failed to publish MDM version");
                 return await res.json();
             },
-            overrideMdmVersion: async (apiBase, uploadSecret, targetVersion) => {
+            overrideMdmVersion: async (apiBase, targetVersion) => {
                 const res = await fetch(`${apiBase}/mdm/override`, {
                     method: "POST",
                     headers: {
-                        "Content-Type": "application/json",
-                        "x-upload-secret": uploadSecret || ""
+                        "Content-Type": "application/json"
                     },
                     body: JSON.stringify({ targetVersion })
                 });
