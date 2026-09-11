@@ -568,6 +568,16 @@ class QRModal extends React.Component {
     }
   };
 
+  downloadStagedInternalApk = async () => {
+    try {
+      this.setState({ serverDownloadStatus: 'progress', serverDownloadProgress: 0, serverDownloadStats: null });
+      await Data.localMdm.downloadStagedApk();
+    } catch (e) {
+      console.error(e);
+      this.setState({ serverDownloadStatus: 'failed' });
+    }
+  };
+
   generateQR = async () => {
     const schoolId = localStorage.getItem("school");
     const { wifiSsid, wifiPassword, wifiSecurityType, wifiHidden, downloadUrl, signatureChecksum, enrollmentToken } = this.state;
@@ -1158,6 +1168,18 @@ class QRModal extends React.Component {
                                 <i className="la la-download mr-1"></i>
                               )}
                               {this.state.serverApkVersion ? `Downloaded (v${this.state.serverApkVersion})` : "Download internal APK"}
+                            </button>
+                            <button 
+                              className="btn btn-outline-primary btn-sm rounded-pill font-weight-bold shadow-sm"
+                              onClick={this.downloadStagedInternalApk}
+                              disabled={this.state.serverDownloadStatus === 'progress' || this.state.setupLoading}
+                            >
+                              {this.state.serverDownloadStatus === 'progress' ? (
+                                <i className="la la-spinner la-spin mr-1"></i>
+                              ) : (
+                                <i className="la la-download mr-1"></i>
+                              )}
+                              Staged APK
                             </button>
                             <button 
                               className="btn btn-outline-secondary btn-sm rounded-pill font-weight-bold shadow-sm"

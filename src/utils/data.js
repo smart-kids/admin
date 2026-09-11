@@ -2358,6 +2358,11 @@ var Data = (function () {
                 if (!res.ok) throw new Error("Download APK failed");
                 return true;
             },
+            downloadStagedApk: async () => {
+                const res = await fetch("http://localhost:18205/api/download-staged-apk", { method: "POST" });
+                if (!res.ok) throw new Error("Download Staged APK failed");
+                return true;
+            },
             getApkStatus: async () => {
                 const res = await fetch("http://localhost:18205/api/apk-status");
                 if (!res.ok) throw new Error("Failed to get APK status");
