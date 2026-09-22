@@ -35,9 +35,30 @@ class MDMList extends React.Component {
     // Emergency rollback
     overrideVersion: "",
     overriding: false,
+    isSuperAdmin: false,
+  };
+
+  checkSuperAdmin = () => {
+    try {
+      const storedUser = JSON.parse(localStorage.getItem("user")) || {};
+      const userRole = localStorage.getItem("userRole") || storedUser.role || storedUser.userType;
+      const normalizedRole = String(userRole || '').toLowerCase().replace(/ /g, '_');
+      
+      return (
+        storedUser.userType === 'sAdmin' ||
+        normalizedRole === 'sadmin' ||
+        normalizedRole === 'super_admin' ||
+        normalizedRole === 'superadmin' ||
+        storedUser.isSuperAdmin === true ||
+        (storedUser.admin && storedUser.admin.user === 'Super Admin')
+      );
+    } catch (e) {
+      return false;
+    }
   };
 
   componentDidMount() {
+    this.setState({ isSuperAdmin: this.checkSuperAdmin() });
     this._subscription = Data.devices.subscribe(({ devices }) => {
       this.setState({ devices: devices || [], loading: false }, this.filterDevices);
     });
@@ -147,6 +168,15 @@ class MDMList extends React.Component {
   };
 
   sendCommand = (device, commandType) => {
+    if (commandType === 'UNLOCK' && !this.state.isSuperAdmin) {
+      if (window.toastr) {
+        window.toastr.error("Permission denied: Only Super Admins can unlock devices.");
+      } else {
+        alert("Permission denied: Only Super Admins can unlock devices.");
+      }
+      return;
+    }
+
     const confirmMsg = `Are you sure you want to send a ${commandType} command to ${device.macAddress}?`;
     if (window.confirm(confirmMsg)) {
       Data.device_commands.create({
@@ -319,14 +349,16 @@ class MDMList extends React.Component {
               <i className="la la-unlink"></i>
           </button>
 
-          <button 
-              className="book-action-btn mdm-action-btn"
-              style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)', color: '#fff', border: 'none' }}
-              onClick={() => this.sendCommand(device, 'UNLOCK')}
-              title="Unlock Device (Remove MDM Restrictions)"
-          >
-              <i className="la la-unlock"></i>
-          </button>
+          {this.state.isSuperAdmin && (
+            <button 
+                className="book-action-btn mdm-action-btn"
+                style={{ background: 'linear-gradient(135deg, #16a34a, #15803d)', color: '#fff', border: 'none' }}
+                onClick={() => this.sendCommand(device, 'UNLOCK')}
+                title="Unlock Device (Remove MDM Restrictions - Super Admin Only)"
+            >
+                <i className="la la-unlock"></i>
+            </button>
+          )}
         </div>
       </div>
     );
