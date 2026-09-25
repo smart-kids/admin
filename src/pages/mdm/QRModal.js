@@ -673,6 +673,8 @@ class QRModal extends React.Component {
         const vMatch = data.downloadUrl.match(/shuleplus-([\d\.]+)\.apk/);
         if (vMatch) {
             newState.apkVersion = vMatch[1];
+        } else if (data.version) {
+            newState.apkVersion = data.version;
         }
       }
       if (data.checksum) newState.signatureChecksum = data.checksum;
@@ -682,6 +684,16 @@ class QRModal extends React.Component {
         // Optionally set error state to inform user
         this.setState({ error: 'Invalid APK download URL. Please ensure the server provides a correct .apk file.' });
       }
+      
+      try {
+        const pendingData = await Data.mdm.getPendingApkInfo(this.API_BASE);
+        if (pendingData && pendingData.version) {
+            newState.stagedApkVersion = pendingData.version;
+        }
+      } catch (e) {
+        newState.stagedApkVersion = null;
+      }
+
       if (Object.keys(newState).length > 0) {
         this.setState(newState);
       }
@@ -1167,7 +1179,7 @@ class QRModal extends React.Component {
                               ) : (
                                 <i className="la la-download mr-1"></i>
                               )}
-                              {this.state.serverApkVersion ? `Downloaded (v${this.state.serverApkVersion})` : "Download internal APK"}
+                              {this.state.serverApkVersion ? `Downloaded (v${this.state.serverApkVersion})` : `Download internal APK${this.state.apkVersion ? ` (v${this.state.apkVersion})` : ''}`}
                             </button>
                             <button 
                               className="btn btn-outline-primary btn-sm rounded-pill font-weight-bold shadow-sm text-nowrap"
@@ -1179,7 +1191,7 @@ class QRModal extends React.Component {
                               ) : (
                                 <i className="la la-download mr-1"></i>
                               )}
-                              Staged APK
+                              Staged APK{this.state.stagedApkVersion ? ` (v${this.state.stagedApkVersion})` : ''}
                             </button>
                             <button 
                               className="btn btn-outline-secondary btn-sm rounded-pill font-weight-bold shadow-sm text-nowrap"
