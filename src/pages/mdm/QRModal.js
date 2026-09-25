@@ -49,8 +49,10 @@ class QRModal extends React.Component {
     serverDownloadProgress: 0,
     serverDownloadStats: null,
     serverApkVersion: null,
+    serverStagedApkVersion: null,
     tokenTestStatus: null,
-    deviceOwnerUserId: ""
+    deviceOwnerUserId: "",
+    useStagedApkForUsb: false
   };
 
   handleApkVersionChange = (newVersion) => {
@@ -174,13 +176,16 @@ class QRModal extends React.Component {
   fetchApkStatus = async () => {
     try {
       const status = await Data.localMdm.getApkStatus();
-      if (status && status.exists) {
-        this.setState({ serverApkVersion: status.version });
+      if (status) {
+        this.setState({ 
+          serverApkVersion: status.exists ? status.version : null,
+          serverStagedApkVersion: status.stagedExists ? status.stagedVersion : null
+        });
       } else {
-        this.setState({ serverApkVersion: null });
+        this.setState({ serverApkVersion: null, serverStagedApkVersion: null });
       }
     } catch (e) {
-      this.setState({ serverApkVersion: null });
+      this.setState({ serverApkVersion: null, serverStagedApkVersion: null });
     }
   };
 
@@ -443,7 +448,7 @@ class QRModal extends React.Component {
 
   retryOnboard = async (serial) => {
     try {
-      await Data.localMdm.onboard(serial);
+      await Data.localMdm.onboard(serial, this.state.useStagedApkForUsb);
     } catch (e) {
       console.error("Failed to retry onboard", serial);
     }
@@ -451,7 +456,7 @@ class QRModal extends React.Component {
 
   installApkOnly = async (serial) => {
     try {
-      await Data.localMdm.installApk(serial);
+      await Data.localMdm.installApk(serial, this.state.useStagedApkForUsb);
     } catch (e) {
       console.error("Failed to install APK", serial);
     }
@@ -463,7 +468,7 @@ class QRModal extends React.Component {
       if (!onboardingDevices.includes(serial)) {
         this.setState(prev => ({ onboardingDevices: [...prev.onboardingDevices, serial] }));
         try {
-          await Data.localMdm.onboard(serial);
+          await Data.localMdm.onboard(serial, this.state.useStagedApkForUsb);
         } catch (e) {
           console.error("Failed to auto-onboard", serial);
         }
@@ -1138,7 +1143,7 @@ class QRModal extends React.Component {
                       </ul>
                     </div>
                     
-                    <div className="alert alert-danger m-0 p-3 shadow-sm mb-3" style={{ fontSize: '12px', borderLeft: '4px solid #fd397a' }}>
+                    <div className="alert alert-danger m-0 p-3 shadow-sm mb-3 d-block" style={{ fontSize: '12px', borderLeft: '4px solid #fd397a' }}>
                       <h6 className="font-weight-bold mb-2"><i className="la la-exclamation-triangle mr-1"></i> CRITICAL: Setup Order</h6>
                       <ol className="mb-0 pl-3">
                         <li className="mb-2"><strong className="d-block text-dark">Format</strong> the tablet (Factory Reset).</li>
@@ -1148,7 +1153,7 @@ class QRModal extends React.Component {
                       </ol>
                     </div>
 
-                    <div className="alert alert-warning m-0 p-3 shadow-sm" style={{ fontSize: '12px', borderLeft: '4px solid #ffb822' }}>
+                    <div className="alert alert-warning m-0 p-3 shadow-sm d-block" style={{ fontSize: '12px', borderLeft: '4px solid #ffb822' }}>
                       <h6 className="font-weight-bold mb-2"><i className="la la-code mr-1"></i> Enable USB Debugging</h6>
                       <ol className="mb-0 pl-3">
                         <li className="mb-2"><strong className="d-block text-dark">Settings</strong> Go to Settings &gt; About tablet</li>
@@ -1191,7 +1196,7 @@ class QRModal extends React.Component {
                               ) : (
                                 <i className="la la-download mr-1"></i>
                               )}
-                              Staged APK{this.state.stagedApkVersion ? ` (v${this.state.stagedApkVersion})` : ''}
+                              {this.state.serverStagedApkVersion ? `Downloaded Staged (v${this.state.serverStagedApkVersion})` : `Staged APK${this.state.stagedApkVersion ? ` (v${this.state.stagedApkVersion})` : ''}`}
                             </button>
                             <button 
                               className="btn btn-outline-secondary btn-sm rounded-pill font-weight-bold shadow-sm text-nowrap"

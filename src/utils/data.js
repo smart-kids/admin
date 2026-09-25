@@ -2330,20 +2330,20 @@ var Data = (function () {
                 
                 return data.devices || {};
             },
-            onboard: async (serial) => {
+            onboard: async (serial, staged = false) => {
                 const res = await fetch("http://localhost:18205/api/onboard", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ serial })
+                    body: JSON.stringify({ serial, staged })
                 });
                 if (!res.ok) throw new Error("Onboard failed");
                 return true;
             },
-            installApk: async (serial) => {
+            installApk: async (serial, staged = false) => {
                 const res = await fetch("http://localhost:18205/api/install-apk", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ serial })
+                    body: JSON.stringify({ serial, staged })
                 });
                 if (!res.ok) throw new Error("Install APK failed");
                 return true;
