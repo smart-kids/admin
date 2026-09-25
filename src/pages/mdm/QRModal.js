@@ -230,7 +230,7 @@ class QRModal extends React.Component {
              if (content.includes("❌")) {
                 newStatus = "failed";
                 newDownloadStats = null;
-             } else if (content.includes("✅ APK download complete")) {
+             } else if (content.includes("✅ APK download complete") || content.includes("✅ Staged APK download complete")) {
                 newStatus = "success";
                 newProgress = 100;
                 newDownloadStats = null;
@@ -287,7 +287,7 @@ class QRModal extends React.Component {
                 newProgress = 100;
                 newDownloadStats = null;
                 newStatusText = null;
-             } else if (content.includes("✅ APK download complete")) {
+             } else if (content.includes("✅ APK download complete") || content.includes("✅ Staged APK download complete")) {
                 newProgress = 50;
                 newDownloadStats = null;
              } else if (isDownloadProgress) {
@@ -359,7 +359,7 @@ class QRModal extends React.Component {
           }
           return nextState;
         }, () => {
-          if (this.logsEnd) this.logsEnd.scrollIntoView({ behavior: "smooth" });
+          // if (this.logsEnd) this.logsEnd.scrollIntoView({ behavior: "smooth" });
         });
       },
       () => {
@@ -1156,9 +1156,9 @@ class QRModal extends React.Component {
                             <i className="la la-check-circle mr-2" style={{ fontSize: '24px' }}></i>
                             Local Service Connected
                           </h6>
-                          <div className="d-flex align-items-center" style={{ gap: '8px' }}>
+                          <div className="d-flex align-items-center flex-wrap" style={{ gap: '8px' }}>
                             <button 
-                              className="btn btn-outline-info btn-sm rounded-pill font-weight-bold shadow-sm"
+                              className="btn btn-outline-info btn-sm rounded-pill font-weight-bold shadow-sm text-nowrap"
                               onClick={this.downloadInternalApk}
                               disabled={this.state.serverDownloadStatus === 'progress' || this.state.setupLoading}
                             >
@@ -1170,7 +1170,7 @@ class QRModal extends React.Component {
                               {this.state.serverApkVersion ? `Downloaded (v${this.state.serverApkVersion})` : "Download internal APK"}
                             </button>
                             <button 
-                              className="btn btn-outline-primary btn-sm rounded-pill font-weight-bold shadow-sm"
+                              className="btn btn-outline-primary btn-sm rounded-pill font-weight-bold shadow-sm text-nowrap"
                               onClick={this.downloadStagedInternalApk}
                               disabled={this.state.serverDownloadStatus === 'progress' || this.state.setupLoading}
                             >
@@ -1182,7 +1182,7 @@ class QRModal extends React.Component {
                               Staged APK
                             </button>
                             <button 
-                              className="btn btn-outline-secondary btn-sm rounded-pill font-weight-bold shadow-sm"
+                              className="btn btn-outline-secondary btn-sm rounded-pill font-weight-bold shadow-sm text-nowrap"
                               onClick={this.testEnrollmentToken}
                               disabled={this.state.tokenTestStatus === 'loading'}
                             >
@@ -1194,7 +1194,7 @@ class QRModal extends React.Component {
                               Test Token
                             </button>
                             <button 
-                              className="btn btn-outline-danger btn-sm rounded-pill font-weight-bold shadow-sm"
+                              className="btn btn-outline-danger btn-sm rounded-pill font-weight-bold shadow-sm text-nowrap"
                               onClick={this.clearCache}
                               disabled={this.state.cacheClearing}
                             >
@@ -1202,7 +1202,7 @@ class QRModal extends React.Component {
                               Clear Cache
                             </button>
                             <button 
-                              className="btn btn-outline-warning btn-sm rounded-pill font-weight-bold shadow-sm"
+                              className="btn btn-outline-warning btn-sm rounded-pill font-weight-bold shadow-sm text-nowrap"
                               onClick={this.restartAdb}
                               disabled={this.state.adbRestarting}
                             >
@@ -1210,7 +1210,7 @@ class QRModal extends React.Component {
                               Restart ADB
                             </button>
                             <button 
-                              className="btn btn-outline-primary btn-sm rounded-pill font-weight-bold shadow-sm"
+                              className="btn btn-outline-primary btn-sm rounded-pill font-weight-bold shadow-sm text-nowrap"
                               onClick={this.installPlatformTools}
                               disabled={this.state.setupLoading || !!this.state.adbVersion}
                             >
