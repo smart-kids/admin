@@ -1281,13 +1281,13 @@ class QRModal extends React.Component {
                           </div>
                         )}
 
-                        <div className="card border-0 bg-light rounded-lg mb-3 shadow-sm d-flex flex-column" style={{ flex: '1 1 50%', minHeight: '200px' }}>
-                          <div className="card-body p-3 d-flex flex-column h-100">
-                            <h6 className="font-weight-bold text-dark mb-2" style={{ fontSize: '13px' }}>
+                        <div className="card border-0 bg-light rounded-lg mb-3 shadow-sm d-flex flex-column" style={{ flex: '1 1 0%', minHeight: 0 }}>
+                          <div className="card-body p-3 d-flex flex-column h-100" style={{ minHeight: 0 }}>
+                            <h6 className="font-weight-bold text-dark mb-2" style={{ fontSize: '13px', flexShrink: 0 }}>
                               <i className="la la-usb mr-2 text-primary"></i>
                               Connected Fleet Devices
                             </h6>
-                            <div className="flex-grow-1" style={{ overflow: 'visible' }}>
+                            <div className="flex-grow-1" style={{ overflowY: 'auto', minHeight: 0 }}>
                               {Object.keys(this.state.localDevices).length === 0 ? (
                                 <div className="text-muted small text-center py-4 d-flex flex-column align-items-center justify-content-center h-100">
                                   <i className="la la-plug mb-2 text-muted" style={{ fontSize: '32px', opacity: 0.5 }}></i>
@@ -1458,9 +1458,9 @@ class QRModal extends React.Component {
 
                         <div 
                           className={`card border-0 rounded-lg shadow-sm d-flex flex-column mt-2 ${this.state.terminalDarkMode ? 'bg-dark' : 'bg-white border'}`} 
-                          style={{ flex: '1 1 50%', minHeight: '200px', backgroundColor: this.state.terminalDarkMode ? '#1e1e1e' : '#ffffff' }}
+                          style={{ flex: '1 1 0%', minHeight: 0, backgroundColor: this.state.terminalDarkMode ? '#1e1e1e' : '#ffffff' }}
                         >
-                           <div className={`card-header border-bottom p-2 d-flex justify-content-between align-items-center ${this.state.terminalDarkMode ? 'bg-dark border-secondary' : 'bg-light border-light'}`}>
+                           <div className={`card-header border-bottom p-2 d-flex justify-content-between align-items-center ${this.state.terminalDarkMode ? 'bg-dark border-secondary' : 'bg-light border-light'}`} style={{ flexShrink: 0 }}>
                               <h6 className={`font-weight-bold m-0 ml-2 ${this.state.terminalDarkMode ? 'text-light' : 'text-dark'}`} style={{ fontSize: '12px', letterSpacing: '0.5px' }}>
                                 <i className="la la-terminal mr-2"></i> Session Logs
                               </h6>
@@ -1492,7 +1492,8 @@ class QRModal extends React.Component {
                                color: this.state.terminalDarkMode ? '#cccccc' : '#2b2d42', 
                                backgroundColor: this.state.terminalDarkMode ? '#181818' : '#f5f6f8', 
                                border: this.state.terminalDarkMode ? '1px solid #333' : '1px solid #e2e8f0',
-                               flexGrow: 1 
+                               flexGrow: 1,
+                               minHeight: 0
                              }}
                            >
                              {localLogs.length === 0 ? (
