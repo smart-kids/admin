@@ -181,10 +181,11 @@ export default function MessageComposer() {
   // we filter what we have loaded.
   const filteredList = useMemo(() => {
     if (!searchTerm) return displayList;
-    return displayList.filter(item => 
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-      (item.phone && item.phone.includes(searchTerm))
-    );
+    return displayList.filter(item => {
+      const name = item.name || item.names || '';
+      return name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        (item.phone && item.phone.includes(searchTerm));
+    });
   }, [displayList, searchTerm]);
 
 

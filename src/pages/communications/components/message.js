@@ -184,7 +184,10 @@ const DeliveryReportModal = ({ isOpen, onClose, isLoading, reportData, onRetry, 
     };
 
     const getName = (id) => {
-        if(recipientMap && recipientMap.has(id)) return recipientMap.get(id).name;
+        if(recipientMap && recipientMap.has(id)) {
+            const item = recipientMap.get(id);
+            return item.name || item.names;
+        }
         return 'Unknown Recipient';
     };
 
@@ -349,9 +352,9 @@ const AudienceSelector = ({
                     const isSelected = selectedIds.has(item.id);
                     return (
                         <div key={item.id} className={`contact-item ${isSelected ? 'selected' : ''}`} onClick={() => onSelectOne(item.id, !isSelected)}>
-                            <div className="contact-avatar">{getInitials(item.name)}</div>
+                            <div className="contact-avatar">{getInitials(item.name || item.names || 'Unknown')}</div>
                             <div className="flex-grow-1" style={{minWidth: 0}}>
-                                <div className="text-dark-75 font-weight-bold font-size-sm text-truncate">{item.name}</div>
+                                <div className="text-dark-75 font-weight-bold font-size-sm text-truncate">{item.name || item.names || 'Unknown'}</div>
                                 <div className="text-muted font-size-xs">{item.phone || ''}</div>
                             </div>
                             {isSelected && <i className="la la-check-circle text-success icon-lg"></i>}
@@ -613,7 +616,10 @@ export default function MessageComposer() {
   // --- 4. Filtering Logic (Client-side search) ---
   const filteredList = useMemo(() => {
     if (!searchTerm) return displayList;
-    return displayList.filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    return displayList.filter(i => {
+      const name = i.name || i.names || '';
+      return name.toLowerCase().includes(searchTerm.toLowerCase());
+    });
   }, [displayList, searchTerm]);
 
   // --- 5. Generate Preview (ARRAY) ---
@@ -622,25 +628,58 @@ export default function MessageComposer() {
     try {
         const template = Handlebars.compile(messageTemplate);
         
-        // Map ALL selected IDs to preview objects
-        return Array.from(selectedIds).map(id => {
+        // Group selected contacts by phone
+        const uniqueRecipients = new Map();
+        
+        Array.from(selectedIds).forEach(id => {
             const contact = displayList.find(c => c.id === id);
-            if (!contact) return null;
+            if (!contact) return;
             
+            const phone = (contact.phone || "").trim();
+            if (!phone) {
+                // If no phone, treat ID as unique to still show preview
+                uniqueRecipients.set(id, { ...contact, combinedStudents: [...(contact.students || [])] });
+                return;
+            }
+            
+            if (!uniqueRecipients.has(phone)) {
+                uniqueRecipients.set(phone, { ...contact, combinedStudents: [...(contact.students || [])] });
+            } else {
+                if (contact.students) {
+                    uniqueRecipients.get(phone).combinedStudents.push(...contact.students);
+                }
+            }
+        });
+        
+        return Array.from(uniqueRecipients.values()).map(contact => {
+            const contactName = contact.name || contact.names || "Recipient";
+            
+            // Deduplicate students
+            const studentMap = new Map();
+            contact.combinedStudents.forEach(s => studentMap.set(s.id, s));
+            const uniqueStudents = Array.from(studentMap.values());
+            
+            const combinedNames = uniqueStudents.length > 0 
+                ? uniqueStudents.map(s => s.names || s.name).join(' & ') 
+                : undefined;
+            
+            const firstStudent = uniqueStudents.length > 0 ? uniqueStudents[0] : {};
+            const mockStudentContext = { ...firstStudent, names: combinedNames };
+
             const context = {
-                recipient: contact,
+                recipient: { ...contact, name: contactName },
                 parent: contact,
-                student: contact.students?.[0] || {},
+                student: mockStudentContext,
                 school: { name: schoolName }
             };
             
             return {
                 id: contact.id,
-                name: contact.name,
+                name: contactName,
                 phone: contact.phone,
                 text: template(context)
             };
-        }).filter(Boolean); // Remove nulls
+        });
     } catch (e) { return [{ id: 'err', name: 'System', text: "Template Error" }]; }
   }, [messageTemplate, selectedIds, displayList, schoolName]);
 
