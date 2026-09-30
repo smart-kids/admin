@@ -115,9 +115,7 @@ var KTApp = function () {
         });
     }
 
-    var initSticky = function () {
-        var sticky = new Sticky('[data-sticky="true"]');
-    }
+    var initSticky = function() { if (typeof Sticky !== 'undefined') { var sticky = new Sticky('[data-sticky="true"]'); } }
 
     var initAbsoluteDropdown = function (context) {
         var dropdownMenu;

@@ -1921,7 +1921,8 @@ var Data = (function () {
                     const formattedSms = {
                         school: sms.school || localStorage.getItem("school") || "",
                         message: sms.message,
-                        parents: sms.parents || (sms.phone ? [sms.phone] : [])
+                        parents: sms.parents || (sms.phone ? [sms.phone] : []),
+                        audienceGroup: sms.audienceGroup
                     };
                     return mutate(`mutation SendSMS($sms: Isms!) {
                         sms {

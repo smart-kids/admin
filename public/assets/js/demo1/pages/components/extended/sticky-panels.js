@@ -9,7 +9,7 @@ var KTStickyPanelsDemo = function () {
     // Basic demo
     var demo1 = function () {        
         if (KTLayout.onAsideToggle) {
-            var sticky = new Sticky('.sticky');
+            if (typeof Sticky !== 'undefined') { var sticky = new Sticky('.sticky'); }
 
             KTLayout.onAsideToggle(function() {
                 setTimeout(function() {

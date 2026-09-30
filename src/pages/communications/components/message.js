@@ -719,7 +719,8 @@ export default function MessageComposer() {
       const payload = {
         school: localStorage.getItem("school"),
         message: messageTemplate,
-        parents: idsToProcess
+        parents: idsToProcess,
+        audienceGroup: (activeTab === 'classes' || activeTab === 'routes') ? 'parents' : activeTab
       };
       const result = await Data.communication.sms.create(payload);
       setReportData(result.sms.send);
