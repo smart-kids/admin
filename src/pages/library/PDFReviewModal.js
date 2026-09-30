@@ -90,7 +90,7 @@ class PDFReviewModal extends React.Component {
               let name = (ev.reader && ev.reader.name) ? ev.reader.name : (ev.userId || 'Anonymous');
               let role = (ev.reader && ev.reader.role) ? ev.reader.role : '';
               let children = (ev.reader && ev.reader.students && ev.reader.students.length > 0) 
-                  ? ev.reader.students.map(s => s.names || s.name).join(', ') 
+                  ? [...new Set(ev.reader.students.map(s => (s.names || s.name || '').trim()).filter(Boolean))].join(', ') 
                   : null;
 
               const props = typeof ev.properties === 'string' ? JSON.parse(ev.properties) : (ev.properties || {});

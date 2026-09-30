@@ -572,7 +572,15 @@ export default function MessageComposer() {
         const targetClass = classes.find(c => c.id === subFilterId);
         if (targetClass?.students) {
            const map = new Map();
-           targetClass.students.forEach(s => s.parent && map.set(s.parent.id, { ...s.parent, students: [s] }));
+           targetClass.students.forEach(s => {
+             if (s.parent) {
+               if (map.has(s.parent.id)) {
+                 map.get(s.parent.id).students.push(s);
+               } else {
+                 map.set(s.parent.id, { ...s.parent, students: [s] });
+               }
+             }
+           });
            newList = Array.from(map.values());
         }
         setDisplayList(newList);
@@ -583,7 +591,15 @@ export default function MessageComposer() {
         const targetRoute = routes.find(r => r.id === subFilterId);
         if (targetRoute?.students) {
             const map = new Map();
-            targetRoute.students.forEach(s => s.parent && map.set(s.parent.id, { ...s.parent, students: [s] }));
+            targetRoute.students.forEach(s => {
+              if (s.parent) {
+                if (map.has(s.parent.id)) {
+                  map.get(s.parent.id).students.push(s);
+                } else {
+                  map.set(s.parent.id, { ...s.parent, students: [s] });
+                }
+              }
+            });
             newList = Array.from(map.values());
         }
         setDisplayList(newList);
@@ -659,8 +675,9 @@ export default function MessageComposer() {
             contact.combinedStudents.forEach(s => studentMap.set(s.id, s));
             const uniqueStudents = Array.from(studentMap.values());
             
-            const combinedNames = uniqueStudents.length > 0 
-                ? uniqueStudents.map(s => s.names || s.name).join(' & ') 
+            const uniqueStudentNames = [...new Set(uniqueStudents.map(s => (s.names || s.name || '').trim()).filter(Boolean))];
+            const combinedNames = uniqueStudentNames.length > 0 
+                ? uniqueStudentNames.join(' & ') 
                 : undefined;
             
             const firstStudent = uniqueStudents.length > 0 ? uniqueStudents[0] : {};

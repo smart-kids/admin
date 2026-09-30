@@ -117,7 +117,13 @@ export default function MessageComposer() {
            // Extract unique parents from the students
            const uniqueParents = new Map();
            targetClass.students.forEach(student => {
-              if (student.parent) uniqueParents.set(student.parent.id, { ...student.parent, students: [student] });
+              if (student.parent) {
+                if (uniqueParents.has(student.parent.id)) {
+                  uniqueParents.get(student.parent.id).students.push(student);
+                } else {
+                  uniqueParents.set(student.parent.id, { ...student.parent, students: [student] });
+                }
+              }
            });
            newList = Array.from(uniqueParents.values());
         }
@@ -142,7 +148,13 @@ export default function MessageComposer() {
                  // The student object inside route might not have parent nested depending on Query depth.
                  // If data is missing, we might need a specific query. 
                  // Assuming standard fragment depth:
-                 if (student.parent) uniqueParents.set(student.parent.id, { ...student.parent, students: [student] });
+                 if (student.parent) {
+                   if (uniqueParents.has(student.parent.id)) {
+                     uniqueParents.get(student.parent.id).students.push(student);
+                   } else {
+                     uniqueParents.set(student.parent.id, { ...student.parent, students: [student] });
+                   }
+                 }
             });
             newList = Array.from(uniqueParents.values());
         }
