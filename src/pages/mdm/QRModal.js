@@ -217,7 +217,7 @@ class QRModal extends React.Component {
            content = match[3] || msg;
         }
 
-        const isDownloadProgress = content.includes("⬇️ Downloading MDM APK:");
+        const isDownloadProgress = content.includes("⬇️ Downloading MDM APK") || content.includes("⬇️ Downloading Staged MDM APK");
 
         this.setState(prev => {
           let nextLocalLogs = prev.localLogs;
@@ -242,7 +242,7 @@ class QRModal extends React.Component {
                 this.fetchApkStatus(); // Update the APK version in the UI
              } else if (isDownloadProgress) {
                 newStatus = "progress";
-                const progressRegex = /⬇️ Downloading MDM APK:\s+([\d\.]+)\s+MB(?:\s+\/\s+([\d\.]+)\s+MB\s+\((\d+)%\))?\s+@\s+([\d\.]+)\s+MB\/s/;
+                const progressRegex = /⬇️ Downloading (?:Staged )?MDM APK(?: v[\d\.]+)?:\s+([\d\.]+)\s+MB(?:\s+\/\s+([\d\.]+)\s+MB\s+\((\d+)%\))?\s+@\s+([\d\.]+)\s+MB\/s/;
                 const prMatch = content.match(progressRegex);
                 if (prMatch) {
                    const downloadedMb = parseFloat(prMatch[1]);
@@ -299,7 +299,7 @@ class QRModal extends React.Component {
                 newDownloadStats = null;
              } else if (isDownloadProgress) {
                 newStatus = "progress";
-                const progressRegex = /⬇️ Downloading MDM APK:\s+([\d\.]+)\s+MB(?:\s+\/\s+([\d\.]+)\s+MB\s+\((\d+)%\))?\s+@\s+([\d\.]+)\s+MB\/s/;
+                const progressRegex = /⬇️ Downloading (?:Staged )?MDM APK(?: v[\d\.]+)?:\s+([\d\.]+)\s+MB(?:\s+\/\s+([\d\.]+)\s+MB\s+\((\d+)%\))?\s+@\s+([\d\.]+)\s+MB\/s/;
                 const prMatch = content.match(progressRegex);
                 if (prMatch) {
                    const downloadedMb = parseFloat(prMatch[1]);
@@ -328,7 +328,7 @@ class QRModal extends React.Component {
                 }
              } else if (newStatus !== "failed") {
                 newStatus = "progress";
-                if (content.includes("Fetching MDM token") || content.includes("Downloading MDM APK")) {
+                if (content.includes("Fetching MDM token") || content.includes("Downloading MDM APK") || content.includes("Downloading Staged MDM APK")) {
                    newProgress = 20;
                    newStatusText = null;
                 }
