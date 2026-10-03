@@ -264,6 +264,8 @@ class QRModal extends React.Component {
                    
                    if (percent !== null) {
                       newProgress = percent;
+                   } else {
+                      newProgress = Math.min(99, Math.round((downloadedMb / 30) * 100));
                    }
                 }
              }
@@ -319,6 +321,9 @@ class QRModal extends React.Component {
                    
                    if (percent !== null) {
                       newProgress = Math.round(20 + (percent * 0.3));
+                   } else {
+                      const estimatedPercent = Math.min(99, Math.round((downloadedMb / 30) * 100));
+                      newProgress = Math.round(20 + (estimatedPercent * 0.3));
                    }
                 }
              } else if (newStatus !== "failed") {
