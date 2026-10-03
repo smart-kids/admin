@@ -46,13 +46,17 @@ class QRModal extends React.Component {
     terminalDarkMode: false,
     adbVersion: null,
     serverDownloadStatus: null,
+    serverStagedDownloadStatus: null,
     serverDownloadProgress: 0,
+    serverStagedDownloadProgress: 0,
     serverDownloadStats: null,
+    serverStagedDownloadStats: null,
     serverApkVersion: null,
     serverStagedApkVersion: null,
     tokenTestStatus: null,
     deviceOwnerUserId: "",
-    useStagedApkForUsb: false
+    useStagedApkForUsb: false,
+    defaultApkVersion: null
   };
 
   handleApkVersionChange = (newVersion) => {
@@ -145,13 +149,14 @@ class QRModal extends React.Component {
     const tokenData = this.state.enrollmentToken ? { token: this.state.enrollmentToken } : await this.generateEnrollmentToken(schoolId);
     
     try {
+      const isOverridden = this.state.apkVersion && this.state.apkVersion !== this.state.defaultApkVersion;
       await Data.localMdm.auth({
         token: tokenData.token,
         school_id: schoolId,
         wifi_ssid: this.state.wifiSsid,
         wifi_password: this.state.wifiPassword,
         api_base: apiBase,
-        apk_version: this.state.apkVersion || ""
+        apk_version: isOverridden ? this.state.apkVersion : ""
       });
       this.setState({ localServiceAuthenticated: true });
     } catch (e) {
@@ -218,6 +223,7 @@ class QRModal extends React.Component {
         }
 
         const isDownloadProgress = content.includes("⬇️ Downloading MDM APK") || content.includes("⬇️ Downloading Staged MDM APK");
+        const isStaged = content.includes("Staged");
 
         this.setState(prev => {
           let nextLocalLogs = prev.localLogs;
@@ -228,9 +234,9 @@ class QRModal extends React.Component {
           const nextState = { localLogs: nextLocalLogs };
           
           if (serial === 'Server') {
-             let newStatus = prev.serverDownloadStatus;
-             let newProgress = prev.serverDownloadProgress;
-             let newDownloadStats = prev.serverDownloadStats;
+             let newStatus = isStaged ? prev.serverStagedDownloadStatus : prev.serverDownloadStatus;
+             let newProgress = isStaged ? prev.serverStagedDownloadProgress : prev.serverDownloadProgress;
+             let newDownloadStats = isStaged ? prev.serverStagedDownloadStats : prev.serverDownloadStats;
              
              if (content.includes("❌")) {
                 newStatus = "failed";
@@ -270,9 +276,15 @@ class QRModal extends React.Component {
                 }
              }
              
-             nextState.serverDownloadStatus = newStatus;
-             nextState.serverDownloadProgress = newProgress;
-             nextState.serverDownloadStats = newDownloadStats;
+             if (isStaged) {
+                 nextState.serverStagedDownloadStatus = newStatus;
+                 nextState.serverStagedDownloadProgress = newProgress;
+                 nextState.serverStagedDownloadStats = newDownloadStats;
+             } else {
+                 nextState.serverDownloadStatus = newStatus;
+                 nextState.serverDownloadProgress = newProgress;
+                 nextState.serverDownloadStats = newDownloadStats;
+             }
              
              return nextState;
           }
@@ -580,11 +592,11 @@ class QRModal extends React.Component {
 
   downloadStagedInternalApk = async () => {
     try {
-      this.setState({ serverDownloadStatus: 'progress', serverDownloadProgress: 0, serverDownloadStats: null });
+      this.setState({ serverStagedDownloadStatus: 'progress', serverStagedDownloadProgress: 0, serverStagedDownloadStats: null });
       await Data.localMdm.downloadStagedApk();
     } catch (e) {
       console.error(e);
-      this.setState({ serverDownloadStatus: 'failed' });
+      this.setState({ serverStagedDownloadStatus: 'failed' });
     }
   };
 
@@ -683,8 +695,10 @@ class QRModal extends React.Component {
         const vMatch = data.downloadUrl.match(/shuleplus-([\d\.]+)\.apk/);
         if (vMatch) {
             newState.apkVersion = vMatch[1];
+            newState.defaultApkVersion = vMatch[1];
         } else if (data.version) {
             newState.apkVersion = data.version;
+            newState.defaultApkVersion = data.version;
         }
       }
       if (data.checksum) newState.signatureChecksum = data.checksum;
@@ -1194,9 +1208,9 @@ class QRModal extends React.Component {
                             <button 
                               className="btn btn-outline-primary btn-sm rounded-pill font-weight-bold shadow-sm text-nowrap"
                               onClick={this.downloadStagedInternalApk}
-                              disabled={this.state.serverDownloadStatus === 'progress' || this.state.setupLoading}
+                              disabled={this.state.serverStagedDownloadStatus === 'progress' || this.state.setupLoading}
                             >
-                              {this.state.serverDownloadStatus === 'progress' ? (
+                              {this.state.serverStagedDownloadStatus === 'progress' ? (
                                 <i className="la la-spinner la-spin mr-1"></i>
                               ) : (
                                 <i className="la la-download mr-1"></i>
@@ -1281,6 +1295,33 @@ class QRModal extends React.Component {
                               <div className="d-flex justify-content-between mt-1 text-muted font-weight-bold" style={{ fontSize: '11px' }}>
                                 <span>{this.state.serverDownloadStats.downloadedMb.toFixed(2)} / {this.state.serverDownloadStats.totalMb ? this.state.serverDownloadStats.totalMb.toFixed(2) : '?'} MB</span>
                                 <span>{this.state.serverDownloadStats.speedMbs.toFixed(1)} MB/s {this.state.serverDownloadStats.etaSeconds !== null && `(${this.state.serverDownloadStats.etaSeconds}s left)`}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        {this.state.serverStagedDownloadStatus && (
+                          <div className="alert alert-secondary p-2 mb-3 shadow-sm" style={{ borderRadius: '8px' }}>
+                            <div className="d-flex justify-content-between align-items-center mb-1">
+                              <span className="font-weight-bold text-dark" style={{ fontSize: '12px' }}>
+                                Server Staged APK Download
+                              </span>
+                              <span className={`font-weight-bold ${this.state.serverStagedDownloadStatus === 'failed' ? 'text-danger' : 'text-primary'}`} style={{ fontSize: '12px' }}>
+                                {this.state.serverStagedDownloadStatus === 'success' ? 'Complete' :
+                                 this.state.serverStagedDownloadStatus === 'failed' ? 'Failed' :
+                                 `${this.state.serverStagedDownloadProgress}%`}
+                              </span>
+                            </div>
+                            <div className="progress" style={{ height: '6px', borderRadius: '3px', backgroundColor: '#e9ecef', overflow: 'hidden' }}>
+                              <div 
+                                className={`progress-bar progress-bar-striped progress-bar-animated ${this.state.serverStagedDownloadStatus === 'success' ? 'bg-success' : this.state.serverStagedDownloadStatus === 'failed' ? 'bg-danger' : 'bg-info'}`}
+                                style={{ width: `${this.state.serverStagedDownloadStatus === 'success' ? 100 : this.state.serverStagedDownloadProgress}%`, height: '100%', transition: 'width 0.4s ease' }}
+                              ></div>
+                            </div>
+                            {this.state.serverStagedDownloadStats && (
+                              <div className="d-flex justify-content-between mt-1 text-muted font-weight-bold" style={{ fontSize: '11px' }}>
+                                <span>{this.state.serverStagedDownloadStats.downloadedMb.toFixed(2)} / {this.state.serverStagedDownloadStats.totalMb ? this.state.serverStagedDownloadStats.totalMb.toFixed(2) : '?'} MB</span>
+                                <span>{this.state.serverStagedDownloadStats.speedMbs.toFixed(1)} MB/s {this.state.serverStagedDownloadStats.etaSeconds !== null && `(${this.state.serverStagedDownloadStats.etaSeconds}s left)`}</span>
                               </div>
                             )}
                           </div>

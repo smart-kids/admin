@@ -58,6 +58,7 @@ const schools = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/
 const library = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/library"));
 const games = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/games"));
 const mdm = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/mdm"));
+const walletWithdrawals = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/finance/walletWithdrawals"));
 const timeTables = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/time-tables"));
 const activityLog = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/activity-log"));
 
@@ -144,6 +145,7 @@ class App extends React.Component {
       <PrivateRoute path="/finance/budgets/dashboard" component={budgetsDashboard} />
       <PrivateRoute path="/finance/expenses/dashboard" component={expensesDashboard} />
       <PrivateRoute path="/finance/fees" component={Fees} />
+      <PrivateRoute path="/finance/wallet-withdrawals" component={walletWithdrawals} />
       <PrivateRoute path="/results" component={Results} />
       <PrivateRoute path="/teams" component={teams} />
       <PrivateRoute path="/invitations" component={invitations} />

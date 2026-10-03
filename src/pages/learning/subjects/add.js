@@ -76,6 +76,8 @@ class Modal extends React.Component {
       name: "",
       grade: "",
       teacher: "",
+      comment: "",
+      gradable: true,
     },
     teachers: [],
     manualAiInput: "",
@@ -130,7 +132,7 @@ class Modal extends React.Component {
         }
 
         console.log(_this.state);
-        const { subject: { name, teacher }, aiJsonResponse, isAiSectionVisible } = _this.state;
+        const { subject: { name, teacher, comment, gradable }, aiJsonResponse, isAiSectionVisible } = _this.state;
         let isValid = true;
         let currentErrorMessage = null;
 
@@ -174,6 +176,8 @@ class Modal extends React.Component {
           const subjectDataForAPI = {
             name,
             teacher,
+            comment,
+            gradable,
             aiGeneratedCurriculum: parsedAiData ? JSON.stringify(parsedAiData) : null,
           };
 
@@ -218,7 +222,7 @@ class Modal extends React.Component {
     this.setState({
       loading: false,
       aiGenerating: false,
-      subject: { name: "", grade: this.props.grade || "", teacher: "" },
+      subject: { name: "", grade: this.props.grade || "", teacher: "", comment: "", gradable: true },
       manualAiInput: "",
       generatedAiPrompt: "",
       aiJsonResponse: "",
@@ -241,7 +245,7 @@ class Modal extends React.Component {
     this.setState({
       loading: false,
       aiGenerating: false,
-      subject: { name: "", grade: this.props.grade || "", teacher: "" },
+      subject: { name: "", grade: this.props.grade || "", teacher: "", comment: "", gradable: true },
       manualAiInput: "",
       generatedAiPrompt: "",
       aiJsonResponse: "",
@@ -255,7 +259,7 @@ class Modal extends React.Component {
     this.setState(prevState => ({
       subject: {
         ...prevState.subject,
-        [name]: value,
+        [name]: event.target.type === 'checkbox' ? event.target.checked : value,
       }
     }));
   };
@@ -376,6 +380,33 @@ class Modal extends React.Component {
                             </option>
                           ))}
                         </select>
+                      </div>
+                    </div>
+
+                    <div className="form-group row">
+                      <div className="col-lg-6 mb-5">
+                        <label>Default Teacher Comment (Optional):</label>
+                        <input
+                          type="text"
+                          className="form-control form-control-solid"
+                          id="comment"
+                          name="comment"
+                          value={subject.comment}
+                          onChange={this.handleInputChange}
+                          placeholder="e.g. Swimming: Participated well"
+                        />
+                      </div>
+                      <div className="col-lg-6 mb-5 d-flex align-items-end">
+                        <label className="kt-checkbox kt-checkbox--brand mb-2">
+                          <input
+                            type="checkbox"
+                            id="gradable"
+                            name="gradable"
+                            checked={subject.gradable}
+                            onChange={this.handleInputChange}
+                          /> Gradable Subject
+                          <span></span>
+                        </label>
                       </div>
                     </div>
 

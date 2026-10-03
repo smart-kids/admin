@@ -17,6 +17,8 @@ class Modal extends React.Component {
       id: null,
       name: "",
       teacher: "",
+      comment: "",
+      gradable: true,
     },
   };
 
@@ -69,6 +71,8 @@ class Modal extends React.Component {
               id: _this.state.subject.id,
               name: _this.state.subject.name,
               teacher: _this.state.subject.teacher || undefined,
+              comment: _this.state.subject.comment || undefined,
+              gradable: _this.state.subject.gradable,
             };
             await _this.props.edit(data);
             _this.hide();
@@ -99,6 +103,8 @@ class Modal extends React.Component {
         subject: {
           ...props.subject,
           teacher: props.subject.teacher || "",
+          comment: props.subject.comment || "",
+          gradable: props.subject.gradable !== undefined ? props.subject.gradable : true,
         },
       };
     }
@@ -117,7 +123,7 @@ class Modal extends React.Component {
     $("#" + modalNumber).modal("hide");
     this.setState({
       loading: false,
-      subject: { id: null, name: "", teacher: "" },
+      subject: { id: null, name: "", teacher: "", comment: "", gradable: true },
     });
   }
 
@@ -126,7 +132,7 @@ class Modal extends React.Component {
     this.setState(prevState => ({
       subject: {
         ...prevState.subject,
-        [name]: value,
+        [name]: event.target.type === 'checkbox' ? event.target.checked : value,
       }
     }));
   };
@@ -199,6 +205,35 @@ class Modal extends React.Component {
                         </div>
                       )}
                     </div>
+                    
+                    {!isTeacher && (
+                      <div className="form-group row mt-3">
+                        <div className="col-lg-6 mb-5">
+                          <label>Default Teacher Comment (Optional):</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            id="comment"
+                            name="comment"
+                            value={subject.comment || ""}
+                            onChange={this.handleInputChange}
+                            placeholder="e.g. Swimming: Participated well"
+                          />
+                        </div>
+                        <div className="col-lg-6 mb-5 d-flex align-items-end">
+                          <label className="kt-checkbox kt-checkbox--brand mb-2">
+                            <input
+                              type="checkbox"
+                              id="gradable"
+                              name="gradable"
+                              checked={subject.gradable}
+                              onChange={this.handleInputChange}
+                            /> Gradable Subject
+                            <span></span>
+                          </label>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="modal-footer">
