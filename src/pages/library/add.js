@@ -1,5 +1,50 @@
 import React from "react";
-import CreatableSelect from 'react-select/creatable';
+import Select from 'react-select';
+export const LIBRARY_TAGS = [
+  {
+    label: "Subjects",
+    options: [
+      { label: "Mathematics", value: "Mathematics" },
+      { label: "English", value: "English" },
+      { label: "Kiswahili", value: "Kiswahili" },
+      { label: "Science", value: "Science" },
+      { label: "Social Studies", value: "Social Studies" },
+      { label: "CRE", value: "CRE" },
+      { label: "IRE", value: "IRE" },
+      { label: "Geography", value: "Geography" },
+      { label: "History", value: "History" },
+      { label: "Biology", value: "Biology" },
+      { label: "Chemistry", value: "Chemistry" },
+      { label: "Physics", value: "Physics" },
+      { label: "Business Studies", value: "Business Studies" },
+      { label: "Agriculture", value: "Agriculture" },
+      { label: "Computer Studies", value: "Computer Studies" }
+    ]
+  },
+  {
+    label: "Resource Type",
+    options: [
+      { label: "Coursebook", value: "Coursebook" },
+      { label: "Revision Guide", value: "Revision Guide" },
+      { label: "Past Paper", value: "Past Paper" },
+      { label: "Syllabus", value: "Syllabus" },
+      { label: "Notes", value: "Notes" },
+      { label: "Practical Manual", value: "Practical Manual" },
+      { label: "Storybook", value: "Storybook" }
+    ]
+  },
+  {
+    label: "Education Level",
+    options: [
+      { label: "CBC", value: "CBC" },
+      { label: "Primary", value: "Primary" },
+      { label: "Junior Secondary", value: "Junior Secondary" },
+      { label: "High School", value: "High School" },
+      { label: "8-4-4", value: "8-4-4" },
+      { label: "IGCSE", value: "IGCSE" }
+    ]
+  }
+];
 import "./Library.css"; // Ensure you have the CSS file from the previous step
 import { query } from "../../utils/requests";
 import Data from "../../utils/data";
@@ -420,21 +465,16 @@ class BookModal extends React.Component {
 
                   <div className="form-group">
                     <label className="font-weight-bold">Tags</label>
-                    <CreatableSelect
+                    <Select
                         isMulti
                         name="tags"
                         value={this.state.tags}
                         onChange={this.handleTagsChange}
-                        placeholder="Select or type to create tags..."
+                        placeholder="Select relevant tags..."
                         className="basic-multi-select"
                         classNamePrefix="select"
                         isDisabled={isUploading}
-                        options={Array.from(new Set(
-                          (this.state.allBooks || [])
-                            .flatMap(b => Array.isArray(b.tags) ? b.tags : [])
-                            .map(t => typeof t === 'string' ? t.trim() : '')
-                            .filter(Boolean)
-                        )).map(t => ({label: t, value: t}))}
+                        options={LIBRARY_TAGS}
                     />
                   </div>
 
