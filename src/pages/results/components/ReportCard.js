@@ -152,42 +152,115 @@ const ReportCard = ({ student, term, assessments, subjects, rubrics, assessmentT
                         </tr>
                     </thead>
                     <tbody>
-                        {subjectRows.map((row, idx) => (
-                            <React.Fragment key={idx}>
-                                <tr style={{ backgroundColor: idx % 2 === 0 ? '#fff' : '#f9fafb' }}>
+                        {(() => {
+                            const categoriesUsed = student.class?.categoriesUsed || false;
+                            
+                            const renderSubjectRow = (row, idx) => (
+                                <tr key={`subj-${row.subject.id}-${idx}`} style={{ backgroundColor: idx % 2 === 0 ? '#fff' : '#f9fafb' }}>
                                     <td style={{ padding: '10px 18px', borderBottom: '1px solid #f3f4f6', fontWeight: 700, fontSize: '0.9rem', color: '#374151' }}>
-                                    {row.subject.name}
-                                </td>
-                                 {row.typeScores.map((ts, tIdx) => (
-                                    <td key={tIdx} style={{ padding: '10px 10px', borderBottom: '1px solid #f3f4f6', textAlign: 'center' }}>
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                            <span style={{ fontWeight: 800, fontSize: '1.0rem', color: '#111827' }}>{ts.score !== null ? ts.score : '-'}</span>
-                                            {ts.contribution !== null && (
-                                                <span style={{ fontSize: '0.7rem', color: themeColor, fontWeight: 800 }}>
-                                                    {ts.contribution.toFixed(1)}/{ts.pct}%
-                                                </span>
-                                            )}
-                                        </div>
+                                        {row.subject.name}
                                     </td>
-                                ))}
-                                <td style={{ padding: '10px 10px', borderBottom: '1px solid #f3f4f6', textAlign: 'center' }}>
-                                    {row.hasAnyScore && (
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                            <span style={{ fontWeight: 900, fontSize: '1.1rem', color: themeColor }}>{row.overallScore.toFixed(1)}%</span>
-                                            {row.overallRubric && (
-                                                <span className="label label-inline label-light-primary font-weight-boldest" style={{ fontSize: '10px', textTransform: 'uppercase' }}>
-                                                    {row.overallRubric.label}
-                                                </span>
-                                            )}
-                                        </div>
-                                    )}
-                                </td>
-                                <td style={{ padding: '10px 18px', borderBottom: '1px solid #f3f4f6', fontSize: '0.8rem', color: '#4b5563', fontStyle: 'italic', maxWidth: '200px' }}>
-                                    {row.teachersComment}
-                                </td>
-                            </tr>
-                            </React.Fragment>
-                        ))}
+                                    {row.typeScores.map((ts, tIdx) => (
+                                        <td key={tIdx} style={{ padding: '10px 10px', borderBottom: '1px solid #f3f4f6', textAlign: 'center' }}>
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                                <span style={{ fontWeight: 800, fontSize: '1.0rem', color: '#111827' }}>{ts.score !== null ? ts.score : '-'}</span>
+                                                {ts.contribution !== null && (
+                                                    <span style={{ fontSize: '0.7rem', color: themeColor, fontWeight: 800 }}>
+                                                        {ts.contribution.toFixed(1)}/{ts.pct}%
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </td>
+                                    ))}
+                                    <td style={{ padding: '10px 10px', borderBottom: '1px solid #f3f4f6', textAlign: 'center' }}>
+                                        {row.hasAnyScore && (
+                                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                                <span style={{ fontWeight: 900, fontSize: '1.1rem', color: themeColor }}>{row.overallScore.toFixed(1)}%</span>
+                                                {row.overallRubric && (
+                                                    <span className="label label-inline label-light-primary font-weight-boldest" style={{ fontSize: '10px', textTransform: 'uppercase' }}>
+                                                        {row.overallRubric.label}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td style={{ padding: '10px 18px', borderBottom: '1px solid #f3f4f6', fontSize: '0.8rem', color: '#4b5563', fontStyle: 'italic', maxWidth: '200px' }}>
+                                        {row.teachersComment}
+                                    </td>
+                                </tr>
+                            );
+
+                            if (!categoriesUsed) {
+                                return subjectRows.map((row, idx) => renderSubjectRow(row, idx));
+                            } else {
+                                const categories = Data.rubricSubjectCategories.list() || [];
+                                const groups = [];
+                                const uncategorized = [];
+
+                                // Initialize groups
+                                categories.forEach(cat => {
+                                    groups.push({ category: cat, rows: [] });
+                                });
+
+                                subjectRows.forEach(row => {
+                                    let found = false;
+                                    for (let group of groups) {
+                                        if (group.category.subjects && group.category.subjects.includes(row.subject.id)) {
+                                            group.rows.push(row);
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!found) {
+                                        uncategorized.push(row);
+                                    }
+                                });
+
+                                const activeGroups = groups.filter(g => g.rows.length > 0);
+                                if (uncategorized.length > 0) {
+                                    activeGroups.push({ category: { name: 'Other Subjects' }, rows: uncategorized });
+                                }
+
+                                return activeGroups.map((group, gIdx) => {
+                                    let groupSum = 0;
+                                    let groupCount = 0;
+                                    group.rows.forEach(r => {
+                                        if (r.hasAnyScore) {
+                                            groupSum += r.overallScore;
+                                            groupCount++;
+                                        }
+                                    });
+                                    const groupAverage = groupCount > 0 ? (groupSum / groupCount) : 0;
+                                    const groupRubric = groupCount > 0 ? getRubric(groupAverage) : null;
+
+                                    return (
+                                        <React.Fragment key={`group-${gIdx}`}>
+                                            <tr style={{ backgroundColor: '#f3f4f6' }}>
+                                                <td colSpan={1 + (sortedAssessmentTypes?.length || 0)} style={{ padding: '8px 18px', fontWeight: 800, fontSize: '0.85rem', color: themeColor, textTransform: 'uppercase' }}>
+                                                    {group.category.name}
+                                                </td>
+                                                <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                                                    {groupCount > 0 && (
+                                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                                            <span style={{ fontWeight: 900, fontSize: '1.0rem', color: themeColor }}>{groupAverage.toFixed(1)}%</span>
+                                                            {groupRubric && (
+                                                                <span className="label label-inline label-light-primary font-weight-boldest" style={{ fontSize: '10px', textTransform: 'uppercase' }}>
+                                                                    {groupRubric.label}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td style={{ padding: '8px 18px', fontSize: '0.75rem', color: '#6b7280', fontStyle: 'italic' }}>
+                                                    Category Average
+                                                </td>
+                                            </tr>
+                                            {group.rows.map((row, rIdx) => renderSubjectRow(row, rIdx))}
+                                        </React.Fragment>
+                                    );
+                                });
+                            }
+                        })()}
                     </tbody>
                     <tfoot>
                         <tr style={{ backgroundColor: '#f3f4f6' }}>

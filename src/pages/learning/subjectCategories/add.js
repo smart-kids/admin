@@ -1,16 +1,40 @@
 import React, { Component } from 'react';
 import { Modal } from 'react-bootstrap';
+import Select from 'react-select';
 import Data from "../../../utils/data";
 
 class Add extends Component {
     state = {
         name: '',
         subjects: [],
+        availableSubjects: [],
         processing: false
+    };
+
+    componentDidMount() {
+        this.fetchSubjects();
+        this.unsubscribe = Data.subjects.subscribe(({ subjects }) => {
+            this.setState({ availableSubjects: subjects || [] });
+        });
+    }
+
+    componentWillUnmount() {
+        if (this.unsubscribe) {
+            this.unsubscribe();
+        }
+    }
+
+    fetchSubjects = () => {
+        const subjects = Data.subjects.list() || [];
+        this.setState({ availableSubjects: subjects });
     };
 
     handleChange = (e) => {
         this.setState({ [e.target.name]: e.target.value });
+    };
+
+    handleSubjectsChange = (selectedOptions) => {
+        this.setState({ subjects: selectedOptions || [] });
     };
 
     handleSubmit = async (e) => {
@@ -20,9 +44,10 @@ class Add extends Component {
 
         this.setState({ processing: true });
         try {
+            const subjectIds = subjects.map(s => s.value);
             await Data.rubricSubjectCategories.create({ 
                 name, 
-                subjects,
+                subjects: subjectIds,
                 school: localStorage.getItem('school')
             });
             if (window.toastr) window.toastr.success("Category created successfully");
@@ -37,7 +62,12 @@ class Add extends Component {
 
     render() {
         const { handleClose } = this.props;
-        const { name, processing } = this.state;
+        const { name, subjects, availableSubjects, processing } = this.state;
+
+        const subjectOptions = availableSubjects.map(s => ({
+            value: s.id,
+            label: s.name
+        }));
 
         return (
             <Modal show onHide={handleClose} centered>
@@ -55,6 +85,16 @@ class Add extends Component {
                                 value={name} 
                                 onChange={this.handleChange} 
                                 required 
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label>Subjects</label>
+                            <Select 
+                                isMulti
+                                options={subjectOptions}
+                                value={subjects}
+                                onChange={this.handleSubjectsChange}
+                                placeholder="Select subjects..."
                             />
                         </div>
                     </Modal.Body>

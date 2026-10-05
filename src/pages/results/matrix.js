@@ -591,9 +591,7 @@ class ResultsMatrix extends React.Component {
     
     return classes.map(classItem => {
       const classAssessments = assessments?.filter(a => 
-        (a.student?.class?.id === classItem.id || a.student?.class === classItem.id) &&
-        (!selectedClass || classItem.id === selectedClass) &&
-        (!selectedTerm || a.term?.id === selectedTerm || a.term === selectedTerm)
+        (a.student?.class?.id === classItem.id || a.student?.class === classItem.id)
       );
       
       const subjectPerformance = {};

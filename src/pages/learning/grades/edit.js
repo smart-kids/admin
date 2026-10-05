@@ -132,6 +132,18 @@ class Modal extends React.Component {
                         </label>
                       </div>
                   </div>
+                  <div className="form-group row">
+                      <div className="col-lg-12">
+                        <label className="kt-checkbox kt-checkbox--brand">
+                          <input
+                            type="checkbox"
+                            checked={this.state.grade.categoriesUsed || false}
+                            onChange={(e) => this.setState({ grade: Object.assign({}, this.state.grade, { categoriesUsed: e.target.checked }) })}
+                          /> Use Categories (e.g. for grading reports)
+                          <span></span>
+                        </label>
+                      </div>
+                  </div>
                 </div>
                 <div className="modal-footer">
                   <button

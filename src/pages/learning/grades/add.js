@@ -14,6 +14,7 @@ class Modal extends React.Component {
     loading: false,
     grade: {
       name: "",
+      categoriesUsed: false
     }
   };
 
@@ -48,6 +49,7 @@ class Modal extends React.Component {
           // delete _this.state.grade.id;
           const data = {};
           data.name = _this.state.grade.name;
+          data.categoriesUsed = _this.state.grade.categoriesUsed;
           data.school = _this.state.grade;
           // await _this.props.save(_this.state.grade);
           await _this.props.save(data);
@@ -56,7 +58,8 @@ class Modal extends React.Component {
             loading: false,
           });
           _this.setState(Object.assign(_this.state.grade, {
-              name: ""
+              name: "",
+              categoriesUsed: false
           }));
         } catch (error) {
           _this.setState({ loading: false });
@@ -114,6 +117,20 @@ class Modal extends React.Component {
                           }))}
                           required
                         />
+                      </div>
+                    </div>
+                    <div className="form-group row mt-3">
+                      <div className="col-lg-12">
+                        <label className="kt-checkbox">
+                          <input
+                            type="checkbox"
+                            checked={this.state.grade.categoriesUsed}
+                            onChange={(e) => this.setState(Object.assign(this.state.grade, {
+                              categoriesUsed: e.target.checked
+                            }))}
+                          /> Use Categories (e.g. for grading reports)
+                          <span></span>
+                        </label>
                       </div>
                     </div>
                   </div>

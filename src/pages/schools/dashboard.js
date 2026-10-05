@@ -201,7 +201,13 @@ class SchoolsDashboard extends Component {
         const date = new Date(p.time || p.createdAt || p.date);
         return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
       })
-      .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+      .reduce((sum, p) => {
+        let amount = parseFloat(p.amount || 0);
+        if (p.paymentType === 'LIBRARY_BOOK') {
+            amount = amount * 0.30; // 30% SaaS cut
+        }
+        return sum + amount;
+      }, 0);
   };
 
   calculateRevenueGrowth = (payments) => {
@@ -215,14 +221,26 @@ class SchoolsDashboard extends Component {
         const date = new Date(p.time || p.createdAt || p.date);
         return date.getMonth() === currentMonth && date.getFullYear() === currentYear;
       })
-      .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+      .reduce((sum, p) => {
+        let amount = parseFloat(p.amount || 0);
+        if (p.paymentType === 'LIBRARY_BOOK') {
+            amount = amount * 0.30;
+        }
+        return sum + amount;
+      }, 0);
     
     const previousRevenue = payments
       .filter(p => {
         const date = new Date(p.time || p.createdAt || p.date);
         return date.getMonth() === previousMonth && date.getFullYear() === previousYear;
       })
-      .reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+      .reduce((sum, p) => {
+        let amount = parseFloat(p.amount || 0);
+        if (p.paymentType === 'LIBRARY_BOOK') {
+            amount = amount * 0.30;
+        }
+        return sum + amount;
+      }, 0);
     
     return previousRevenue > 0 ? ((currentRevenue - previousRevenue) / previousRevenue) * 100 : 0;
   };
@@ -266,7 +284,13 @@ class SchoolsDashboard extends Component {
   calculateFinancialMetrics = (data) => {
     const { payments, charges, institutionalDeposits, schools } = data;
     
-    const totalRevenue = payments.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+    const totalRevenue = payments.reduce((sum, p) => {
+        let amount = parseFloat(p.amount || 0);
+        if (p.paymentType === 'LIBRARY_BOOK') {
+            amount = amount * 0.30;
+        }
+        return sum + amount;
+    }, 0);
     const totalCharges = charges.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0);
     const totalDeposits = institutionalDeposits.reduce((sum, d) => sum + parseFloat(d.amount || 0), 0);
     

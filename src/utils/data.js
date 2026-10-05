@@ -463,7 +463,7 @@ var Data = (function () {
         const FRAGMENT_SCHOOL_DETAILS = `fragment schoolDetails on school { id name phone email address logo themeColor studentsCount parentsCount schoolSize schoolType schoolLevel numberOfStudents gradeOrder isDeleted inviteSmsText mpesaPaybill ratePerStudent }`;
         const FRAGMENT_GRADES_DATA = `fragment GradesData on school {
             grades { 
-                id name subjectsOrder 
+                id name subjectsOrder categoriesUsed 
                 subjects { 
                     id name teacher topicsOrder 
                     topics { 
@@ -483,6 +483,7 @@ var Data = (function () {
       id
       name
       subjectsOrder
+      categoriesUsed
       subjects {
         id
         name
@@ -1093,7 +1094,7 @@ var Data = (function () {
     init();
 
     const entityConfigs = [
-        { name: "grades", singularName: "grade", createFields: ['name', 'school', 'subjectsOrder', 'isvisible'], updateFields: ['name', 'school', 'subjectsOrder', 'isvisible'] },
+        { name: "grades", singularName: "grade", createFields: ['name', 'school', 'subjectsOrder', 'isvisible', 'categoriesUsed'], updateFields: ['name', 'school', 'subjectsOrder', 'isvisible', 'categoriesUsed'] },
         { name: "subjects", singularName: "subject", isNested: true, parentEntity: "grades", parentKey: "grade", createFields: ['name', 'grade', 'topicsOrder', 'teacher', 'aiGeneratedCurriculum', 'topicalImages'], updateFields: ['name', 'grade', 'topicsOrder', 'teacher', 'aiGeneratedCurriculum', 'topicalImages'] },
         { name: "topics", singularName: "topic", isNested: true, parentEntity: "subjects", parentKey: "subject", createFields: ['name', 'subject', 'icon', 'subtopicOrder', 'isvisible'], updateFields: ['name', 'subject', 'icon', 'subtopicOrder', 'isvisible'] },
         { name: "subtopics", singularName: "subtopic", isNested: true, parentEntity: "topics", parentKey: "topic", createFields: ['name', 'topic', 'questionsOrder', 'isTimed', 'startDate', 'startTime', 'endTime'], updateFields: ['name', 'topic', 'questionsOrder', 'isTimed', 'startDate', 'startTime', 'endTime'] },
