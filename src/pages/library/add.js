@@ -1,5 +1,10 @@
 import React from "react";
 import Select from 'react-select';
+import "./Library.css"; // Ensure you have the CSS file from the previous step
+import { query } from "../../utils/requests";
+import Data from "../../utils/data";
+import { BASE_URL } from "../../utils/config";
+
 export const LIBRARY_TAGS = [
   {
     label: "Subjects",
@@ -45,10 +50,6 @@ export const LIBRARY_TAGS = [
     ]
   }
 ];
-import "./Library.css"; // Ensure you have the CSS file from the previous step
-import { query } from "../../utils/requests";
-import Data from "../../utils/data";
-import { BASE_URL } from "../../utils/config";
 
 const $ = window.$;
 
