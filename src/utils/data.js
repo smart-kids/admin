@@ -113,6 +113,7 @@ const allData = {
     books: [],
     assessmentTypes: [],
     assessmentRubrics: [],
+    rubricSubjectCategories: [],
     institutionalDeposits: [],
     scheme_of_works: [],
     record_of_works: [],
@@ -649,6 +650,7 @@ var Data = (function () {
         const FRAGMENT_TERMS_DATA = `fragment TermsData on school { terms { id name startDate endDate order } }`;
         const FRAGMENT_ASSESSMENT_TYPES_DATA = `fragment AssessmentTypesData on school { assessmentTypes { id name percentage order } }`;
         const FRAGMENT_ASSESSMENT_RUBRICS_DATA = `fragment AssessmentRubricsData on school { assessmentRubrics { id label minScore maxScore points teachersComment } }`;
+        const FRAGMENT_RUBRIC_SUBJECT_CATEGORIES_DATA = `fragment RubricSubjectCategoriesData on school { rubricSubjectCategories { id name subjects school } }`;
         // 1. Define the Fragment for SMS History (Add this near other fragments)
         const FRAGMENT_SMS_EVENTS_DATA = `fragment SmsEventsData on school { 
     smsEvents { 
@@ -1032,6 +1034,7 @@ var Data = (function () {
             { query: `query GetTerms { schools { id ...TermsData } } ${FRAGMENT_TERMS_DATA}` },
             { query: `query GetAssessmentTypes { schools { id ...AssessmentTypesData } } ${FRAGMENT_ASSESSMENT_TYPES_DATA}` },
             { query: `query GetAssessmentRubrics { schools { id ...AssessmentRubricsData } } ${FRAGMENT_ASSESSMENT_RUBRICS_DATA}` },
+            { query: `query GetRubricSubjectCategories { schools { id ...RubricSubjectCategoriesData } } ${FRAGMENT_RUBRIC_SUBJECT_CATEGORIES_DATA}` },
 
         ];
 
@@ -1678,6 +1681,12 @@ var Data = (function () {
             singularName: "assessmentrubric",
             createFields: ['label', 'minScore', 'maxScore', 'points', 'teachersComment', 'school'],
             updateFields: ['label', 'minScore', 'maxScore', 'points', 'teachersComment']
+        },
+        {
+            name: "rubricSubjectCategories",
+            singularName: "rubricSubjectCategory",
+            createFields: ['name', 'subjects', 'school'],
+            updateFields: ['name', 'subjects']
         },
         {
             name: "chargeTypes",

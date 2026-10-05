@@ -109,7 +109,7 @@ class PDFReviewModal extends React.Component {
                   </div>
                   
                   <div className="d-flex justify-content-between align-items-center mb-1">
-                    <small className="text-muted"><i className="la la-clock"></i> {Math.round((props.durationSeconds || 0)/60)}m read time</small>
+                    <small className="text-muted"><i className="la la-clock"></i> {(props.durationSeconds || 0) < 60 ? '<1' : Math.round((props.durationSeconds || 0) / 60)}m read time</small>
                     <small className="text-primary font-weight-bold">Pg {maxPage} / {totalPg}</small>
                   </div>
                   

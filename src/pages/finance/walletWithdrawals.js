@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Card, Table, Button, Modal, Select, Input, message, Tag } from 'antd';
+import Navbar from "../../components/navbar";
+import Subheader from "../../components/subheader";
+import Footer from "../../components/footer";
 import DataPromise from '../../utils/data';
-
-const { Option } = Select;
-const { TextArea } = Input;
+import { Modal } from 'react-bootstrap';
 
 const WALLET_REQUESTS_QUERY = `
   query GetAllWithdrawalRequests {
@@ -63,13 +63,14 @@ export default function WalletWithdrawals() {
       }
     } catch (err) {
       console.error(err);
-      message.error("Failed to load withdrawal requests.");
+      if (window.toastr) window.toastr.error("Failed to load withdrawal requests.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleProcess = async () => {
+  const handleProcess = async (e) => {
+    if(e) e.preventDefault();
     if (!selectedRequest) return;
     
     setProcessing(true);
@@ -80,99 +81,153 @@ export default function WalletWithdrawals() {
         status: processStatus,
         remarks: remarks
       });
-      message.success("Request processed successfully.");
+      if (window.toastr) window.toastr.success("Request processed successfully.");
       setModalVisible(false);
       fetchRequests();
     } catch (err) {
       console.error(err);
-      message.error(err.message || "Failed to process request.");
+      if (window.toastr) window.toastr.error(err.message || "Failed to process request.");
     } finally {
       setProcessing(false);
     }
   };
 
-  const columns = [
-    {
-      title: 'Teacher',
-      key: 'teacher',
-      render: (text, record) => record.teacher ? record.teacher.name : 'Unknown'
-    },
-    {
-      title: 'Amount',
-      dataIndex: 'amount',
-      key: 'amount',
-      render: (amount) => `$${amount.toFixed(2)}`
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status) => {
-        let color = status === 'PENDING' ? 'orange' : status === 'PAID' ? 'green' : 'red';
-        return <Tag color={color}>{status}</Tag>;
-      }
-    },
-    {
-      title: 'Date',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      render: (date) => new Date(Number(date)).toLocaleString()
-    },
-    {
-      title: 'Action',
-      key: 'action',
-      render: (text, record) => (
-        record.status === 'PENDING' ? (
-          <Button type="primary" size="small" onClick={() => {
-            setSelectedRequest(record);
-            setProcessStatus('PAID');
-            setRemarks('');
-            setModalVisible(true);
-          }}>
-            Process
-          </Button>
-        ) : null
-      )
-    }
-  ];
+  const getStatusBadge = (status) => {
+      if (status === 'PENDING') return <span className="kt-badge kt-badge--warning kt-badge--inline kt-badge--pill">Pending</span>;
+      if (status === 'PAID') return <span className="kt-badge kt-badge--success kt-badge--inline kt-badge--pill">Paid</span>;
+      return <span className="kt-badge kt-badge--danger kt-badge--inline kt-badge--pill">{status}</span>;
+  };
 
   return (
-    <div style={{ padding: 24 }}>
-      <Card title="Teacher Wallet Withdrawals">
-        <Table 
-          columns={columns} 
-          dataSource={requests} 
-          rowKey="id" 
-          loading={loading}
-          pagination={{ pageSize: 10 }}
-        />
-      </Card>
+    <div className="kt-grid__item kt-grid__item--fluid kt-grid kt-grid--ver kt-page">
+      <div className="kt-grid__item kt-grid__item--fluid kt-grid kt-grid--hor kt-wrapper" id="kt_wrapper">
+        <Navbar />
+        <Subheader links={["Finance", "Teacher Withdrawals"]} />
 
-      <Modal
-        title="Process Withdrawal"
-        visible={modalVisible}
-        onCancel={() => !processing && setModalVisible(false)}
-        onOk={handleProcess}
-        confirmLoading={processing}
-      >
-        {selectedRequest && (
-          <div>
-            <p><strong>Teacher:</strong> {selectedRequest.teacher?.name}</p>
-            <p><strong>Amount:</strong> ${selectedRequest.amount.toFixed(2)}</p>
-            <div style={{ marginBottom: 16 }}>
-              <p style={{ marginBottom: 8 }}><strong>Action:</strong></p>
-              <Select value={processStatus} onChange={setProcessStatus} style={{ width: '100%' }}>
-                <Option value="PAID">Approve & Mark as Paid</Option>
-                <Option value="REJECTED">Reject & Refund</Option>
-              </Select>
+        <div className="kt-content kt-grid__item kt-grid__item--fluid kt-grid kt-grid--hor" id="kt_content" style={{ minHeight: "100vh" }}>
+          <div className="kt-container kt-grid__item kt-grid__item--fluid">
+            
+            <div className="kt-portlet kt-portlet--mobile">
+                <div className="kt-portlet__head kt-portlet__head--lg">
+                    <div className="kt-portlet__head-label">
+                        <span className="kt-portlet__head-icon">
+                            <i className="kt-font-brand flaticon-coins" />
+                        </span>
+                        <h3 className="kt-portlet__head-title">Teacher Wallet Withdrawals</h3>
+                    </div>
+                </div>
+
+                <div className="kt-portlet__body">
+                    {loading ? (
+                        <div className="text-center p-5">
+                            <div className="spinner-border text-brand" role="status">
+                                <span className="sr-only">Loading...</span>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="table-responsive">
+                            <table className="table table-striped table-bordered table-hover table-checkable">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Teacher</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Remarks</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {requests.map(record => (
+                                        <tr key={record.id}>
+                                            <td>{new Date(Number(record.createdAt)).toLocaleString()}</td>
+                                            <td>{record.teacher ? record.teacher.name : 'Unknown'}</td>
+                                            <td>{record.amount ? `KES ${record.amount.toFixed(2)}` : '0.00'}</td>
+                                            <td>{getStatusBadge(record.status)}</td>
+                                            <td>{record.adminRemarks || '-'}</td>
+                                            <td>
+                                                {record.status === 'PENDING' && (
+                                                    <button 
+                                                        className="btn btn-sm btn-brand btn-elevate"
+                                                        onClick={() => {
+                                                            setSelectedRequest(record);
+                                                            setProcessStatus('PAID');
+                                                            setRemarks('');
+                                                            setModalVisible(true);
+                                                        }}
+                                                    >
+                                                        Process
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {requests.length === 0 && (
+                                        <tr>
+                                            <td colSpan="6" className="text-center">No withdrawal requests found.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
             </div>
-            <div>
-              <p style={{ marginBottom: 8 }}><strong>Admin Remarks (Optional):</strong></p>
-              <TextArea rows={4} value={remarks} onChange={(e) => setRemarks(e.target.value)} />
-            </div>
+
           </div>
-        )}
-      </Modal>
+        </div>
+        <Footer />
+      </div>
+
+      {modalVisible && selectedRequest && (
+        <Modal show onHide={() => !processing && setModalVisible(false)} centered>
+            <Modal.Header closeButton>
+                <Modal.Title>Process Withdrawal</Modal.Title>
+            </Modal.Header>
+            <form onSubmit={handleProcess}>
+                <Modal.Body>
+                    <div className="form-group row">
+                        <label className="col-4 col-form-label"><strong>Teacher:</strong></label>
+                        <div className="col-8">
+                            <span className="form-control-plaintext">{selectedRequest.teacher?.name}</span>
+                        </div>
+                    </div>
+                    <div className="form-group row">
+                        <label className="col-4 col-form-label"><strong>Amount:</strong></label>
+                        <div className="col-8">
+                            <span className="form-control-plaintext">KES {selectedRequest.amount.toFixed(2)}</span>
+                        </div>
+                    </div>
+                    <div className="form-group">
+                        <label>Action</label>
+                        <select 
+                            className="form-control" 
+                            value={processStatus} 
+                            onChange={(e) => setProcessStatus(e.target.value)}
+                        >
+                            <option value="PAID">Approve & Mark as Paid</option>
+                            <option value="REJECTED">Reject & Refund</option>
+                        </select>
+                    </div>
+                    <div className="form-group">
+                        <label>Admin Remarks (Optional)</label>
+                        <textarea 
+                            className="form-control" 
+                            rows="4" 
+                            value={remarks} 
+                            onChange={(e) => setRemarks(e.target.value)} 
+                        />
+                    </div>
+                </Modal.Body>
+                <Modal.Footer>
+                    <button type="button" className="btn btn-secondary" onClick={() => setModalVisible(false)} disabled={processing}>Cancel</button>
+                    <button type="submit" className="btn btn-brand" disabled={processing}>
+                        {processing ? 'Processing...' : 'Submit'}
+                    </button>
+                </Modal.Footer>
+            </form>
+        </Modal>
+      )}
     </div>
   );
 }
