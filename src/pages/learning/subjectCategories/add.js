@@ -6,31 +6,40 @@ import Data from "../../../utils/data";
 class Add extends Component {
     state = {
         name: '',
+        grade: null,
         subjects: [],
         availableSubjects: [],
+        availableGrades: [],
         processing: false
     };
 
     componentDidMount() {
-        this.fetchSubjects();
-        this.unsubscribe = Data.subjects.subscribe(({ subjects }) => {
+        this.fetchData();
+        this.unsubscribeSubjects = Data.subjects.subscribe(({ subjects }) => {
             this.setState({ availableSubjects: subjects || [] });
+        });
+        this.unsubscribeGrades = Data.grades.subscribe(({ grades }) => {
+            this.setState({ availableGrades: grades || [] });
         });
     }
 
     componentWillUnmount() {
-        if (this.unsubscribe) {
-            this.unsubscribe();
-        }
+        if (this.unsubscribeSubjects) this.unsubscribeSubjects();
+        if (this.unsubscribeGrades) this.unsubscribeGrades();
     }
 
-    fetchSubjects = () => {
+    fetchData = () => {
         const subjects = Data.subjects.list() || [];
-        this.setState({ availableSubjects: subjects });
+        const grades = Data.grades.list() || [];
+        this.setState({ availableSubjects: subjects, availableGrades: grades });
     };
 
     handleChange = (e) => {
         this.setState({ [e.target.name]: e.target.value });
+    };
+
+    handleGradeChange = (selectedOption) => {
+        this.setState({ grade: selectedOption, subjects: [] });
     };
 
     handleSubjectsChange = (selectedOptions) => {
@@ -62,9 +71,19 @@ class Add extends Component {
 
     render() {
         const { handleClose } = this.props;
-        const { name, subjects, availableSubjects, processing } = this.state;
+        const { name, grade, subjects, availableSubjects, availableGrades, processing } = this.state;
 
-        const subjectOptions = availableSubjects.map(s => ({
+        const gradeOptions = availableGrades.map(g => ({
+            value: g.id,
+            label: g.name
+        }));
+
+        const filteredSubjects = grade ? availableSubjects.filter(s => {
+            const subjectGradeId = s.grade?.id || s.grade;
+            return subjectGradeId === grade.value;
+        }) : [];
+
+        const subjectOptions = filteredSubjects.map(s => ({
             value: s.id,
             label: s.name
         }));
@@ -88,13 +107,23 @@ class Add extends Component {
                             />
                         </div>
                         <div className="form-group">
+                            <label>Select Grade / Class</label>
+                            <Select 
+                                options={gradeOptions}
+                                value={grade}
+                                onChange={this.handleGradeChange}
+                                placeholder="Select a grade first..."
+                            />
+                        </div>
+                        <div className="form-group">
                             <label>Subjects</label>
                             <Select 
                                 isMulti
                                 options={subjectOptions}
                                 value={subjects}
                                 onChange={this.handleSubjectsChange}
-                                placeholder="Select subjects..."
+                                placeholder={grade ? "Select subjects..." : "Select a grade first..."}
+                                isDisabled={!grade}
                             />
                         </div>
                     </Modal.Body>
