@@ -91,6 +91,7 @@ const Results = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/
 const Terms = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/terms"));
 const AssessmentTypes = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/learning/assessmentTypes"));
 const Rubrics = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/learning/rubrics"));
+const SubjectCategories = lazyWithRetry(() => import(/* webpackPrefetch: true */ "./pages/learning/subjectCategories"));
 
 const PrivateRoute = ({ component: Component, ...rest }) => (
   <Route {...rest} render={(props) => (
@@ -161,6 +162,7 @@ class App extends React.Component {
       <PrivateRoute path="/terms" component={Terms} />
       <PrivateRoute path="/assessment-types" component={AssessmentTypes} />
       <PrivateRoute path="/rubrics" component={Rubrics} />
+      <PrivateRoute path="/subject-categories" component={SubjectCategories} />
      
 
       {/* super admin routes */}

@@ -451,6 +451,7 @@ class Navbar extends React.Component {
         { path: "/terms", label: "Terms", IconComponent: SvgSchedulesIcon },
         { path: "/assessment-types", label: "Assessment Types", IconComponent: SvgResultsIcon },
         { path: "/rubrics", label: "Rubrics", IconComponent: SvgResultsIcon },
+        { path: "/subject-categories", label: "Subject Categories", IconComponent: SvgResultsIcon },
     ].filter(item => {
         if (isTeacher) {
             const forbidden = ["/schools", "/admins", "/invitations", "/finance/fees", "/finance/charge-types", "/settings/school", "/terms", "/assessment-types", "/rubrics"];
@@ -804,6 +805,7 @@ class Navbar extends React.Component {
       { path: "/terms", label: "Terms", IconComponent: SvgSchedulesIcon },
       { path: "/assessment-types", label: "Assessment Types", IconComponent: SvgSettingsIcon },
       { path: "/rubrics", label: "Rubrics", IconComponent: SvgSettingsIcon },
+      { path: "/subject-categories", label: "Subject Categories", IconComponent: SvgSettingsIcon },
     ].filter(item => {
         
         if (isTeacher) {
