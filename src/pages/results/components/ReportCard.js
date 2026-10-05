@@ -153,7 +153,7 @@ const ReportCard = ({ student, term, assessments, subjects, rubrics, assessmentT
                     </thead>
                     <tbody>
                         {(() => {
-                            const categoriesUsed = student.class?.categoriesUsed || false;
+                            const categoriesUsed = student.class?.grade?.categoriesUsed || false;
                             
                             const renderSubjectRow = (row, idx) => (
                                 <tr key={`subj-${row.subject.id}-${idx}`} style={{ backgroundColor: idx % 2 === 0 ? '#fff' : '#f9fafb' }}>
