@@ -519,6 +519,7 @@ export default function MessageComposer() {
   
   // Message & Modals
   const [messageTemplate, setMessageTemplate] = useState("Hello {{recipient.name}},\n\nThis is a message from {{school.name}} regarding {{fallback student.names 'your child'}}.");
+  const [emailSubject, setEmailSubject] = useState("Update from {{school.name}}");
   const [messageType, setMessageType] = useState('sms');
   const [showPreFlight, setShowPreFlight] = useState(false);
   const [isSending, setIsSending] = useState(false);
@@ -739,11 +740,21 @@ export default function MessageComposer() {
         parents: idsToProcess,
         audienceGroup: (activeTab === 'classes' || activeTab === 'routes') ? 'parents' : activeTab
       };
-      const result = await Data.communication.sms.create(payload);
-      setReportData(result.sms.send);
+      
+      let result;
+      if (messageType === 'email') {
+        payload.subject = emailSubject;
+        result = await Data.communication.email.create(payload);
+        setReportData(result.email.send);
+      } else {
+        result = await Data.communication.sms.create(payload);
+        setReportData(result.sms.send);
+      }
+      
       setIsSending(false);
       // Clear selection if successful run
-      if (result.sms.send.failedCount === 0 && idsToProcess.length === selectedIds.size) {
+      const sendReport = messageType === 'email' ? result.email.send : result.sms.send;
+      if (sendReport.failedCount === 0 && idsToProcess.length === selectedIds.size) {
         setSelectedIds(new Set());
       }
     } catch (error) {
@@ -873,6 +884,17 @@ export default function MessageComposer() {
                         </div>
 
                         {/* Message Template Textarea */}
+                        {messageType === 'email' && (
+                            <div className="mb-3">
+                                <input 
+                                    type="text" 
+                                    className="form-control" 
+                                    placeholder="Email Subject" 
+                                    value={emailSubject} 
+                                    onChange={e => setEmailSubject(e.target.value)} 
+                                />
+                            </div>
+                        )}
                         <div className="flex-grow-1 mb-3" style={{ display: 'flex', flexDirection: 'column', minHeight: '180px' }}>
                             <textarea 
                                 className="message-area"

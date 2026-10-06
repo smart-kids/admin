@@ -7,6 +7,8 @@ import Delete from "./delete";
 class List extends Component {
     state = {
         data: [],
+        subjectsList: [],
+        gradesList: [],
         showAddModal: false,
         showEditModal: false,
         showDeleteModal: false,
@@ -28,7 +30,9 @@ class List extends Component {
 
     fetchData = () => {
         const data = Data.rubricSubjectCategories.list() || [];
-        this.setState({ data });
+        const subjectsList = Data.subjects.list() || [];
+        const gradesList = Data.grades.list() || [];
+        this.setState({ data, subjectsList, gradesList });
     }
 
     toggleAddModal = () => {
@@ -81,28 +85,50 @@ class List extends Component {
                             <thead>
                                 <tr>
                                     <th>Name</th>
+                                    <th>Grade</th>
                                     <th>Subjects</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {data.map(item => (
-                                    <tr key={item.id}>
-                                        <td>{item.name}</td>
-                                        <td>{item.subjects ? item.subjects.join(', ') : '-'}</td>
-                                        <td>
-                                            <button onClick={() => this.openEditModal(item)} className="btn btn-sm btn-clean btn-icon btn-icon-md" title="Edit details">
-                                                <i className="la la-edit" />
-                                            </button>
-                                            <button onClick={() => this.openDeleteModal(item)} className="btn btn-sm btn-clean btn-icon btn-icon-md" title="Delete">
-                                                <i className="la la-trash" />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {data.map(item => {
+                                    // Map subjects
+                                    const categorySubjects = (item.subjects || []).map(subId => {
+                                        return this.state.subjectsList.find(s => s.id === subId) || { name: 'Unknown Subject', id: subId };
+                                    });
+                                    
+                                    // Find Grade from the first subject
+                                    let gradeName = "-";
+                                    if (categorySubjects.length > 0 && categorySubjects[0].grade) {
+                                        const g = this.state.gradesList.find(gr => gr.id === categorySubjects[0].grade);
+                                        if (g) gradeName = g.name;
+                                    }
+
+                                    return (
+                                        <tr key={item.id}>
+                                            <td><strong>{item.name}</strong></td>
+                                            <td>{gradeName}</td>
+                                            <td>
+                                                {categorySubjects.map(sub => (
+                                                    <span key={sub.id} className="kt-badge kt-badge--info kt-badge--inline kt-badge--pill mr-1 mb-1">
+                                                        {sub.name}
+                                                    </span>
+                                                ))}
+                                            </td>
+                                            <td>
+                                                <button onClick={() => this.openEditModal(item)} className="btn btn-sm btn-clean btn-icon btn-icon-md" title="Edit details">
+                                                    <i className="la la-edit" />
+                                                </button>
+                                                <button onClick={() => this.openDeleteModal(item)} className="btn btn-sm btn-clean btn-icon btn-icon-md" title="Delete">
+                                                    <i className="la la-trash" />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                                 {data.length === 0 && (
                                     <tr>
-                                        <td colSpan="3" className="text-center">No categories found.</td>
+                                        <td colSpan="4" className="text-center">No categories found.</td>
                                     </tr>
                                 )}
                             </tbody>
