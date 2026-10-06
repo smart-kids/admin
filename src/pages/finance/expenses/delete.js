@@ -33,7 +33,7 @@ class Delete extends Component {
                     <i className="flaticon-warning text-danger" style={{ fontSize: '3rem' }}></i>
                     <h5 className="mt-4 mb-2">Are you sure?</h5>
                     <p className="text-muted">
-                        You are about to delete the <strong>{item.name}</strong> expense. This action cannot be undone.
+                        You are about to delete the <strong>{item.title}</strong> expense. This action cannot be undone.
                     </p>
                 </div>
                 <div className="modal-footer bg-light justify-content-center">

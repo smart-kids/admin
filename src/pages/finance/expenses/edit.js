@@ -17,7 +17,15 @@ class Edit extends Component {
     componentDidMount() {
         this.fetchBudgets();
         if (this.props.data) {
-            this.setState({ ...this.props.data });
+            let { date, budget } = this.props.data;
+            if (date) {
+                const d = new Date(parseInt(date));
+                if(!isNaN(d.getTime())) date = d.toISOString().split('T')[0];
+            }
+            if (budget && budget.id) {
+                budget = budget.id;
+            }
+            this.setState({ ...this.props.data, date, budget });
         }
     }
 
@@ -68,7 +76,7 @@ class Edit extends Component {
                 id: this.props.data.id,
                 title,
                 amount: parseFloat(amount),
-                date,
+                date: date ? new Date(date).getTime().toString() : "",
                 category,
                 budget: budget || undefined,
                 description,

@@ -92,9 +92,9 @@ class List extends Component {
                                     <tr key={item.id}>
                                         <td>{item.title}</td>
                                         <td>{item.amount ? item.amount.toLocaleString() : '0'}</td>
-                                        <td>{item.date ? new Date(item.date).toLocaleDateString() : '-'}</td>
+                                        <td>{item.date ? new Date(parseInt(item.date)).toLocaleDateString() : '-'}</td>
                                         <td>{item.category || '-'}</td>
-                                        <td>{item.budget ? item.budget : '-'}</td>
+                                        <td>{item.budget && item.budget.title ? item.budget.title : '-'}</td>
                                         <td>{item.receiptImage ? <a href={item.receiptImage} target="_blank" rel="noopener noreferrer">View</a> : '-'}</td>
                                         <td>{item.description || '-'}</td>
                                         <td>
@@ -109,7 +109,7 @@ class List extends Component {
                                 ))}
                                 {data.length === 0 && (
                                     <tr>
-                                        <td colSpan="4" className="text-center">No expenses found.</td>
+                                        <td colSpan="8" className="text-center">No expenses found.</td>
                                     </tr>
                                 )}
                             </tbody>

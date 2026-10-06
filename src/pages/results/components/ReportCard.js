@@ -235,6 +235,7 @@ const ReportCard = ({ student, term, assessments, subjects, rubrics, assessmentT
 
                                     return (
                                         <React.Fragment key={`group-${gIdx}`}>
+                                            {group.rows.map((row, rIdx) => renderSubjectRow(row, rIdx))}
                                             <tr style={{ backgroundColor: '#f3f4f6' }}>
                                                 <td colSpan={1 + (sortedAssessmentTypes?.length || 0)} style={{ padding: '8px 18px', fontWeight: 800, fontSize: '0.85rem', color: themeColor, textTransform: 'uppercase' }}>
                                                     {group.category.name}
@@ -255,7 +256,6 @@ const ReportCard = ({ student, term, assessments, subjects, rubrics, assessmentT
                                                     Category Average
                                                 </td>
                                             </tr>
-                                            {group.rows.map((row, rIdx) => renderSubjectRow(row, rIdx))}
                                         </React.Fragment>
                                     );
                                 });

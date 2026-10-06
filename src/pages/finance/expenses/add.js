@@ -64,7 +64,7 @@ class Add extends Component {
             await Data.expenses.create({
                 title,
                 amount: parseFloat(amount),
-                date,
+                date: date ? new Date(date).getTime().toString() : "",
                 category,
                 budget: budget || undefined,
                 description,

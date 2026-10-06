@@ -105,7 +105,7 @@ class List extends Component {
                                 ))}
                                 {data.length === 0 && (
                                     <tr>
-                                        <td colSpan="4" className="text-center">No budgets found.</td>
+                                        <td colSpan="6" className="text-center">No budgets found.</td>
                                     </tr>
                                 )}
                             </tbody>

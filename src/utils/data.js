@@ -652,6 +652,8 @@ var Data = (function () {
         const FRAGMENT_ASSESSMENT_TYPES_DATA = `fragment AssessmentTypesData on school { assessmentTypes { id name percentage order } }`;
         const FRAGMENT_ASSESSMENT_RUBRICS_DATA = `fragment AssessmentRubricsData on school { assessmentRubrics { id label minScore maxScore points teachersComment } }`;
         const FRAGMENT_RUBRIC_SUBJECT_CATEGORIES_DATA = `fragment RubricSubjectCategoriesData on school { rubricSubjectCategories { id name subjects school } }`;
+        const FRAGMENT_BUDGETS_DATA = `fragment BudgetsData on school { budgets { id title amount startDate endDate description } }`;
+        const FRAGMENT_EXPENSES_DATA = `fragment ExpensesData on school { expenses { id title amount date category receiptImage budget { id title } description } }`;
         // 1. Define the Fragment for SMS History (Add this near other fragments)
         const FRAGMENT_SMS_EVENTS_DATA = `fragment SmsEventsData on school { 
     smsEvents { 
@@ -816,7 +818,9 @@ var Data = (function () {
             notifyEntity('games');
             notifyEntity('devices');
             notifyEntity('device_commands');
-
+            notifyEntity('budgets');
+            notifyEntity('expenses');
+            notifyEntity('rubricSubjectCategories');
             // Financials Merge Logic
             if (updatedSubEntities.has('charges') || updatedSubEntities.has('payments')) {
                 ['charges', 'payments'].forEach(entityName => {
@@ -1036,6 +1040,8 @@ var Data = (function () {
             { query: `query GetAssessmentTypes { schools { id ...AssessmentTypesData } } ${FRAGMENT_ASSESSMENT_TYPES_DATA}` },
             { query: `query GetAssessmentRubrics { schools { id ...AssessmentRubricsData } } ${FRAGMENT_ASSESSMENT_RUBRICS_DATA}` },
             { query: `query GetRubricSubjectCategories { schools { id ...RubricSubjectCategoriesData } } ${FRAGMENT_RUBRIC_SUBJECT_CATEGORIES_DATA}` },
+            { query: `query GetBudgets { schools { id ...BudgetsData } } ${FRAGMENT_BUDGETS_DATA}` },
+            { query: `query GetExpenses { schools { id ...ExpensesData } } ${FRAGMENT_EXPENSES_DATA}` },
 
         ];
 

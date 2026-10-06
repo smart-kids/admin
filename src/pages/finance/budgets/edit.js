@@ -13,7 +13,16 @@ class Edit extends Component {
 
     componentDidMount() {
         if (this.props.data) {
-            this.setState({ ...this.props.data });
+            let { startDate, endDate } = this.props.data;
+            if (startDate) {
+                const sd = new Date(parseInt(startDate));
+                startDate = sd.toISOString().split('T')[0];
+            }
+            if (endDate) {
+                const ed = new Date(parseInt(endDate));
+                endDate = ed.toISOString().split('T')[0];
+            }
+            this.setState({ ...this.props.data, startDate, endDate });
         }
     }
 
@@ -37,8 +46,8 @@ class Edit extends Component {
                 id: this.props.data.id,
                 title,
                 amount: parseFloat(amount),
-                startDate,
-                endDate,
+                startDate: startDate ? new Date(startDate).getTime().toString() : "",
+                endDate: endDate ? new Date(endDate).getTime().toString() : "",
                 description,
                 school
             });

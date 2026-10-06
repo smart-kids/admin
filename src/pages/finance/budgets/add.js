@@ -30,8 +30,8 @@ class Add extends Component {
             await Data.budgets.create({
                 title,
                 amount: parseFloat(amount),
-                startDate,
-                endDate,
+                startDate: startDate ? new Date(startDate).getTime().toString() : "",
+                endDate: endDate ? new Date(endDate).getTime().toString() : "",
                 description,
                 school
             });

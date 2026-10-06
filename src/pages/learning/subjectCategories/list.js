@@ -12,7 +12,8 @@ class List extends Component {
         showAddModal: false,
         showEditModal: false,
         showDeleteModal: false,
-        activeItem: null
+        activeItem: null,
+        studentsList: []
     };
 
     componentDidMount() {
@@ -32,7 +33,8 @@ class List extends Component {
         const data = Data.rubricSubjectCategories.list() || [];
         const subjectsList = Data.subjects.list() || [];
         const gradesList = Data.grades.list() || [];
-        this.setState({ data, subjectsList, gradesList });
+        const studentsList = Data.students.list() || [];
+        this.setState({ data, subjectsList, gradesList, studentsList });
     }
 
     toggleAddModal = () => {
@@ -86,7 +88,8 @@ class List extends Component {
                                 <tr>
                                     <th>Name</th>
                                     <th>Grade</th>
-                                    <th>Subjects</th>
+                                    <th>Subjects Included</th>
+                                    <th>Students Enrolled</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -99,21 +102,36 @@ class List extends Component {
                                     
                                     // Find Grade from the first subject
                                     let gradeName = "-";
+                                    let gradeId = null;
                                     if (categorySubjects.length > 0 && categorySubjects[0].grade) {
-                                        const g = this.state.gradesList.find(gr => gr.id === categorySubjects[0].grade);
+                                        gradeId = categorySubjects[0].grade;
+                                        const g = this.state.gradesList.find(gr => gr.id === gradeId);
                                         if (g) gradeName = g.name;
                                     }
+
+                                    // Count students in this grade
+                                    const studentsEnrolled = (this.state.studentsList || []).filter(st => {
+                                        return st.class && st.class.grade && st.class.grade.id === gradeId;
+                                    }).length;
 
                                     return (
                                         <tr key={item.id}>
                                             <td><strong>{item.name}</strong></td>
-                                            <td>{gradeName}</td>
                                             <td>
-                                                {categorySubjects.map(sub => (
+                                                <span className="kt-badge kt-badge--brand kt-badge--inline kt-badge--pill font-weight-bold">
+                                                    {gradeName}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {categorySubjects.length > 0 ? categorySubjects.map(sub => (
                                                     <span key={sub.id} className="kt-badge kt-badge--info kt-badge--inline kt-badge--pill mr-1 mb-1">
                                                         {sub.name}
                                                     </span>
-                                                ))}
+                                                )) : <span className="text-muted">No subjects added</span>}
+                                            </td>
+                                            <td>
+                                                <span className="kt-badge kt-badge--success kt-badge--dot mr-2"></span>
+                                                <span className="kt-font-bold kt-font-success">{studentsEnrolled} Students</span>
                                             </td>
                                             <td>
                                                 <button onClick={() => this.openEditModal(item)} className="btn btn-sm btn-clean btn-icon btn-icon-md" title="Edit details">
