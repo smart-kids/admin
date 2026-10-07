@@ -2030,9 +2030,7 @@ var Data = (function () {
                             error: error
                         };
                     }
-                }
-            }
-        },
+                },
         schools: {
             setSchool: (id) => {
                 schoolID = id;

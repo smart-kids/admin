@@ -244,8 +244,20 @@ export default function SubjectCategoriesList() {
                 [...Array(rowsPerPage)].map((_, i) => <tr key={i}><td colSpan={headers.length + 1}><div style={{height: '2rem', backgroundColor: '#EFF2F5', borderRadius: '4px', margin: '1rem 0', animation: 'pulse 1.5s infinite ease-in-out'}}></div></td></tr>)
               ) : currentData.length > 0 ? (
                 currentData.map(row => {
-                  const categorySubjects = (row.subjects || []).map(subId => {
-                      return subjectsList.find(s => s.id === subId) || { name: 'Unknown Subject', id: subId };
+                  const categorySubjects = (row.subjects || []).map(sub => {
+                      const idToSearch = typeof sub === 'object' ? (sub.id || sub._id) : sub;
+                      // Use subjectsList from state, fallback to Data.subjects.list() if state is stale
+                      const allSubjects = subjectsList.length > 0 ? subjectsList : (Data.subjects.list() || []);
+                      const matchedSubject = allSubjects.find(s => String(s.id) === String(idToSearch));
+                      
+                      let nameToDisplay = 'Unknown Subject';
+                      if (matchedSubject && matchedSubject.name && matchedSubject.name !== String(idToSearch)) {
+                          nameToDisplay = matchedSubject.name;
+                      } else if (typeof sub === 'object' && sub.name && sub.name !== String(idToSearch)) {
+                          nameToDisplay = sub.name;
+                      }
+
+                      return { id: idToSearch, name: nameToDisplay };
                   });
 
                   return (
