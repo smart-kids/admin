@@ -153,7 +153,9 @@ const ReportCard = ({ student, term, assessments, subjects, rubrics, assessmentT
                     </thead>
                     <tbody>
                         {(() => {
-                            const categoriesUsed = student.class?.grade?.categoriesUsed || false;
+                            const studentGradeId = student.class?.grade?.id || student.class?.grade;
+                            const categories = (Data.rubricSubjectCategories.list() || []).filter(c => !c.isDeleted && (!c.grade || (c.grade?.id || c.grade) === studentGradeId));
+                            const categoriesUsed = student.class?.grade?.categoriesUsed || categories.length > 0;
                             
                             const renderSubjectRow = (row, idx) => (
                                 <tr key={`subj-${row.subject.id}-${idx}`} style={{ backgroundColor: idx % 2 === 0 ? '#fff' : '#f9fafb' }}>
@@ -193,7 +195,6 @@ const ReportCard = ({ student, term, assessments, subjects, rubrics, assessmentT
                             if (!categoriesUsed) {
                                 return subjectRows.map((row, idx) => renderSubjectRow(row, idx));
                             } else {
-                                const categories = Data.rubricSubjectCategories.list() || [];
                                 const groups = [];
                                 const uncategorized = [];
 
@@ -205,7 +206,7 @@ const ReportCard = ({ student, term, assessments, subjects, rubrics, assessmentT
                                 subjectRows.forEach(row => {
                                     let found = false;
                                     for (let group of groups) {
-                                        if (group.category.subjects && group.category.subjects.includes(row.subject.id)) {
+                                        if (group.category.subjects && (group.category.subjects.includes(row.subject.id) || group.category.subjects.some(s => (s.id || s) === row.subject.id))) {
                                             group.rows.push(row);
                                             found = true;
                                             break;

@@ -37,6 +37,7 @@ class ResultsMatrix extends React.Component {
     
     assessmentTypes: [],
     assessmentRubrics: [],
+    rubricSubjectCategories: [],
     
     edits: {}, 
     loading: true,
@@ -114,6 +115,7 @@ class ResultsMatrix extends React.Component {
         this.setState({ assessmentTypes });
     });
     this.unsubAssessmentRubrics = Data.assessmentRubrics.subscribe(({ assessmentRubrics }) => this.setState({ assessmentRubrics }));
+    this.unsubRubricSubjectCategories = Data.rubricSubjectCategories.subscribe(({ rubricSubjectCategories }) => this.setState({ rubricSubjectCategories }));
     this.unsubLessonAttempts = Data.lessonAttempts.subscribe(({ lessonAttempts }) => this.setState({ lessonAttempts }));
     this.unsubTeachers = Data.teachers?.subscribe(({ teachers }) => this.setState({ teachers }));
     this.unsubAttemptEvents = Data.attemptEvents.subscribe(({ attemptEvents }) => this.setState({ attemptEvents }));
@@ -250,6 +252,7 @@ class ResultsMatrix extends React.Component {
       if (this.unsubAssessments) this.unsubAssessments();
       if (this.unsubAssessmentTypes) this.unsubAssessmentTypes();
       if (this.unsubAssessmentRubrics) this.unsubAssessmentRubrics();
+      if (this.unsubRubricSubjectCategories) this.unsubRubricSubjectCategories();
       if (this.unsubSchools) this.unsubSchools();
   }
 
