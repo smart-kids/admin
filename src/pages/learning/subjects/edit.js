@@ -13,6 +13,9 @@ class Modal extends React.Component {
   state = {
     loading: false,
     teachers: [],
+    categories: [],
+    category: "",
+    originalCategory: "",
     subject: {
       id: null,
       name: "",
@@ -32,6 +35,13 @@ class Modal extends React.Component {
     // Subscribe to teacher updates
     this._teacherSub = Data.teachers.subscribe(({ teachers }) => {
       this.setState({ teachers });
+    });
+
+    // Load categories
+    const categories = Data.rubricSubjectCategories.list() || [];
+    this.setState({ categories: categories.filter(c => !c.isDeleted) });
+    this._categorySub = Data.rubricSubjectCategories.subscribe(({ rubricSubjectCategories }) => {
+      this.setState({ categories: (rubricSubjectCategories || []).filter(c => !c.isDeleted) });
     });
 
     try {
@@ -75,6 +85,29 @@ class Modal extends React.Component {
               gradable: _this.state.subject.gradable,
             };
             await _this.props.edit(data);
+            
+            const newCategoryId = _this.state.category;
+            const originalCategoryId = _this.state.originalCategory;
+            
+            if (newCategoryId !== originalCategoryId) {
+              const allCategories = Data.rubricSubjectCategories.list() || [];
+              if (originalCategoryId) {
+                const oldCat = allCategories.find(c => c.id === originalCategoryId);
+                if (oldCat) {
+                   const newSubjects = (oldCat.subjects || []).filter(s => (s.id || s) !== data.id).map(s => s.id || s);
+                   await Data.rubricSubjectCategories.update({ id: oldCat.id, subjects: newSubjects });
+                }
+              }
+              if (newCategoryId) {
+                const newCat = allCategories.find(c => c.id === newCategoryId);
+                if (newCat) {
+                   const newSubjects = [...(newCat.subjects || [])].map(s => s.id || s);
+                   if (!newSubjects.includes(data.id)) newSubjects.push(data.id);
+                   await Data.rubricSubjectCategories.update({ id: newCat.id, subjects: newSubjects });
+                }
+              }
+            }
+
             _this.hide();
             _this.setState({ loading: false });
           } catch (error) {
@@ -95,10 +128,14 @@ class Modal extends React.Component {
 
   componentWillUnmount() {
     if (this._teacherSub) this._teacherSub();
+    if (this._categorySub) this._categorySub();
   }
 
   static getDerivedStateFromProps(props, state) {
     if (props.subject && props.subject.id !== state.subject.id) {
+      const allCategories = Data.rubricSubjectCategories.list() || [];
+      const currentCategory = allCategories.find(cat => (cat.subjects || []).some(s => (s.id || s) === props.subject.id));
+      
       return {
         subject: {
           ...props.subject,
@@ -106,6 +143,8 @@ class Modal extends React.Component {
           comment: props.subject.comment || "",
           gradable: props.subject.gradable !== undefined ? props.subject.gradable : true,
         },
+        category: currentCategory ? currentCategory.id : "",
+        originalCategory: currentCategory ? currentCategory.id : "",
       };
     }
     return null;
@@ -124,6 +163,8 @@ class Modal extends React.Component {
     this.setState({
       loading: false,
       subject: { id: null, name: "", teacher: "", comment: "", gradable: true },
+      category: "",
+      originalCategory: "",
     });
   }
 
@@ -137,8 +178,12 @@ class Modal extends React.Component {
     }));
   };
 
+  handleCategoryChange = (event) => {
+    this.setState({ category: event.target.value });
+  };
+
   render() {
-    const { subject, teachers } = this.state;
+    const { subject, teachers, categories, category } = this.state;
     const userRole = localStorage.getItem('userRole');
     const userData = JSON.parse(localStorage.getItem("user") || "{}");
     const isTeacher = userRole === 'teacher' || userData?.userType === 'teacher' || userData?.role === 'teacher';
@@ -207,32 +252,52 @@ class Modal extends React.Component {
                     </div>
                     
                     {!isTeacher && (
-                      <div className="form-group row mt-3">
-                        <div className="col-lg-6 mb-5">
-                          <label>Default Teacher Comment (Optional):</label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            id="comment"
-                            name="comment"
-                            value={subject.comment || ""}
-                            onChange={this.handleInputChange}
-                            placeholder="e.g. Swimming: Participated well"
-                          />
-                        </div>
-                        <div className="col-lg-6 mb-5 d-flex align-items-end">
-                          <label className="kt-checkbox kt-checkbox--brand mb-2">
+                      <>
+                        <div className="form-group row mt-3">
+                          <div className="col-lg-6 mb-5">
+                            <label>Default Teacher Comment (Optional):</label>
                             <input
-                              type="checkbox"
-                              id="gradable"
-                              name="gradable"
-                              checked={subject.gradable}
+                              type="text"
+                              className="form-control"
+                              id="comment"
+                              name="comment"
+                              value={subject.comment || ""}
                               onChange={this.handleInputChange}
-                            /> Gradable Subject
-                            <span></span>
-                          </label>
+                              placeholder="e.g. Swimming: Participated well"
+                            />
+                          </div>
+                          <div className="col-lg-6 mb-5 d-flex align-items-end">
+                            <label className="kt-checkbox kt-checkbox--brand mb-2">
+                              <input
+                                type="checkbox"
+                                id="gradable"
+                                name="gradable"
+                                checked={subject.gradable}
+                                onChange={this.handleInputChange}
+                              /> Gradable Subject
+                              <span></span>
+                            </label>
+                          </div>
                         </div>
-                      </div>
+                        <div className="form-group row">
+                          <div className="col-lg-6">
+                            <label>Subject Category: <span className="text-muted">(optional)</span></label>
+                            <select
+                              className="form-control"
+                              name="category"
+                              value={category}
+                              onChange={this.handleCategoryChange}
+                            >
+                              <option value="">— No category assigned —</option>
+                              {categories.map(c => (
+                                <option key={c.id} value={c.id}>
+                                  {c.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      </>
                     )}
                   </div>
                 </div>

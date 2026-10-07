@@ -56,6 +56,7 @@ class Add extends Component {
             const subjectIds = subjects.map(s => s.value);
             await Data.rubricSubjectCategories.create({ 
                 name, 
+                grade: grade ? grade.value : undefined,
                 subjects: subjectIds,
                 school: localStorage.getItem('school')
             });

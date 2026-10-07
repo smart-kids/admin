@@ -651,7 +651,7 @@ var Data = (function () {
         const FRAGMENT_TERMS_DATA = `fragment TermsData on school { terms { id name startDate endDate order } }`;
         const FRAGMENT_ASSESSMENT_TYPES_DATA = `fragment AssessmentTypesData on school { assessmentTypes { id name percentage order } }`;
         const FRAGMENT_ASSESSMENT_RUBRICS_DATA = `fragment AssessmentRubricsData on school { assessmentRubrics { id label minScore maxScore points teachersComment } }`;
-        const FRAGMENT_RUBRIC_SUBJECT_CATEGORIES_DATA = `fragment RubricSubjectCategoriesData on school { rubricSubjectCategories { id name subjects school } }`;
+        const FRAGMENT_RUBRIC_SUBJECT_CATEGORIES_DATA = `fragment RubricSubjectCategoriesData on school { rubricSubjectCategories { id name subjects school grade { id name } } }`;
         const FRAGMENT_BUDGETS_DATA = `fragment BudgetsData on school { budgets { id title amount startDate endDate description } }`;
         const FRAGMENT_EXPENSES_DATA = `fragment ExpensesData on school { expenses { id title amount date category receiptImage budget { id title } description } }`;
         // 1. Define the Fragment for SMS History (Add this near other fragments)
@@ -1692,8 +1692,8 @@ var Data = (function () {
         {
             name: "rubricSubjectCategories",
             singularName: "rubricSubjectCategory",
-            createFields: ['name', 'subjects', 'school'],
-            updateFields: ['name', 'subjects']
+            createFields: ['name', 'grade', 'subjects', 'school'],
+            updateFields: ['name', 'grade', 'subjects']
         },
         {
             name: "chargeTypes",

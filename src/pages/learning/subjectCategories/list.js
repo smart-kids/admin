@@ -28,13 +28,8 @@ export default function SubjectCategoriesList() {
 
   useEffect(() => {
     fetchData();
-    const unsubscribe = Data.schools.subscribe(({ selectedSchool }) => {
-      if (selectedSchool && selectedSchool.rubricSubjectCategories) {
-        setData(selectedSchool.rubricSubjectCategories);
-      } else {
-        // Fallback to direct subscription if needed
-        setData(Data.rubricSubjectCategories.list() || []);
-      }
+    const unsubscribe = Data.rubricSubjectCategories.subscribe(({ rubricSubjectCategories }) => {
+      setData((rubricSubjectCategories || []).filter(c => !c.isDeleted));
     });
     const unsubscribeSubjects = Data.subjects.subscribe(({ subjects }) => {
       setSubjectsList(subjects || []);
@@ -50,11 +45,10 @@ export default function SubjectCategoriesList() {
   }, []); // Run only once on mount
 
   const fetchData = () => {
-    const activeSchool = Data.schools.list().find(s => s.id === localStorage.getItem('school'));
-    const rawData = activeSchool?.rubricSubjectCategories || Data.rubricSubjectCategories.list() || [];
+    const rawData = Data.rubricSubjectCategories.list() || [];
     const subjects = Data.subjects.list() || [];
     setSubjectsList(subjects);
-    setData(rawData);
+    setData(rawData.filter(c => !c.isDeleted));
     setInitialLoading(false);
   };
 
@@ -93,6 +87,7 @@ export default function SubjectCategoriesList() {
 
   const headers = [
     { key: 'name', label: 'Name', sortable: true },
+    { key: 'grade', label: 'Grade', sortable: true },
     { key: 'subjects', label: 'Subjects', sortable: false },
   ];
 
@@ -263,10 +258,11 @@ export default function SubjectCategoriesList() {
                   return (
                       <tr key={row.id}>
                         <td className="td-primary">{row.name}</td>
+                        <td>{row.grade?.name || row.grade || <span className="text-muted">Not specified</span>}</td>
                         <td>
-                            {categorySubjects.length > 0 ? categorySubjects.map(sub => (
-                                <span key={sub.id} className="kt-badge kt-badge--info kt-badge--inline kt-badge--pill mr-1 mb-1" style={{ whiteSpace: 'normal', display: 'inline-block' }}>
-                                    {sub.name}
+                            {categorySubjects.length > 0 ? categorySubjects.map((sub, index) => (
+                                <span key={sub.id} className="mr-1 mb-1" style={{ whiteSpace: 'normal', display: 'inline-block' }}>
+                                    {sub.name}{index < categorySubjects.length - 1 ? ', ' : ''}
                                 </span>
                             )) : <span className="text-muted">No subjects added</span>}
                         </td>

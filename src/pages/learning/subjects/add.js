@@ -85,6 +85,8 @@ class Modal extends React.Component {
     aiJsonResponse: "",
     errorMessage: null,
     isAiSectionVisible: false, // New state to manage AI section visibility
+    categories: [],
+    category: "",
   };
 
   validator = null;
@@ -105,6 +107,13 @@ class Modal extends React.Component {
       console.error("Error fetching teachers:", error);
       IErrorMessage.show({ message: "Could not load teachers. Please try again." });
     }
+
+    // Load categories
+    const categories = Data.rubricSubjectCategories.list() || [];
+    this.setState({ categories: categories.filter(c => !c.isDeleted) });
+    this._categorySub = Data.rubricSubjectCategories.subscribe(({ rubricSubjectCategories }) => {
+      this.setState({ categories: (rubricSubjectCategories || []).filter(c => !c.isDeleted) });
+    });
 
     this.validator = $("#" + modalInstanceId + "form").validate({
       errorClass: "invalid-feedback",
@@ -178,10 +187,21 @@ class Modal extends React.Component {
             teacher,
             comment,
             gradable,
+            grade: _this.props.grade,
             aiGeneratedCurriculum: parsedAiData ? JSON.stringify(parsedAiData) : null,
           };
 
-          await _this.props.save(subjectDataForAPI);
+          const createdSubject = await _this.props.save(subjectDataForAPI);
+          
+          if (createdSubject && createdSubject.id && _this.state.category) {
+              const allCategories = Data.rubricSubjectCategories.list() || [];
+              const newCat = allCategories.find(c => c.id === _this.state.category);
+              if (newCat) {
+                 const newSubjects = [...(newCat.subjects || [])].map(s => s.id || s);
+                 if (!newSubjects.includes(createdSubject.id)) newSubjects.push(createdSubject.id);
+                 await Data.rubricSubjectCategories.update({ id: newCat.id, subjects: newSubjects });
+              }
+          }
 
           _this.hide();
           _this.setState({
@@ -218,6 +238,10 @@ class Modal extends React.Component {
     }
   }
 
+  componentWillUnmount() {
+    if (this._categorySub) this._categorySub();
+  }
+
   show() {
     this.setState({
       loading: false,
@@ -228,6 +252,7 @@ class Modal extends React.Component {
       aiJsonResponse: "",
       errorMessage: null,
       isAiSectionVisible: false,
+      category: "",
     });
     if (this.validator) {
       this.validator.resetForm();
@@ -251,6 +276,7 @@ class Modal extends React.Component {
       aiJsonResponse: "",
       errorMessage: null,
       isAiSectionVisible: false,
+      category: "",
     });
   }
 
@@ -262,6 +288,10 @@ class Modal extends React.Component {
         [name]: event.target.type === 'checkbox' ? event.target.checked : value,
       }
     }));
+  };
+
+  handleCategoryChange = (event) => {
+    this.setState({ category: event.target.value });
   };
 
   handleManualAiInputChange = (event) => {
@@ -304,7 +334,7 @@ class Modal extends React.Component {
   };
 
   render() {
-    const { teachers, subject, manualAiInput, generatedAiPrompt, aiJsonResponse, loading, aiGenerating, errorMessage, isAiSectionVisible } = this.state;
+    const { teachers, subject, manualAiInput, generatedAiPrompt, aiJsonResponse, loading, aiGenerating, errorMessage, isAiSectionVisible, categories, category } = this.state;
     const isFormSubmittable = subject.name && subject.teacher;
 
     return (
@@ -407,6 +437,24 @@ class Modal extends React.Component {
                           /> Gradable Subject
                           <span></span>
                         </label>
+                      </div>
+                    </div>
+                    <div className="form-group row">
+                      <div className="col-lg-6 mb-5">
+                        <label>Subject Category: <span className="text-muted">(optional)</span></label>
+                        <select
+                          className="form-control form-control-solid"
+                          name="category"
+                          value={category}
+                          onChange={this.handleCategoryChange}
+                        >
+                          <option value="">— No category assigned —</option>
+                          {categories.map(c => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                     </div>
 
