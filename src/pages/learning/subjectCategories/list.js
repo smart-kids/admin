@@ -111,7 +111,8 @@ class List extends Component {
 
                                     // Count students in this grade
                                     const studentsEnrolled = (this.state.studentsList || []).filter(st => {
-                                        return st.class && st.class.grade && st.class.grade.id === gradeId;
+                                        const stGradeId = st.class?.grade?.id || st.class?.grade;
+                                        return stGradeId === gradeId;
                                     }).length;
 
                                     return (

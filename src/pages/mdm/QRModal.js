@@ -471,9 +471,9 @@ class QRModal extends React.Component {
     }
   };
 
-  installApkOnly = async (serial) => {
+  installApkOnly = async (serial, useStaged = this.state.useStagedApkForUsb) => {
     try {
-      await Data.localMdm.installApk(serial, this.state.useStagedApkForUsb);
+      await Data.localMdm.installApk(serial, useStaged);
     } catch (e) {
       console.error("Failed to install APK", serial);
     }
@@ -1447,12 +1447,20 @@ class QRModal extends React.Component {
                                                 <i className="la la-play mr-1"></i> Onboard
                                               </button>
                                               <button 
-                                                onClick={() => this.installApkOnly(serial)} 
+                                                onClick={() => this.installApkOnly(serial, false)} 
                                                 className="btn btn-xs btn-outline-info py-0 px-2 font-weight-bold shadow-sm mr-1" 
                                                 style={{ fontSize: '10px', borderRadius: '4px' }}
-                                                title="Install APK only (standalone)"
+                                                title="Install Production APK only (standalone)"
                                               >
-                                                <i className="la la-download mr-1"></i> Install
+                                                <i className="la la-download mr-1"></i> Install Prod
+                                              </button>
+                                              <button 
+                                                onClick={() => this.installApkOnly(serial, true)} 
+                                                className="btn btn-xs btn-outline-secondary py-0 px-2 font-weight-bold shadow-sm mr-1" 
+                                                style={{ fontSize: '10px', borderRadius: '4px' }}
+                                                title="Install Staging APK only (standalone)"
+                                              >
+                                                <i className="la la-download mr-1"></i> Install Staging
                                               </button>
                                               <button 
                                                 onClick={() => this.setDeviceOwnerOnly(serial)} 
