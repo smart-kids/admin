@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import axios from 'axios';
+import { API } from '../../../utils/requests';
 import Data from '../../../utils/data';
 import OTPBoxInput from '../SharedComponents/OTPBoxInput';
 import './AuthenticationStage.css';
@@ -11,6 +13,8 @@ const AuthenticationStage = ({
 }) => {
     const [otpSent, setOtpSent] = useState(false);
     const [resendTimer, setResendTimer] = useState(0);
+    const [isSending, setIsSending] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
     const intervalRef = useRef(null);
     const isSubmittingRef = useRef(false);
 
@@ -47,22 +51,40 @@ const AuthenticationStage = ({
     }, [userIdentifier]);
 
     const handleSendOTP = async () => {
+        setIsSending(true);
+        setErrorMessage('');
         try {
-            const result = await Data.communication.sms.sendOTP(userIdentifier);
-            if (result.success) {
+            const cleanPhone = (userIdentifier || '').replace(/[\s\-()]/g, '');
+            const sendFn = Data?.communication?.sms?.sendOTP || Data?.sendOTP;
+            let result;
+            if (typeof sendFn === 'function') {
+                result = await sendFn(cleanPhone);
+            } else {
+                const response = await axios.post(`${API}/auth/otp/send`, { user: cleanPhone });
+                result = {
+                    success: response.data && (response.data.success || response.status < 300),
+                    message: response.data?.message || "OTP sent successfully",
+                    data: response.data
+                };
+            }
+            if (result && result.success) {
                 setOtpSent(true);
                 setResendTimer(30);
-                console.log('OTP sent successfully to:', userIdentifier);
+                console.log('OTP sent successfully to:', cleanPhone);
             } else {
-                throw new Error(result.message || "Failed to send OTP code.");
+                throw new Error(result?.message || "Failed to send OTP code.");
             }
         } catch (error) {
             console.error('Failed to send OTP:', error);
+            const msg = error.response?.data?.message || error.message || "Failed to send OTP code. Please try again.";
+            setErrorMessage(msg);
+        } finally {
+            setIsSending(false);
         }
     };
 
     const handleResendOTP = () => {
-        if (resendTimer === 0) {
+        if (resendTimer === 0 && !isSending && !isLoading) {
             handleSendOTP();
         }
     };
@@ -93,7 +115,7 @@ const AuthenticationStage = ({
                 type="button" 
                 onClick={onBack}
                 className="back-button"
-                disabled={isLoading}
+                disabled={isLoading || isSending}
             >
                 ← Back
             </button>
@@ -110,13 +132,18 @@ const AuthenticationStage = ({
                     {!otpSent ? (
                         <div className="otp-send-section">
                             <p className="auth-description">We'll send a 5-digit code to your phone</p>
+                            {errorMessage && (
+                                <div className="alert alert-danger mb-3 p-2 text-center" style={{fontSize: '0.9rem', color: '#dc3545'}}>
+                                    {errorMessage}
+                                </div>
+                            )}
                             <button
                                 type="button"
                                 onClick={handleSendOTP}
                                 className="btn btn-primary"
-                                disabled={isLoading}
+                                disabled={isSending || isLoading}
                             >
-                                {isLoading ? (
+                                {isSending ? (
                                     <>
                                         <span className="loading-spinner"></span>
                                         Sending...

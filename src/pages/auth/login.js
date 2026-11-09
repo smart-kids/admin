@@ -226,14 +226,15 @@ class Login extends React.Component {
 
     handleSendOtp = async () => {
         const { user } = this.state;
-        if (!user || !PHONE_REGEX.test(user)) {
+        const cleanUser = (user || '').replace(/[\s\-()]/g, '');
+        if (!cleanUser || !PHONE_REGEX.test(cleanUser)) {
             this.setState({ error: "Please enter a valid phone number for OTP." });
             toastr && toastr.warning("Invalid Input", "Please enter a valid phone number.");
             return;
         }
         this.setState({ isLoading: true, error: "" });
         try {
-            const res = await axios.post(`${API}/auth/otp/send`, { user });
+            const res = await axios.post(`${API}/auth/otp/send`, { user: cleanUser });
             if (res.data && (res.data.success || res.status < 300)) {
                 toastr && toastr.success("OTP Sent", "Verification code sent to your phone.");
                 if (this._isMounted) this.setState({ showOtpInput: true, isOtpSent: true, isLoading: false, password: "", otpCode: "" });

@@ -139,21 +139,13 @@ const LoginContainer = () => {
         }
     };
 
-    const handleIdentitySubmit = async (identifier) => {
-        setIsLoading(true);
-        setIsNetworkRequest(true);
+    const handleIdentitySubmit = (identifier) => {
         setError(null);
-        
-        try {
-            setUserIdentifier(identifier);
-            setPreferredMethod('otp');
-            setLoginStage('authentication');
-        } catch (err) {
-            setError(err.response?.data?.message || 'Identity verification failed');
-        } finally {
-            setIsLoading(false);
-            setIsNetworkRequest(false);
-        }
+        setUserIdentifier(identifier);
+        setPreferredMethod('otp');
+        setLoginStage('authentication');
+        setIsLoading(false);
+        setIsNetworkRequest(false);
     };
 
     const handleAuthentication = async (method, credentials) => {

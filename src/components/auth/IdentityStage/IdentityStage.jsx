@@ -9,6 +9,7 @@ const IdentityStage = ({ onSubmit, isLoading, recognizedUser, sessionData }) => 
 
     // Detection patterns
     const PHONE_REGEX = /^\+?\d{7,}$/;
+    const cleanPhone = (val) => (val || '').replace(/[\s\-()]/g, '');
 
     // Auto-focus on mount
     useEffect(() => {
@@ -19,12 +20,13 @@ const IdentityStage = ({ onSubmit, isLoading, recognizedUser, sessionData }) => 
 
     // Detect input type and validate
     useEffect(() => {
-        if (!identifier) {
+        const cleaned = cleanPhone(identifier);
+        if (!cleaned) {
             setIsValid(false);
             return;
         }
 
-        if (PHONE_REGEX.test(identifier)) {
+        if (PHONE_REGEX.test(cleaned)) {
             setIsValid(true);
         } else {
             setIsValid(false);
@@ -33,8 +35,9 @@ const IdentityStage = ({ onSubmit, isLoading, recognizedUser, sessionData }) => 
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (isValid && !isLoading) {
-            onSubmit(identifier);
+        const cleaned = cleanPhone(identifier);
+        if (PHONE_REGEX.test(cleaned) && !isLoading) {
+            onSubmit(cleaned);
         }
     };
 

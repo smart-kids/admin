@@ -1959,6 +1959,47 @@ var Data = (function () {
                             }
                         }
                     }`, { sms: formattedSms });
+                },
+                sendOTP: async (phoneNumber) => {
+                    try {
+                        const cleanPhone = (phoneNumber || '').replace(/[\s\-()]/g, '');
+                        const response = await axios.post(`${API}/auth/otp/send`, { 
+                            user: cleanPhone 
+                        });
+                        return {
+                            success: response.data && (response.data.success || response.status < 300),
+                            message: response.data?.message || "OTP sent successfully",
+                            data: response.data
+                        };
+                    } catch (error) {
+                        console.error('Failed to send OTP:', error);
+                        return {
+                            success: false,
+                            message: error.response?.data?.message || error.message || "Failed to send OTP",
+                            error: error
+                        };
+                    }
+                },
+                verifyOTP: async (phoneNumber, otpCode) => {
+                    try {
+                        const cleanPhone = (phoneNumber || '').replace(/[\s\-()]/g, '');
+                        const response = await axios.post(`${API}/auth/verify/sms`, { 
+                            user: cleanPhone,
+                            password: otpCode
+                        });
+                        return {
+                            success: response.data && (response.data.success || response.status < 300),
+                            message: response.data?.message || "OTP verified successfully",
+                            data: response.data
+                        };
+                    } catch (error) {
+                        console.error('Failed to verify OTP:', error);
+                        return {
+                            success: false,
+                            message: error.response?.data?.message || error.message || "Failed to verify OTP",
+                            error: error
+                        };
+                    }
                 }
             },
             email: {
