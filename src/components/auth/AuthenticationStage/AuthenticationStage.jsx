@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
 import { API } from '../../../utils/requests';
 import Data from '../../../utils/data';
@@ -17,6 +17,18 @@ const AuthenticationStage = ({
     const [errorMessage, setErrorMessage] = useState('');
     const intervalRef = useRef(null);
     const isSubmittingRef = useRef(false);
+    const isSendingRef = useRef(false);
+    const isMountedRef = useRef(true);
+    const requestSeqRef = useRef(0);
+    const autoSentIdentifierRef = useRef('');
+
+    useEffect(() => {
+        isMountedRef.current = true;
+        return () => {
+            isMountedRef.current = false;
+            requestSeqRef.current += 1;
+        };
+    }, []);
 
     // Handle resend timer
     useEffect(() => {
@@ -43,14 +55,11 @@ const AuthenticationStage = ({
         }
     }, [isLoading]);
 
-    // Auto-send OTP on mount
-    useEffect(() => {
-        if (userIdentifier && !otpSent) {
-            handleSendOTP();
-        }
-    }, [userIdentifier]);
+    const handleSendOTP = useCallback(async () => {
+        if (!userIdentifier || isSendingRef.current || isLoading) return;
 
-    const handleSendOTP = async () => {
+        isSendingRef.current = true;
+        const reqId = ++requestSeqRef.current;
         setIsSending(true);
         setErrorMessage('');
         try {
@@ -60,13 +69,23 @@ const AuthenticationStage = ({
             if (typeof sendFn === 'function') {
                 result = await sendFn(cleanPhone);
             } else {
-                const response = await axios.post(`${API}/auth/otp/send`, { user: cleanPhone });
+                const response = await axios.post(
+                    `${API}/auth/otp/send`,
+                    { user: cleanPhone },
+                    { timeout: 15000 }
+                );
+                const isSuccess = typeof response.data?.success === 'boolean'
+                    ? response.data.success
+                    : Boolean(response.data && response.status < 300);
                 result = {
-                    success: response.data && (response.data.success || response.status < 300),
+                    success: isSuccess,
                     message: response.data?.message || "OTP sent successfully",
                     data: response.data
                 };
             }
+
+            if (!isMountedRef.current || reqId !== requestSeqRef.current) return;
+
             if (result && result.success) {
                 setOtpSent(true);
                 setResendTimer(30);
@@ -75,16 +94,28 @@ const AuthenticationStage = ({
                 throw new Error(result?.message || "Failed to send OTP code.");
             }
         } catch (error) {
+            if (!isMountedRef.current || reqId !== requestSeqRef.current) return;
             console.error('Failed to send OTP:', error);
             const msg = error.response?.data?.message || error.message || "Failed to send OTP code. Please try again.";
             setErrorMessage(msg);
         } finally {
-            setIsSending(false);
+            isSendingRef.current = false;
+            if (isMountedRef.current && reqId === requestSeqRef.current) {
+                setIsSending(false);
+            }
         }
-    };
+    }, [userIdentifier, isLoading]);
+
+    // Auto-send OTP once per identifier on mount
+    useEffect(() => {
+        if (userIdentifier && !otpSent && autoSentIdentifierRef.current !== userIdentifier) {
+            autoSentIdentifierRef.current = userIdentifier;
+            handleSendOTP();
+        }
+    }, [userIdentifier, otpSent, handleSendOTP]);
 
     const handleResendOTP = () => {
-        if (resendTimer === 0 && !isSending && !isLoading) {
+        if (resendTimer === 0 && !isSendingRef.current && !isLoading) {
             handleSendOTP();
         }
     };
@@ -115,7 +146,7 @@ const AuthenticationStage = ({
                 type="button" 
                 onClick={onBack}
                 className="back-button"
-                disabled={isLoading || isSending}
+                disabled={isLoading}
             >
                 ← Back
             </button>
@@ -129,18 +160,19 @@ const AuthenticationStage = ({
             {/* OTP Form */}
             <form onSubmit={(e) => e.preventDefault()} className="authentication-form">
                 <div className="otp-section">
+                    {errorMessage && (
+                        <div className="alert alert-danger mb-3 p-2 text-center" style={{fontSize: '0.9rem', color: '#dc3545'}}>
+                            {errorMessage}
+                        </div>
+                    )}
                     {!otpSent ? (
                         <div className="otp-send-section">
                             <p className="auth-description">We'll send a 5-digit code to your phone</p>
-                            {errorMessage && (
-                                <div className="alert alert-danger mb-3 p-2 text-center" style={{fontSize: '0.9rem', color: '#dc3545'}}>
-                                    {errorMessage}
-                                </div>
-                            )}
                             <button
                                 type="button"
                                 onClick={handleSendOTP}
                                 className="btn btn-primary"
+                                disabled={isSending || isLoading}
                             >
                                 {isSending ? (
                                     <>

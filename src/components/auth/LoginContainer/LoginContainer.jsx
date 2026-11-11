@@ -15,6 +15,7 @@ import ErrorDisplay from '../SharedComponents/ErrorDisplay';
 const LoginContainer = () => {
     const history = useHistory();
     const isMountedRef = useRef(true);
+    const redirectTimerRef = useRef(null);
     const { isDarkMode, toggleDarkMode } = useTheme();
     
     // Authentication state
@@ -35,6 +36,7 @@ const LoginContainer = () => {
 
     // Load session data and school meta on mount
     useEffect(() => {
+        isMountedRef.current = true;
         loadSessionData();
         loadSchoolMeta();
         const cleanupInactivity = setupInactivityDetection();
@@ -42,9 +44,10 @@ const LoginContainer = () => {
         // Check for locked session and show welcome message
         const urlParams = new URLSearchParams(window.location.search);
         const wasLocked = urlParams.get('locked');
+        let lockWelcomeTimer = null;
         if (wasLocked === 'true') {
             setSyncingMessage('Welcome back! Your session was secured for your protection.');
-            setTimeout(() => {
+            lockWelcomeTimer = setTimeout(() => {
                 if (isMountedRef.current) {
                     setSyncingMessage('');
                 }
@@ -56,7 +59,12 @@ const LoginContainer = () => {
             history.push('/results');
         }
         
-        return cleanupInactivity;
+        return () => {
+            isMountedRef.current = false;
+            if (lockWelcomeTimer) clearTimeout(lockWelcomeTimer);
+            if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+            cleanupInactivity();
+        };
     }, [history]);
 
     const loadSessionData = () => {
@@ -161,11 +169,12 @@ const LoginContainer = () => {
             console.log('?? Starting authentication with method:', method);
             let response;
             
+            const cleanUser = (userIdentifier || '').replace(/[\s\-()]/g, '');
             console.log('?? Sending OTP request to:', `${API}/auth/verify/sms`);
             response = await axios.post(`${API}/auth/verify/sms`, {
-                user: userIdentifier,
+                user: cleanUser,
                 password: credentials.otp
-            });
+            }, { timeout: 15000 });
             
             console.log('?? Server response:', response);
             console.log('?? Response data:', response.data);
@@ -190,6 +199,7 @@ const LoginContainer = () => {
             await handleLoginSuccess(token, userData);
             
         } catch (err) {
+            if (!isMountedRef.current) return;
             console.error('?? Authentication error:', err);
             const errorMsg = err.response?.data?.message || err.message || 'Authentication failed';
             setError(errorMsg);
@@ -209,7 +219,9 @@ const LoginContainer = () => {
         };
         
         localStorage.setItem('lastLoginSession', JSON.stringify(sessionInfo));
-        setSessionData(sessionInfo);
+        if (isMountedRef.current) {
+            setSessionData(sessionInfo);
+        }
         
         // Store current school branding for persistence
         if (schoolMeta) {
@@ -219,7 +231,7 @@ const LoginContainer = () => {
 
     const handleLoginSuccess = async (token, userData) => {
         console.log('🚀 Starting login success handling...');
-        setSyncingMessage('Preparing your session...');
+        if (isMountedRef.current) setSyncingMessage('Preparing your session...');
         
         try {
             console.log('💾 Storing authorization token...');
@@ -231,29 +243,29 @@ const LoginContainer = () => {
             Data.init();
             
             console.log('🎯 Setting redirect message...');
-            setSyncingMessage('Redirecting to dashboard...');
+            if (isMountedRef.current) setSyncingMessage('Redirecting to dashboard...');
             
             // Navigate based on user type
             const userType = userData.userType?.toLowerCase();
             console.log('👤 User type:', userType);
-            let redirectPath = '/results';
-            
-            if (userType === 'admin') {
-                redirectPath = '/results';
-            } else if (userType === 'teacher' || userType === 'parent') {
-                redirectPath = '/results';
-            }
+            const redirectPath = '/results';
             
             console.log('🔄 Redirecting to:', redirectPath);
-            setTimeout(() => {
+            if (redirectTimerRef.current) clearTimeout(redirectTimerRef.current);
+            redirectTimerRef.current = setTimeout(() => {
+                if (!isMountedRef.current) return;
                 console.log('🚀 Executing navigation to:', redirectPath);
                 history.push(redirectPath);
             }, 1000);
             
         } catch (error) {
             console.error('❌ Login success handling failed:', error);
-            setError('Failed to complete login process');
-            setIsLoading(false);
+            if (isMountedRef.current) {
+                setSyncingMessage('');
+                setError('Failed to complete login process');
+                setIsLoading(false);
+                setIsNetworkRequest(false);
+            }
         }
     };
 

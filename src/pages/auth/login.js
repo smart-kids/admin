@@ -234,8 +234,11 @@ class Login extends React.Component {
         }
         this.setState({ isLoading: true, error: "" });
         try {
-            const res = await axios.post(`${API}/auth/otp/send`, { user: cleanUser });
-            if (res.data && (res.data.success || res.status < 300)) {
+            const res = await axios.post(`${API}/auth/otp/send`, { user: cleanUser }, { timeout: 15000 });
+            const isSuccess = typeof res.data?.success === 'boolean'
+                ? res.data.success
+                : Boolean(res.data && res.status < 300);
+            if (isSuccess) {
                 toastr && toastr.success("OTP Sent", "Verification code sent to your phone.");
                 if (this._isMounted) this.setState({ showOtpInput: true, isOtpSent: true, isLoading: false, password: "", otpCode: "" });
                 setTimeout(() => {
@@ -254,12 +257,12 @@ class Login extends React.Component {
             if (this._isMounted) this.setState({ error: errorMsg, isLoading: false, isOtpSent: false, showOtpInput: false });
             toastr && toastr.error(isNotRegistered ? "Phone Not Found" : "OTP Send Failed", errorMsg);
         }
-        }
     };
 
     handleVerifyOtp = async () => {
         const { user, otpCode } = this.state;
-        if (!user || !otpCode || otpCode.length !== 5) {
+        const cleanUser = (user || '').replace(/[\s\-()]/g, '');
+        if (!cleanUser || !otpCode || otpCode.length !== 5) {
             this.setState({ error: "Please enter 5-digit OTP code." });
             toastr && toastr.warning("Invalid OTP", "Please enter 5-digit OTP code.");
             return;
@@ -268,7 +271,7 @@ class Login extends React.Component {
         
         try {
             // Use regular OTP verification - backend now handles superadmin phones
-            const res = await axios.post(`${API}/auth/verify/sms`, { user, password: otpCode });
+            const res = await axios.post(`${API}/auth/verify/sms`, { user: cleanUser, password: otpCode }, { timeout: 15000 });
             
             const { token, user: userData } = res.data;
             if (!token || !userData) throw new Error("Invalid response from server.");

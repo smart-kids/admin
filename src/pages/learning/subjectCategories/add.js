@@ -49,13 +49,14 @@ class Add extends Component {
     handleSubmit = async (e) => {
         e.preventDefault();
         const { name, grade, subjects } = this.state;
-        if (!name) return alert("Please enter a category name");
+        const trimmedName = (name || '').trim();
+        if (!trimmedName) return alert("Please enter a category name");
 
         this.setState({ processing: true });
         try {
             const subjectIds = subjects.map(s => s.value);
             await Data.rubricSubjectCategories.create({ 
-                name, 
+                name: trimmedName, 
                 grade: grade ? grade.value : undefined,
                 subjects: subjectIds,
                 school: localStorage.getItem('school')

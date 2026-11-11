@@ -14,9 +14,13 @@ const OTPBoxInput = ({ length = 5, onComplete, disabled = false, autoFocus = fal
 
     // Auto-focus first input if autoFocus
     useEffect(() => {
-        if (autoFocus && inputRefs.current[0]) {
-            setTimeout(() => inputRefs.current[0].focus(), 100);
-        }
+        if (!autoFocus || !inputRefs.current[0]) return;
+        const focusTimer = setTimeout(() => {
+            if (inputRefs.current[0]) {
+                inputRefs.current[0].focus();
+            }
+        }, 100);
+        return () => clearTimeout(focusTimer);
     }, [autoFocus]);
 
     // Handle paste event
@@ -193,7 +197,7 @@ const OTPBoxInput = ({ length = 5, onComplete, disabled = false, autoFocus = fal
                         onKeyDown={(e) => handleKeyDown(index, e)}
                         onFocus={() => handleFocus(index)}
                         onBlur={() => handleBlur(index)}
-                        onPaste={index === 0 ? handlePaste : undefined}
+                        onPaste={handlePaste}
                         className={`otp-box ${value ? 'filled' : ''} ${focusedIndex === index ? 'focused' : ''}`}
                         disabled={disabled}
                         autoComplete="one-time-code"

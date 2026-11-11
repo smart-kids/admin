@@ -1911,6 +1911,35 @@ var Data = (function () {
         generatedApis[config.name] = createEntityAPI(config);
     });
 
+    const sanitizeOtpPhone = (phoneNumber) => (phoneNumber || '').replace(/[\s\-()]/g, '');
+
+    const postAuthOtpRequest = async (endpoint, payload, defaultSuccessMessage, defaultErrorMessage) => {
+        try {
+            const response = await axios.post(`${API}${endpoint}`, payload, { timeout: 15000 });
+            const isSuccess = typeof response.data?.success === 'boolean'
+                ? response.data.success
+                : Boolean(response.data && response.status < 300);
+            return {
+                success: isSuccess,
+                message: response.data?.message || defaultSuccessMessage,
+                data: response.data
+            };
+        } catch (error) {
+            console.error(`${defaultErrorMessage}:`, error);
+            return {
+                success: false,
+                message: error.response?.data?.message || error.message || defaultErrorMessage,
+                error
+            };
+        }
+    };
+
+    const sendOTP = (phoneNumber) =>
+        postAuthOtpRequest('/auth/otp/send', { user: sanitizeOtpPhone(phoneNumber) }, 'OTP sent successfully', 'Failed to send OTP');
+
+    const verifyOTP = (phoneNumber, otpCode) =>
+        postAuthOtpRequest('/auth/verify/sms', { user: sanitizeOtpPhone(phoneNumber), password: otpCode }, 'OTP verified successfully', 'Failed to verify OTP');
+
     instance = {
         loading: {
             subscribe: (callback) => {
@@ -1960,47 +1989,8 @@ var Data = (function () {
                         }
                     }`, { sms: formattedSms });
                 },
-                sendOTP: async (phoneNumber) => {
-                    try {
-                        const cleanPhone = (phoneNumber || '').replace(/[\s\-()]/g, '');
-                        const response = await axios.post(`${API}/auth/otp/send`, { 
-                            user: cleanPhone 
-                        });
-                        return {
-                            success: response.data && (response.data.success || response.status < 300),
-                            message: response.data?.message || "OTP sent successfully",
-                            data: response.data
-                        };
-                    } catch (error) {
-                        console.error('Failed to send OTP:', error);
-                        return {
-                            success: false,
-                            message: error.response?.data?.message || error.message || "Failed to send OTP",
-                            error: error
-                        };
-                    }
-                },
-                verifyOTP: async (phoneNumber, otpCode) => {
-                    try {
-                        const cleanPhone = (phoneNumber || '').replace(/[\s\-()]/g, '');
-                        const response = await axios.post(`${API}/auth/verify/sms`, { 
-                            user: cleanPhone,
-                            password: otpCode
-                        });
-                        return {
-                            success: response.data && (response.data.success || response.status < 300),
-                            message: response.data?.message || "OTP verified successfully",
-                            data: response.data
-                        };
-                    } catch (error) {
-                        console.error('Failed to verify OTP:', error);
-                        return {
-                            success: false,
-                            message: error.response?.data?.message || error.message || "Failed to verify OTP",
-                            error: error
-                        };
-                    }
-                }
+                sendOTP,
+                verifyOTP
             },
             email: {
                 create: email => {
@@ -2033,45 +2023,8 @@ var Data = (function () {
                 }
             }
         },
-        sendOTP: async (phoneNumber) => {
-                    try {
-                        const response = await axios.post(`${API}/auth/otp/send`, { 
-                            user: phoneNumber 
-                        });
-                        return {
-                            success: response.data && (response.data.success || response.status < 300),
-                            message: response.data?.message || "OTP sent successfully",
-                            data: response.data
-                        };
-                    } catch (error) {
-                        console.error('Failed to send OTP:', error);
-                        return {
-                            success: false,
-                            message: error.response?.data?.message || error.message || "Failed to send OTP",
-                            error: error
-                        };
-                    }
-                },
-                verifyOTP: async (phoneNumber, otpCode) => {
-                    try {
-                        const response = await axios.post(`${API}/auth/verify/sms`, { 
-                            user: phoneNumber,
-                            password: otpCode
-                        });
-                        return {
-                            success: response.data && (response.data.success || response.status < 300),
-                            message: response.data?.message || "OTP verified successfully",
-                            data: response.data
-                        };
-                    } catch (error) {
-                        console.error('Failed to verify OTP:', error);
-                        return {
-                            success: false,
-                            message: error.response?.data?.message || error.message || "Failed to verify OTP",
-                            error: error
-                        };
-                    }
-                },
+        sendOTP,
+        verifyOTP,
         schools: {
             setSchool: (id) => {
                 schoolID = id;
