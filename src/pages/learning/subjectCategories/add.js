@@ -48,7 +48,7 @@ class Add extends Component {
 
     handleSubmit = async (e) => {
         e.preventDefault();
-        const { name, subjects } = this.state;
+        const { name, grade, subjects } = this.state;
         if (!name) return alert("Please enter a category name");
 
         this.setState({ processing: true });
