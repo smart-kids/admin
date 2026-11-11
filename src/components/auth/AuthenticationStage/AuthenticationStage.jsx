@@ -141,7 +141,6 @@ const AuthenticationStage = ({
                                 type="button"
                                 onClick={handleSendOTP}
                                 className="btn btn-primary"
-                                disabled={isSending || isLoading}
                             >
                                 {isSending ? (
                                     <>
